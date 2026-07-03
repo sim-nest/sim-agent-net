@@ -1,0 +1,24 @@
+id = "a30-005-document-intelligence"
+title = "Document intelligence card"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 5
+tags = ["30-agents", "chapter-06", "document-intelligence", "offline", "deterministic", "fake-vision"]
+requires = ["agent", "codec/lisp", "codec/doc"]
+recipe_number = 5
+source_chapter = 6
+architecture_family = "document-intelligence"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "doc-chunk", "fake-vision", "validation-card"]
+descriptor_shape = "document-intelligence-card"
+assert_tags = ["30-agents", "chapter-06", "document-intelligence", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "document-intelligence-card"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(document-intelligence-card (id a30-005-document-intelligence) (document synthetic-invoice) (ocr (runner fake-vision) (image invoice-page-1) (text invoice-total-42-due-date-2026-07-01) (confidence 91)) (schema (field total 42 confidence 91) (field due-date 2026-07-01 confidence 88) (field vendor orchard-lab confidence 84)) (threshold 80) (validation-card (kind document-validation) (accepted total due-date vendor) (rejected none)) (ledger (trace fake-vision-schema-threshold-validation)))"

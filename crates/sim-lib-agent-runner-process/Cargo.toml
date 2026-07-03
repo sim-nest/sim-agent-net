@@ -1,0 +1,18 @@
+[package]
+name = "sim-lib-agent-runner-process"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Local subprocess-backed model runners for SIM."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+serde_json = "1"
+sim-codec = { version = "0.1.0" }
+sim-codec-chat = { version = "0.1.0" }
+sim-codec-json = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-lib-agent-runner-core = { version = "0.1.0", path = "../sim-lib-agent-runner-core" }

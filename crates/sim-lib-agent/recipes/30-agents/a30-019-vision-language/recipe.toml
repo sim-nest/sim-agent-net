@@ -1,0 +1,24 @@
+id = "a30-019-vision-language"
+title = "Vision language agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 19
+tags = ["30-agents", "chapter-11", "vision-language", "offline", "deterministic", "fake-vision"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 19
+source_chapter = 11
+architecture_family = "vision-language"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "fake-vision", "structured-fields", "effect-ledger"]
+descriptor_shape = "vision-language-trace"
+assert_tags = ["30-agents", "chapter-11", "vision-language", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "vision-language-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(vision-language-trace (id a30-019-vision-language) (fixture (asset synthetic-scene-reference) (media copied-no) (description red-cube-blue-cylinder-green-card)) (vision-runner (runner fake-vision) (caption red-cube-left-of-blue-cylinder) (confidence 93)) (structured-fields (object cube color red position left) (object cylinder color blue position right) (object card color green position back)) (parse (question count-visible-objects) (answer three) (evidence cube cylinder card)) (effect-ledger (effect load-synthetic-reference local) (effect fake-vision-caption deterministic) (effect parse-structured-fields pass)))"

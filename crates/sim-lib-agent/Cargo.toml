@@ -1,0 +1,46 @@
+[package]
+name = "sim-lib-agent"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Agent runtime surfaces for SIM."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+serde_json = "1"
+sim-citizen-derive = { version = "0.1.0" }
+sim-codec = { version = "0.1.0" }
+sim-codec-binary = { version = "0.1.0" }
+sim-codec-chat = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-lib-agent-runner-core = { version = "0.1.0", path = "../sim-lib-agent-runner-core" }
+sim-lib-agent-runner-http = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-http" }
+sim-lib-agent-runner-process = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-process" }
+sim-lib-cookbook = { version = "0.1.0", optional = true, path = "../sim-lib-cookbook" }
+sim-lib-core = { version = "0.1.0" }
+sim-lib-numbers-stats = { version = "0.1.0" }
+sim-lib-rank = { version = "0.1.0" }
+sim-lib-server = { version = "0.1.0", path = "../sim-lib-server" }
+sim-lib-stream-fabric = { version = "0.1.0", path = "../sim-lib-stream-fabric" }
+sim-lib-stream-core = { version = "0.1.0" }
+sim-shape = { version = "0.1.0" }
+sim-value = { version = "0.1.0" }
+sim-wasm-abi = { version = "0.1.0" }
+
+[dev-dependencies]
+sim-codec-chat = { version = "0.1.0" }
+sim-codec-json = { version = "0.1.0" }
+sim-codec-lisp = { version = "0.1.0" }
+sim-lib-topology = { version = "0.1.0" }
+wat = "1.245.1"
+
+[features]
+agent-net = ["sim-lib-server/server-net-http"]
+cookbook = ["dep:sim-lib-cookbook"]
+default = []
+runner-http = ["dep:sim-lib-agent-runner-http"]
+runner-ollama = ["dep:sim-lib-agent-runner-http"]
+runner-process = ["dep:sim-lib-agent-runner-process"]

@@ -1,0 +1,24 @@
+id = "a30-014-security-hardened"
+title = "Security hardened agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 14
+tags = ["30-agents", "chapter-09", "security-hardened", "offline", "deterministic", "privacy"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 14
+source_chapter = 9
+architecture_family = "security-hardened"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "privacy-redaction", "capability-deny", "effect-ledger"]
+descriptor_shape = "security-hardened-report"
+assert_tags = ["30-agents", "chapter-09", "security-hardened", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "security-hardened-report"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(security-hardened-report (id a30-014-security-hardened) (scan (fixture synthetic-handler) (finding hardcoded-token) (severity high) (span line-3)) (policy (rule secrets-must-not-leave-sandbox) (result violation)) (redaction (input token-sk-live-demo) (output token-redacted) (method privacy-policy)) (capability-decision (requested network-egress) (result deny) (reason missing-network-capability)) (remediation (action replace-secret-with-handle) (status proposed)) (effect-ledger (effect scan-code finding-hardcoded-token) (effect redact-secret token-redacted) (effect deny-network-egress capability-missing)))"

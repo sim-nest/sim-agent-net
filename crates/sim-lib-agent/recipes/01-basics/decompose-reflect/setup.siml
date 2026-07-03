@@ -1,0 +1,1 @@
+(quote (planning (decompose goal (collect-evidence summarize-answer)) (reflect critique retry-budget 1) (runner fake offline)))

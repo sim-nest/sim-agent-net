@@ -1,0 +1,24 @@
+id = "a30-023-explainable"
+title = "Explainable agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 23
+tags = ["30-agents", "chapter-12", "explainable", "offline", "deterministic", "attribution", "counterfactual"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 23
+source_chapter = 12
+architecture_family = "explainable"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "attribution-card", "counterfactual", "audience-explanation", "fail-closed", "effect-ledger"]
+descriptor_shape = "explainable-decision-trace"
+assert_tags = ["30-agents", "chapter-12", "explainable", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "explainable-decision-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(explainable-decision-trace (id a30-023-explainable) (decision (subject synthetic-claim-42) (score 72) (threshold 65) (outcome approve-review) (evidence policy-match income-stable low-risk-score complete-docs)) (attribution-card (kind fairness-attribution) (run explain-run-42) (events 3) (effects 2) (unresolved-effects 0) (evidence (event started request-score resolved) (event claim policy-match resolved) (event final approve-review resolved) (effect compute-score score-72 resolved) (effect build-counterfactual nearest-approved resolved))) (counterfactual (source synthetic-claim-42) (match synthetic-claim-07) (desired-outcome approve) (distance 18) (change risk-score from 47 to 29 delta 18)) (audience-explanations (operator approved-review-because-policy-and-score-threshold-met) (customer application-needs-review-with-clear-next-step)) (evidence-gate (required score provenance counterfactual attribution-card) (present score provenance counterfactual attribution-card) (decision pass)) (missing-evidence-probe (missing counterfactual) (decision reject-explanation) (fail-closed active)) (answer approve-review-with-evidence) (effect-ledger (effect score-decision deterministic) (effect emit-attribution-card pass) (effect find-counterfactual synthetic-claim-07) (effect render-audience-explanations two)))"

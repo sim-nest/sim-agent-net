@@ -1,0 +1,8 @@
+id = "json-stdio-fixture"
+title = "JSON stdio fixture"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["agent", "runner", "process", "fixture"]
+requires = ["agent-runner-process", "codec/lisp"]

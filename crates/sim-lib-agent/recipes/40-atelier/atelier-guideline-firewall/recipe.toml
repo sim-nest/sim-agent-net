@@ -1,0 +1,18 @@
+id = "atelier-guideline-firewall"
+title = "Guideline Firewall bad fixture"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 4
+tags = ["atelier", "guideline-firewall", "guard", "offline", "deterministic"]
+requires = ["agent", "guideline-firewall", "fake-runner", "cassette-hash"]
+runner_mode = "fake"
+live_model = false
+network = false
+cassette_hash = "fnv1a64:768ad342812bdd9a"
+cassette_events = ["fake-runner:load-bad-fixture", "guard:present-tense-public-docs", "refuse:EditRepo(sim-web)", "evidence:past-tense-wording"]
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(atelier-self-hosting (id atelier-guideline-firewall) (runner fake) (network denied) (live-model denied) (firewall (fixture bad-public-doc) (rule present-tense-public-docs) (evidence past-tense-wording) (refused-capability EditRepo(sim-web))) (cassette-hash fnv1a64:768ad342812bdd9a))"

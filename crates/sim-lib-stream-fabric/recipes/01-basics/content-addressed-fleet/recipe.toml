@@ -1,0 +1,16 @@
+id = "content-addressed-fleet"
+title = "Content-addressed fleet replay"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 30
+tags = ["stream", "fabric", "content-addressed", "fleet", "replay"]
+requires = ["stream-fabric", "standard"]
+capabilities = ["network", "eval/remote"]
+assert_tags = ["content-addressed", "fleet", "replay"]
+assert_capabilities = ["network", "eval/remote"]
+assert_setup_codec = "lisp"
+
+[[expect]]
+result = "(stream-fabric content-addressed-fleet (nodes node-a node-b node-c) (request shared) (content-key stable) (holder node-b) (caller-api realize) (after-loss replay-from-local-cassette) (unknown fail-closed))"

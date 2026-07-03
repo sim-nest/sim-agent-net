@@ -1,0 +1,23 @@
+id = "a30-capstone-domain-transforming-integration"
+title = "Domain-transforming integration capstone"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 130
+tags = ["30-agents", "chapter-16", "domain-transforming-integration", "offline", "deterministic", "capstone", "outside-30-count", "typed-graph", "simulated-actuation"]
+requires = ["agent", "topology", "codec/lisp"]
+source_chapter = 16
+architecture_family = "domain-transforming-integration"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "typed-graph", "cross-domain-composition", "capability-gate", "simulated-actuation", "effect-ledger"]
+descriptor_shape = "domain-transforming-integration-capstone"
+assert_tags = ["30-agents", "chapter-16", "domain-transforming-integration", "offline", "capstone", "outside-30-count"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "domain-transforming-integration-capstone"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(domain-transforming-integration-capstone (id a30-capstone-domain-transforming-integration) (metadata (fixture synthetic-domain-graph) (synthetic-data yes) (deterministic yes) (capstone yes) (counted-in-30 no) (actuation simulated-only)) (typed-graph (node education source a30-028 output next-objective) (node legal source a30-027 output citation-gate) (node finance source a30-026 output suitability-gate) (node embodied source a30-030 output go-no-go) (edge education embodied payload training-objective) (edge legal embodied payload compliance-boundary) (edge finance embodied payload budget-limit)) (composition (goal train-field-robot-operator) (education-objective loops-review) (legal-boundary cite-only-supported-rules) (financial-boundary suitability-pass) (embodied-boundary simulated-go-no-go)) (capability-gates (read-eval allowed) (external-network denied) (live-actuation denied) (human-review required-for-deployment)) (integration-plan (step adapt-lesson loops-review) (step verify-policy supported-rules) (step check-budget suitability-pass) (step simulate-route go-until-gate)) (safety (unsupported-citation block) (financial-advice block) (actuation simulated-only)) (answer cross-domain-training-scenario-ready) (effect-ledger (effect compose-typed-domain-graph four-nodes) (effect enforce-capability-gates denied-live-actuation) (effect preserve-domain-boundaries education-legal-finance-embodied) (effect emit-capstone-plan simulated-training)))"

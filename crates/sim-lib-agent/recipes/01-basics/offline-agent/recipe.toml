@@ -1,0 +1,8 @@
+id = "offline-agent"
+title = "Offline agent descriptor"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["agent", "offline", "runner"]
+requires = ["agent", "codec/lisp"]

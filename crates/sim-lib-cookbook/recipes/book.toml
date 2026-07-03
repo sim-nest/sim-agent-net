@@ -1,0 +1,5 @@
+book = "cookbook"
+title = "Cookbook"
+summary = "Cookbook runtime operations and seeded recipe lookup."
+order = 348
+chapters = ["01-basics"]

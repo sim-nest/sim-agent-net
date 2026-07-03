@@ -1,0 +1,8 @@
+id = "fake-multimodal"
+title = "Fake multimodal fixtures"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 30
+tags = ["agent", "multimodal", "offline", "fixtures"]
+requires = ["agent", "codec/lisp"]

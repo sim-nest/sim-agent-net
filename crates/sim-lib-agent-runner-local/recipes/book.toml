@@ -1,0 +1,5 @@
+book = "agent-runner-local"
+title = "Agent Runner Local"
+summary = "Loadable local model placement target."
+order = 343
+chapters = ["01-basics"]

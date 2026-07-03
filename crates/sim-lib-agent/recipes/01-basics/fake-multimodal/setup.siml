@@ -1,0 +1,5 @@
+(quote
+  (multimodal-fixtures
+    (vision "fixture:image:dashboard" caption "dashboard shows green deployment status" fields (status "green" owner "ops"))
+    (asr "fixture:audio:briefing" transcript "system nominal" locale "en-US")
+    (sensor-stream ((sequence 0 distance-cm 42.0) (sequence 1 distance-cm 40.5)))))

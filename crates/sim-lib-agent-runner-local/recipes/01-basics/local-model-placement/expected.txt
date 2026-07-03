@@ -1,0 +1,1 @@
+(local-model-placement (place (key "model-site:local") (runner fake) (script "placed ok")) (realize (on (model/cached (model/at "model-site:local"))) (request "One short sentence about SIM local models.") (cache read-through)) (result "placed ok") (live-model-required false))

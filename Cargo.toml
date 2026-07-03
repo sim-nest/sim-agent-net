@@ -1,0 +1,28 @@
+
+[workspace]
+resolver = "3"
+members = [
+  "crates/sim-lib-agent",
+  "crates/sim-lib-agent-runner-core",
+  "crates/sim-lib-agent-runner-http",
+  "crates/sim-lib-agent-runner-local",
+  "crates/sim-lib-agent-runner-process",
+  "crates/sim-lib-cookbook",
+  "crates/sim-lib-mcp",
+  "crates/sim-lib-openai-server",
+  "crates/sim-lib-server",
+  "crates/sim-lib-skill",
+  "crates/sim-lib-stream-fabric",
+  "crates/sim-table-remote",
+  "crates/sim-mcp-server",
+  "xtask",
+]
+
+[workspace.package]
+edition = "2024"
+license = "MPL-2.0"
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"

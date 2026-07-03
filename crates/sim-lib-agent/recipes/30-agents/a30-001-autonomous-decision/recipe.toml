@@ -1,0 +1,24 @@
+id = "a30-001-autonomous-decision"
+title = "Autonomous decision trace"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 1
+tags = ["30-agents", "chapter-05", "autonomous-decision", "offline", "deterministic", "ledger"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 1
+source_chapter = 5
+architecture_family = "autonomous-decision"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "decision-ledger"]
+descriptor_shape = "agent-pattern"
+assert_tags = ["30-agents", "chapter-05", "autonomous-decision", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "agent-pattern"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(agent-pattern (id a30-001-autonomous-decision) (sense (perception (ticket clean-room-change) (signals (risk low) (impact medium) (confidence high)))) (model fake-runner) (plan weighted-policy) (act (decision approve) (action-record approve-ticket local-agent offline-review)) (memory none) (tools none) (policy (weights (risk 45) (impact 30) (confidence 25)) (scores (approve 86) (defer 54) (escalate 29))) (evaluation deterministic-score-table) (guardrail offline-review) (trace (ledger perception-weighted-policy-action synthetic)))"

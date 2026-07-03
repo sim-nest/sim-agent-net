@@ -1,0 +1,24 @@
+id = "a30-002-planning"
+title = "Planning repair trace"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 2
+tags = ["30-agents", "chapter-05", "planning", "offline", "deterministic", "repair"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 2
+source_chapter = 5
+architecture_family = "planning"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "planning"]
+descriptor_shape = "planning-trace"
+assert_tags = ["30-agents", "chapter-05", "planning", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "planning-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(planning-trace (id a30-002-planning) (goal restore-service-health) (decompose (method decompose) (subtasks (inspect-alert) (isolate-failing-check) (apply-runbook) (verify-recovery))) (initial-plan inspect-alert isolate-failing-check apply-runbook verify-recovery) (repair (trigger stale-health-check) (replace apply-runbook restart-dependent-worker) (reason newer-symptom-evidence)) (ordered-subtasks inspect-alert isolate-failing-check restart-dependent-worker verify-recovery) (runner fake-runner) (ledger (trace decompose-repair-ordered)))"

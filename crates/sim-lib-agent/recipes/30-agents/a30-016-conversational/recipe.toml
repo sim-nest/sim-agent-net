@@ -1,0 +1,24 @@
+id = "a30-016-conversational"
+title = "Conversational agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 16
+tags = ["30-agents", "chapter-10", "conversational", "offline", "deterministic", "safety"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 16
+source_chapter = 10
+architecture_family = "conversational"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "conversation-buffer", "persona-memory", "safety-sentinel", "effect-ledger"]
+descriptor_shape = "conversational-agent-trace"
+assert_tags = ["30-agents", "chapter-10", "conversational", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "conversational-agent-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(conversational-agent-trace (id a30-016-conversational) (persona-memory (profile support-guide) (tone calm) (boundary no-diagnosis)) (conversation-buffer (turn 1 user hello) (turn 2 agent greeting) (turn 3 user crisis-keyword) (turn 4 agent safety-response)) (safety-sentinel (keyword crisis-keyword) (result escalate) (capability crisis-escalation) (blocked-generation unsafe-continuation)) (escalation (route fixture-human-support) (handoff urgent) (message supportive-hand-off)) (answer escalate-to-human-with-safe-response) (effect-ledger (effect buffer-turns four) (effect detect-crisis-keyword escalate) (effect block-unsafe-continuation enforced)))"

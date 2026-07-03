@@ -1,0 +1,5 @@
+book = "agent-runner-core"
+title = "Agent Runner Core"
+summary = "Provider-neutral model runner contracts."
+order = 80
+chapters = ["01-basics"]

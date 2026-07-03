@@ -1,0 +1,24 @@
+id = "a30-017-content-creation"
+title = "Content creation agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 17
+tags = ["30-agents", "chapter-10", "content-creation", "offline", "deterministic", "chain"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 17
+source_chapter = 10
+architecture_family = "content-creation"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "chain", "analytics-feedback", "effect-ledger"]
+descriptor_shape = "content-creation-chain"
+assert_tags = ["30-agents", "chapter-10", "content-creation", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "content-creation-chain"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(content-creation-chain (id a30-017-content-creation) (brief launch-note) (roles (sense audience-research) (model message-angle) (plan outline) (act draft) (editor brand-review)) (brand-constraints (voice concise) (avoid unsupported-claim) (required-call-to-action learn-more)) (draft (version 1) (status needs-revision) (issue call-to-action-missing)) (analytics-feedback (metric click-intent) (baseline 41) (target 55) (signal stronger-benefit-needed)) (revision (version 2) (change add-benefit-line) (change add-call-to-action) (editor-result pass)) (answer publish-draft-2) (effect-ledger (effect sense audience-research) (effect model message-angle) (effect plan outline) (effect act draft) (effect editor-enforce-brand pass) (effect apply-analytics-feedback draft-2)))"

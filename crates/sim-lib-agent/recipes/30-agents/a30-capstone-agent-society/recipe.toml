@@ -1,0 +1,23 @@
+id = "a30-capstone-agent-society"
+title = "Agent society capstone"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 140
+tags = ["30-agents", "chapter-17", "agent-society", "offline", "deterministic", "capstone", "outside-30-count", "consensus", "failure-mode"]
+requires = ["agent", "codec/lisp"]
+source_chapter = 17
+architecture_family = "agent-society"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "multi-agent-planning", "tool-use", "verification", "explanation", "safety-review", "consensus", "failure-mode", "effect-ledger"]
+descriptor_shape = "agent-society-capstone"
+assert_tags = ["30-agents", "chapter-17", "agent-society", "offline", "capstone", "outside-30-count"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "agent-society-capstone"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(agent-society-capstone (id a30-capstone-agent-society) (metadata (fixture synthetic-operations-room) (synthetic-data yes) (deterministic yes) (capstone yes) (counted-in-30 no) (network none)) (task recover-delayed-delivery-workflow) (agents (planner role planner weight 24) (tool-user role tool-user weight 20) (verifier role verifier weight 22) (explainer role explainer weight 16) (safety-reviewer role safety-reviewer weight 18)) (round-1 (planner proposes reroute-slot-b-and-notify) (tool-user calls route-simulator result slot-c-available) (verifier checks constraints result slot-b-weather-risk) (explainer drafts customer-summary) (safety-reviewer blocks unsafe-driver-overtime)) (debate (planner revises slot-c-with-notice) (tool-user confirms simulated-route-only) (verifier accepts slot-c-after-constraint-check) (explainer simplifies-summary) (safety-reviewer requires human-escalation-if-delay-greater-4h)) (consensus (method weighted-vote) (votes (planner slot-c) (tool-user slot-c) (verifier slot-c) (explainer slot-c) (safety-reviewer slot-c-with-escalation)) (decision slot-c-with-escalation-rule) (confidence 86)) (failure-modes (tool-timeout handled-by cached-route-table) (verification-fail handled-by request-replan) (safety-block handled-by human-review) (explanation-mismatch handled-by regenerate-summary)) (determinism (seed fixed-17) (external-tools simulated) (replay stable)) (answer slot-c-with-customer-notice-and-escalation-rule) (effect-ledger (effect collect-five-agent-proposals deterministic) (effect simulate-tool-route slot-c) (effect run-verifier weather-risk) (effect run-safety-review overtime-block) (effect compute-consensus slot-c-with-escalation) (effect record-failure-modes four)))"

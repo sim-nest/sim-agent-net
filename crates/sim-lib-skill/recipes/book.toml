@@ -1,0 +1,5 @@
+book = "skill"
+title = "Skill"
+summary = "Skill cards, fixture transports, cassette replay, and audit policy."
+order = 345
+chapters = ["01-basics"]

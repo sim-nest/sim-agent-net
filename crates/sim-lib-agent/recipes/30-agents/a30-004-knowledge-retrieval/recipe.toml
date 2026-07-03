@@ -1,0 +1,24 @@
+id = "a30-004-knowledge-retrieval"
+title = "Knowledge retrieval answer"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 4
+tags = ["30-agents", "chapter-06", "knowledge-retrieval", "offline", "deterministic", "retrieve"]
+requires = ["agent", "codec/lisp", "codec/doc", "rank"]
+recipe_number = 4
+source_chapter = 6
+architecture_family = "knowledge-retrieval"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "doc-chunk", "retrieve"]
+descriptor_shape = "knowledge-answer"
+assert_tags = ["30-agents", "chapter-06", "knowledge-retrieval", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "knowledge-answer"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(knowledge-answer (id a30-004-knowledge-retrieval) (corpus synthetic-handbook) (chunk (op doc/chunk-heading) (ids kb-1 kb-2 kb-3)) (index (embedding-store deterministic) (dimensions 4)) (retrieve (method rank-retrieve) (query reset-token) (top-k kb-2 kb-3) (scores (kb-2 92) (kb-3 71))) (answer rotate-reset-token-and-expire-sessions) (citations kb-2 kb-3) (provenance (trace chunk-index-retrieve-answer)))"

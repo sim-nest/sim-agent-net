@@ -1,0 +1,24 @@
+id = "a30-006-scientific-research"
+title = "Scientific research synthesis"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 6
+tags = ["30-agents", "chapter-06", "scientific-research", "offline", "deterministic", "rank-scatter"]
+requires = ["agent", "codec/lisp", "codec/doc", "rank"]
+recipe_number = 6
+source_chapter = 6
+architecture_family = "scientific-research"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "doc-chunk", "retrieve", "rank-scatter"]
+descriptor_shape = "research-synthesis"
+assert_tags = ["30-agents", "chapter-06", "scientific-research", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "research-synthesis"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(research-synthesis (id a30-006-scientific-research) (corpus synthetic-abstracts) (chunk (op doc/chunk-recursive) (ids r1-c1 r2-c1 r3-c1)) (retrieve (method rank-retrieve) (query battery-catalyst-stability) (top-k r2-c1 r3-c1)) (cluster (method rank-scatter) (groups (stability r2-c1 r3-c1) (cost r1-c1))) (novelty-filter keep-stability-drop-heat-claim) (synthesis catalyst-b-improves-stability-when-heat-managed) (provenance (cites r2-c1 r3-c1) (excluded r1-c1)))"

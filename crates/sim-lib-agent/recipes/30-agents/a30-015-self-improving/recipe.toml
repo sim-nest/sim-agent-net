@@ -1,0 +1,24 @@
+id = "a30-015-self-improving"
+title = "Self improving agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 15
+tags = ["30-agents", "chapter-09", "self-improving", "offline", "deterministic", "reflect"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 15
+source_chapter = 9
+architecture_family = "self-improving"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "reflect", "test-plan", "effect-ledger"]
+descriptor_shape = "self-improving-agent-trace"
+assert_tags = ["30-agents", "chapter-09", "self-improving", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "self-improving-agent-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(self-improving-agent-trace (id a30-015-self-improving) (goal improve-answer-grounding) (generate (candidate draft-1) (score evidence-coverage 58)) (test (fixture citation-check) (missing-citations 2) (result fail)) (analyze (method reflect) (finding unsupported-claim) (finding weak-source-link)) (refactor (candidate draft-2) (change attach-source-records) (change remove-unsupported-claim)) (bounded-loop (max-iterations 2) (iterations 1) (stop-condition metric-threshold-met)) (metric (name evidence-coverage) (before 58) (after 91) (delta 33)) (answer accept-draft-2) (effect-ledger (effect generate-candidate draft-1) (effect run-fixture-test fail) (effect reflect-analysis two-findings) (effect refactor-candidate draft-2)))"

@@ -1,0 +1,5 @@
+book = "stream-fabric"
+title = "Stream Fabric"
+summary = "Content-addressed distributed evaluation for remote stream realization."
+order = 117
+chapters = ["01-basics"]

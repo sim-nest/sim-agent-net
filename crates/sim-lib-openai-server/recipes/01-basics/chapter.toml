@@ -1,0 +1,3 @@
+title = "Basics"
+order = 10
+summary = "Deterministic gateway request and response shapes."

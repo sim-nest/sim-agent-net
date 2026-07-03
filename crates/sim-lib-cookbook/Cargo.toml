@@ -1,0 +1,34 @@
+[package]
+name = "sim-lib-cookbook"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Runtime cookbook: operations for SIM."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sim-citizen-derive = { version = "0.1.0" }
+sim-codec = { version = "0.1.0" }
+sim-codec-json = { optional = true, version = "0.1.0" }
+sim-codec-lisp = { optional = true, version = "0.1.0" }
+sim-cookbook = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-lib-agent-runner-core = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-core" }
+sim-lib-binding = { optional = true, version = "0.1.0" }
+sim-lib-core = { version = "0.1.0" }
+sim-lib-dispatch = { optional = true, version = "0.1.0" }
+sim-lib-numbers-f64 = { optional = true, version = "0.1.0" }
+sim-lib-stream-core = { optional = true, version = "0.1.0" }
+
+[dev-dependencies]
+sim-test-support = { version = "0.1.0" }
+
+[features]
+default = ["seed-recipes"]
+seed-recipes = ["dep:sim-codec-json", "dep:sim-codec-lisp", "dep:sim-lib-agent-runner-core", "dep:sim-lib-binding", "dep:sim-lib-dispatch", "dep:sim-lib-numbers-f64", "dep:sim-lib-stream-core"]
+
+[lints]
+workspace = true

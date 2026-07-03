@@ -1,0 +1,28 @@
+[package]
+name = "sim-lib-agent-runner-core"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Provider-neutral runner contracts for SIM model fabrics."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+sim-citizen = { version = "0.1.0" }
+sim-citizen-derive = { version = "0.1.0" }
+sim-codec-chat = { version = "0.1.0" }
+sim-cookbook = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-value = { version = "0.1.0" }
+sim-shape = { version = "0.1.0" }
+
+[build-dependencies]
+sim-cookbook = { version = "0.1.0" }
+
+[lints]
+workspace = true

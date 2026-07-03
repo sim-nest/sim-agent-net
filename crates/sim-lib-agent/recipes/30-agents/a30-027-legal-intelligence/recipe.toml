@@ -1,0 +1,24 @@
+id = "a30-027-legal-intelligence"
+title = "Legal intelligence agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 27
+tags = ["30-agents", "chapter-14", "legal-intelligence", "offline", "offline-review-required", "deterministic", "retrieve", "citation-verification"]
+requires = ["agent", "codec/lisp", "codec/doc", "rank"]
+recipe_number = 27
+source_chapter = 14
+architecture_family = "legal-intelligence"
+runner_mode = "fake"
+safety_posture = "offline-review-required"
+capabilities = ["read-eval", "doc-chunk", "retrieve", "authority-weighting", "citation-verify", "effect-ledger"]
+descriptor_shape = "legal-intelligence-trace"
+assert_tags = ["30-agents", "chapter-14", "legal-intelligence", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "legal-intelligence-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(legal-intelligence-trace (id a30-027-legal-intelligence) (metadata (fixture synthetic-case-corpus) (synthetic-data yes) (not-legal-advice yes) (citation-verification required)) (corpus synthetic-case-corpus (doc c1 (citation synth-101) (jurisdiction sim-federal) (authority 9) (status good-law)) (doc c2 (citation synth-204) (jurisdiction sim-state) (authority 6) (status good-law)) (doc c3 (citation synth-318) (jurisdiction sim-federal) (authority 3) (status background))) (issue (query data-retention-jurisdiction) (jurisdiction sim-federal)) (retrieve (keyword (hits c1 c3) (scores (c1 88) (c3 67))) (vector (method rank-retrieve) (top-k c2 c1) (scores (c2 91) (c1 76))) (hybrid (weights (keyword 35) (vector 45) (authority 20)) (ranked c1 c2 c3))) (authority-weighting (c1 binding) (c2 persuasive) (c3 background)) (citation-verification (supported (citation synth-101) (status verified) (authority binding)) (supported (citation synth-204) (status verified) (authority persuasive)) (unsupported (citation synth-999) (status rejected) (reason absent-from-corpus))) (fail-closed (unsupported-citation block-draft) (requires attorney-review)) (answer cite-c1-and-c2-without-synth-999) (effect-ledger (effect chunk-synthetic-corpus local) (effect hybrid-retrieve ranked-c1-c2-c3) (effect apply-authority-weighting binding-first) (effect verify-citations rejected-synth-999) (effect block-unsupported-citation attorney-review)))"

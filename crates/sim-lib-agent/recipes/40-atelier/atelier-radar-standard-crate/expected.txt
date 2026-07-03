@@ -1,0 +1,1 @@
+(atelier-self-hosting (id atelier-radar-standard-crate) (runner fake) (network denied) (live-model denied) (radar (crate sim-kernel) (query standard-crate-operations) (hints (hint operation-registry confidence 91 rank 1) (hint export-record confidence 86 rank 2) (hint capability-surface confidence 82 rank 3))) (cassette-hash fnv1a64:7f9f5b6c744aa528))

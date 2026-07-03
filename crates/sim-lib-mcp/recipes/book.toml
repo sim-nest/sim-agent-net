@@ -1,0 +1,5 @@
+book = "mcp"
+title = "MCP"
+summary = "MCP JSON-RPC descriptors and cassette replay."
+order = 346
+chapters = ["01-basics"]

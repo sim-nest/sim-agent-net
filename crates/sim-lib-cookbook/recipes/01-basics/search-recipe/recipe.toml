@@ -1,0 +1,8 @@
+id = "search-recipe"
+title = "Search and show recipes"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["cookbook", "search", "show"]
+requires = ["cookbook", "codec/lisp"]

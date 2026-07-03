@@ -1,0 +1,18 @@
+id = "atelier-runtime-operation"
+title = "Runtime operation edit loop"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 2
+tags = ["atelier", "runtime-operation", "codec-prism", "validation", "pin-plan", "offline", "deterministic"]
+requires = ["agent", "codec-prism", "docs", "validation", "pin-plan", "fake-runner", "cassette-hash"]
+runner_mode = "fake"
+live_model = false
+network = false
+cassette_hash = "fnv1a64:8a3282f3c7ef34b2"
+cassette_events = ["fake-runner:open-runtime-op-descriptor", "editor:add-operation:sample-op", "codec-prism:lisp-json-roundtrip", "validate:meta-check", "pin-plan:sim-runtime"]
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(atelier-self-hosting (id atelier-runtime-operation) (runner fake) (network denied) (live-model denied) (operation (name sample-op) (docs rustdoc-added) (codec-prism lisp-json-roundtrip) (generated-docs simdoc-check) (validation meta-check) (pin-plan sim-runtime)) (cassette-hash fnv1a64:8a3282f3c7ef34b2))"

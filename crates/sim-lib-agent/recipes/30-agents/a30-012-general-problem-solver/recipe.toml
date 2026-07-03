@@ -1,0 +1,24 @@
+id = "a30-012-general-problem-solver"
+title = "General problem solver"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 12
+tags = ["30-agents", "chapter-08", "general-problem-solver", "offline", "deterministic", "planning"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 12
+source_chapter = 8
+architecture_family = "general-problem-solver"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "decompose", "memory-lookup", "reflect"]
+descriptor_shape = "general-problem-solver-trace"
+assert_tags = ["30-agents", "chapter-08", "general-problem-solver", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "general-problem-solver-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(general-problem-solver-trace (id a30-012-general-problem-solver) (goal reduce-queue-latency) (decompose (method decompose) (subtasks measure-latency find-bottleneck propose-change test-change)) (analogy-lookup (memory episodic) (query queue-latency) (match incident-17 batch-window-too-wide confidence 83)) (hypothesize (candidate shrink-batch-window) (expected-effect latency-drop) (confidence 78)) (test (fixture replay) (change batch-window 5) (metric p95-latency-before 240) (metric p95-latency-after 120) (result pass)) (answer shrink-batch-window-and-monitor) (ledger (trace decompose-analogy-hypothesis-test-answer)))"

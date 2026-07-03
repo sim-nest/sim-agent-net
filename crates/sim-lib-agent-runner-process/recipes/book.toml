@@ -1,0 +1,5 @@
+book = "agent-runner-process"
+title = "Agent Runner Process"
+summary = "Process runner descriptors expressed as local fixtures."
+order = 342
+chapters = ["01-basics"]

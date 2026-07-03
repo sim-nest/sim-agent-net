@@ -1,0 +1,24 @@
+id = "a30-009-agentic-workflow"
+title = "Agentic workflow"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 9
+tags = ["30-agents", "chapter-07", "agentic-workflow", "offline", "deterministic", "workflow"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 9
+source_chapter = 7
+architecture_family = "agentic-workflow"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "workflow-state", "human-gate", "effect-ledger"]
+descriptor_shape = "agentic-workflow-trace"
+assert_tags = ["30-agents", "chapter-07", "agentic-workflow", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "agentic-workflow-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(agentic-workflow-trace (id a30-009-agentic-workflow) (workflow ticket-remediation) (state-machine (state intake) (state validate) (state execute) (state review) (state complete)) (guard (from validate) (to execute) (check policy-clean) (result allow)) (human-gate (mode fixture) (decision auto-approve) (reviewer simulated-operator)) (retry (step execute-remediation) (first-attempt timeout) (second-attempt success) (max-attempts 2)) (completion (state complete) (result remediation-applied)) (effect-ledger (effect validate-policy allow) (effect request-human-approval auto-approve) (effect execute-remediation retry-success) (effect mark-complete remediation-applied)))"

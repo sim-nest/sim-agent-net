@@ -1,0 +1,8 @@
+id = "ledgered-relay"
+title = "Ledgered relay descriptor"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 20
+tags = ["stream", "fabric", "ledger", "cassette"]
+requires = ["stream-fabric", "standard"]

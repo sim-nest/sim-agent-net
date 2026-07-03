@@ -1,0 +1,8 @@
+id = "fixture-skill"
+title = "Fixture skill"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["skill", "fixture", "cassette"]
+requires = ["skill", "codec/lisp"]

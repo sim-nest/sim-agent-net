@@ -1,0 +1,8 @@
+id = "cassette-tools-list"
+title = "Cassette tools/list"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["mcp", "cassette", "json-rpc"]
+requires = ["mcp", "codec/lisp"]

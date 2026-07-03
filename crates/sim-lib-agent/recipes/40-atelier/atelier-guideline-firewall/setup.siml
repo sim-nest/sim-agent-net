@@ -1,0 +1,1 @@
+(quote (atelier-self-hosting (id atelier-guideline-firewall) (runner fake) (network denied) (live-model denied) (firewall (fixture bad-public-doc) (rule present-tense-public-docs) (evidence past-tense-wording) (refused-capability EditRepo(sim-web))) (cassette-hash fnv1a64:768ad342812bdd9a)))

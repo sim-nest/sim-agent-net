@@ -1,0 +1,8 @@
+id = "fake-runner-descriptor"
+title = "Fake runner descriptor"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["agent", "runner", "fake", "descriptor"]
+requires = ["core", "codec/lisp"]

@@ -1,0 +1,24 @@
+id = "a30-007-tool-using"
+title = "Tool using agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 7
+tags = ["30-agents", "chapter-07", "tool-using", "offline", "deterministic", "skill"]
+requires = ["agent", "codec/lisp", "skill"]
+recipe_number = 7
+source_chapter = 7
+architecture_family = "tool-using"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "tool-invoke", "tool/cache-read"]
+descriptor_shape = "tool-using-agent"
+assert_tags = ["30-agents", "chapter-07", "tool-using", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "tool-using-agent"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(tool-using-agent (id a30-007-tool-using) (goal refresh-catalog-cache) (think (need cache-status) (risk write-tool-denied)) (skill-registry (skill cache-status (capability tool/cache-read) (shape cache-status-request)) (skill cache-refresh (capability tool/cache-write) (shape cache-refresh-request))) (plan select-read-tool-safe-invoke-fallback) (capability-gate (granted tool/cache-read) (denied tool/cache-write)) (safe-invoke (skill cache-status) (args (key catalog)) (runner fake-tool) (result (status stale) (age-minutes 42))) (fallback (when cache-refresh-denied) (action queue-human-refresh)) (act (decision serve-stale-with-refresh-ticket) (tool-result stale) (ticket refresh-queued)) (ledger (trace think-plan-safe-tool-fallback)))"

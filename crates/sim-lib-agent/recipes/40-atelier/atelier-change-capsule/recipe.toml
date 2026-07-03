@@ -1,0 +1,18 @@
+id = "atelier-change-capsule"
+title = "Multi-agent Change Capsule"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 5
+tags = ["atelier", "change-capsule", "multi-agent", "cassette", "offline", "deterministic"]
+requires = ["agent", "change-capsule", "cassette-runner", "fake-runner", "cassette-hash"]
+runner_mode = "cassette"
+live_model = false
+network = false
+cassette_hash = "fnv1a64:5ec7c4222478f8f1"
+cassette_events = ["cassette-runner:cartographer-scope", "fake-runner:editor-patch", "fake-runner:guard-approve", "process:validator-pass", "process:docs-agent-pass", "fake-runner:pin-agent-plan", "fake-runner:reviewer-summary", "human-gate:approved", "replay:hash-match"]
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(atelier-self-hosting (id atelier-change-capsule) (runner cassette) (network denied) (live-model denied) (agents cartographer editor guard validator docs-agent pin-agent reviewer human-gate) (capsule (scope checked) (validation passed) (docs passed) (pin-plan ready) (human-gate approved) (replay hash-match)) (cassette-hash fnv1a64:5ec7c4222478f8f1))"

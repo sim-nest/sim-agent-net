@@ -1,0 +1,24 @@
+id = "a30-013-code-generation"
+title = "Code generation agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 13
+tags = ["30-agents", "chapter-09", "code-generation", "offline", "deterministic", "sandbox"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 13
+source_chapter = 9
+architecture_family = "code-generation"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "sandbox", "test-plan", "effect-ledger"]
+descriptor_shape = "code-generation-descriptor"
+assert_tags = ["30-agents", "chapter-09", "code-generation", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "code-generation-descriptor"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(code-generation-descriptor (id a30-013-code-generation) (task add-boundary-check) (failing-fixture (test rejects-empty-name) (message missing-validation)) (proposed-change (file virtual/customer-form.rs) (operation insert-guard) (guard name-not-empty) (effect return-validation-error)) (test-plan (step compile-virtual) (step run rejects-empty-name) (step run accepts-trimmed-name)) (sandbox (capability sandbox) (fs writes-denied) (network denied) (command cargo-test-virtual) (limit max-steps 3)) (check-result (mode descriptor-only) (status pass) (tests rejects-empty-name accepts-trimmed-name)) (effect-ledger (effect propose-patch descriptor) (effect request-sandbox-check allowed) (effect deny-real-file-write enforced)))"

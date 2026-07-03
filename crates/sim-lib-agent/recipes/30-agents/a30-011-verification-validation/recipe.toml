@@ -1,0 +1,24 @@
+id = "a30-011-verification-validation"
+title = "Verification validation agent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 11
+tags = ["30-agents", "chapter-08", "verification-validation", "offline", "deterministic", "verify"]
+requires = ["agent", "codec/lisp", "numbers/stats"]
+recipe_number = 11
+source_chapter = 8
+architecture_family = "verification-validation"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "verify", "numbers/stats", "effect-ledger"]
+descriptor_shape = "verification-validation-report"
+assert_tags = ["30-agents", "chapter-08", "verification-validation", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "verification-validation-report"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(verification-validation-report (id a30-011-verification-validation) (claim service-ready) (evidence (probe health-endpoint pass fresh) (probe worker-heartbeat stale) (probe queue-depth high)) (entailment-score (method bayesian-update) (score 62) (threshold 80)) (consistency-check (rule all-critical-probes-fresh) (result mismatch) (conflict worker-heartbeat-stale)) (decision reject-low-confidence-claim) (explanation evidence-supports-degraded-service) (ledger (trace claim-evidence-entailment-consistency-reject)))"

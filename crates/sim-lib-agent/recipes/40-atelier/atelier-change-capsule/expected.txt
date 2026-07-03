@@ -1,0 +1,1 @@
+(atelier-self-hosting (id atelier-change-capsule) (runner cassette) (network denied) (live-model denied) (agents cartographer editor guard validator docs-agent pin-agent reviewer human-gate) (capsule (scope checked) (validation passed) (docs passed) (pin-plan ready) (human-gate approved) (replay hash-match)) (cassette-hash fnv1a64:5ec7c4222478f8f1))

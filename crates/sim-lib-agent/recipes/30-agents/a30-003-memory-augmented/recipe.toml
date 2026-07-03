@@ -1,0 +1,24 @@
+id = "a30-003-memory-augmented"
+title = "Memory augmented answer"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 3
+tags = ["30-agents", "chapter-05", "memory-augmented", "offline", "deterministic", "retrieve"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 3
+source_chapter = 5
+architecture_family = "memory-augmented"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "memory", "retrieve"]
+descriptor_shape = "memory-answer"
+assert_tags = ["30-agents", "chapter-05", "memory-augmented", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "memory-answer"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(memory-answer (id a30-003-memory-augmented) (working-memory (current-goal choose-response) (query cache-miss-policy)) (episodic-memory (episode ep-17 cache-miss retry-after-backoff) (episode ep-22 cache-hit return-cached-answer) (episode ep-31 rate-limit defer-request)) (retrieve (mode table-lookup-stand-in) (query cache-miss-policy) (recalled ep-17 ep-31)) (answer retry-after-backoff-then-defer-on-rate-limit) (ledger (trace working-episodic-retrieve-answer) (runner fake-runner)))"

@@ -1,0 +1,24 @@
+id = "a30-008-chain-orchestrator"
+title = "Chain orchestrator"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 8
+tags = ["30-agents", "chapter-07", "chain-orchestrator", "offline", "deterministic", "market"]
+requires = ["agent", "codec/lisp"]
+recipe_number = 8
+source_chapter = 7
+architecture_family = "chain-orchestrator"
+runner_mode = "fake"
+safety_posture = "offline"
+capabilities = ["read-eval", "agent-chain", "market-route"]
+descriptor_shape = "chain-orchestrator-trace"
+assert_tags = ["30-agents", "chapter-07", "chain-orchestrator", "offline"]
+assert_capabilities = ["read-eval"]
+assert_setup_codec = "lisp"
+assert_descriptor_shape = "chain-orchestrator-trace"
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(chain-orchestrator-trace (id a30-008-chain-orchestrator) (manager incident-manager) (roles (agent triage-agent confidence 76) (agent repair-agent confidence 84) (agent verifier-agent confidence 91)) (chain (handoff incident-manager triage-agent) (handoff triage-agent repair-agent) (handoff repair-agent verifier-agent) (handoff verifier-agent incident-manager)) (market (bid triage-agent isolate-config 76) (bid repair-agent restart-worker 84) (bid verifier-agent restart-worker-after-config-check 91)) (conflict-resolution (method confidence-weighted) (winner verifier-agent) (decision restart-worker-after-config-check)) (handoff-trace incident-manager triage-agent repair-agent verifier-agent incident-manager) (ledger (trace manager-chain-market-resolution)))"

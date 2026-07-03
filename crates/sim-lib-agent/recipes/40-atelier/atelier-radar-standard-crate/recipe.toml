@@ -1,0 +1,18 @@
+id = "atelier-radar-standard-crate"
+title = "Retrieval Radar standard crate"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 1
+tags = ["atelier", "radar", "standard-crate", "ranked-hints", "offline", "deterministic"]
+requires = ["agent", "radar", "fake-runner", "cassette-hash"]
+runner_mode = "fake"
+live_model = false
+network = false
+cassette_hash = "fnv1a64:7f9f5b6c744aa528"
+cassette_events = ["fake-runner:load-index:sim-kernel", "radar-query:standard-crate-operations", "rank:hints:3", "explain:confidence:0.91"]
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(atelier-self-hosting (id atelier-radar-standard-crate) (runner fake) (network denied) (live-model denied) (radar (crate sim-kernel) (query standard-crate-operations) (hints (hint operation-registry confidence 91 rank 1) (hint export-record confidence 86 rank 2) (hint capability-surface confidence 82 rank 3))) (cassette-hash fnv1a64:7f9f5b6c744aa528))"

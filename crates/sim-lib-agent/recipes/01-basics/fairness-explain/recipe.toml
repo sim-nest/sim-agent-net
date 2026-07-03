@@ -1,0 +1,8 @@
+id = "fairness-explain"
+title = "Fairness explain"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 30
+tags = ["agent", "fairness", "explanation", "offline"]
+requires = ["agent", "codec/lisp", "numbers-stats"]

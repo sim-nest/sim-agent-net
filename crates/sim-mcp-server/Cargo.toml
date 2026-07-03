@@ -1,0 +1,22 @@
+[package]
+name = "sim-mcp-server"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "SIM workspace package for sim mcp server."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sim-codec-mcp = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-value = { version = "0.1.0" }
+sim-lib-mcp = { version = "0.1.0", features = ["stdio"], path = "../sim-lib-mcp" }
+
+[dev-dependencies]
+sim-codec = { version = "0.1.0" }
+
+[lints]
+workspace = true

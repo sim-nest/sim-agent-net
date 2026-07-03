@@ -1,0 +1,18 @@
+id = "atelier-codec-roundtrip"
+title = "Codec round-trip fixture"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 3
+tags = ["atelier", "codec-prism", "roundtrip", "offline", "deterministic"]
+requires = ["agent", "codec-prism", "fake-runner", "cassette-hash"]
+runner_mode = "fake"
+live_model = false
+network = false
+cassette_hash = "fnv1a64:32be093d6f32315a"
+cassette_events = ["fake-runner:load-codec-fixture", "codec-prism:lisp-json-algol-roundtrip", "assert:semantic-id-stable", "docs:simdoc-check"]
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(atelier-self-hosting (id atelier-codec-roundtrip) (runner fake) (network denied) (live-model denied) (codec-prism (fixture tiny-expr) (codecs lisp json algol) (semantic-id stable) (diagnostics none)) (cassette-hash fnv1a64:32be093d6f32315a))"

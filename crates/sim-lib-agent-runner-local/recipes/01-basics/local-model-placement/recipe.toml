@@ -1,0 +1,13 @@
+id = "local-model-placement"
+title = "Local model placement"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["agent", "runner", "local-model", "placement", "fixture", "cache"]
+requires = ["agent-runner-local", "agent", "codec/lisp"]
+
+[[expect]]
+form = 0
+result = "(local-model-placement (place (key \"model-site:local\") (runner fake) (script \"placed ok\")) (realize (on (model/cached (model/at \"model-site:local\"))) (request \"One short sentence about SIM local models.\") (cache read-through)) (result \"placed ok\") (live-model-required false))"

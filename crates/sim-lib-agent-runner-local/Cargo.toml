@@ -1,0 +1,33 @@
+[package]
+name = "sim-lib-agent-runner-local"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Loadable local model runner for SIM."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+path = "src/lib.rs"
+
+[features]
+default = []
+native-export = ["dep:sim-codec-binary", "dep:sim-macros"]
+native-inference = []
+wasm-model = ["dep:sim-wasm-abi"]
+
+[dependencies]
+sim-codec-binary = { version = "0.1.0", optional = true }
+sim-kernel = { version = "0.1.0" }
+sim-lib-agent-runner-core = { version = "0.1.0", path = "../sim-lib-agent-runner-core" }
+sim-macros = { version = "0.1.0", optional = true }
+sim-wasm-abi = { version = "0.1.0", optional = true, features = ["model"] }
+
+[dev-dependencies]
+sim-codec-chat = { version = "0.1.0" }
+sim-codec-binary = { version = "0.1.0" }
+sim-lib-agent = { version = "0.1.0", path = "../sim-lib-agent" }
+wat = "1.245.1"
