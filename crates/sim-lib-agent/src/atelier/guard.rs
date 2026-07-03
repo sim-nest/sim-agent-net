@@ -250,9 +250,7 @@ fn hard_denial_reason(mission: &AgentMission, action: &AtelierAction) -> Option<
         AtelierAction::FlipPublishToGithub { .. } => {
             Some("changing publish_to_github is denied".to_owned())
         }
-        AtelierAction::PushMirrorRemote => {
-            Some("pushing to a mirror remote is denied".to_owned())
-        }
+        AtelierAction::PushMirrorRemote => Some("pushing to a mirror remote is denied".to_owned()),
         AtelierAction::RegenDocs { .. }
         | AtelierAction::PlanPin { .. }
         | AtelierAction::RunValidation { .. }
