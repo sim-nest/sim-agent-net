@@ -4,7 +4,9 @@ use sim_codec_mcp::{
     EXECUTION_ERROR, METHOD_NOT_FOUND, McpEnvelope, McpErrorEnvelope, McpNotification, McpRequest,
     McpResponse, envelope_to_expr, expr_to_envelope,
 };
-use sim_kernel::{Args, CapabilityName, Cx, Expr, ShapeRef, Symbol};
+#[cfg(feature = "skill")]
+use sim_kernel::Cx;
+use sim_kernel::{Args, CapabilityName, Expr, ShapeRef, Symbol};
 use sim_shape::{AnyShape, shape_value};
 
 use crate::{

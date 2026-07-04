@@ -1,4 +1,4 @@
-#![cfg(feature = "serve")]
+#![cfg(feature = "skill")]
 
 use std::sync::Arc;
 
