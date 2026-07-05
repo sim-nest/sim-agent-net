@@ -4,15 +4,15 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use crate::stdio::{StdioOptions, run_stdio};
+use crate::{
+    McpExportFacet, McpNativeCard, McpProfile, McpRouter, McpSession, mcp_tools_call_capability,
+};
 use sim_codec::encode_with_codec;
 use sim_codec_mcp::{McpCodecLib, McpEnvelope, McpRequest, envelope_to_expr};
 use sim_kernel::{
     AbiVersion, Args, Callable, Cx, DefaultFactory, EagerPolicy, EncodeOptions, Export, Expr, Lib,
     LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
-};
-use crate::stdio::{StdioOptions, run_stdio};
-use crate::{
-    McpExportFacet, McpNativeCard, McpProfile, McpRouter, McpSession, mcp_tools_call_capability,
 };
 
 #[test]

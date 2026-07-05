@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use sim_codec_mcp::McpCodecLib;
 use sim_kernel::{
-    AbiVersion, Args, CapabilityName, Callable, CodecId, Cx, Error, Export, Expr, Lib, LibManifest,
+    AbiVersion, Args, Callable, CapabilityName, CodecId, Cx, Error, Export, Expr, Lib, LibManifest,
     LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
 };
 use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
@@ -112,8 +112,8 @@ impl Callable for McpServeEntrypoint {
         // method surface so the router can dispatch protocol calls.
         install_mcp_lib(cx)?;
 
-        let mut session = McpSession::new("stdio", opts.profile)
-            .with_granted_capability(mcp_stdio_capability());
+        let mut session =
+            McpSession::new("stdio", opts.profile).with_granted_capability(mcp_stdio_capability());
         for capability in opts.capabilities {
             session = session.with_granted_capability(capability);
         }
@@ -232,12 +232,16 @@ impl CliOptions {
                     profile = parse_profile(&name)?;
                 }
                 "--allow-tool" => {
-                    profile = profile
-                        .with_allowed_name(next_arg(&mut iter, "--allow-tool expects a name or glob")?);
+                    profile = profile.with_allowed_name(next_arg(
+                        &mut iter,
+                        "--allow-tool expects a name or glob",
+                    )?);
                 }
                 "--deny-tool" => {
-                    profile = profile
-                        .with_denied_name(next_arg(&mut iter, "--deny-tool expects a name or glob")?);
+                    profile = profile.with_denied_name(next_arg(
+                        &mut iter,
+                        "--deny-tool expects a name or glob",
+                    )?);
                 }
                 "--cap" => {
                     capabilities.push(CapabilityName::new(next_arg(
@@ -250,7 +254,9 @@ impl CliOptions {
                 }
                 "--log-stderr" => log_stderr = true,
                 other => {
-                    return Err(Error::Eval(format!("unknown sim-mcp-server option {other}")));
+                    return Err(Error::Eval(format!(
+                        "unknown sim-mcp-server option {other}"
+                    )));
                 }
             }
         }
@@ -315,7 +321,10 @@ mod tests {
         .unwrap();
 
         assert_eq!(opts.transport, Transport::Stdio);
-        assert_eq!(opts.capabilities, vec![CapabilityName::new("mcp.tools.call")]);
+        assert_eq!(
+            opts.capabilities,
+            vec![CapabilityName::new("mcp.tools.call")]
+        );
         assert!(opts.log_stderr);
         assert!(opts.profile.allows_name("core.echo"));
         assert!(!opts.profile.allows_name("core.dangerous"));

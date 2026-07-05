@@ -27,14 +27,14 @@ mod sampling;
 mod schema;
 #[cfg(feature = "serve")]
 mod serve;
-#[cfg(all(test, feature = "stdio"))]
-mod stdio_tests;
 mod session;
 #[cfg(feature = "skill")]
 mod skill;
 /// Line-delimited MCP transport over standard input and output.
 #[cfg(feature = "stdio")]
 pub mod stdio;
+#[cfg(all(test, feature = "stdio"))]
+mod stdio_tests;
 #[cfg(feature = "stream")]
 mod stream;
 mod surface;
