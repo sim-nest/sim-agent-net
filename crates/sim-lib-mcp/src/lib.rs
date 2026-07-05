@@ -25,6 +25,10 @@ mod router;
 #[cfg(feature = "sampling")]
 mod sampling;
 mod schema;
+#[cfg(feature = "serve")]
+mod serve;
+#[cfg(all(test, feature = "stdio"))]
+mod stdio_tests;
 mod session;
 #[cfg(feature = "skill")]
 mod skill;
@@ -93,6 +97,8 @@ pub use sampling::{
     sampling_runner_value,
 };
 pub use schema::shape_to_json_schema;
+#[cfg(feature = "serve")]
+pub use serve::{CliOptions, McpServeLib, Transport, mcp_bootloader, mcp_serve_entrypoint_symbol};
 pub use session::McpSession;
 #[cfg(feature = "skill")]
 pub use skill::{project_skill_surface, skill_surface_rows};

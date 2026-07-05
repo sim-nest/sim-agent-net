@@ -10,13 +10,10 @@ repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
-sim-codec-mcp = { version = "0.1.0" }
-sim-kernel = { version = "0.1.0" }
-sim-value = { version = "0.1.0" }
-sim-lib-mcp = { version = "0.1.0", features = ["stdio"], path = "../sim-lib-mcp" }
+sim-lib-mcp = { version = "0.1.0", features = ["serve"], path = "../sim-lib-mcp" }
+sim-run-core = { version = "0.1.0" }
 
-[dev-dependencies]
-sim-codec = { version = "0.1.0" }
+
 
 [lints]
 workspace = true

@@ -10,8 +10,8 @@ use sim_kernel::{
     AbiVersion, Args, Callable, Cx, DefaultFactory, EagerPolicy, EncodeOptions, Export, Expr, Lib,
     LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
 };
-use sim_lib_mcp::stdio::{StdioOptions, run_stdio};
-use sim_lib_mcp::{
+use crate::stdio::{StdioOptions, run_stdio};
+use crate::{
     McpExportFacet, McpNativeCard, McpProfile, McpRouter, McpSession, mcp_tools_call_capability,
 };
 
