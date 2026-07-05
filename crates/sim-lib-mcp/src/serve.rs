@@ -5,9 +5,12 @@
 //! thin `sim_run_core::Bootloader`) dispatches the `mcp` verb, the entrypoint stands
 //! up the MCP runtime IN THE BOOTLOADER-PROVIDED `Cx` (no `Cx::new`), parses the CLI
 //! options from the boot envelope, and runs the stdio transport loop. The transport
-//! (`run_stdio`), routing (`McpRouter`), and session logic already live in this
-//! crate; this module only adds the bootloader handoff that used to live in the
-//! standalone `sim-mcp-server` binary.
+//! (`run_stdio`), routing (`McpRouter`), and session logic live in this crate; this
+//! module adds the bootloader handoff for the `mcp` serve verb.
+//!
+//! [`configure_mcp_bootloader`] registers the MCP codec + `mcp` verb onto an existing
+//! [`Bootloader`], so a downstream composer (e.g. the batteries-included `sim`) can
+//! stack MCP and other serve libraries onto one bootloader.
 
 use std::io;
 use std::sync::Arc;
@@ -19,14 +22,22 @@ use sim_kernel::{
 };
 use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
 
-/// A [`Bootloader`] pre-configured to serve MCP: the `codec/mcp` boot codec plus the
-/// `mcp` serve verb. A thin `sim-mcp-server` binary is just `mcp_bootloader().run(..)`.
-pub fn mcp_bootloader() -> Bootloader {
-    Bootloader::standard()
+/// Registers the MCP boot codec (`codec/mcp`) and the `mcp` serve verb onto an
+/// existing [`Bootloader`], returning it for further composition. A downstream binary
+/// can stack this with other serve libraries onto one bootloader.
+pub fn configure_mcp_bootloader(loader: Bootloader) -> Bootloader {
+    loader
         .host_lib("codec/mcp", || Box::new(McpCodecLib::new(CodecId(1))))
         .host_verb(MCP_SERVE_VERB, "lib/mcp-serve", || {
             Box::new(McpServeLib::new())
         })
+}
+
+/// A standalone [`Bootloader`] pre-configured to serve MCP: the `codec/mcp` boot codec
+/// plus the `mcp` serve verb. A thin `sim-mcp-server` binary is just
+/// `mcp_bootloader().run(..)`.
+pub fn mcp_bootloader() -> Bootloader {
+    configure_mcp_bootloader(Bootloader::standard())
 }
 
 use crate::stdio::{StdioOptions, mcp_stdio_capability, run_stdio};

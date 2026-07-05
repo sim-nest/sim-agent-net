@@ -1,5 +1,5 @@
 use std::{
-    env,
+    ffi::OsString,
     process::ExitCode,
     sync::{
         Arc, Mutex,
@@ -11,18 +11,33 @@ use std::{
 
 use sim_codec_binary::BinaryCodecLib;
 use sim_kernel::{
-    CapabilityName, Consistency, Cx, DefaultFactory, EagerPolicy, Error, EvalFabric, EvalMode,
-    EvalReply, EvalRequest, Expr, Result, Symbol,
+    AbiVersion, Args, Callable, CapabilityName, CodecId, Consistency, Cx, DefaultFactory,
+    EagerPolicy, Error, EvalFabric, EvalMode, EvalReply, EvalRequest, Export, Expr, Lib, LibManifest,
+    LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
 };
 use sim_lib_server::{
     EvalSite, ServerAddress, ServerFrame, ServerRuntime, TcpServerTransport, ThreadMode,
     eval_request_from_frame, server_frame_from_reply,
 };
 use sim_lib_stream_fabric::{ContentKey, ContentServeFabric, EvalCassette, EvalCassetteLedger};
+use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
+
+/// The verb the bootloader dispatches to run the fixture (`sim-fabric-cadr-fixture`).
+const CADR_FIXTURE_VERB: &str = "sim-fabric-cadr-fixture";
 
 fn main() -> ExitCode {
-    match run() {
-        Ok(()) => ExitCode::SUCCESS,
+    // Boot through sim-run like every other product binary: the bootloader dispatches
+    // the `sim-fabric-cadr-fixture` verb into the fixture entrypoint. The fixture's
+    // ServerRuntime owns its own serving `Cx` (a distinct eval surface), which is why
+    // `cx()` below carries a `bin-boot-exempt` annotation.
+    let mut args: Vec<OsString> = ["sim-fabric-cadr-fixture", "--codec", "binary", CADR_FIXTURE_VERB]
+        .into_iter()
+        .map(OsString::from)
+        .collect();
+    args.extend(std::env::args_os().skip(1));
+    match cadr_fixture_bootloader().run(args) {
+        Ok(0) => ExitCode::SUCCESS,
+        Ok(code) => ExitCode::from(code as u8),
         Err(error) => {
             eprintln!("CADR_FIXTURE_ERROR {error}");
             ExitCode::FAILURE
@@ -30,8 +45,103 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> Result<()> {
-    let config = FixtureConfig::from_args(env::args().skip(1))?;
+/// A [`Bootloader`] pre-configured to run the CADR fixture: the `codec/binary` boot
+/// codec plus the fixture verb.
+fn cadr_fixture_bootloader() -> Bootloader {
+    Bootloader::standard()
+        .host_lib("codec/binary", || Box::new(BinaryCodecLib::new(CodecId(1))))
+        .host_verb(CADR_FIXTURE_VERB, "lib/cadr-fixture", || {
+            Box::new(CadrFixtureLib)
+        })
+        .with_capability(CapabilityName::new("network"))
+}
+
+/// Loadable library exporting the fixture `cli/main/sim-fabric-cadr-fixture` entrypoint.
+struct CadrFixtureLib;
+
+impl Lib for CadrFixtureLib {
+    fn manifest(&self) -> LibManifest {
+        LibManifest {
+            id: Symbol::qualified("lib", "cadr-fixture"),
+            version: Version(env!("CARGO_PKG_VERSION").to_owned()),
+            abi: AbiVersion { major: 0, minor: 1 },
+            target: LibTarget::HostRegistered,
+            requires: Vec::new(),
+            capabilities: Vec::new(),
+            exports: vec![Export::Function {
+                symbol: cli_main_entrypoint_symbol(CADR_FIXTURE_VERB),
+                function_id: None,
+            }],
+        }
+    }
+
+    fn load(&self, cx: &mut LoadCx, linker: &mut Linker<'_>) -> Result<()> {
+        linker.function_value(
+            cli_main_entrypoint_symbol(CADR_FIXTURE_VERB),
+            cx.factory().opaque(Arc::new(CadrFixtureEntrypoint))?,
+        )?;
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
+struct CadrFixtureEntrypoint;
+
+impl Object for CadrFixtureEntrypoint {
+    fn display(&self, _cx: &mut Cx) -> Result<String> {
+        Ok("cli/main/sim-fabric-cadr-fixture".to_owned())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+impl ObjectCompat for CadrFixtureEntrypoint {
+    fn as_callable(&self) -> Option<&dyn Callable> {
+        Some(self)
+    }
+}
+
+impl Callable for CadrFixtureEntrypoint {
+    fn call(&self, cx: &mut Cx, args: Args) -> Result<Value> {
+        // Parse the fixture flags from the boot envelope (skipping the verb token),
+        // then run the fixture in its own ServerRuntime cx.
+        let config = match args.values().first() {
+            Some(envelope) => {
+                let payload = envelope_args(cx, envelope)?;
+                FixtureConfig::from_args(payload.into_iter().skip(1))?
+            }
+            None => FixtureConfig::from_args(std::iter::empty())?,
+        };
+        run_fixture(config)?;
+        cx.factory().bool(true)
+    }
+}
+
+/// Extracts the payload argument list from the CLI boot envelope.
+fn envelope_args(cx: &mut Cx, envelope: &Value) -> Result<Vec<String>> {
+    let Some(table) = envelope.object().as_table_impl() else {
+        return Err(Error::Eval("CLI envelope is not a table".to_owned()));
+    };
+    let value = table.get(cx, Symbol::new("args"))?;
+    let Some(list) = value.object().as_list() else {
+        return Err(Error::Eval(
+            "CLI envelope field args is not a list".to_owned(),
+        ));
+    };
+    list.to_vec(cx, Some(64))?
+        .into_iter()
+        .map(|value| match value.object().as_expr(cx)? {
+            Expr::String(text) => Ok(text),
+            other => Err(Error::Eval(format!(
+                "CLI payload argument is not a string: {other:?}"
+            ))),
+        })
+        .collect()
+}
+
+fn run_fixture(config: FixtureConfig) -> Result<()> {
     let transport = Arc::new(TcpServerTransport::bind(ServerAddress::Tcp {
         host: loopback_host(),
         port: 0,
@@ -318,7 +428,10 @@ fn seed_request(expr: &str) -> EvalRequest {
 }
 
 fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    // The fixture's ServerRuntime owns its serving Cx -- a distinct eval surface
+    // answering remote eval requests on worker threads, not the binary's boot runtime
+    // (that goes through sim_run_core::Bootloader in `main`).
+    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)); // bin-boot-exempt
     let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&binary).expect("binary codec loads");
     cx.grant_named("network");

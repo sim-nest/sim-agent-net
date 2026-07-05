@@ -98,7 +98,10 @@ pub use sampling::{
 };
 pub use schema::shape_to_json_schema;
 #[cfg(feature = "serve")]
-pub use serve::{CliOptions, McpServeLib, Transport, mcp_bootloader, mcp_serve_entrypoint_symbol};
+pub use serve::{
+    CliOptions, McpServeLib, Transport, configure_mcp_bootloader, mcp_bootloader,
+    mcp_serve_entrypoint_symbol,
+};
 pub use session::McpSession;
 #[cfg(feature = "skill")]
 pub use skill::{project_skill_surface, skill_surface_rows};

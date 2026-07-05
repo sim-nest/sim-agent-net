@@ -7,7 +7,7 @@ Library-only MCP surface projection for SIM.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-mcp/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation

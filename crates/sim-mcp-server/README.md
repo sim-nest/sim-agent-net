@@ -7,8 +7,8 @@ SIM workspace package for sim mcp server.
 ## Package Metadata
 
 - Manifest: `crates/sim-mcp-server/Cargo.toml`
-- Publish: `false`
-- Targets: `bin, lib`
+- Publish: `true`
+- Targets: `bin`
 
 ## Crate Documentation
 
