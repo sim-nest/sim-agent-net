@@ -42,7 +42,7 @@ pub fn mcp_serve_entrypoint_symbol() -> Symbol {
 
 /// Loadable MCP serve library. Host-register it under a name and make it the default
 /// source for the `mcp` verb so `sim mcp --stdio` (or `sim-mcp-server --stdio`)
-/// dispatches [`McpServeEntrypoint`].
+/// dispatches its `cli/main/mcp` entrypoint, which runs the stdio transport loop.
 #[derive(Clone, Debug, Default)]
 pub struct McpServeLib;
 
