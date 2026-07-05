@@ -12,8 +12,8 @@ use std::{
 use sim_codec_binary::BinaryCodecLib;
 use sim_kernel::{
     AbiVersion, Args, Callable, CapabilityName, CodecId, Consistency, Cx, DefaultFactory,
-    EagerPolicy, Error, EvalFabric, EvalMode, EvalReply, EvalRequest, Export, Expr, Lib, LibManifest,
-    LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
+    EagerPolicy, Error, EvalFabric, EvalMode, EvalReply, EvalRequest, Export, Expr, Lib,
+    LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
 };
 use sim_lib_server::{
     EvalSite, ServerAddress, ServerFrame, ServerRuntime, TcpServerTransport, ThreadMode,
@@ -30,10 +30,15 @@ fn main() -> ExitCode {
     // the `sim-fabric-cadr-fixture` verb into the fixture entrypoint. The fixture's
     // ServerRuntime owns its own serving `Cx` (a distinct eval surface), which is why
     // `cx()` below carries a `bin-boot-exempt` annotation.
-    let mut args: Vec<OsString> = ["sim-fabric-cadr-fixture", "--codec", "binary", CADR_FIXTURE_VERB]
-        .into_iter()
-        .map(OsString::from)
-        .collect();
+    let mut args: Vec<OsString> = [
+        "sim-fabric-cadr-fixture",
+        "--codec",
+        "binary",
+        CADR_FIXTURE_VERB,
+    ]
+    .into_iter()
+    .map(OsString::from)
+    .collect();
     args.extend(std::env::args_os().skip(1));
     match cadr_fixture_bootloader().run(args) {
         Ok(0) => ExitCode::SUCCESS,
