@@ -81,6 +81,7 @@ fn run_reports_failing_expectation() {
 #[test]
 fn run_errors_on_missing_requires() {
     let mut cx = setup_cx();
+    cx.grant(read_eval_capability());
     let book: Vec<(&str, &[u8])> = vec![
         ("book.toml", b"book = \"lisp\"\ntitle = \"Lisp\"\n"),
         (
@@ -96,6 +97,28 @@ fn run_errors_on_missing_requires() {
         Error::Eval(message) => assert!(message.contains("requires libs not loaded"), "{message}"),
         other => panic!("expected Eval error, got {other:?}"),
     }
+}
+
+#[test]
+fn run_recipe_is_denied_without_read_eval() {
+    // The runner gates on read-eval at the lowest level (REVIEW_12 F4), so a
+    // caller that never obtained read-eval cannot drive an eval, even directly.
+    let mut cx = setup_cx();
+    let book: Vec<(&str, &[u8])> = vec![
+        ("book.toml", b"book = \"lisp\"\ntitle = \"Lisp\"\n"),
+        (
+            "c/r/recipe.toml",
+            b"id = \"r\"\ntitle = \"R\"\ncodec = \"lisp\"\nsetup = \"s\"\npurpose = \"p\"\n",
+        ),
+        ("c/r/s", b"(quote ok)"),
+        ("c/r/p", b"x"),
+    ];
+    let card = store_with(&book).card("lisp/c/r").cloned().unwrap();
+    let err = run_recipe(&mut cx, &card).unwrap_err();
+    assert!(
+        matches!(&err, Error::CapabilityDenied { capability } if *capability == read_eval_capability()),
+        "expected CapabilityDenied, got {err:?}"
+    );
 }
 
 #[test]
