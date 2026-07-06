@@ -24,6 +24,7 @@ sim-lib-numbers-f64 = { optional = true, version = "0.1.0" }
 sim-lib-stream-core = { optional = true, version = "0.1.0" }
 
 [dev-dependencies]
+sim-kernel = { version = "0.1", features = ["test-support"] }
 sim-test-support = { version = "0.1.0" }
 
 [features]

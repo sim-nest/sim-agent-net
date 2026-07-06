@@ -25,6 +25,9 @@ sim-lib-server = { version = "0.1.0", optional = true, default-features = false,
 sim-lib-stream-core = { version = "0.1.0" }
 sim-value = { version = "0.1.0" }
 
+[dev-dependencies]
+sim-kernel = { version = "0.1", features = ["test-support"] }
+
 [features]
 default = []
 http = ["dep:sim-lib-server", "sim-lib-server/server-net-http"]

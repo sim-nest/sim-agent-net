@@ -18,6 +18,7 @@ sim-table-core = { version = "0.1.0" }
 
 [dev-dependencies]
 sim-codec-binary = { version = "0.1.0" }
+sim-kernel = { version = "0.1", features = ["test-support"] }
 sim-table-db = { version = "0.1.0" }
 
 [lints]

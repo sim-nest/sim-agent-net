@@ -215,9 +215,9 @@ where
         )
     })?;
     let forked_request = forked_request(&source_request, patch)?;
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
     for capability in capabilities.iter() {
-        cx.grant(capability.clone());
+        seat.grant(&mut cx, capability.clone());
     }
     let mut cache = OpenAiPlanCache::new();
     let execution = execute_response_request_with_cache_runners_and_federation(

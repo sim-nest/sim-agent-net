@@ -436,10 +436,10 @@ fn cx() -> Cx {
     // The fixture's ServerRuntime owns its serving Cx -- a distinct eval surface
     // answering remote eval requests on worker threads, not the binary's boot runtime
     // (that goes through sim_run_core::Bootloader in `main`).
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)); // bin-boot-exempt
+    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory)); // bin-boot-exempt
     let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&binary).expect("binary codec loads");
-    cx.grant_named("network");
+    seat.grant_named(&mut cx, "network");
     cx
 }
 

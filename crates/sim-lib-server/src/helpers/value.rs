@@ -97,13 +97,13 @@ fn capability_name_from_expr(expr: Expr) -> Result<CapabilityName> {
 }
 
 pub(crate) fn clone_server_cx(seed: &Cx) -> Cx {
-    let mut cloned = Cx::new(seed.eval_policy_ref(), seed.factory_ref());
+    let (mut cloned, seat) = Cx::new_seated(seed.eval_policy_ref(), seed.factory_ref());
     *cloned.env_mut() = seed.env().clone();
     *cloned.registry_mut() = seed.registry().clone();
     *cloned.sources_mut() = seed.sources().clone();
     cloned.set_promotion_search_limits(seed.promotion_search_limits());
     for capability in seed.capabilities().iter() {
-        cloned.grant(capability.clone());
+        seat.grant(&mut cloned, capability.clone());
     }
     if let Some(expander) = seed.macro_expander_ref() {
         cloned.set_macro_expander(expander);

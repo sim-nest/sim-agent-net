@@ -28,6 +28,7 @@ sim-value = { version = "0.1.0" }
 
 [dev-dependencies]
 serde_json = "1"
+sim-kernel = { version = "0.1", features = ["test-support"] }
 sim-lib-agent = { version = "0.1.0", path = "../sim-lib-agent" }
 sim-lib-openai-server = { version = "0.1.0", path = "../sim-lib-openai-server" }
 sim-lib-skill = { version = "0.1.0", features = ["agent", "openai"], path = "../sim-lib-skill" }

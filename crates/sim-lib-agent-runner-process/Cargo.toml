@@ -16,3 +16,6 @@ sim-codec-chat = { version = "0.1.0" }
 sim-codec-json = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-agent-runner-core = { version = "0.1.0", path = "../sim-lib-agent-runner-core" }
+
+[dev-dependencies]
+sim-kernel = { version = "0.1", features = ["test-support"] }

@@ -4,8 +4,8 @@ use serde_json::Value as JsonValue;
 use sha2::{Digest, Sha256};
 use sim_citizen_derive::non_citizen;
 use sim_kernel::{
-    CapabilityName, CapabilitySet, Cx, DefaultFactory, Error, Expr, NoopEvalPolicy, Object,
-    ObjectCompat, Result, Symbol, Table, Value,
+    CapabilityName, CapabilitySet, Cx, DefaultFactory, Error, Expr, GrantSeat, NoopEvalPolicy,
+    Object, ObjectCompat, Result, Symbol, Table, Value,
 };
 
 use crate::objects::GatewayRequest;
@@ -240,12 +240,13 @@ pub fn redacted_gateway_request(request: &GatewayRequest) -> GatewayRequest {
     )
 }
 
-/// Grants every capability in `capabilities` to `cx`.
-pub fn grant_capability_set(cx: &mut Cx, capabilities: &CapabilitySet) {
+/// Grants every capability in `capabilities` to `cx`, through the host-held
+/// `seat` minted when `cx` was constructed.
+pub fn grant_capability_set(seat: &GrantSeat, cx: &mut Cx, capabilities: &CapabilitySet) {
     capabilities
         .iter()
         .cloned()
-        .for_each(|capability| cx.grant(capability));
+        .for_each(|capability| seat.grant(cx, capability));
 }
 
 fn key_id(hash: &str) -> String {

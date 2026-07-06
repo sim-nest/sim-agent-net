@@ -119,14 +119,14 @@ pub(super) fn model_stream_metadata(runner: Symbol, model: String) -> Expr {
 }
 
 fn clone_stream_cx(seed: &Cx) -> Cx {
-    let mut cloned = Cx::new(seed.eval_policy_ref(), seed.factory_ref());
+    let (mut cloned, seat) = Cx::new_seated(seed.eval_policy_ref(), seed.factory_ref());
     *cloned.env_mut() = seed.env().clone();
     *cloned.registry_mut() = seed.registry().clone();
     *cloned.sources_mut() = seed.sources().clone();
     cloned.set_promotion_search_limits(seed.promotion_search_limits());
     cloned.set_control_policy(seed.control_policy_ref());
     for capability in seed.capabilities().iter() {
-        cloned.grant(capability.clone());
+        seat.grant(&mut cloned, capability.clone());
     }
     if let Some(expander) = seed.macro_expander_ref() {
         cloned.set_macro_expander(expander);

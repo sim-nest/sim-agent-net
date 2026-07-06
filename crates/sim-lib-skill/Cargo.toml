@@ -27,6 +27,7 @@ sim-value = { version = "0.1.0" }
 
 [dev-dependencies]
 sim-codec-binary = { version = "0.1.0" }
+sim-kernel = { version = "0.1", features = ["test-support"] }
 
 [features]
 agent = ["dep:sim-lib-agent"]

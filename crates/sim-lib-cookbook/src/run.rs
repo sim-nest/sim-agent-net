@@ -56,6 +56,8 @@ pub fn missing_requires(cx: &Cx, card: &RecipeCard) -> Vec<String> {
 /// undecodable setup) return `Err`; an evaluation error is captured as
 /// `ok == false` with empty results so the caller still sees a `RecipeRun`.
 pub fn run_recipe(cx: &mut Cx, card: &RecipeCard) -> Result<RecipeRun> {
+    require_eval_capability(cx)?;
+
     let missing = missing_requires(cx, card);
     if !missing.is_empty() {
         return Err(Error::Eval(format!(

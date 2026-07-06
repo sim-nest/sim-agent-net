@@ -29,5 +29,6 @@ sim-wasm-abi = { version = "0.1.0", optional = true, features = ["model"] }
 [dev-dependencies]
 sim-codec-chat = { version = "0.1.0" }
 sim-codec-binary = { version = "0.1.0" }
+sim-kernel = { version = "0.1", features = ["test-support"] }
 sim-lib-agent = { version = "0.1.0", path = "../sim-lib-agent" }
 wat = "1.245.1"

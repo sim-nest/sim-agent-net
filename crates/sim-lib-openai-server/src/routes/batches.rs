@@ -224,8 +224,8 @@ where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
     C: GatewayClock,
 {
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
-    grant_capability_set(&mut cx, capabilities);
+    let (mut cx, seat) = Cx::new_seated(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    grant_capability_set(&seat, &mut cx, capabilities);
     let mut cache = OpenAiPlanCache::new();
     let mut result = BatchRunResult {
         output_records: Vec::new(),

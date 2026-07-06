@@ -34,6 +34,7 @@ sim-wasm-abi = { version = "0.1.0" }
 sim-codec-chat = { version = "0.1.0" }
 sim-codec-json = { version = "0.1.0" }
 sim-codec-lisp = { version = "0.1.0" }
+sim-kernel = { version = "0.1", features = ["test-support"] }
 sim-lib-topology = { version = "0.1.0" }
 wat = "1.245.1"
 
