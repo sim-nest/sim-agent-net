@@ -10,6 +10,9 @@ pub mod chat_completions;
 pub mod embeddings;
 /// Shared route error type and OpenAI-shaped error responses.
 pub mod errors;
+/// Shared gateway execution-record substrate (id generators, event log,
+/// request+run prologue, and the run outcome struct).
+pub(crate) mod execution_record;
 /// OpenAI files endpoint handlers.
 pub mod files;
 /// Health and readiness route handlers.
@@ -24,8 +27,6 @@ pub(crate) mod path;
 pub mod replay;
 /// Helpers for parsing JSON request bodies into objects.
 pub(crate) mod request_json;
-/// Internal event-log helpers shared across response handlers.
-pub(crate) mod response_log;
 /// Shared response-execution runtime types (targets, id generators, outcome).
 pub mod response_runtime;
 /// Helpers for chunking model output into streamed response text deltas.

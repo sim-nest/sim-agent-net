@@ -1,99 +1,29 @@
-#[cfg(test)]
-use sim_kernel::ContentId;
 use sim_kernel::{Expr, Symbol};
 
 use crate::{
     clock::GatewayClock,
-    content_id::{content_id_for_expr, request_content_id},
-    ids::GatewayIdGenerator,
-    objects::{GatewayEvent, GatewayRequest, GatewayResponse, GatewayRun},
-    runtime::redacted_gateway_request,
+    content_id::content_id_for_expr,
+    objects::{GatewayRequest, GatewayResponse},
     storage::GatewayStore,
 };
 
-use super::errors::OpenAiRouteError;
+use super::{
+    errors::OpenAiRouteError,
+    execution_record::{EventInput, EventLog, RunPrologue, append_event, begin_run},
+};
+
+/// The run_record engine (audio/images/vector_stores) shares the gateway
+/// execution-record substrate; its id generators and execution outcome are the
+/// shared types under route-local names (OVERLAP9.04).
+pub(crate) use super::execution_record::{
+    GatewayRunExecution as RouteRunExecution, GatewayRunIdGenerators as RouteRunIdGenerators,
+};
 
 type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 
-#[derive(Clone, Debug)]
-pub(crate) struct RouteRunIdGenerators {
-    request: GatewayIdGenerator,
-    run: GatewayIdGenerator,
-    event: GatewayIdGenerator,
-}
-
-impl RouteRunIdGenerators {
-    pub(crate) fn deterministic(start: u64) -> Self {
-        Self {
-            request: GatewayIdGenerator::deterministic("gwreq", start),
-            run: GatewayIdGenerator::deterministic("gwrun", start),
-            event: GatewayIdGenerator::deterministic("gwevt", start),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct RouteRunExecution {
-    response: GatewayResponse,
-    #[cfg(test)]
-    request_content_id: Option<ContentId>,
-    #[cfg(test)]
-    run_content_id: Option<ContentId>,
-    #[cfg(test)]
-    event_content_ids: Vec<ContentId>,
-    #[cfg(test)]
-    events: Vec<GatewayEvent>,
-    #[cfg(test)]
-    response_content_id: Option<ContentId>,
-}
-
-impl RouteRunExecution {
-    pub(crate) fn response(&self) -> &GatewayResponse {
-        &self.response
-    }
-
-    #[cfg(test)]
-    pub(crate) fn request_content_id(&self) -> Option<&ContentId> {
-        self.request_content_id.as_ref()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn run_content_id(&self) -> Option<&ContentId> {
-        self.run_content_id.as_ref()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn event_content_ids(&self) -> &[ContentId] {
-        &self.event_content_ids
-    }
-
-    #[cfg(test)]
-    pub(crate) fn events(&self) -> &[GatewayEvent] {
-        &self.events
-    }
-
-    #[cfg(test)]
-    pub(crate) fn response_content_id(&self) -> Option<&ContentId> {
-        self.response_content_id.as_ref()
-    }
-
-    pub(crate) fn error(error: OpenAiRouteError) -> Self {
-        Self {
-            response: error.into_response(),
-            #[cfg(test)]
-            request_content_id: None,
-            #[cfg(test)]
-            run_content_id: None,
-            #[cfg(test)]
-            event_content_ids: Vec::new(),
-            #[cfg(test)]
-            events: Vec::new(),
-            #[cfg(test)]
-            response_content_id: None,
-        }
-    }
-}
-
+/// One route-specific event to append between the shared `route-start` and
+/// `final` events: its kind and payload (the sequence is assigned by the
+/// substrate).
 #[derive(Clone, Debug)]
 pub(crate) struct RouteEventInput {
     kind: &'static str,
@@ -106,6 +36,8 @@ impl RouteEventInput {
     }
 }
 
+/// A fully-formed run to record: the wire response, the route path, the
+/// route-specific events, and whether to persist the run.
 pub(crate) struct RouteRunRecord {
     response: GatewayResponse,
     route: &'static str,
@@ -129,6 +61,10 @@ impl RouteRunRecord {
     }
 }
 
+/// Records a run_record execution: opens the run (marked `completed`), appends
+/// the shared `request-start`/`route-start` events, the route's own events, and
+/// a `final` event, then stores the response BARE via `put_response` (the
+/// object-vs-bare split that stays route-local).
 pub(crate) fn record_route_execution<S, C>(
     store: &mut S,
     ids: &mut RouteRunIdGenerators,
@@ -146,41 +82,28 @@ where
         route_events,
         store_record,
     } = record;
-    let recorded_request = redacted_gateway_request(request).with_metadata(
-        ids.request.next_id().map_err(OpenAiRouteError::internal)?,
-        clock.now_ms().map_err(OpenAiRouteError::internal)?,
-    );
-    let request_content_id =
-        request_content_id(&recorded_request).map_err(OpenAiRouteError::internal)?;
-    if store_record {
-        store
-            .put_request(request_content_id.clone(), recorded_request.clone())
-            .map_err(OpenAiRouteError::internal)?;
-    }
 
-    let run_id = ids.run.next_id().map_err(OpenAiRouteError::internal)?;
-    let run = GatewayRun::new(
-        run_id.clone(),
-        request_content_id.clone(),
-        clock.now_ms().map_err(OpenAiRouteError::internal)?,
-    )
-    .with_status(Symbol::new("completed"));
-    let run_content_id = content_id_for_expr(&run.to_expr()).map_err(OpenAiRouteError::internal)?;
-    if store_record {
-        store
-            .put_run(run_content_id.clone(), run)
-            .map_err(OpenAiRouteError::internal)?;
-    }
+    let RunPrologue {
+        recorded_request,
+        request_content_id,
+        run_id,
+        run_content_id,
+    } = begin_run(
+        store,
+        ids,
+        clock,
+        request,
+        Some(Symbol::new("completed")),
+        store_record,
+    )?;
 
-    let mut event_log = RouteEventLog::default();
+    let mut event_log = EventLog::default();
     append_event(
         store,
         ids,
         clock,
         &run_id,
-        0,
-        "request-start",
-        recorded_request.to_expr(),
+        EventInput::new(0, "request-start", recorded_request.to_expr()),
         store_record,
         &mut event_log,
     )?;
@@ -189,9 +112,7 @@ where
         ids,
         clock,
         &run_id,
-        1,
-        "route-start",
-        Expr::String(route.to_owned()),
+        EventInput::new(1, "route-start", Expr::String(route.to_owned())),
         store_record,
         &mut event_log,
     )?;
@@ -201,9 +122,7 @@ where
             ids,
             clock,
             &run_id,
-            index as u64 + 2,
-            event.kind,
-            event.payload,
+            EventInput::new(index as u64 + 2, event.kind, event.payload),
             store_record,
             &mut event_log,
         )?;
@@ -213,14 +132,15 @@ where
         ids,
         clock,
         &run_id,
-        event_log.events.len() as u64,
-        "final",
-        final_payload(route, &response),
+        EventInput::new(
+            event_log.events.len() as u64,
+            "final",
+            final_payload(route, &response),
+        ),
         store_record,
         &mut event_log,
     )?;
 
-    #[cfg(test)]
     let response_content_id = if store_record {
         let id = content_id_for_expr(&response.to_expr()).map_err(OpenAiRouteError::internal)?;
         store
@@ -230,70 +150,17 @@ where
     } else {
         None
     };
-    #[cfg(not(test))]
-    if store_record {
-        let id = content_id_for_expr(&response.to_expr()).map_err(OpenAiRouteError::internal)?;
-        store
-            .put_response(id, response.clone())
-            .map_err(OpenAiRouteError::internal)?;
-    }
 
     Ok(RouteRunExecution {
         response,
-        #[cfg(test)]
         request_content_id: Some(request_content_id),
-        #[cfg(test)]
         run_content_id: Some(run_content_id),
-        #[cfg(test)]
         event_content_ids: event_log.content_ids,
-        #[cfg(test)]
         events: event_log.events,
-        #[cfg(test)]
+        response_id: None,
+        response_created_at_ms: None,
         response_content_id,
     })
-}
-
-#[derive(Default)]
-struct RouteEventLog {
-    #[cfg(test)]
-    content_ids: Vec<ContentId>,
-    events: Vec<GatewayEvent>,
-}
-
-#[allow(clippy::too_many_arguments)]
-fn append_event<S, C>(
-    store: &mut S,
-    ids: &mut RouteRunIdGenerators,
-    clock: &mut C,
-    run_id: &str,
-    sequence: u64,
-    kind: &'static str,
-    payload: Expr,
-    store_event: bool,
-    event_log: &mut RouteEventLog,
-) -> RouteResult<()>
-where
-    S: GatewayStore,
-    C: GatewayClock,
-{
-    let event = GatewayEvent::new(
-        ids.event.next_id().map_err(OpenAiRouteError::internal)?,
-        run_id,
-        sequence,
-        Symbol::new(kind),
-        payload,
-        clock.now_ms().map_err(OpenAiRouteError::internal)?,
-    );
-    let id = content_id_for_expr(&event.to_expr()).map_err(OpenAiRouteError::internal)?;
-    if store_event {
-        store
-            .put_event(id.clone(), event.clone())
-            .map_err(OpenAiRouteError::internal)?;
-    }
-    #[cfg(test)]
-    event_log.content_ids.push(id);
-    event_log.events.push(event);
-    Ok(())
 }
 
 fn final_payload(route: &'static str, response: &GatewayResponse) -> Expr {

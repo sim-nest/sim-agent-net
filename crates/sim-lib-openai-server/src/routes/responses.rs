@@ -10,15 +10,14 @@ use crate::{
         OpenAiSseSurface, decode_openai_request, encode_gateway_events_sse,
         encode_openai_responses_response,
     },
-    content_id::{content_id_for_expr, request_content_id},
-    objects::{GatewayRequest, GatewayResponse, GatewayResponseValue, GatewayRun},
+    content_id::content_id_for_expr,
+    objects::{GatewayRequest, GatewayResponse, GatewayResponseValue},
     plan::{
         check_plan, eval_plan_report_with_cache, eval_plan_report_with_cache_and_runners,
         eval_plan_report_with_cache_runners_and_federation, parse_plan,
     },
     runtime::{
-        OpenAiGatewayFabric, OpenAiPlanCache, OpenAiRunnerRegistry, redacted_gateway_request,
-        run_tool_loop_with_cache,
+        OpenAiGatewayFabric, OpenAiPlanCache, OpenAiRunnerRegistry, run_tool_loop_with_cache,
     },
     server::GatewayRouteState,
     storage::{GatewayResponseObjectStore, GatewayStateStore, GatewayStore, StoredGatewayResponse},
@@ -29,7 +28,9 @@ pub use super::response_runtime::{
 };
 use super::{
     errors::OpenAiRouteError,
-    response_log::{EventInput, EventLog, append_event, response_usage_expr},
+    execution_record::{
+        EventInput, EventLog, RunPrologue, append_event, begin_run, response_usage_expr,
+    },
     response_text::response_delta_chunks,
     thread_context::normalize_response_request,
 };
@@ -238,30 +239,12 @@ where
     let plan = parse_plan(&model).map_err(OpenAiRouteError::bad_model_from_error)?;
     check_plan(&plan).map_err(OpenAiRouteError::bad_model_from_error)?;
 
-    let recorded_request = redacted_gateway_request(&normalized.request).with_metadata(
-        ids.request.next_id().map_err(OpenAiRouteError::internal)?,
-        clock.now_ms().map_err(OpenAiRouteError::internal)?,
-    );
-    let request_content_id =
-        request_content_id(&recorded_request).map_err(OpenAiRouteError::internal)?;
-    if store_response {
-        store
-            .put_request(request_content_id.clone(), recorded_request.clone())
-            .map_err(OpenAiRouteError::internal)?;
-    }
-
-    let run_id = ids.run.next_id().map_err(OpenAiRouteError::internal)?;
-    let run = GatewayRun::new(
-        run_id.clone(),
-        request_content_id.clone(),
-        clock.now_ms().map_err(OpenAiRouteError::internal)?,
-    );
-    let run_content_id = content_id_for_expr(&run.to_expr()).map_err(OpenAiRouteError::internal)?;
-    if store_response {
-        store
-            .put_run(run_content_id.clone(), run.clone())
-            .map_err(OpenAiRouteError::internal)?;
-    }
+    let RunPrologue {
+        recorded_request,
+        request_content_id,
+        run_id,
+        run_content_id,
+    } = begin_run(store, ids, clock, &normalized.request, None, store_response)?;
 
     let mut event_log = EventLog::default();
     let mut sequence = 0;

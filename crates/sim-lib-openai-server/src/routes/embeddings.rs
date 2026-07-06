@@ -1,18 +1,26 @@
 use serde_json::{Map, Value, json};
-use sim_kernel::{ContentId, Error, Expr, Symbol};
+use sim_kernel::{Error, Expr, Symbol};
 
 use crate::{
     clock::{GatewayClock, SystemGatewayClock},
-    content_id::{content_id_for_expr, request_content_id},
-    ids::GatewayIdGenerator,
-    objects::{GatewayEvent, GatewayRequest, GatewayResponse, GatewayRun},
+    content_id::content_id_for_expr,
+    objects::{GatewayRequest, GatewayResponse},
     plan::{check_plan, parse_plan, resolve_atom_address, shape::plan_parts},
-    runtime::redacted_gateway_request,
     server::GatewayRouteState,
     storage::GatewayStore,
 };
 
-use super::errors::OpenAiRouteError;
+use super::{
+    errors::OpenAiRouteError,
+    execution_record::{EventInput, EventLog, RunPrologue, append_event, begin_run},
+};
+
+/// The embeddings engine shares the gateway execution-record substrate; its id
+/// generators and execution outcome are the shared types under route-local
+/// names (OVERLAP9.04).
+pub use super::execution_record::{
+    GatewayRunExecution as EmbeddingExecution, GatewayRunIdGenerators as EmbeddingIdGenerators,
+};
 
 /// Route path for the OpenAI-compatible `POST /v1/embeddings` endpoint.
 pub const EMBEDDINGS_PATH: &str = "/v1/embeddings";
@@ -25,81 +33,6 @@ const FNV_PRIME: u64 = 0x100000001b3;
 const EMBEDDING_SCALE: u64 = 1_000_000;
 
 type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
-
-/// Holds the per-kind id generators used to mint request, run, and event ids
-/// for a single embedding execution.
-#[derive(Clone, Debug)]
-pub struct EmbeddingIdGenerators {
-    request: GatewayIdGenerator,
-    run: GatewayIdGenerator,
-    event: GatewayIdGenerator,
-}
-
-impl EmbeddingIdGenerators {
-    /// Builds id generators seeded deterministically from `start`.
-    pub fn deterministic(start: u64) -> Self {
-        Self {
-            request: GatewayIdGenerator::deterministic("gwreq", start),
-            run: GatewayIdGenerator::deterministic("gwrun", start),
-            event: GatewayIdGenerator::deterministic("gwevt", start),
-        }
-    }
-}
-
-/// Captures the outcome of an embedding request: the wire response plus the
-/// content-addressed ledger ids and events it produced.
-#[derive(Clone, Debug)]
-pub struct EmbeddingExecution {
-    response: GatewayResponse,
-    request_content_id: Option<ContentId>,
-    run_content_id: Option<ContentId>,
-    event_content_ids: Vec<ContentId>,
-    events: Vec<GatewayEvent>,
-    response_content_id: Option<ContentId>,
-}
-
-impl EmbeddingExecution {
-    /// Returns the wire response produced by the embedding execution.
-    pub fn response(&self) -> &GatewayResponse {
-        &self.response
-    }
-
-    /// Returns the content id of the stored request, if it was recorded.
-    pub fn request_content_id(&self) -> Option<&ContentId> {
-        self.request_content_id.as_ref()
-    }
-
-    /// Returns the content id of the stored run, if it was recorded.
-    pub fn run_content_id(&self) -> Option<&ContentId> {
-        self.run_content_id.as_ref()
-    }
-
-    /// Returns the content ids of the stored events, in sequence order.
-    pub fn event_content_ids(&self) -> &[ContentId] {
-        &self.event_content_ids
-    }
-
-    /// Returns the events emitted during the embedding execution.
-    pub fn events(&self) -> &[GatewayEvent] {
-        &self.events
-    }
-
-    /// Returns the content id of the stored response, if it was recorded.
-    pub fn response_content_id(&self) -> Option<&ContentId> {
-        self.response_content_id.as_ref()
-    }
-
-    fn error(error: OpenAiRouteError) -> Self {
-        Self {
-            response: error.into_response(),
-            request_content_id: None,
-            run_content_id: None,
-            event_content_ids: Vec::new(),
-            events: Vec::new(),
-            response_content_id: None,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 struct EmbeddingModel {
@@ -169,30 +102,12 @@ where
     check_plan(&plan).map_err(OpenAiRouteError::bad_model_from_error)?;
     let embedding_model = embedding_model_from_plan(&plan, &model)?;
 
-    let recorded_request = redacted_gateway_request(request).with_metadata(
-        ids.request.next_id().map_err(OpenAiRouteError::internal)?,
-        clock.now_ms().map_err(OpenAiRouteError::internal)?,
-    );
-    let request_content_id =
-        request_content_id(&recorded_request).map_err(OpenAiRouteError::internal)?;
-    if record_execution {
-        store
-            .put_request(request_content_id.clone(), recorded_request.clone())
-            .map_err(OpenAiRouteError::internal)?;
-    }
-
-    let run_id = ids.run.next_id().map_err(OpenAiRouteError::internal)?;
-    let run = GatewayRun::new(
-        run_id.clone(),
-        request_content_id.clone(),
-        clock.now_ms().map_err(OpenAiRouteError::internal)?,
-    );
-    let run_content_id = content_id_for_expr(&run.to_expr()).map_err(OpenAiRouteError::internal)?;
-    if record_execution {
-        store
-            .put_run(run_content_id.clone(), run)
-            .map_err(OpenAiRouteError::internal)?;
-    }
+    let RunPrologue {
+        recorded_request,
+        request_content_id,
+        run_id,
+        run_content_id,
+    } = begin_run(store, ids, clock, request, None, record_execution)?;
 
     let embeddings = inputs
         .iter()
@@ -206,7 +121,7 @@ where
         ids,
         clock,
         &run_id,
-        EventInput(0, "request-start", recorded_request.to_expr()),
+        EventInput::new(0, "request-start", recorded_request.to_expr()),
         record_execution,
         &mut event_log,
     )?;
@@ -215,7 +130,7 @@ where
         ids,
         clock,
         &run_id,
-        EventInput(1, "plan-start", plan.clone()),
+        EventInput::new(1, "plan-start", plan.clone()),
         record_execution,
         &mut event_log,
     )?;
@@ -224,7 +139,7 @@ where
         ids,
         clock,
         &run_id,
-        EventInput(2, "model-start", Expr::String(embedding_model.id.clone())),
+        EventInput::new(2, "model-start", Expr::String(embedding_model.id.clone())),
         record_execution,
         &mut event_log,
     )?;
@@ -233,7 +148,7 @@ where
         ids,
         clock,
         &run_id,
-        EventInput(
+        EventInput::new(
             3,
             "embedding",
             embedding_event_expr(&embedding_model, inputs.len()),
@@ -246,7 +161,7 @@ where
         ids,
         clock,
         &run_id,
-        EventInput(4, "usage", usage_expr(&usage)),
+        EventInput::new(4, "usage", usage_expr(&usage)),
         record_execution,
         &mut event_log,
     )?;
@@ -258,7 +173,7 @@ where
         ids,
         clock,
         &run_id,
-        EventInput(
+        EventInput::new(
             5,
             "final",
             final_event_expr(&embedding_model, inputs.len(), &usage),
@@ -282,48 +197,10 @@ where
         run_content_id: Some(run_content_id),
         event_content_ids: event_log.content_ids,
         events: event_log.events,
+        response_id: None,
+        response_created_at_ms: None,
         response_content_id,
     })
-}
-
-struct EventInput(u64, &'static str, Expr);
-
-#[derive(Default)]
-struct EventLog {
-    content_ids: Vec<ContentId>,
-    events: Vec<GatewayEvent>,
-}
-
-fn append_event<S, C>(
-    store: &mut S,
-    ids: &mut EmbeddingIdGenerators,
-    clock: &mut C,
-    run_id: &str,
-    input: EventInput,
-    store_event: bool,
-    event_log: &mut EventLog,
-) -> RouteResult<()>
-where
-    S: GatewayStore,
-    C: GatewayClock,
-{
-    let event = GatewayEvent::new(
-        ids.event.next_id().map_err(OpenAiRouteError::internal)?,
-        run_id,
-        input.0,
-        Symbol::new(input.1),
-        input.2,
-        clock.now_ms().map_err(OpenAiRouteError::internal)?,
-    );
-    let id = content_id_for_expr(&event.to_expr()).map_err(OpenAiRouteError::internal)?;
-    if store_event {
-        store
-            .put_event(id.clone(), event.clone())
-            .map_err(OpenAiRouteError::internal)?;
-    }
-    event_log.content_ids.push(id);
-    event_log.events.push(event);
-    Ok(())
 }
 
 use crate::routes::request_json::{request_object, required_string};
