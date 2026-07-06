@@ -454,14 +454,11 @@ where
 }
 
 fn batch_id_from_path(path: &str) -> Option<&str> {
-    path.strip_prefix(BATCH_RETRIEVAL_PREFIX)
-        .filter(|batch_id| !batch_id.is_empty() && !batch_id.contains('/'))
+    super::path::id_from_path(path, BATCH_RETRIEVAL_PREFIX)
 }
 
 fn cancel_batch_id_from_path(path: &str) -> Option<&str> {
-    let rest = path.strip_prefix(BATCH_RETRIEVAL_PREFIX)?;
-    let batch_id = rest.strip_suffix("/cancel")?;
-    (!batch_id.is_empty() && !batch_id.contains('/')).then_some(batch_id)
+    super::path::id_from_path_with_suffix(path, BATCH_RETRIEVAL_PREFIX, "/cancel")
 }
 
 fn batch_json(batch: &GatewayBatch) -> Value {

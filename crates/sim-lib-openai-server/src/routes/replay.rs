@@ -7,7 +7,7 @@ use crate::{
     capabilities::OPENAI_GATEWAY_ADMIN_CAPABILITY,
     clock::{GatewayClock, SystemGatewayClock},
     codec_openai::gateway_event_data_packets,
-    objects::{GatewayEvent, GatewayRequest, GatewayResponse, content_id_hex},
+    objects::{GatewayEvent, GatewayRequest, GatewayResponse, bytes_to_hex, content_id_hex},
     routes::responses::{RESPONSE_RETRIEVAL_PREFIX, ResponseIdGenerators, ResponseRuntimeTargets},
     runtime::OpenAiPlanCache,
     server::GatewayRouteState,
@@ -400,9 +400,7 @@ fn is_sim_capability(capability: &str) -> bool {
 }
 
 fn suffixed_response_id<'a>(path: &'a str, suffix: &str) -> Option<&'a str> {
-    let rest = path.strip_prefix(RESPONSE_RETRIEVAL_PREFIX)?;
-    let response_id = rest.strip_suffix(suffix)?;
-    (!response_id.is_empty() && !response_id.contains('/')).then_some(response_id)
+    super::path::id_from_path_with_suffix(path, RESPONSE_RETRIEVAL_PREFIX, suffix)
 }
 
 fn expr_json(expr: &Expr) -> Value {
@@ -412,7 +410,7 @@ fn expr_json(expr: &Expr) -> Value {
         Expr::String(value) => Value::String(value.clone()),
         Expr::Number(value) => Value::String(format!("{value:?}")),
         Expr::Symbol(symbol) => Value::String(symbol.name.as_ref().to_owned()),
-        Expr::Bytes(bytes) => Value::String(bytes_hex(bytes)),
+        Expr::Bytes(bytes) => Value::String(bytes_to_hex(bytes)),
         Expr::List(values) | Expr::Vector(values) | Expr::Set(values) | Expr::Block(values) => {
             Value::Array(values.iter().map(expr_json).collect())
         }
@@ -433,14 +431,4 @@ fn expr_key(expr: &Expr) -> String {
         Expr::Symbol(symbol) => symbol.name.as_ref().to_owned(),
         _ => format!("{expr:?}"),
     }
-}
-
-fn bytes_hex(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(char::from(HEX[usize::from(byte >> 4)]));
-        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
-    }
-    output
 }

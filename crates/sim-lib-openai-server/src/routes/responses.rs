@@ -423,8 +423,7 @@ where
 }
 
 fn response_id_from_path(path: &str) -> Option<&str> {
-    path.strip_prefix(RESPONSE_RETRIEVAL_PREFIX)
-        .filter(|response_id| !response_id.is_empty() && !response_id.contains('/'))
+    super::path::id_from_path(path, RESPONSE_RETRIEVAL_PREFIX)
 }
 
 use crate::routes::request_json::required_string;

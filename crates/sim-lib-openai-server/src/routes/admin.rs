@@ -6,7 +6,9 @@ use sim_value::access::field_any;
 
 use crate::{
     capabilities::OPENAI_GATEWAY_ADMIN_CAPABILITY,
-    objects::{GatewayEvent, GatewayRequest, GatewayResponse, GatewayRun, content_id_expr},
+    objects::{
+        GatewayEvent, GatewayRequest, GatewayResponse, GatewayRun, bytes_to_hex, content_id_expr,
+    },
     server::GatewayRouteState,
     storage::GatewayStoreCounts,
 };
@@ -279,7 +281,7 @@ pub(crate) fn admin_expr_json(expr: &Expr) -> Value {
         Expr::Number(value) => number_json(value),
         Expr::String(value) => Value::String(value.clone()),
         Expr::Symbol(symbol) | Expr::Local(symbol) => Value::String(symbol.to_string()),
-        Expr::Bytes(bytes) => Value::String(bytes_hex(bytes)),
+        Expr::Bytes(bytes) => Value::String(bytes_to_hex(bytes)),
         Expr::List(values) | Expr::Vector(values) | Expr::Set(values) | Expr::Block(values) => {
             Value::Array(values.iter().map(admin_expr_json).collect())
         }
@@ -407,8 +409,7 @@ fn request_streams(request: &GatewayRequest) -> bool {
 }
 
 fn run_id_from_path(path: &str) -> Option<&str> {
-    let run_id = path.strip_prefix(ADMIN_RUN_RETRIEVAL_PREFIX)?;
-    (!run_id.is_empty() && !run_id.contains('/')).then_some(run_id)
+    super::path::id_from_path(path, ADMIN_RUN_RETRIEVAL_PREFIX)
 }
 
 fn string_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a str> {
@@ -475,14 +476,4 @@ fn expr_key(expr: &Expr) -> String {
         Expr::Symbol(symbol) => symbol.to_string(),
         _ => format!("{expr:?}"),
     }
-}
-
-fn bytes_hex(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(char::from(HEX[usize::from(byte >> 4)]));
-        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
-    }
-    output
 }

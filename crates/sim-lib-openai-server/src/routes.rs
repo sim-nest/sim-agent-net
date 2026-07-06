@@ -18,6 +18,8 @@ pub mod health;
 pub mod images;
 /// OpenAI `/v1/models` discovery endpoint and model catalog.
 pub mod models;
+/// Shared path-id extraction (`strip_prefix` + single-segment filter).
+pub(crate) mod path;
 /// SIM replay and fork routes over stored responses.
 pub mod replay;
 /// Helpers for parsing JSON request bodies into objects.

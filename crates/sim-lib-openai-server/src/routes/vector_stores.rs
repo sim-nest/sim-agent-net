@@ -351,9 +351,11 @@ fn hash_to_unit(hash: u64) -> f64 {
 }
 
 fn vector_store_id_from_search_path(path: &str) -> Option<&str> {
-    path.strip_prefix(VECTOR_STORE_SEARCH_PREFIX)
-        .and_then(|rest| rest.strip_suffix(VECTOR_STORE_SEARCH_SUFFIX))
-        .filter(|id| !id.is_empty() && !id.contains('/'))
+    super::path::id_from_path_with_suffix(
+        path,
+        VECTOR_STORE_SEARCH_PREFIX,
+        VECTOR_STORE_SEARCH_SUFFIX,
+    )
 }
 
 fn vector_store_json(vector_store: &GatewayVectorStore) -> Value {

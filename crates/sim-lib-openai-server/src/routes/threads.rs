@@ -199,20 +199,14 @@ enum ThreadPath<'a> {
 }
 
 fn thread_path(path: &str) -> Option<ThreadPath<'_>> {
-    let rest = path.strip_prefix(THREAD_RETRIEVAL_PREFIX)?;
-    if let Some(thread_id) = rest.strip_suffix("/messages") {
-        return valid_thread_id(thread_id).map(ThreadPath::Messages);
+    if let Some(thread_id) = message_thread_id_from_path(path) {
+        return Some(ThreadPath::Messages(thread_id));
     }
-    valid_thread_id(rest).map(ThreadPath::Thread)
+    super::path::id_from_path(path, THREAD_RETRIEVAL_PREFIX).map(ThreadPath::Thread)
 }
 
 fn message_thread_id_from_path(path: &str) -> Option<&str> {
-    let rest = path.strip_prefix(THREAD_RETRIEVAL_PREFIX)?;
-    rest.strip_suffix("/messages").and_then(valid_thread_id)
-}
-
-fn valid_thread_id(thread_id: &str) -> Option<&str> {
-    (!thread_id.is_empty() && !thread_id.contains('/')).then_some(thread_id)
+    super::path::id_from_path_with_suffix(path, THREAD_RETRIEVAL_PREFIX, "/messages")
 }
 
 fn thread_json(thread: &GatewayThread) -> Value {

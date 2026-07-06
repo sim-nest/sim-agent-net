@@ -142,8 +142,7 @@ fn storage_ref(
 }
 
 fn file_id_from_path(path: &str) -> Option<&str> {
-    path.strip_prefix(FILE_RETRIEVAL_PREFIX)
-        .filter(|file_id| !file_id.is_empty() && !file_id.contains('/'))
+    super::path::id_from_path(path, FILE_RETRIEVAL_PREFIX)
 }
 
 fn file_json(file: &GatewayFile) -> Value {

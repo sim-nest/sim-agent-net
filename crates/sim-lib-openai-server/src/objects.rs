@@ -514,7 +514,10 @@ fn optional_u64_field(name: &str, value: Option<u64>) -> (Expr, Expr) {
 
 use sim_value::build::entry as field;
 
-fn bytes_to_hex(bytes: &[u8]) -> String {
+/// Lowercase hex encoding of a byte slice. The one home for the `bytes_hex`
+/// forks the SIM/admin JSON renderers each re-grew; also backs
+/// [`content_id_hex`].
+pub(crate) fn bytes_to_hex(bytes: &[u8]) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut output = String::with_capacity(bytes.len() * 2);
     for byte in bytes {
