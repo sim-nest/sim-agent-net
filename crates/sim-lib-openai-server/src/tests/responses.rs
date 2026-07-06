@@ -15,6 +15,20 @@ use crate::{
 use crate::{fabric_symbol, install_openai_gateway_lib};
 
 #[test]
+fn responses_missing_model_uses_shared_missing_required_error() {
+    let response = configure_routes().handle(&responses_request("{}"));
+    assert_eq!(response.status(), 400);
+    let error = response_json(&response);
+    assert_eq!(error["error"]["code"], "missing_required_parameter");
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("model")
+    );
+}
+
+#[test]
 fn responses_route_fixture_echo_returns_openai_response_object() {
     let response = configure_routes().handle(&responses_request(
         r#"{"model":"fixture/echo","input":"hello","store":false}"#,

@@ -427,12 +427,7 @@ fn response_id_from_path(path: &str) -> Option<&str> {
         .filter(|response_id| !response_id.is_empty() && !response_id.contains('/'))
 }
 
-fn required_string<'a>(object: &'a Map<String, Value>, name: &'static str) -> RouteResult<&'a str> {
-    object
-        .get(name)
-        .and_then(Value::as_str)
-        .ok_or_else(|| OpenAiRouteError::missing_required(name))
-}
+use crate::routes::request_json::required_string;
 
 fn require_input(object: &Map<String, Value>) -> RouteResult<()> {
     if object.contains_key("input") || object.contains_key("messages") {

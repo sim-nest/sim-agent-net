@@ -6,6 +6,20 @@ use crate::{
 };
 
 #[test]
+fn batches_missing_input_file_id_uses_shared_missing_required_error() {
+    let created = configure_routes().handle(&json_request("POST", BATCHES_PATH, "{}"));
+    assert_eq!(created.status(), 400);
+    let error = response_json(&created);
+    assert_eq!(error["error"]["code"], "missing_required_parameter");
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("input_file_id")
+    );
+}
+
+#[test]
 fn batches_route_completes_fixture_responses_and_writes_output_file() {
     let routes = configure_routes();
     let input_file_id = upload_batch_file(

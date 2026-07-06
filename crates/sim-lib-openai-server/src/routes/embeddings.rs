@@ -326,14 +326,7 @@ where
     Ok(())
 }
 
-use crate::routes::request_json::request_object;
-
-fn required_string<'a>(object: &'a Map<String, Value>, name: &'static str) -> RouteResult<&'a str> {
-    object
-        .get(name)
-        .and_then(Value::as_str)
-        .ok_or_else(|| OpenAiRouteError::missing_required(name))
-}
+use crate::routes::request_json::{request_object, required_string};
 
 fn embedding_inputs(object: &Map<String, Value>) -> RouteResult<Vec<String>> {
     match object.get("input") {

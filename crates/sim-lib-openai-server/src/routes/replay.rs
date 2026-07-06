@@ -376,14 +376,7 @@ fn forked_request(
     ))
 }
 
-use crate::routes::request_json::request_object;
-
-fn required_string<'a>(object: &'a Map<String, Value>, name: &'static str) -> RouteResult<&'a str> {
-    object
-        .get(name)
-        .and_then(Value::as_str)
-        .ok_or_else(|| OpenAiRouteError::missing_required(name))
-}
+use crate::routes::request_json::{request_object, required_string};
 
 fn response_body_json(response: &GatewayResponse) -> RouteResult<Value> {
     serde_json::from_slice(response.body()).map_err(|err| {

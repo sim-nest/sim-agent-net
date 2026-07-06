@@ -1,4 +1,4 @@
-use serde_json::{Map, Value, json};
+use serde_json::{Value, json};
 
 use crate::{
     clock::{GatewayClock, SystemGatewayClock},
@@ -163,14 +163,7 @@ where
     ))
 }
 
-use crate::routes::request_json::request_object_or_empty as request_object;
-
-fn required_string<'a>(object: &'a Map<String, Value>, name: &'static str) -> RouteResult<&'a str> {
-    object
-        .get(name)
-        .and_then(Value::as_str)
-        .ok_or_else(|| OpenAiRouteError::missing_required(name))
-}
+use crate::routes::request_json::{request_object_or_empty as request_object, required_string};
 
 fn metadata(value: Option<&Value>) -> RouteResult<Vec<(String, String)>> {
     let Some(value) = value else {

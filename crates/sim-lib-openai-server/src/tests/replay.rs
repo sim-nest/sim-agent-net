@@ -6,6 +6,20 @@ use crate::{
 };
 
 #[test]
+fn replay_missing_response_id_uses_shared_missing_required_error() {
+    let response = configure_routes().handle(&json_request("POST", SIM_REPLAY_PATH, "{}"));
+    assert_eq!(response.status(), 400);
+    let error = response_json(&response);
+    assert_eq!(error["error"]["code"], "missing_required_parameter");
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("response_id")
+    );
+}
+
+#[test]
 fn response_events_and_replay_return_stored_event_ids_without_rerun() {
     let routes = configure_routes();
     let response_id = stored_response_id(&routes, "replay me");

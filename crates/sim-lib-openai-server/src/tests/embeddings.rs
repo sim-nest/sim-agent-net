@@ -8,6 +8,20 @@ use crate::{
 };
 
 #[test]
+fn embeddings_missing_model_uses_shared_missing_required_error() {
+    let response = configure_routes().handle(&embeddings_request("{}"));
+    assert_eq!(response.status(), 400);
+    let error = response_json(&response);
+    assert_eq!(error["error"]["code"], "missing_required_parameter");
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("model")
+    );
+}
+
+#[test]
 fn embeddings_route_single_input_returns_openai_embedding_object() {
     let response = configure_routes().handle(&embeddings_request(&format!(
         r#"{{"model":"{TENSOR_F64_SMALL_EMBEDDING_MODEL}","input":"hello"}}"#

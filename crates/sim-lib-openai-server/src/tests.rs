@@ -18,6 +18,7 @@ mod chat_completions;
 mod embeddings;
 mod fabric;
 mod federation;
+mod files;
 mod gateway_objects;
 mod keys;
 mod media_vector;
@@ -26,6 +27,7 @@ mod plan;
 mod replay;
 mod responses;
 mod stateful;
+mod threads;
 mod tools;
 use sim_kernel::testing::bare_cx as cx;
 
