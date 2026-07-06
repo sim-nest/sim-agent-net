@@ -31,6 +31,12 @@ pub(crate) enum WsMessage {
 
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
+// NOTE (OVERLAP8.06): intentionally NOT routed through
+// `sim_lib_net_core::parse_url_for_scheme`. That shared primitive resolves a
+// default port only for `http`/`https` (this parser also serves `ws`, defaulting
+// to 80), trims trailing slashes from the path, and substitutes `default_path`
+// whenever the path is `/` -- all behavior changes for these transports. Keep
+// this local parser until a scheme-generic net-core variant exists.
 pub(crate) fn parse_url(url: &str, expected_scheme: &str, default_path: &str) -> Result<ParsedUrl> {
     let (scheme, rest) = url
         .split_once("://")

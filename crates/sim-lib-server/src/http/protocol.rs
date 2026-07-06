@@ -84,6 +84,12 @@ pub(crate) fn write_response<W: Write>(writer: &mut W, res: &HttpResponse) -> Re
     writer.flush().map_err(io_to_host)
 }
 
+// NOTE (OVERLAP8.06): intentionally NOT routed through
+// `sim_lib_net_core::SseDecoder`. This reader keeps only the LAST `data:` line of
+// an event, whereas `SseDecoder` folds multiple `data:` lines with `\n` per the
+// SSE spec. Adopting the folding decoder is a wire-visible behavior change for
+// this transport, so it is deferred until a test proves the multi-`data:` form
+// is intended here.
 pub(crate) fn read_sse_event<R: BufRead>(reader: &mut R) -> Result<Option<(String, String)>> {
     let mut event = None;
     let mut data = String::new();
