@@ -183,6 +183,104 @@ fn http_transport_round_trips_a_frame_over_post_body() {
 }
 
 #[test]
+fn http_transport_replies_with_error_frame_on_garbage_body() {
+    use std::net::TcpStream;
+
+    use crate::http::{HttpRequest, read_response, write_request};
+    use crate::transport::decode_transport_frame;
+
+    #[derive(Clone)]
+    struct HttpAnswerSite {
+        address: ServerAddress,
+        codecs: Vec<Symbol>,
+    }
+
+    impl EvalSite for HttpAnswerSite {
+        fn site_kind(&self) -> &'static str {
+            "http-answer"
+        }
+        fn address(&self) -> &ServerAddress {
+            &self.address
+        }
+        fn codecs(&self) -> &[Symbol] {
+            &self.codecs
+        }
+        fn answer(
+            &self,
+            _cx: &mut sim_kernel::Cx,
+            frame: ServerFrame,
+        ) -> sim_kernel::Result<ServerFrame> {
+            Ok(frame)
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+    }
+
+    let transport = match HttpServerTransport::bind(ServerAddress::Http {
+        url: "http://127.0.0.1:0".to_owned(),
+    }) {
+        Ok(transport) => Arc::new(transport),
+        Err(Error::HostError(message)) if message.contains("PermissionDenied") => return,
+        Err(error) => panic!("http bind failed: {error}"),
+    };
+    let address = transport.address().clone();
+    let ServerAddress::Http { url } = &address else {
+        panic!("http transport bound to a non-http address");
+    };
+    let parsed = crate::http::parse_url(url, "http", "/sim/frame").unwrap();
+    let (host, port, path) = (parsed.host.clone(), parsed.port, parsed.path.clone());
+
+    let runtime = Arc::new(ServerRuntime::new(
+        transport,
+        cx(),
+        ThreadMode::Spawn,
+        crate::transport::DEFAULT_MAX_INFLIGHT_FRAMES,
+    ));
+    let site = Arc::new(HttpAnswerSite {
+        address: address.clone(),
+        codecs: vec![
+            Symbol::qualified("codec", "lisp"),
+            Symbol::qualified("codec", "binary"),
+        ],
+    });
+    let handle = std::thread::spawn({
+        let runtime = runtime.clone();
+        let site = site.clone();
+        move || run_accept_loop(runtime, site)
+    });
+    runtime.set_accept_thread(handle).unwrap();
+
+    let mut stream = TcpStream::connect((host.as_str(), port)).unwrap();
+    write_request(
+        &mut stream,
+        &HttpRequest {
+            method: "POST".to_owned(),
+            path,
+            headers: vec![
+                ("Host".to_owned(), "sim-server".to_owned()),
+                (
+                    "Content-Type".to_owned(),
+                    "application/sim-frame".to_owned(),
+                ),
+            ],
+            body: b"not a valid transport frame".to_vec(),
+        },
+    )
+    .unwrap();
+    let response = read_response(&mut stream).unwrap();
+    // The connection stayed up and produced a structured error frame, not a
+    // dropped socket (regression for the `?`-drop on an undecodable body).
+    assert_eq!(response.status, 200);
+    let frame = decode_transport_frame(&response.body).unwrap();
+    assert_eq!(frame.kind, FrameKind::Error);
+
+    runtime.begin_stop();
+    runtime.join_accept_thread().unwrap();
+    runtime.join_worker_threads().unwrap();
+}
+
+#[test]
 fn http_transport_stream_fallback_returns_finite_chunk() {
     #[derive(Clone)]
     struct HttpStreamSite {

@@ -11,8 +11,9 @@ use crate::{
 use sim_codec::encode_with_codec;
 use sim_codec_mcp::{McpCodecLib, McpEnvelope, McpRequest, envelope_to_expr};
 use sim_kernel::{
-    AbiVersion, Args, Callable, Cx, DefaultFactory, EagerPolicy, EncodeOptions, Export, Expr, Lib,
-    LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
+    AbiVersion, Args, Callable, Cx, DefaultFactory, EagerPolicy, EncodeOptions, Error, Export,
+    Expr, Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value,
+    Version,
 };
 
 #[test]
@@ -43,6 +44,28 @@ fn stdio_malformed_input_returns_parse_error() {
     assert_eq!(stdout.lines().count(), 1);
     assert!(stdout.contains(r#""code":-32700"#));
     assert!(stdout.contains(r#""message":"parse error""#));
+}
+
+#[test]
+fn stdio_oversized_frame_is_rejected() {
+    // A frame past the per-line cap must error out rather than grow memory
+    // unbounded (regression for the uncapped `reader.lines()` reader).
+    let mut cx = test_cx();
+    let mut router = McpRouter::fixture();
+    let oversized = "x".repeat(128 * 1024);
+    let reader = BufReader::new(Cursor::new(oversized.into_bytes()));
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let err = run_stdio(
+        &mut cx,
+        &mut router,
+        reader,
+        &mut stdout,
+        &mut stderr,
+        StdioOptions { log_stderr: false },
+    )
+    .expect_err("an oversized stdio frame must error, not accumulate");
+    assert!(matches!(err, Error::HostError(message) if message.contains("exceeds")));
 }
 
 #[test]

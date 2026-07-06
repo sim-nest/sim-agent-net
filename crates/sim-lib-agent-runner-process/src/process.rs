@@ -278,8 +278,10 @@ pub(super) fn stream_command_lines(
             Ok(Ok(line)) => {
                 if bytes.len().saturating_add(line.len()) > max_output_bytes {
                     kill_child(&child);
-                    let _ = reader.join();
-                    let _ = writer.join();
+                    // Do not join reader/writer: a backgrounded grandchild can
+                    // keep the stdout/stdin pipes open after the direct child is
+                    // killed, so joining would block past the bound. Mirror the
+                    // non-streaming timeout path in capture_child_output.
                     return Err(Error::Eval(format!(
                         "{label} exceeded max output bytes {max_output_bytes}"
                     )));
@@ -289,8 +291,8 @@ pub(super) fn stream_command_lines(
             }
             Ok(Err(err)) => {
                 kill_child(&child);
-                let _ = reader.join();
-                let _ = writer.join();
+                // Do not join reader/writer: a grandchild may still hold the
+                // pipes open, which would re-introduce the hang.
                 return Err(err);
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {}
@@ -306,8 +308,9 @@ pub(super) fn stream_command_lines(
         }
         if Instant::now() >= deadline {
             kill_child(&child);
-            let _ = reader.join();
-            let _ = writer.join();
+            // Do not join reader/writer here: either may still be blocked on a
+            // pipe a grandchild holds open, which would re-introduce the hang.
+            // Mirror the non-streaming timeout path in capture_child_output.
             return Err(Error::Eval(format!(
                 "{label} timed out after {}ms",
                 timeout.as_millis()
@@ -448,6 +451,57 @@ mod tests {
         assert!(matches!(err, Error::Eval(message) if message.contains("timed out")));
         // Far below the 60s grandchild sleep: the deadline, not the grandchild,
         // bounded the wait.
+        assert!(start.elapsed() < Duration::from_secs(5));
+    }
+
+    #[test]
+    fn streaming_backgrounded_grandchild_returns_at_timeout_not_hang() {
+        // A shell grandchild inherits stdout and keeps it open after the direct
+        // child exits. The streaming reader thread stays blocked on that pipe, so
+        // joining it at the deadline would hang forever; the timeout branch must
+        // return without joining (regression for the streaming path).
+        let start = Instant::now();
+        let mut lines = Vec::new();
+        let err = stream_command_lines(
+            "printf 'ready\\n'; (sleep 60 &); sleep 60",
+            Vec::new(),
+            "test",
+            Duration::from_millis(300),
+            4096,
+            |line| {
+                lines.push(
+                    String::from_utf8_lossy(line)
+                        .trim_end_matches(['\r', '\n'])
+                        .to_owned(),
+                );
+                Ok(())
+            },
+        )
+        .expect_err("a streaming grandchild must not hang past the deadline");
+
+        assert!(matches!(err, Error::Eval(message) if message.contains("timed out")));
+        assert!(lines.contains(&"ready".to_owned()));
+        // Far below the 60s grandchild sleep: the deadline bounded the wait.
+        assert!(start.elapsed() < Duration::from_secs(5));
+    }
+
+    #[test]
+    fn streaming_max_output_with_grandchild_returns_not_hang() {
+        // The max-output branch also kills the child then used to join; a
+        // grandchild holding stdout would hang it. Emit past the cap while a
+        // grandchild keeps the pipe open and confirm a prompt bounded error.
+        let start = Instant::now();
+        let err = stream_command_lines(
+            "(sleep 60 &); printf 'aaaaaaaaaa\\nbbbbbbbbbb\\n'; sleep 60",
+            Vec::new(),
+            "test",
+            Duration::from_secs(5),
+            4,
+            |_line| Ok(()),
+        )
+        .expect_err("exceeding max output must return, not hang on a grandchild");
+
+        assert!(matches!(err, Error::Eval(message) if message.contains("max output bytes")));
         assert!(start.elapsed() < Duration::from_secs(5));
     }
 

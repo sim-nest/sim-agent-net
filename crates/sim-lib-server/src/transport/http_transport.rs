@@ -8,7 +8,7 @@ use std::{
 use sim_kernel::{Cx, Error, Result, Symbol};
 
 use crate::{
-    EvalSite, ServerAddress, ServerFrame, ServerRuntime,
+    EvalSite, FrameEnvelope, FrameKind, ServerAddress, ServerFrame, ServerRuntime,
     http::{
         HttpRequest, HttpResponse, ParsedUrl, format_url, header_value, parse_url, read_request,
         read_response, write_request, write_response,
@@ -203,7 +203,39 @@ impl HttpServerConnectionTransport {
                 write_http_error(&mut self.stream, 400, "unexpected content-type")?;
                 continue;
             }
-            let frame = decode_transport_frame(&request.body)?;
+            let frame = match decode_transport_frame(&request.body) {
+                Ok(frame) => frame,
+                Err(error) => {
+                    // An undecodable frame body must not tear down the whole
+                    // connection. Reply with a structured error frame, matching
+                    // the eval-error path below, and keep serving. The session
+                    // codec is binary (see open_session above), so encode the
+                    // error under a binary fallback frame.
+                    runtime.note_message_received();
+                    let fallback = ServerFrame::new(
+                        Symbol::qualified("codec", "binary"),
+                        FrameKind::Error,
+                        FrameEnvelope::default(),
+                        Vec::new(),
+                    );
+                    let reply =
+                        runtime.with_cx(|cx| error_frame_from_error(cx, &fallback, &error))?;
+                    let body = encode_transport_frame(&reply)?;
+                    write_response(
+                        &mut self.stream,
+                        &HttpResponse {
+                            status: 200,
+                            headers: vec![(
+                                "Content-Type".to_owned(),
+                                "application/sim-frame".to_owned(),
+                            )],
+                            body,
+                        },
+                    )?;
+                    runtime.note_message_sent();
+                    continue;
+                }
+            };
             runtime.note_message_received();
             let reply = match runtime.with_cx(|cx| answer_or_negotiate(cx, site, frame.clone())) {
                 Ok(reply) => {
