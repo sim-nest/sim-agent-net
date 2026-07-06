@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent-runner-process"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MPL-2.0"
 description = "Local subprocess-backed model runners for SIM."
