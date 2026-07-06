@@ -7,9 +7,9 @@ Loadable local model runner for SIM.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-agent-runner-local/Cargo.toml`
-- Publish: `false`
-- Targets: `lib`
+- Publish: `true`
+- Targets: `cdylib, rlib, test`
 
 ## Crate Documentation
 
-Loadable local model runner for SIM.
+Loadable local model runner for SIM placement catalogs.

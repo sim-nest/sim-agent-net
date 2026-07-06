@@ -7,9 +7,9 @@ Agent runtime surfaces for SIM.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-agent/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation
 
-Agent runtime surfaces for SIM.
+Agent runtime surfaces for SIM: agents, tools, memory, patterns, fixtures, fairness facets, and model-fabric contract re-exports.

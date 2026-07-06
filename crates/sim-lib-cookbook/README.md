@@ -7,7 +7,7 @@ Runtime cookbook: operations for SIM.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-cookbook/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation

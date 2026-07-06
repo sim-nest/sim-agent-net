@@ -7,9 +7,9 @@ SIM workspace package for sim lib server.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-server/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation
 
-SIM workspace package for sim lib server.
+SIM's server library: a loadable lib that serves eval and agents over a transport. It exposes sites (local, coroutine, pipeline, loop, fabric), frame routing, REPL drivers, conn.

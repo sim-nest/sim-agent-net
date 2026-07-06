@@ -7,7 +7,7 @@ Provider-neutral runner contracts for SIM model fabrics.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-agent-runner-core/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `custom-build, lib`
 
 ## Crate Documentation

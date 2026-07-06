@@ -7,9 +7,9 @@ SIM workspace package for sim lib skill.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-skill/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib, test`
 
 ## Crate Documentation
 
-SIM workspace package for sim lib skill.
+Agent skills for the SIM runtime.

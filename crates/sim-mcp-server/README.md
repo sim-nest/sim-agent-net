@@ -12,4 +12,4 @@ SIM workspace package for sim mcp server.
 
 ## Crate Documentation
 
-SIM workspace package for sim mcp server.
+The sim-mcp-server binary: a thin bootloader that serves MCP over stdio.

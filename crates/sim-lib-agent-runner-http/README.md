@@ -7,7 +7,7 @@ HTTP-backed model runners for SIM.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-agent-runner-http/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib, test`
 
 ## Crate Documentation

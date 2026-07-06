@@ -7,7 +7,7 @@ Content-addressed distributed evaluation for remote stream realization.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-stream-fabric/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `bin, lib, test`
 
 ## Crate Documentation

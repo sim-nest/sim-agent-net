@@ -7,9 +7,9 @@ SIM workspace package for sim table remote.
 ## Package Metadata
 
 - Manifest: `crates/sim-table-remote/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation
 
-SIM workspace package for sim table remote.
+Remote-backed SIM table directory.

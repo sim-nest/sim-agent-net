@@ -1,0 +1,182 @@
+{
+  "generator": "xtask crate-catalog v1",
+  "package_count": 14,
+  "packages": [
+    {
+      "description": "Provider-neutral runner contracts for SIM model fabrics.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-agent-runner-core/Cargo.toml",
+      "name": "sim-lib-agent-runner-core",
+      "publish": "true",
+      "readme": "crates/sim-lib-agent-runner-core/README.md",
+      "root": "crates/sim-lib-agent-runner-core",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "HTTP-backed model runners for SIM.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-agent-runner-http/Cargo.toml",
+      "name": "sim-lib-agent-runner-http",
+      "publish": "true",
+      "readme": "crates/sim-lib-agent-runner-http/README.md",
+      "root": "crates/sim-lib-agent-runner-http",
+      "target_kinds": [
+        "lib",
+        "test"
+      ]
+    },
+    {
+      "description": "Loadable local model runner for SIM.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-agent-runner-local/Cargo.toml",
+      "name": "sim-lib-agent-runner-local",
+      "publish": "true",
+      "readme": "crates/sim-lib-agent-runner-local/README.md",
+      "root": "crates/sim-lib-agent-runner-local",
+      "target_kinds": [
+        "cdylib",
+        "rlib",
+        "test"
+      ]
+    },
+    {
+      "description": "Local subprocess-backed model runners for SIM.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-agent-runner-process/Cargo.toml",
+      "name": "sim-lib-agent-runner-process",
+      "publish": "true",
+      "readme": "crates/sim-lib-agent-runner-process/README.md",
+      "root": "crates/sim-lib-agent-runner-process",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Agent runtime surfaces for SIM.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-agent/Cargo.toml",
+      "name": "sim-lib-agent",
+      "publish": "true",
+      "readme": "crates/sim-lib-agent/README.md",
+      "root": "crates/sim-lib-agent",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Runtime cookbook: operations for SIM.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-cookbook/Cargo.toml",
+      "name": "sim-lib-cookbook",
+      "publish": "true",
+      "readme": "crates/sim-lib-cookbook/README.md",
+      "root": "crates/sim-lib-cookbook",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Library-only MCP surface projection for SIM.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-mcp/Cargo.toml",
+      "name": "sim-lib-mcp",
+      "publish": "true",
+      "readme": "crates/sim-lib-mcp/README.md",
+      "root": "crates/sim-lib-mcp",
+      "target_kinds": [
+        "lib",
+        "test"
+      ]
+    },
+    {
+      "description": "OpenAI-compatible gateway skeleton for SIM.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-openai-server/Cargo.toml",
+      "name": "sim-lib-openai-server",
+      "publish": "true",
+      "readme": "crates/sim-lib-openai-server/README.md",
+      "root": "crates/sim-lib-openai-server",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "SIM workspace package for sim lib server.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-server/Cargo.toml",
+      "name": "sim-lib-server",
+      "publish": "true",
+      "readme": "crates/sim-lib-server/README.md",
+      "root": "crates/sim-lib-server",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "SIM workspace package for sim lib skill.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-skill/Cargo.toml",
+      "name": "sim-lib-skill",
+      "publish": "true",
+      "readme": "crates/sim-lib-skill/README.md",
+      "root": "crates/sim-lib-skill",
+      "target_kinds": [
+        "lib",
+        "test"
+      ]
+    },
+    {
+      "description": "Content-addressed distributed evaluation for remote stream realization.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-stream-fabric/Cargo.toml",
+      "name": "sim-lib-stream-fabric",
+      "publish": "true",
+      "readme": "crates/sim-lib-stream-fabric/README.md",
+      "root": "crates/sim-lib-stream-fabric",
+      "target_kinds": [
+        "bin",
+        "lib",
+        "test"
+      ]
+    },
+    {
+      "description": "SIM workspace package for sim mcp server.",
+      "generated_readme": true,
+      "manifest": "crates/sim-mcp-server/Cargo.toml",
+      "name": "sim-mcp-server",
+      "publish": "true",
+      "readme": "crates/sim-mcp-server/README.md",
+      "root": "crates/sim-mcp-server",
+      "target_kinds": [
+        "bin"
+      ]
+    },
+    {
+      "description": "SIM workspace package for sim table remote.",
+      "generated_readme": true,
+      "manifest": "crates/sim-table-remote/Cargo.toml",
+      "name": "sim-table-remote",
+      "publish": "true",
+      "readme": "crates/sim-table-remote/README.md",
+      "root": "crates/sim-table-remote",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "SIM workspace package for xtask.",
+      "generated_readme": true,
+      "manifest": "xtask/Cargo.toml",
+      "name": "xtask",
+      "publish": "false",
+      "readme": "xtask/README.md",
+      "root": "xtask",
+      "target_kinds": [
+        "bin"
+      ]
+    }
+  ]
+}
