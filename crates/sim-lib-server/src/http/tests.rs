@@ -1,7 +1,8 @@
 use std::io::Cursor;
 
 use super::{
-    ParsedUrl, base64_decode, base64_encode, parse_url, read_request, websocket_accept_value,
+    ParsedUrl, base64_decode, base64_encode, parse_url, read_request, read_sse_event,
+    websocket_accept_value,
 };
 
 // OVERLAP9.01: pin the host/port/path resolution for every transport call site
@@ -74,6 +75,45 @@ fn parse_url_matrix_matches_transport_call_sites() {
 fn base64_round_trips() {
     let encoded = base64_encode(b"hello");
     assert_eq!(base64_decode(&encoded).unwrap(), b"hello");
+}
+
+// OVERLAP9.02: a single-`data:` event is the common case and is unchanged by the
+// fold migration.
+#[test]
+fn sse_single_data_event_is_unchanged() {
+    let input = "event: chunk\r\ndata: payload\r\n\r\n";
+    let mut reader = Cursor::new(input.as_bytes());
+    let event = read_sse_event(&mut reader).unwrap().unwrap();
+    assert_eq!(event, ("chunk".to_owned(), "payload".to_owned()));
+}
+
+// OVERLAP9.02 DECISION: multiple `data:` lines of one record now fold with `\n`
+// (the SSE-spec behavior of `sim_lib_net_core::SseDecoder`). Before this
+// migration the server kept only the LAST `data:` line (would have been "two").
+#[test]
+fn sse_folds_multiple_data_lines() {
+    let input = "event: message\r\ndata: one\r\ndata: two\r\n\r\n";
+    let mut reader = Cursor::new(input.as_bytes());
+    let event = read_sse_event(&mut reader).unwrap().unwrap();
+    assert_eq!(event, ("message".to_owned(), "one\ntwo".to_owned()));
+}
+
+// OVERLAP9.02: the transport's own wire form (an "end" event with empty data,
+// exactly as `SseStreamSink::write_event` emits it) round-trips through the
+// net-core decoder.
+#[test]
+fn sse_round_trips_transport_end_event() {
+    let input = "event: end\r\ndata: \r\n\r\n";
+    let mut reader = Cursor::new(input.as_bytes());
+    let event = read_sse_event(&mut reader).unwrap().unwrap();
+    assert_eq!(event, ("end".to_owned(), String::new()));
+}
+
+// EOF with nothing accumulated yields no event.
+#[test]
+fn sse_eof_without_record_is_none() {
+    let mut reader = Cursor::new(b"".as_slice());
+    assert!(read_sse_event(&mut reader).unwrap().is_none());
 }
 
 #[test]

@@ -47,26 +47,18 @@ pub(crate) fn write_request<W: Write>(writer: &mut W, req: &HttpRequest) -> Resu
 pub(crate) fn read_response<R: Read>(reader: &mut R) -> Result<HttpResponse> {
     let head = read_http_head(reader)?
         .ok_or_else(|| Error::HostError("http response closed before headers".to_owned()))?;
-    let mut lines = parse_http_head(&head)?;
-    let status_line = lines
-        .next()
-        .ok_or_else(|| Error::HostError("http response missing status line".to_owned()))?;
-    let mut parts = status_line.split_whitespace();
-    let _version = parts
-        .next()
-        .ok_or_else(|| Error::HostError("http response missing version".to_owned()))?;
-    let status = parts
-        .next()
-        .ok_or_else(|| Error::HostError("http response missing status".to_owned()))?
-        .parse::<u16>()
-        .map_err(|_| Error::HostError("invalid http response status".to_owned()))?;
-    let headers = parse_headers(lines)?;
-    let body_len = content_length(&headers)?;
+    // Response heads (status line + headers) parse through the shared net-core
+    // primitive; the server keeps only its error mapping and body-length cap.
+    let text = std::str::from_utf8(&head)
+        .map_err(|_| Error::HostError("http headers are not valid utf-8".to_owned()))?;
+    let parsed = sim_lib_net_core::parse_http_head(text)
+        .map_err(|error| Error::HostError(format!("invalid http response: {error}")))?;
+    let body_len = content_length(&parsed.headers)?;
     let mut body = vec![0u8; body_len];
     reader.read_exact(&mut body).map_err(io_to_host)?;
     Ok(HttpResponse {
-        status,
-        headers,
+        status: parsed.status,
+        headers: parsed.headers,
         body,
     })
 }
@@ -84,35 +76,29 @@ pub(crate) fn write_response<W: Write>(writer: &mut W, res: &HttpResponse) -> Re
     writer.flush().map_err(io_to_host)
 }
 
-// NOTE (OVERLAP8.06): intentionally NOT routed through
-// `sim_lib_net_core::SseDecoder`. This reader keeps only the LAST `data:` line of
-// an event, whereas `SseDecoder` folds multiple `data:` lines with `\n` per the
-// SSE spec. Adopting the folding decoder is a wire-visible behavior change for
-// this transport, so it is deferred until a test proves the multi-`data:` form
-// is intended here.
+// SSE record decoding defers to `sim_lib_net_core::SseDecoder`. That decoder
+// folds multiple `data:` lines of one record with `\n` (the SSE spec); this
+// server's earlier local reader kept only the LAST `data:` line. Adopting the
+// fold is a deliberate, tested behavior change (see the crate tests). The
+// `(event, data)` tuple contract is preserved for the transport consumers.
 pub(crate) fn read_sse_event<R: BufRead>(reader: &mut R) -> Result<Option<(String, String)>> {
-    let mut event = None;
-    let mut data = String::new();
+    let mut decoder = sim_lib_net_core::SseDecoder::new();
     loop {
         let mut line = String::new();
         let read = reader.read_line(&mut line).map_err(io_to_host)?;
         if read == 0 {
-            if event.is_none() && data.is_empty() {
-                return Ok(None);
-            }
-            break;
+            // Peer closed: emit any record accumulated without a final blank line.
+            return Ok(decoder.flush().map(sse_event_tuple));
         }
         let line = line.trim_end_matches(['\r', '\n']);
-        if line.is_empty() {
-            break;
-        }
-        if let Some(value) = line.strip_prefix("event:") {
-            event = Some(value.trim().to_owned());
-        } else if let Some(value) = line.strip_prefix("data:") {
-            data = value.trim().to_owned();
+        if let Some(event) = decoder.push_line(line) {
+            return Ok(Some(sse_event_tuple(event)));
         }
     }
-    Ok(Some((event.unwrap_or_default(), data)))
+}
+
+fn sse_event_tuple(event: sim_lib_net_core::SseEvent) -> (String, String) {
+    (event.event.unwrap_or_default(), event.data)
 }
 
 fn read_http_head<R: Read>(reader: &mut R) -> Result<Option<Vec<u8>>> {
@@ -131,6 +117,10 @@ fn read_http_head<R: Read>(reader: &mut R) -> Result<Option<Vec<u8>>> {
     }
 }
 
+// Request heads keep a local line splitter: `sim_lib_net_core::parse_http_head`
+// parses a response status line (`version status reason`) and cannot read an
+// HTTP request line (`method path version`). Response heads use the net-core
+// primitive directly (see `read_response`).
 fn parse_http_head(head: &[u8]) -> Result<std::vec::IntoIter<String>> {
     let text = std::str::from_utf8(head)
         .map_err(|_| Error::HostError("http headers are not valid utf-8".to_owned()))?;
