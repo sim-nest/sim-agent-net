@@ -3,6 +3,8 @@ use sim_codec_chat::{is_model_request_expr, validate_chat_transcript};
 use sim_codec_json::json_number_to_u64;
 use sim_kernel::{CodecId, Error, Expr, Result};
 
+use sim_value::access::{entry_required_str_any, entry_required_sym_any};
+
 use crate::codec_openai::codec_error;
 use crate::codec_openai::decode::map_field;
 use crate::codec_openai::shapes::OpenAiCodecOptions;
@@ -260,22 +262,16 @@ fn marker_is_true(expr: &Expr, name: &str) -> bool {
     })
 }
 
+// Scalar field readers via the shared namespace-agnostic (bare-symbol OR string
+// key) substrate; the untyped `map_field` path (snapshot-verified) stays as is
+// (OVERLAP9.05).
 fn symbol_field(entries: &[(Expr, Expr)], key: &str) -> Result<String> {
-    match map_field(entries, key)? {
-        Expr::Symbol(symbol) => Ok(symbol.name.as_ref().to_owned()),
-        _ => Err(Error::Eval(format!(
-            "openai codec field {key} must be a symbol"
-        ))),
-    }
+    entry_required_sym_any(entries, key, "openai codec symbol field")
+        .map(|symbol| symbol.name.as_ref().to_owned())
 }
 
 fn string_field(entries: &[(Expr, Expr)], key: &str) -> Result<String> {
-    match map_field(entries, key)? {
-        Expr::String(text) => Ok(text.clone()),
-        _ => Err(Error::Eval(format!(
-            "openai codec field {key} must be a string"
-        ))),
-    }
+    entry_required_str_any(entries, key, "openai codec string field").map(str::to_owned)
 }
 
 fn list_field(expr: &Expr) -> Result<&[Expr]> {

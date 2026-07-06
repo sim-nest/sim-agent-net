@@ -1,5 +1,6 @@
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{ModelRequest, ModelResponse, ModelRunner};
+use sim_value::access::{entry_required_bool_any, entry_required_str_any, entry_required_sym_any};
 
 /// Unit of work produced by planning combinators.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -328,28 +329,34 @@ fn text_part(entries: &[(Expr, Expr)]) -> Option<String> {
     }
 }
 
+// These readers match a field name namespace-agnostically via the shared
+// `sim_value::access` `_any` substrate (bare-symbol OR string key). `string_field`
+// keeps the original String|Symbol value coercion behind thin Option adapters, so
+// the call sites above are unchanged (OVERLAP9.05).
 fn string_field(entries: &[(Expr, Expr)], field: &str) -> Option<String> {
-    expr_field(entries, field).and_then(|expr| match expr {
-        Expr::String(text) => Some(text.clone()),
-        Expr::Symbol(symbol) => Some(symbol.to_string()),
-        _ => None,
-    })
+    entry_required_str_any(entries, field, "string")
+        .ok()
+        .map(str::to_owned)
+        .or_else(|| {
+            entry_required_sym_any(entries, field, "symbol")
+                .ok()
+                .map(Symbol::to_string)
+        })
 }
 
 fn symbol_field(entries: &[(Expr, Expr)], field: &str) -> Option<String> {
-    expr_field(entries, field).and_then(|expr| match expr {
-        Expr::Symbol(symbol) => Some(symbol.to_string()),
-        _ => None,
-    })
+    entry_required_sym_any(entries, field, "symbol")
+        .ok()
+        .map(Symbol::to_string)
 }
 
 fn bool_field(entries: &[(Expr, Expr)], field: &str) -> Option<bool> {
-    expr_field(entries, field).and_then(|expr| match expr {
-        Expr::Bool(value) => Some(*value),
-        _ => None,
-    })
+    entry_required_bool_any(entries, field, "bool").ok()
 }
 
+// Raw any-namespace field borrow used by `parse_reflection` for the untyped
+// `retry`/`retry-task` payload (which is matched then parsed as a task, not
+// coerced to a scalar).
 fn expr_field<'a>(entries: &'a [(Expr, Expr)], field: &str) -> Option<&'a Expr> {
     entries.iter().find_map(|(key, value)| {
         if matches!(key, Expr::Symbol(symbol) if symbol.name.as_ref() == field) {
@@ -381,4 +388,58 @@ fn clean_list_marker(line: &str) -> String {
 
 fn step_id(goal_id: &str, one_based_index: usize) -> String {
     format!("{goal_id}.{one_based_index}")
+}
+
+#[cfg(test)]
+mod field_reader_tests {
+    use super::{bool_field, string_field, symbol_field};
+    use sim_kernel::{Expr, Symbol};
+
+    fn entry(key: Expr, value: Expr) -> (Expr, Expr) {
+        (key, value)
+    }
+
+    // The readers deliberately match a field name namespace-agnostically via the
+    // shared `entry_required_*_any` substrate: a bare-symbol key OR a string key
+    // resolves. This pins that intended flexible matching before/through the
+    // OVERLAP9.05 migration.
+    #[test]
+    fn readers_match_bare_symbol_and_string_keys() {
+        let bare = [entry(
+            Expr::Symbol(Symbol::new("text")),
+            Expr::String("hi".to_owned()),
+        )];
+        assert_eq!(string_field(&bare, "text"), Some("hi".to_owned()));
+
+        let string_key = [entry(
+            Expr::String("type".to_owned()),
+            Expr::Symbol(Symbol::new("text")),
+        )];
+        assert_eq!(symbol_field(&string_key, "type"), Some("text".to_owned()));
+    }
+
+    // `string_field` coerces both String and Symbol values to an owned String;
+    // `symbol_field` reads only symbols; `bool_field` reads only bools.
+    #[test]
+    fn readers_preserve_value_coercion() {
+        let entries = [
+            entry(
+                Expr::Symbol(Symbol::new("text")),
+                Expr::Symbol(Symbol::new("as-symbol")),
+            ),
+            entry(
+                Expr::Symbol(Symbol::new("type")),
+                Expr::Symbol(Symbol::new("text")),
+            ),
+            entry(Expr::Symbol(Symbol::new("flag")), Expr::Bool(true)),
+        ];
+
+        assert_eq!(string_field(&entries, "text"), Some("as-symbol".to_owned()));
+        assert_eq!(symbol_field(&entries, "type"), Some("text".to_owned()));
+        assert_eq!(bool_field(&entries, "flag"), Some(true));
+
+        // Wrong-typed or absent fields read as None.
+        assert_eq!(symbol_field(&entries, "flag"), None);
+        assert_eq!(bool_field(&entries, "missing"), None);
+    }
 }
