@@ -7,6 +7,7 @@ use sim_lib_stream_core::{
     stream_cancel_capability, stream_open_capability, stream_push_capability,
     stream_read_capability, stream_remote_network_capability, stream_stats_capability,
 };
+use sim_value::kind::expr_kind;
 
 /// Control-plane operation exchanged over remote stream-fabric frames.
 ///
@@ -369,13 +370,7 @@ fn parse_u64(expr: &Expr) -> Result<u64> {
 }
 
 fn symbol_field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Result<&'a Symbol> {
-    match field(entries, name)? {
-        Expr::Symbol(symbol) => Ok(symbol),
-        other => Err(Error::TypeMismatch {
-            expected: "symbol field",
-            found: expr_kind(other),
-        }),
-    }
+    sim_value::access::entry_required_sym(entries, name, "symbol field")
 }
 
 fn field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Result<&'a Expr> {
@@ -407,28 +402,4 @@ fn ensure_fields(entries: &[(Expr, Expr)], allowed: &[&str]) -> Result<()> {
         )));
     }
     Ok(())
-}
-
-fn expr_kind(expr: &Expr) -> &'static str {
-    match expr {
-        Expr::Nil => "nil",
-        Expr::Bool(_) => "bool",
-        Expr::Number(_) => "number",
-        Expr::Symbol(_) => "symbol",
-        Expr::Local(_) => "local",
-        Expr::String(_) => "string",
-        Expr::Bytes(_) => "bytes",
-        Expr::List(_) => "list",
-        Expr::Vector(_) => "vector",
-        Expr::Map(_) => "map",
-        Expr::Set(_) => "set",
-        Expr::Call { .. } => "call",
-        Expr::Infix { .. } => "infix",
-        Expr::Prefix { .. } => "prefix",
-        Expr::Postfix { .. } => "postfix",
-        Expr::Block(_) => "block",
-        Expr::Quote { .. } => "quote",
-        Expr::Annotated { .. } => "annotated",
-        Expr::Extension { .. } => "extension",
-    }
 }
