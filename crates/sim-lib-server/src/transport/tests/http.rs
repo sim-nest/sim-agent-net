@@ -11,42 +11,8 @@ use super::super::{
     HttpServerTransport, SseServerTransport, WsServerTransport, connect_transport_site,
     run_accept_loop,
 };
-use super::support::{codecs, cx};
+use super::support::{CollectingSink, codecs, cx};
 use crate::transport::ServerTransport;
-
-#[derive(Default)]
-struct CollectingSink {
-    chunks: Vec<Expr>,
-    seen: Vec<FrameKind>,
-    ended: bool,
-}
-
-impl crate::StreamSink for CollectingSink {
-    fn chunk(&mut self, cx: &mut sim_kernel::Cx, frame: ServerFrame) -> sim_kernel::Result<()> {
-        self.seen.push(frame.kind.clone());
-        match frame.kind {
-            FrameKind::StreamStart => Ok(()),
-            FrameKind::StreamChunk => {
-                self.chunks
-                    .push(frame.decode_expr(cx, ReadPolicy::default())?);
-                Ok(())
-            }
-            FrameKind::StreamEnd => {
-                self.ended = true;
-                Ok(())
-            }
-            other => Err(Error::Eval(format!(
-                "unexpected frame kind {}",
-                other.as_symbol()
-            ))),
-        }
-    }
-
-    fn end(&mut self, _cx: &mut sim_kernel::Cx) -> sim_kernel::Result<()> {
-        self.ended = true;
-        Ok(())
-    }
-}
 
 #[test]
 fn http_transport_round_trips_a_frame_over_post_body() {

@@ -41,3 +41,43 @@ pub(crate) fn unix_socket_path(name: &str) -> PathBuf {
         .as_nanos();
     std::env::temp_dir().join(format!("sim-say-{name}-{nanos}-{unique}.sock"))
 }
+
+#[cfg(feature = "server-net-http")]
+#[derive(Default)]
+pub(crate) struct CollectingSink {
+    pub(crate) chunks: Vec<sim_kernel::Expr>,
+    pub(crate) seen: Vec<crate::FrameKind>,
+    pub(crate) ended: bool,
+}
+
+#[cfg(feature = "server-net-http")]
+impl crate::StreamSink for CollectingSink {
+    fn chunk(
+        &mut self,
+        cx: &mut sim_kernel::Cx,
+        frame: crate::ServerFrame,
+    ) -> sim_kernel::Result<()> {
+        self.seen.push(frame.kind.clone());
+        match frame.kind {
+            crate::FrameKind::StreamStart => Ok(()),
+            crate::FrameKind::StreamChunk => {
+                self.chunks
+                    .push(frame.decode_expr(cx, sim_kernel::ReadPolicy::default())?);
+                Ok(())
+            }
+            crate::FrameKind::StreamEnd => {
+                self.ended = true;
+                Ok(())
+            }
+            other => Err(sim_kernel::Error::Eval(format!(
+                "unexpected frame kind {}",
+                other.as_symbol()
+            ))),
+        }
+    }
+
+    fn end(&mut self, _cx: &mut sim_kernel::Cx) -> sim_kernel::Result<()> {
+        self.ended = true;
+        Ok(())
+    }
+}
