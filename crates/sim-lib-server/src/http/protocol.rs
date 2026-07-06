@@ -1,12 +1,10 @@
-use std::io::{BufRead, ErrorKind, Read, Write};
+use std::io::{BufRead, Read, Write};
 
 use sim_kernel::{Error, Result};
 
 use crate::transport::MAX_TRANSPORT_FRAME_BYTES;
 
 use super::core::{HttpRequest, HttpResponse, header_value};
-
-const MAX_HTTP_HEAD_BYTES: usize = 64 * 1024;
 
 pub(crate) fn read_request<R: Read>(reader: &mut R) -> Result<Option<HttpRequest>> {
     let head = match read_http_head(reader)? {
@@ -112,28 +110,18 @@ pub(crate) fn read_sse_event<R: BufRead>(reader: &mut R) -> Result<Option<(Strin
 }
 
 fn read_http_head<R: Read>(reader: &mut R) -> Result<Option<Vec<u8>>> {
-    let mut head = Vec::new();
-    let mut byte = [0u8; 1];
-    loop {
-        match reader.read(&mut byte) {
-            Ok(0) if head.is_empty() => return Ok(None),
-            Ok(0) => {
-                return Err(Error::HostError("truncated http headers".to_owned()));
-            }
-            Ok(_) => {
-                head.push(byte[0]);
-                if head.len() > MAX_HTTP_HEAD_BYTES {
-                    return Err(Error::HostError(
-                        "http headers exceed size limit".to_owned(),
-                    ));
-                }
-                if head.ends_with(b"\r\n\r\n") {
-                    return Ok(Some(head));
-                }
-            }
-            Err(error) if error.kind() == ErrorKind::Interrupted => {}
-            Err(error) => return Err(io_to_host(error)),
+    // 64 KiB HTTP head cap (caller policy); the read-until-CRLFCRLF framing is
+    // the shared net-core primitive. The outcome mapping keeps this server's
+    // local error text and None-on-empty-peer behavior unchanged.
+    match sim_lib_net_core::read_head_until_double_crlf(reader, 64 * 1024).map_err(io_to_host)? {
+        sim_lib_net_core::HeadOutcome::Head(head) => Ok(Some(head)),
+        sim_lib_net_core::HeadOutcome::Eof => Ok(None),
+        sim_lib_net_core::HeadOutcome::Truncated(_) => {
+            Err(Error::HostError("truncated http headers".to_owned()))
         }
+        sim_lib_net_core::HeadOutcome::TooLarge => Err(Error::HostError(
+            "http headers exceed size limit".to_owned(),
+        )),
     }
 }
 

@@ -10,7 +10,6 @@ mod body;
 
 use body::{read_chunked_body, read_content_length_body, read_to_end_limited};
 
-const MAX_HTTP_HEAD_BYTES: usize = 64 * 1024;
 type BodyChunkCallback<'a> = &'a mut dyn FnMut(&[u8]) -> Result<()>;
 type OptionalBodyChunkCallback<'a> = Option<BodyChunkCallback<'a>>;
 
@@ -127,22 +126,24 @@ fn read_response(
     on_body_chunk: OptionalBodyChunkCallback<'_>,
 ) -> Result<HttpRunnerResponse> {
     let mut reader = BufReader::new(stream);
-    let mut head = Vec::new();
-    loop {
-        let mut byte = [0u8; 1];
-        reader
-            .read_exact(&mut byte)
-            .map_err(|err| host_error(runner_label, err, secret))?;
-        head.push(byte[0]);
-        if head.len() > MAX_HTTP_HEAD_BYTES {
+    // 64 KiB HTTP head cap (caller policy); the read-until-CRLFCRLF framing is
+    // the shared net-core primitive.
+    let head = match sim_lib_net_core::read_head_until_double_crlf(&mut reader, 64 * 1024) {
+        Ok(sim_lib_net_core::HeadOutcome::Head(head)) => head,
+        Ok(sim_lib_net_core::HeadOutcome::TooLarge) => {
             return Err(Error::HostError(
                 "http headers exceed size limit".to_owned(),
             ));
         }
-        if head.ends_with(b"\r\n\r\n") {
-            break;
+        Ok(sim_lib_net_core::HeadOutcome::Eof | sim_lib_net_core::HeadOutcome::Truncated(_)) => {
+            return Err(host_error(
+                runner_label,
+                std::io::Error::from(std::io::ErrorKind::UnexpectedEof),
+                secret,
+            ));
         }
-    }
+        Err(err) => return Err(host_error(runner_label, err, secret)),
+    };
     let head_text = std::str::from_utf8(&head)
         .map_err(|_| Error::HostError("http headers are not valid utf-8".to_owned()))?;
     // Parse the status line + headers with the shared net-core primitive, then

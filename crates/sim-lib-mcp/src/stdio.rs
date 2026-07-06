@@ -1,4 +1,4 @@
-use std::io::{BufRead, Read, Write};
+use std::io::{BufRead, Write};
 
 use sim_codec::{Input, decode_with_codec, encode_with_codec};
 use sim_codec_mcp::{McpEnvelope, McpError, McpErrorEnvelope, PARSE_ERROR, envelope_to_expr};
@@ -79,27 +79,24 @@ where
 
 /// Reads one line-delimited frame, capped at `cap` bytes.
 ///
-/// Returns `Ok(None)` at end of input. Reading is bounded by a `Take` so a
-/// sender that never emits a newline cannot grow the buffer without limit; a
-/// frame that reaches the cap is rejected rather than accumulated. The trailing
-/// line terminator is stripped to match the previous `BufRead::lines` behavior.
+/// Returns `Ok(None)` at end of input. Reading uses the shared net-core
+/// `read_capped_line` so a sender that never emits a newline cannot grow the
+/// buffer without limit; a frame that reaches the cap is rejected rather than
+/// accumulated. The trailing line terminator is stripped to match the previous
+/// `BufRead::lines` behavior.
 fn read_capped_frame<R: BufRead>(reader: &mut R, cap: usize) -> Result<Option<String>> {
     let mut line = String::new();
-    let read = reader
-        .take((cap as u64) + 1)
-        .read_line(&mut line)
-        .map_err(io_error_to_host)?;
-    if read == 0 {
-        return Ok(None);
-    }
-    if line.len() > cap {
-        return Err(Error::HostError(format!(
+    match sim_lib_net_core::read_capped_line(reader, &mut line, cap).map_err(io_error_to_host)? {
+        sim_lib_net_core::CapOutcome::Eof => Ok(None),
+        sim_lib_net_core::CapOutcome::TooLarge => Err(Error::HostError(format!(
             "mcp stdio frame exceeds {cap} bytes"
-        )));
+        ))),
+        sim_lib_net_core::CapOutcome::Line => {
+            let end = line.trim_end_matches('\n').trim_end_matches('\r').len();
+            line.truncate(end);
+            Ok(Some(line))
+        }
     }
-    let end = line.trim_end_matches('\n').trim_end_matches('\r').len();
-    line.truncate(end);
-    Ok(Some(line))
 }
 
 fn decode_line(cx: &mut Cx, line: String) -> Result<Expr> {
@@ -133,4 +130,31 @@ fn mcp_codec_symbol() -> Symbol {
 
 fn io_error_to_host(error: std::io::Error) -> Error {
     Error::host_io(error)
+}
+
+#[cfg(test)]
+mod capped_frame_tests {
+    use super::read_capped_frame;
+    use std::io::Cursor;
+
+    #[test]
+    fn reads_lines_strips_terminator_then_reports_eof() {
+        let mut reader = Cursor::new(b"hello\nworld\n".to_vec());
+        assert_eq!(
+            read_capped_frame(&mut reader, 64).unwrap().as_deref(),
+            Some("hello")
+        );
+        assert_eq!(
+            read_capped_frame(&mut reader, 64).unwrap().as_deref(),
+            Some("world")
+        );
+        assert_eq!(read_capped_frame(&mut reader, 64).unwrap(), None);
+    }
+
+    #[test]
+    fn frame_over_cap_is_rejected() {
+        let mut reader = Cursor::new(vec![b'a'; 128]);
+        let err = read_capped_frame(&mut reader, 16).unwrap_err();
+        assert!(err.to_string().contains("exceeds 16 bytes"));
+    }
 }
