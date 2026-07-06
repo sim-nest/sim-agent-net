@@ -31,50 +31,25 @@ pub(crate) enum WsMessage {
 
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-// NOTE (OVERLAP8.06): intentionally NOT routed through
-// `sim_lib_net_core::parse_url_for_scheme`. That shared primitive resolves a
-// default port only for `http`/`https` (this parser also serves `ws`, defaulting
-// to 80), trims trailing slashes from the path, and substitutes `default_path`
-// whenever the path is `/` -- all behavior changes for these transports. Keep
-// this local parser until a scheme-generic net-core variant exists.
+impl From<sim_lib_net_core::UrlParts> for ParsedUrl {
+    fn from(parts: sim_lib_net_core::UrlParts) -> Self {
+        Self {
+            scheme: parts.scheme,
+            host: parts.host,
+            port: parts.port,
+            path: parts.path,
+        }
+    }
+}
+
+// URL parsing defers to the shared `sim_lib_net_core` primitive
+// (`parse_url_for_scheme_preserving_path`): it resolves ws/wss (80/443) and
+// http/https default ports, rejects a scheme mismatch, and preserves a caller's
+// trailing-slash path. This server keeps only the transport error mapping local.
 pub(crate) fn parse_url(url: &str, expected_scheme: &str, default_path: &str) -> Result<ParsedUrl> {
-    let (scheme, rest) = url
-        .split_once("://")
-        .ok_or_else(|| Error::Eval(format!("invalid url {url}")))?;
-    if scheme != expected_scheme {
-        return Err(Error::Eval(format!(
-            "expected {expected_scheme} url, found {scheme}"
-        )));
-    }
-    let (host_port, path) = match rest.split_once('/') {
-        Some((host_port, suffix)) => (host_port, format!("/{suffix}")),
-        None => (rest, default_path.to_owned()),
-    };
-    if host_port.is_empty() {
-        return Err(Error::Eval(format!("url missing host in {url}")));
-    }
-    let (host, port) = match host_port.rsplit_once(':') {
-        Some((host, port)) => {
-            let port = port
-                .parse::<u16>()
-                .map_err(|_| Error::Eval(format!("invalid port in url {url}")))?;
-            (host.to_owned(), port)
-        }
-        None => {
-            let port = match expected_scheme {
-                "http" => 80,
-                "ws" => 80,
-                _ => return Err(Error::Eval(format!("missing port in url {url}"))),
-            };
-            (host_port.to_owned(), port)
-        }
-    };
-    Ok(ParsedUrl {
-        scheme: scheme.to_owned(),
-        host,
-        port,
-        path,
-    })
+    sim_lib_net_core::parse_url_for_scheme_preserving_path(url, expected_scheme, default_path)
+        .map(ParsedUrl::from)
+        .map_err(|error| Error::Eval(format!("invalid {expected_scheme} url {url}: {error}")))
 }
 
 pub(crate) fn format_url(parsed: &ParsedUrl) -> String {
