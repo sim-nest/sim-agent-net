@@ -256,5 +256,5 @@ pub(crate) fn lock_entries<'a>(
 }
 
 pub(crate) fn io_error(err: std::io::Error) -> Error {
-    Error::HostError(err.to_string())
+    Error::host_io(err)
 }

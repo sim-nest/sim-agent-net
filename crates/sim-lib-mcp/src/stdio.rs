@@ -132,5 +132,5 @@ fn mcp_codec_symbol() -> Symbol {
 }
 
 fn io_error_to_host(error: std::io::Error) -> Error {
-    Error::HostError(error.to_string())
+    Error::host_io(error)
 }

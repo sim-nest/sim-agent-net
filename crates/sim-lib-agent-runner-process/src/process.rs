@@ -354,7 +354,7 @@ fn kill_child(child: &Arc<Mutex<Child>>) {
 }
 
 pub(super) fn io_error_to_host(err: std::io::Error) -> Error {
-    Error::HostError(err.to_string())
+    Error::host_io(err)
 }
 
 #[cfg(test)]

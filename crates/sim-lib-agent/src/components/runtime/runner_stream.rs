@@ -119,17 +119,20 @@ pub(super) fn model_stream_metadata(runner: Symbol, model: String) -> Expr {
 }
 
 fn clone_stream_cx(seed: &Cx) -> Cx {
-    let (mut cloned, seat) = Cx::new_seated(seed.eval_policy_ref(), seed.factory_ref());
-    *cloned.env_mut() = seed.env().clone();
-    *cloned.registry_mut() = seed.registry().clone();
-    *cloned.sources_mut() = seed.sources().clone();
-    cloned.set_promotion_search_limits(seed.promotion_search_limits());
-    cloned.set_control_policy(seed.control_policy_ref());
-    for capability in seed.capabilities().iter() {
-        seat.grant(&mut cloned, capability.clone());
+    seed.fork_from_seed()
+}
+
+#[cfg(test)]
+mod fork_tests {
+    use super::clone_stream_cx;
+    use sim_kernel::{CapabilityName, testing::bare_cx};
+
+    #[test]
+    fn clone_stream_cx_preserves_seed_capabilities() {
+        let mut seed = bare_cx();
+        let capability = CapabilityName::new("test.stream-fork");
+        seed.grant(capability.clone());
+        let fork = clone_stream_cx(&seed);
+        assert!(fork.capabilities().contains(&capability));
     }
-    if let Some(expander) = seed.macro_expander_ref() {
-        cloned.set_macro_expander(expander);
-    }
-    cloned
 }

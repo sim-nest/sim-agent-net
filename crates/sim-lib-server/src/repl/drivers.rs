@@ -244,5 +244,5 @@ fn shell_escape_path(path: &Path) -> String {
 }
 
 fn io_error_to_host(err: io::Error) -> Error {
-    Error::HostError(err.to_string())
+    Error::host_io(err)
 }

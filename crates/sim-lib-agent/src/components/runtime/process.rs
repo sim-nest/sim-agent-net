@@ -116,5 +116,5 @@ pub(super) fn capture_child_output(
 }
 
 pub(super) fn io_error_to_host(err: std::io::Error) -> Error {
-    Error::HostError(err.to_string())
+    Error::host_io(err)
 }
