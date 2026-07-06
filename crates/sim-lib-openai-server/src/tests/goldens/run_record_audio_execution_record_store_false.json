@@ -1,0 +1,58 @@
+{
+  "bare_retrievable_by_content_id": null,
+  "event_content_ids": [
+    "c8ba7aeb17e0a153d3be3330fc0c5ba66f517c29ef9eb14ffbd9bba75fdb7e97",
+    "5faf89426d31bd2e65e3b2a2da23afcff466a99556e3377afdbfa040fb3c5b5f",
+    "605b909e096723092db5040ae44b4f6c76513a6e2774213a58d4ded6e6500e0d",
+    "cafcaa660cf0340ea7fd318aa3bba4bd51a5224bc1435df5ee5ac412398ac76e"
+  ],
+  "events": [
+    {
+      "created_at_ms": 3060,
+      "id": "gwevt_000011",
+      "kind": "request-start",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"object\" }), String(\"openai-gateway/request\")), (Symbol(Symbol { namespace: None, name: \"id\" }), String(\"gwreq_000011\")), (Symbol(Symbol { namespace: None, name: \"timestamp-ms\" }), String(\"3000\")), (Symbol(Symbol { namespace: None, name: \"method\" }), String(\"POST\")), (Symbol(Symbol { namespace: None, name: \"path\" }), String(\"/v1/audio/transcriptions\")), (Symbol(Symbol { namespace: None, name: \"headers\" }), List([Map([(Symbol(Symbol { namespace: None, name: \"name\" }), String(\"Content-Type\")), (Symbol(Symbol { namespace: None, name: \"value\" }), String(\"application/json\"))])])), (Symbol(Symbol { namespace: None, name: \"body\" }), Bytes([123, 34, 105, 110, 112, 117, 116, 34, 58, 34, 103, 111, 108, 100, 101, 110, 32, 32, 32, 83, 73, 77, 32, 97, 117, 100, 105, 111, 34, 44, 34, 115, 116, 111, 114, 101, 34, 58, 102, 97, 108, 115, 101, 125]))])",
+      "run_id": "gwrun_000011",
+      "sequence": 0
+    },
+    {
+      "created_at_ms": 3090,
+      "id": "gwevt_000012",
+      "kind": "route-start",
+      "payload_debug": "String(\"/v1/audio/transcriptions\")",
+      "run_id": "gwrun_000011",
+      "sequence": 1
+    },
+    {
+      "created_at_ms": 3120,
+      "id": "gwevt_000013",
+      "kind": "transcription",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"operation\" }), String(\"transcription\")), (Symbol(Symbol { namespace: None, name: \"model\" }), String(\"sim/audio/transcribe-fixture\")), (Symbol(Symbol { namespace: None, name: \"input-bytes\" }), String(\"18\"))])",
+      "run_id": "gwrun_000011",
+      "sequence": 2
+    },
+    {
+      "created_at_ms": 3150,
+      "id": "gwevt_000014",
+      "kind": "final",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"route\" }), String(\"/v1/audio/transcriptions\")), (Symbol(Symbol { namespace: None, name: \"status\" }), String(\"200\")), (Symbol(Symbol { namespace: None, name: \"body-bytes\" }), String(\"128\"))])",
+      "run_id": "gwrun_000011",
+      "sequence": 3
+    }
+  ],
+  "final_response": {
+    "body": {
+      "duration_ms": 360,
+      "model": "sim/audio/transcribe-fixture",
+      "object": "audio.transcription",
+      "text": "transcribed: golden SIM audio"
+    },
+    "content_type": "application/json",
+    "status": 200
+  },
+  "object_retrievable_by_id": false,
+  "request_content_id": "187b10d1ba5efc4522838aada29622d9972b5e2f6d42f6d4cb77ed390cb8cefe",
+  "response_content_id": null,
+  "run_content_id": "0c99afd60fbb5fb4f6e6e72c062bd0a2faf52531ddf8009173166f90cdce2d01",
+  "store": false
+}

@@ -16,6 +16,7 @@ mod batches;
 mod cache;
 mod chat_completions;
 mod embeddings;
+mod execution_record;
 mod fabric;
 mod federation;
 mod files;

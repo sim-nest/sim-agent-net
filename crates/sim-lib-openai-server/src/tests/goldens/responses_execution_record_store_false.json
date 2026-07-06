@@ -1,0 +1,97 @@
+{
+  "event_content_ids": [
+    "ca5c0b726df5ddbf9aef9349fe44dade76968e41f916d8751311567f5bddd203",
+    "f4ae0a2729c5f374ffb16b70da2c6b9662295983d1459c88a77b03d7a7e18722",
+    "0aa63ae35396f81a6801731bd130681d3ba5cab76d1c6cee05626a4470826b0b",
+    "3cd67ff3b7849297c432ba804fff33f14f3eefe4efd8285e900f9b4d095a7e67",
+    "a2242861a146db370e62a0a15cb911149dcc0da03f08a29068a6dae6d7b6f778",
+    "47623e758d0d22e1acfc128268a6ba6decab30590abe59ac245d7d4edab1c104"
+  ],
+  "events": [
+    {
+      "created_at_ms": 1020,
+      "id": "gwevt_000001",
+      "kind": "request-start",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"object\" }), String(\"openai-gateway/request\")), (Symbol(Symbol { namespace: None, name: \"id\" }), String(\"gwreq_000001\")), (Symbol(Symbol { namespace: None, name: \"timestamp-ms\" }), String(\"1000\")), (Symbol(Symbol { namespace: None, name: \"method\" }), String(\"POST\")), (Symbol(Symbol { namespace: None, name: \"path\" }), String(\"/v1/responses\")), (Symbol(Symbol { namespace: None, name: \"headers\" }), List([Map([(Symbol(Symbol { namespace: None, name: \"name\" }), String(\"Content-Type\")), (Symbol(Symbol { namespace: None, name: \"value\" }), String(\"application/json\"))])])), (Symbol(Symbol { namespace: None, name: \"body\" }), Bytes([123, 34, 105, 110, 112, 117, 116, 34, 58, 34, 103, 111, 108, 100, 101, 110, 32, 105, 110, 112, 117, 116, 34, 44, 34, 109, 111, 100, 101, 108, 34, 58, 34, 102, 105, 120, 116, 117, 114, 101, 47, 101, 99, 104, 111, 34, 44, 34, 115, 116, 111, 114, 101, 34, 58, 102, 97, 108, 115, 101, 125]))])",
+      "run_id": "gwrun_000001",
+      "sequence": 0
+    },
+    {
+      "created_at_ms": 1030,
+      "id": "gwevt_000002",
+      "kind": "plan-start",
+      "payload_debug": "List([Symbol(Symbol { namespace: None, name: \"plan/atom\" }), String(\"fixture/echo\")])",
+      "run_id": "gwrun_000001",
+      "sequence": 1
+    },
+    {
+      "created_at_ms": 1040,
+      "id": "gwevt_000003",
+      "kind": "model-start",
+      "payload_debug": "String(\"fixture/echo\")",
+      "run_id": "gwrun_000001",
+      "sequence": 2
+    },
+    {
+      "created_at_ms": 1050,
+      "id": "gwevt_000004",
+      "kind": "delta",
+      "payload_debug": "String(\"golden input\")",
+      "run_id": "gwrun_000001",
+      "sequence": 3
+    },
+    {
+      "created_at_ms": 1060,
+      "id": "gwevt_000005",
+      "kind": "usage",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"input-tokens\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" })), (Symbol(Symbol { namespace: None, name: \"output-tokens\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" })), (Symbol(Symbol { namespace: None, name: \"latency-ms\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" })), (Symbol(Symbol { namespace: None, name: \"cost-usd\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }))])",
+      "run_id": "gwrun_000001",
+      "sequence": 4
+    },
+    {
+      "created_at_ms": 1070,
+      "id": "gwevt_000006",
+      "kind": "final",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"model-response\" }), Bool(true)), (Symbol(Symbol { namespace: None, name: \"runner\" }), Symbol(Symbol { namespace: None, name: \"fixture/echo\" })), (Symbol(Symbol { namespace: None, name: \"model\" }), String(\"fixture/echo\")), (Symbol(Symbol { namespace: None, name: \"content\" }), List([Map([(Symbol(Symbol { namespace: None, name: \"type\" }), Symbol(Symbol { namespace: None, name: \"text\" })), (Symbol(Symbol { namespace: None, name: \"text\" }), String(\"golden input\"))])])), (Symbol(Symbol { namespace: None, name: \"stop-reason\" }), Symbol(Symbol { namespace: None, name: \"stop\" })), (Symbol(Symbol { namespace: None, name: \"usage\" }), Map([(Symbol(Symbol { namespace: None, name: \"input-tokens\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" })), (Symbol(Symbol { namespace: None, name: \"output-tokens\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" })), (Symbol(Symbol { namespace: None, name: \"latency-ms\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" })), (Symbol(Symbol { namespace: None, name: \"cost-usd\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }))]))])",
+      "run_id": "gwrun_000001",
+      "sequence": 5
+    }
+  ],
+  "final_response": {
+    "body": {
+      "created_at": 1,
+      "id": "resp_000001",
+      "model": "fixture/echo",
+      "object": "response",
+      "output": [
+        {
+          "content": [
+            {
+              "annotations": [],
+              "text": "golden input",
+              "type": "output_text"
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ],
+      "output_text": "golden input",
+      "status": "completed",
+      "usage": {
+        "completion_tokens": 2,
+        "prompt_tokens": 2,
+        "total_tokens": 4
+      }
+    },
+    "content_type": "application/json",
+    "status": 200
+  },
+  "object_retrievable_by_id": false,
+  "request_content_id": "09e94a0d5c70b40472d37c3fbc988fa764e86dd0ebd0e74475f6e878852512a2",
+  "response_content_id": null,
+  "response_id": "resp_000001",
+  "run_content_id": "75f2b73107b161311e35175c34316f39a3b81ace93e67ce3a1fa651e0aa9b425",
+  "store": false
+}

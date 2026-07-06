@@ -1,0 +1,108 @@
+{
+  "bare_retrievable_by_content_id": null,
+  "event_content_ids": [
+    "a5d97ec88c8ba1f6cfd2aaca6a899067e59060e0f8b197f15ecc6083be02260a",
+    "cd38e68e034c2c6e23b426f3accb8d7591faf359536cac2ecb5a0812f3717bb2",
+    "38759cc45eba9ef5bb8fe4e175741416a52073126561bbf2dfd95b55fe5591eb",
+    "e97d24fdbc32ec1f70365debcab516a2a4e8e823b373d6796bb35e7e166a6473",
+    "551ef700b9ed9b63b95b7c2184b90a6344aa1e903f8e0b779ac5131931eaa8c2",
+    "248ee944b4c01d2035dfdadc516e5eb0d200cbf89e16d90080ca755728e48a1e"
+  ],
+  "events": [
+    {
+      "created_at_ms": 2040,
+      "id": "gwevt_000007",
+      "kind": "request-start",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"object\" }), String(\"openai-gateway/request\")), (Symbol(Symbol { namespace: None, name: \"id\" }), String(\"gwreq_000007\")), (Symbol(Symbol { namespace: None, name: \"timestamp-ms\" }), String(\"2000\")), (Symbol(Symbol { namespace: None, name: \"method\" }), String(\"POST\")), (Symbol(Symbol { namespace: None, name: \"path\" }), String(\"/v1/embeddings\")), (Symbol(Symbol { namespace: None, name: \"headers\" }), List([Map([(Symbol(Symbol { namespace: None, name: \"name\" }), String(\"Content-Type\")), (Symbol(Symbol { namespace: None, name: \"value\" }), String(\"application/json\"))])])), (Symbol(Symbol { namespace: None, name: \"body\" }), Bytes([123, 34, 109, 111, 100, 101, 108, 34, 58, 34, 115, 105, 109, 47, 101, 109, 98, 101, 100, 47, 116, 101, 110, 115, 111, 114, 45, 102, 54, 52, 45, 115, 109, 97, 108, 108, 34, 44, 34, 105, 110, 112, 117, 116, 34, 58, 91, 34, 104, 101, 108, 108, 111, 34, 44, 34, 119, 105, 100, 101, 32, 119, 111, 114, 108, 100, 34, 93, 44, 34, 115, 116, 111, 114, 101, 34, 58, 102, 97, 108, 115, 101, 125]))])",
+      "run_id": "gwrun_000007",
+      "sequence": 0
+    },
+    {
+      "created_at_ms": 2060,
+      "id": "gwevt_000008",
+      "kind": "plan-start",
+      "payload_debug": "List([Symbol(Symbol { namespace: None, name: \"plan/atom\" }), String(\"sim/embed/tensor-f64-small\")])",
+      "run_id": "gwrun_000007",
+      "sequence": 1
+    },
+    {
+      "created_at_ms": 2080,
+      "id": "gwevt_000009",
+      "kind": "model-start",
+      "payload_debug": "String(\"sim/embed/tensor-f64-small\")",
+      "run_id": "gwrun_000007",
+      "sequence": 2
+    },
+    {
+      "created_at_ms": 2100,
+      "id": "gwevt_000010",
+      "kind": "embedding",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"model\" }), String(\"sim/embed/tensor-f64-small\")), (Symbol(Symbol { namespace: None, name: \"runner\" }), Symbol(Symbol { namespace: None, name: \"sim/embed/tensor-f64-small\" })), (Symbol(Symbol { namespace: None, name: \"input-count\" }), String(\"2\")), (Symbol(Symbol { namespace: None, name: \"dimension\" }), String(\"8\"))])",
+      "run_id": "gwrun_000007",
+      "sequence": 3
+    },
+    {
+      "created_at_ms": 2120,
+      "id": "gwevt_000011",
+      "kind": "usage",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"prompt-tokens\" }), String(\"3\")), (Symbol(Symbol { namespace: None, name: \"total-tokens\" }), String(\"3\"))])",
+      "run_id": "gwrun_000007",
+      "sequence": 4
+    },
+    {
+      "created_at_ms": 2140,
+      "id": "gwevt_000012",
+      "kind": "final",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"model\" }), String(\"sim/embed/tensor-f64-small\")), (Symbol(Symbol { namespace: None, name: \"object\" }), String(\"list\")), (Symbol(Symbol { namespace: None, name: \"input-count\" }), String(\"2\")), (Symbol(Symbol { namespace: None, name: \"dimension\" }), String(\"8\")), (Symbol(Symbol { namespace: None, name: \"usage\" }), Map([(Symbol(Symbol { namespace: None, name: \"prompt-tokens\" }), String(\"3\")), (Symbol(Symbol { namespace: None, name: \"total-tokens\" }), String(\"3\"))]))])",
+      "run_id": "gwrun_000007",
+      "sequence": 5
+    }
+  ],
+  "final_response": {
+    "body": {
+      "data": [
+        {
+          "embedding": [
+            0.24031500000000008,
+            0.6843189999999999,
+            -0.871678,
+            -0.427674,
+            0.016329999999999956,
+            0.460334,
+            0.904338,
+            -0.651659
+          ],
+          "index": 0,
+          "object": "embedding"
+        },
+        {
+          "embedding": [
+            0.27681200000000006,
+            -0.167192,
+            -0.835181,
+            0.7208159999999999,
+            0.6272420000000001,
+            0.183238,
+            -0.484751,
+            -0.928755
+          ],
+          "index": 1,
+          "object": "embedding"
+        }
+      ],
+      "model": "sim/embed/tensor-f64-small",
+      "object": "list",
+      "usage": {
+        "prompt_tokens": 3,
+        "total_tokens": 3
+      }
+    },
+    "content_type": "application/json",
+    "status": 200
+  },
+  "object_retrievable_by_id": false,
+  "request_content_id": "6b285b350a474d912d3f81e1dcbe3c3cc43c01d70885032db01b7572512acc3e",
+  "response_content_id": null,
+  "run_content_id": "3314b4c141311a111224845db96475b6a0e15972aeaaaf729d09191695fe4b11",
+  "store": false
+}

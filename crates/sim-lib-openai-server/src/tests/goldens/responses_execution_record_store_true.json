@@ -1,0 +1,597 @@
+{
+  "event_content_ids": [
+    "417d3a59c2e678c81556b816c97f85c2a19634f9c3005442c77e3f3c7f3cf5c3",
+    "f4ae0a2729c5f374ffb16b70da2c6b9662295983d1459c88a77b03d7a7e18722",
+    "0aa63ae35396f81a6801731bd130681d3ba5cab76d1c6cee05626a4470826b0b",
+    "3cd67ff3b7849297c432ba804fff33f14f3eefe4efd8285e900f9b4d095a7e67",
+    "a2242861a146db370e62a0a15cb911149dcc0da03f08a29068a6dae6d7b6f778",
+    "47623e758d0d22e1acfc128268a6ba6decab30590abe59ac245d7d4edab1c104"
+  ],
+  "events": [
+    {
+      "created_at_ms": 1020,
+      "id": "gwevt_000001",
+      "kind": "request-start",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"object\" }), String(\"openai-gateway/request\")), (Symbol(Symbol { namespace: None, name: \"id\" }), String(\"gwreq_000001\")), (Symbol(Symbol { namespace: None, name: \"timestamp-ms\" }), String(\"1000\")), (Symbol(Symbol { namespace: None, name: \"method\" }), String(\"POST\")), (Symbol(Symbol { namespace: None, name: \"path\" }), String(\"/v1/responses\")), (Symbol(Symbol { namespace: None, name: \"headers\" }), List([Map([(Symbol(Symbol { namespace: None, name: \"name\" }), String(\"Content-Type\")), (Symbol(Symbol { namespace: None, name: \"value\" }), String(\"application/json\"))])])), (Symbol(Symbol { namespace: None, name: \"body\" }), Bytes([123, 34, 105, 110, 112, 117, 116, 34, 58, 34, 103, 111, 108, 100, 101, 110, 32, 105, 110, 112, 117, 116, 34, 44, 34, 109, 111, 100, 101, 108, 34, 58, 34, 102, 105, 120, 116, 117, 114, 101, 47, 101, 99, 104, 111, 34, 44, 34, 115, 116, 111, 114, 101, 34, 58, 116, 114, 117, 101, 125]))])",
+      "run_id": "gwrun_000001",
+      "sequence": 0
+    },
+    {
+      "created_at_ms": 1030,
+      "id": "gwevt_000002",
+      "kind": "plan-start",
+      "payload_debug": "List([Symbol(Symbol { namespace: None, name: \"plan/atom\" }), String(\"fixture/echo\")])",
+      "run_id": "gwrun_000001",
+      "sequence": 1
+    },
+    {
+      "created_at_ms": 1040,
+      "id": "gwevt_000003",
+      "kind": "model-start",
+      "payload_debug": "String(\"fixture/echo\")",
+      "run_id": "gwrun_000001",
+      "sequence": 2
+    },
+    {
+      "created_at_ms": 1050,
+      "id": "gwevt_000004",
+      "kind": "delta",
+      "payload_debug": "String(\"golden input\")",
+      "run_id": "gwrun_000001",
+      "sequence": 3
+    },
+    {
+      "created_at_ms": 1060,
+      "id": "gwevt_000005",
+      "kind": "usage",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"input-tokens\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" })), (Symbol(Symbol { namespace: None, name: \"output-tokens\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" })), (Symbol(Symbol { namespace: None, name: \"latency-ms\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" })), (Symbol(Symbol { namespace: None, name: \"cost-usd\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }))])",
+      "run_id": "gwrun_000001",
+      "sequence": 4
+    },
+    {
+      "created_at_ms": 1070,
+      "id": "gwevt_000006",
+      "kind": "final",
+      "payload_debug": "Map([(Symbol(Symbol { namespace: None, name: \"model-response\" }), Bool(true)), (Symbol(Symbol { namespace: None, name: \"runner\" }), Symbol(Symbol { namespace: None, name: \"fixture/echo\" })), (Symbol(Symbol { namespace: None, name: \"model\" }), String(\"fixture/echo\")), (Symbol(Symbol { namespace: None, name: \"content\" }), List([Map([(Symbol(Symbol { namespace: None, name: \"type\" }), Symbol(Symbol { namespace: None, name: \"text\" })), (Symbol(Symbol { namespace: None, name: \"text\" }), String(\"golden input\"))])])), (Symbol(Symbol { namespace: None, name: \"stop-reason\" }), Symbol(Symbol { namespace: None, name: \"stop\" })), (Symbol(Symbol { namespace: None, name: \"usage\" }), Map([(Symbol(Symbol { namespace: None, name: \"input-tokens\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" })), (Symbol(Symbol { namespace: None, name: \"output-tokens\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" })), (Symbol(Symbol { namespace: None, name: \"latency-ms\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" })), (Symbol(Symbol { namespace: None, name: \"cost-usd\" }), Number(NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }))]))])",
+      "run_id": "gwrun_000001",
+      "sequence": 5
+    }
+  ],
+  "events_view": {
+    "data": [
+      {
+        "content_id": "417d3a59c2e678c81556b816c97f85c2a19634f9c3005442c77e3f3c7f3cf5c3",
+        "created_at": 1020,
+        "event": "request-start",
+        "id": "gwevt_000001",
+        "object": "response.event",
+        "payload": {
+          "body": "7b22696e707574223a22676f6c64656e20696e707574222c226d6f64656c223a22666978747572652f6563686f222c2273746f7265223a747275657d",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "id": "gwreq_000001",
+          "method": "POST",
+          "object": "openai-gateway/request",
+          "path": "/v1/responses",
+          "timestamp-ms": "1000"
+        },
+        "run_id": "gwrun_000001",
+        "sequence": 0,
+        "type": "response.request-start"
+      },
+      {
+        "content_id": "f4ae0a2729c5f374ffb16b70da2c6b9662295983d1459c88a77b03d7a7e18722",
+        "created_at": 1030,
+        "event": "plan-start",
+        "id": "gwevt_000002",
+        "object": "response.event",
+        "payload": [
+          "plan/atom",
+          "fixture/echo"
+        ],
+        "run_id": "gwrun_000001",
+        "sequence": 1,
+        "type": "response.plan-start"
+      },
+      {
+        "content_id": "0aa63ae35396f81a6801731bd130681d3ba5cab76d1c6cee05626a4470826b0b",
+        "created_at": 1040,
+        "event": "model-start",
+        "id": "gwevt_000003",
+        "object": "response.event",
+        "payload": "fixture/echo",
+        "run_id": "gwrun_000001",
+        "sequence": 2,
+        "type": "response.model-start"
+      },
+      {
+        "content_id": "3cd67ff3b7849297c432ba804fff33f14f3eefe4efd8285e900f9b4d095a7e67",
+        "created_at": 1050,
+        "event": "delta",
+        "id": "gwevt_000004",
+        "object": "response.event",
+        "payload": "golden input",
+        "run_id": "gwrun_000001",
+        "sequence": 3,
+        "type": "response.delta"
+      },
+      {
+        "content_id": "a2242861a146db370e62a0a15cb911149dcc0da03f08a29068a6dae6d7b6f778",
+        "created_at": 1060,
+        "event": "usage",
+        "id": "gwevt_000005",
+        "object": "response.event",
+        "payload": {
+          "cost-usd": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+          "input-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }",
+          "latency-ms": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+          "output-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }"
+        },
+        "run_id": "gwrun_000001",
+        "sequence": 4,
+        "type": "response.usage"
+      },
+      {
+        "content_id": "47623e758d0d22e1acfc128268a6ba6decab30590abe59ac245d7d4edab1c104",
+        "created_at": 1070,
+        "event": "final",
+        "id": "gwevt_000006",
+        "object": "response.event",
+        "payload": {
+          "content": [
+            {
+              "text": "golden input",
+              "type": "text"
+            }
+          ],
+          "model": "fixture/echo",
+          "model-response": true,
+          "runner": "fixture/echo",
+          "stop-reason": "stop",
+          "usage": {
+            "cost-usd": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+            "input-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }",
+            "latency-ms": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+            "output-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }"
+          }
+        },
+        "run_id": "gwrun_000001",
+        "sequence": 5,
+        "type": "response.final"
+      }
+    ],
+    "object": "list",
+    "response_id": "resp_000001"
+  },
+  "final_response": {
+    "body": {
+      "created_at": 1,
+      "id": "resp_000001",
+      "model": "fixture/echo",
+      "object": "response",
+      "output": [
+        {
+          "content": [
+            {
+              "annotations": [],
+              "text": "golden input",
+              "type": "output_text"
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ],
+      "output_text": "golden input",
+      "status": "completed",
+      "usage": {
+        "completion_tokens": 2,
+        "prompt_tokens": 2,
+        "total_tokens": 4
+      }
+    },
+    "content_type": "application/json",
+    "status": 200
+  },
+  "object_retrievable_by_id": true,
+  "replay_view": {
+    "data": [
+      {
+        "content_id": "417d3a59c2e678c81556b816c97f85c2a19634f9c3005442c77e3f3c7f3cf5c3",
+        "created_at": 1020,
+        "event": "request-start",
+        "id": "gwevt_000001",
+        "object": "response.event",
+        "payload": {
+          "body": "7b22696e707574223a22676f6c64656e20696e707574222c226d6f64656c223a22666978747572652f6563686f222c2273746f7265223a747275657d",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "id": "gwreq_000001",
+          "method": "POST",
+          "object": "openai-gateway/request",
+          "path": "/v1/responses",
+          "timestamp-ms": "1000"
+        },
+        "run_id": "gwrun_000001",
+        "sequence": 0,
+        "type": "response.request-start"
+      },
+      {
+        "content_id": "f4ae0a2729c5f374ffb16b70da2c6b9662295983d1459c88a77b03d7a7e18722",
+        "created_at": 1030,
+        "event": "plan-start",
+        "id": "gwevt_000002",
+        "object": "response.event",
+        "payload": [
+          "plan/atom",
+          "fixture/echo"
+        ],
+        "run_id": "gwrun_000001",
+        "sequence": 1,
+        "type": "response.plan-start"
+      },
+      {
+        "content_id": "0aa63ae35396f81a6801731bd130681d3ba5cab76d1c6cee05626a4470826b0b",
+        "created_at": 1040,
+        "event": "model-start",
+        "id": "gwevt_000003",
+        "object": "response.event",
+        "payload": "fixture/echo",
+        "run_id": "gwrun_000001",
+        "sequence": 2,
+        "type": "response.model-start"
+      },
+      {
+        "content_id": "3cd67ff3b7849297c432ba804fff33f14f3eefe4efd8285e900f9b4d095a7e67",
+        "created_at": 1050,
+        "event": "delta",
+        "id": "gwevt_000004",
+        "object": "response.event",
+        "payload": "golden input",
+        "run_id": "gwrun_000001",
+        "sequence": 3,
+        "type": "response.delta"
+      },
+      {
+        "content_id": "a2242861a146db370e62a0a15cb911149dcc0da03f08a29068a6dae6d7b6f778",
+        "created_at": 1060,
+        "event": "usage",
+        "id": "gwevt_000005",
+        "object": "response.event",
+        "payload": {
+          "cost-usd": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+          "input-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }",
+          "latency-ms": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+          "output-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }"
+        },
+        "run_id": "gwrun_000001",
+        "sequence": 4,
+        "type": "response.usage"
+      },
+      {
+        "content_id": "47623e758d0d22e1acfc128268a6ba6decab30590abe59ac245d7d4edab1c104",
+        "created_at": 1070,
+        "event": "final",
+        "id": "gwevt_000006",
+        "object": "response.event",
+        "payload": {
+          "content": [
+            {
+              "text": "golden input",
+              "type": "text"
+            }
+          ],
+          "model": "fixture/echo",
+          "model-response": true,
+          "runner": "fixture/echo",
+          "stop-reason": "stop",
+          "usage": {
+            "cost-usd": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+            "input-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }",
+            "latency-ms": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+            "output-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }"
+          }
+        },
+        "run_id": "gwrun_000001",
+        "sequence": 5,
+        "type": "response.final"
+      }
+    ],
+    "object": "sim.replay",
+    "response_id": "resp_000001",
+    "stream": [
+      {
+        "kind": "openai-gateway-event",
+        "packet": "data",
+        "payload": {
+          "created-at-ms": "1020",
+          "event-kind": "request-start",
+          "id": "gwevt_000001",
+          "object": "openai-gateway/event",
+          "payload": {
+            "body": "7b22696e707574223a22676f6c64656e20696e707574222c226d6f64656c223a22666978747572652f6563686f222c2273746f7265223a747275657d",
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "id": "gwreq_000001",
+            "method": "POST",
+            "object": "openai-gateway/request",
+            "path": "/v1/responses",
+            "timestamp-ms": "1000"
+          },
+          "run-id": "gwrun_000001",
+          "sequence": "0"
+        }
+      },
+      {
+        "kind": "openai-gateway-event",
+        "packet": "data",
+        "payload": {
+          "created-at-ms": "1030",
+          "event-kind": "plan-start",
+          "id": "gwevt_000002",
+          "object": "openai-gateway/event",
+          "payload": [
+            "plan/atom",
+            "fixture/echo"
+          ],
+          "run-id": "gwrun_000001",
+          "sequence": "1"
+        }
+      },
+      {
+        "kind": "openai-gateway-event",
+        "packet": "data",
+        "payload": {
+          "created-at-ms": "1040",
+          "event-kind": "model-start",
+          "id": "gwevt_000003",
+          "object": "openai-gateway/event",
+          "payload": "fixture/echo",
+          "run-id": "gwrun_000001",
+          "sequence": "2"
+        }
+      },
+      {
+        "kind": "openai-gateway-event",
+        "packet": "data",
+        "payload": {
+          "created-at-ms": "1050",
+          "event-kind": "delta",
+          "id": "gwevt_000004",
+          "object": "openai-gateway/event",
+          "payload": "golden input",
+          "run-id": "gwrun_000001",
+          "sequence": "3"
+        }
+      },
+      {
+        "kind": "openai-gateway-event",
+        "packet": "data",
+        "payload": {
+          "created-at-ms": "1060",
+          "event-kind": "usage",
+          "id": "gwevt_000005",
+          "object": "openai-gateway/event",
+          "payload": {
+            "cost-usd": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+            "input-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }",
+            "latency-ms": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+            "output-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }"
+          },
+          "run-id": "gwrun_000001",
+          "sequence": "4"
+        }
+      },
+      {
+        "kind": "openai-gateway-event",
+        "packet": "data",
+        "payload": {
+          "created-at-ms": "1070",
+          "event-kind": "final",
+          "id": "gwevt_000006",
+          "object": "openai-gateway/event",
+          "payload": {
+            "content": [
+              {
+                "text": "golden input",
+                "type": "text"
+              }
+            ],
+            "model": "fixture/echo",
+            "model-response": true,
+            "runner": "fixture/echo",
+            "stop-reason": "stop",
+            "usage": {
+              "cost-usd": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+              "input-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }",
+              "latency-ms": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+              "output-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }"
+            }
+          },
+          "run-id": "gwrun_000001",
+          "sequence": "5"
+        }
+      }
+    ]
+  },
+  "request_content_id": "492bb8694b26912ef3c606daa062976f71849d112759314ba14d5cb0c8e3a00c",
+  "response_content_id": "1317e352797813c9f55b644a9331e900b8f96d5657236015f953863f9f5b7e5a",
+  "response_id": "resp_000001",
+  "run_content_id": "b8c8e96d4089d4b888477a972fd406f360a03a18f32cb2550a29ee8272866148",
+  "sim_view": {
+    "event_content_ids": [
+      "417d3a59c2e678c81556b816c97f85c2a19634f9c3005442c77e3f3c7f3cf5c3",
+      "f4ae0a2729c5f374ffb16b70da2c6b9662295983d1459c88a77b03d7a7e18722",
+      "0aa63ae35396f81a6801731bd130681d3ba5cab76d1c6cee05626a4470826b0b",
+      "3cd67ff3b7849297c432ba804fff33f14f3eefe4efd8285e900f9b4d095a7e67",
+      "a2242861a146db370e62a0a15cb911149dcc0da03f08a29068a6dae6d7b6f778",
+      "47623e758d0d22e1acfc128268a6ba6decab30590abe59ac245d7d4edab1c104"
+    ],
+    "events": [
+      {
+        "created-at-ms": "1020",
+        "event-kind": "request-start",
+        "id": "gwevt_000001",
+        "object": "openai-gateway/event",
+        "payload": {
+          "body": "7b22696e707574223a22676f6c64656e20696e707574222c226d6f64656c223a22666978747572652f6563686f222c2273746f7265223a747275657d",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "id": "gwreq_000001",
+          "method": "POST",
+          "object": "openai-gateway/request",
+          "path": "/v1/responses",
+          "timestamp-ms": "1000"
+        },
+        "run-id": "gwrun_000001",
+        "sequence": "0"
+      },
+      {
+        "created-at-ms": "1030",
+        "event-kind": "plan-start",
+        "id": "gwevt_000002",
+        "object": "openai-gateway/event",
+        "payload": [
+          "plan/atom",
+          "fixture/echo"
+        ],
+        "run-id": "gwrun_000001",
+        "sequence": "1"
+      },
+      {
+        "created-at-ms": "1040",
+        "event-kind": "model-start",
+        "id": "gwevt_000003",
+        "object": "openai-gateway/event",
+        "payload": "fixture/echo",
+        "run-id": "gwrun_000001",
+        "sequence": "2"
+      },
+      {
+        "created-at-ms": "1050",
+        "event-kind": "delta",
+        "id": "gwevt_000004",
+        "object": "openai-gateway/event",
+        "payload": "golden input",
+        "run-id": "gwrun_000001",
+        "sequence": "3"
+      },
+      {
+        "created-at-ms": "1060",
+        "event-kind": "usage",
+        "id": "gwevt_000005",
+        "object": "openai-gateway/event",
+        "payload": {
+          "cost-usd": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+          "input-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }",
+          "latency-ms": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+          "output-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }"
+        },
+        "run-id": "gwrun_000001",
+        "sequence": "4"
+      },
+      {
+        "created-at-ms": "1070",
+        "event-kind": "final",
+        "id": "gwevt_000006",
+        "object": "openai-gateway/event",
+        "payload": {
+          "content": [
+            {
+              "text": "golden input",
+              "type": "text"
+            }
+          ],
+          "model": "fixture/echo",
+          "model-response": true,
+          "runner": "fixture/echo",
+          "stop-reason": "stop",
+          "usage": {
+            "cost-usd": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+            "input-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }",
+            "latency-ms": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"0\" }",
+            "output-tokens": "NumberLiteral { domain: Symbol { namespace: Some(\"numbers\"), name: \"f64\" }, canonical: \"2\" }"
+          }
+        },
+        "run-id": "gwrun_000001",
+        "sequence": "5"
+      }
+    ],
+    "object": "sim.gateway.response",
+    "parent_response_id": null,
+    "request": {
+      "body": "7b22696e707574223a22676f6c64656e20696e707574222c226d6f64656c223a22666978747572652f6563686f222c2273746f7265223a747275657d",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "id": "gwreq_000001",
+      "method": "POST",
+      "object": "openai-gateway/request",
+      "path": "/v1/responses",
+      "timestamp-ms": "1000"
+    },
+    "request_content_id": "492bb8694b26912ef3c606daa062976f71849d112759314ba14d5cb0c8e3a00c",
+    "response": {
+      "created_at": 1,
+      "id": "resp_000001",
+      "model": "fixture/echo",
+      "object": "response",
+      "output": [
+        {
+          "content": [
+            {
+              "annotations": [],
+              "text": "golden input",
+              "type": "output_text"
+            }
+          ],
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ],
+      "output_text": "golden input",
+      "status": "completed",
+      "usage": {
+        "completion_tokens": 2,
+        "prompt_tokens": 2,
+        "total_tokens": 4
+      }
+    },
+    "response_content_id": "1317e352797813c9f55b644a9331e900b8f96d5657236015f953863f9f5b7e5a",
+    "response_id": "resp_000001",
+    "run": {
+      "created-at-ms": "1010",
+      "id": "gwrun_000001",
+      "object": "openai-gateway/run",
+      "request-content-id": {
+        "algorithm": "sha256-datum-v1",
+        "bytes": "492bb8694b26912ef3c606daa062976f71849d112759314ba14d5cb0c8e3a00c",
+        "hex": "492bb8694b26912ef3c606daa062976f71849d112759314ba14d5cb0c8e3a00c"
+      },
+      "status": "created"
+    },
+    "run_content_id": "b8c8e96d4089d4b888477a972fd406f360a03a18f32cb2550a29ee8272866148"
+  },
+  "store": true
+}
