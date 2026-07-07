@@ -1,5 +1,25 @@
 # sim-agent-net
 
+Turn SIM into a networked host for models and agents: expose its tools over MCP,
+route language-model calls, and place work across machines -- all as ordinary
+runtime objects.
+
+## Try it
+
+If you have the `sim` binary (`cargo install sim-nest --features serve-cli`),
+start a Model Context Protocol server so an MCP client -- an editor, an agent --
+can call SIM tools over stdio:
+
+```shell
+sim serve mcp
+```
+
+It serves the SIM tool surface over stdio for any MCP client to connect to. This
+is the same surface built by the `sim-mcp-server` binary in this repo. Full
+walkthrough of every surface: see sim-say.
+
+## What's here
+
 `sim-agent-net` is a SIM constellation repository: the server, agent, and
 model-fabric substrate of the SIM runtime. It holds the library crates that
 turn networked services, autonomous agents, and language-model access into
@@ -11,7 +31,9 @@ SIM is an expandable Rust runtime built around a small protocol kernel
 contracts; libraries provide behavior. Everything in this repository is library
 behavior installed on top of the kernel, not kernel-special code.
 
-## Architecture rule: location-transparent eval
+## How it works
+
+### Architecture rule: location-transparent eval
 
 The single most important rule for everything in this repo: **the public
 distributed eval surface is location-transparent through `realize` and
