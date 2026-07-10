@@ -9,6 +9,7 @@ pub const SEEDED_RECIPE_BOOKS: &[(&str, EmbeddedDir)] = &[
     ("codec/lisp", sim_codec_lisp::RECIPES),
     ("codec/json", sim_codec_json::RECIPES),
     ("numbers/f64", sim_lib_numbers_f64::RECIPES),
+    ("numbers/complex", sim_lib_numbers_complex::RECIPES),
     ("organ/binding", sim_lib_binding::RECIPES),
     ("organ/dispatch", sim_lib_dispatch::RECIPES),
     ("stream-core-shapes", sim_lib_stream_core::RECIPES),

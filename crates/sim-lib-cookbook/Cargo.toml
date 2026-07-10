@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-cookbook"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 license = "MPL-2.0"
 description = "Runtime cookbook: operations for SIM."
@@ -20,6 +20,7 @@ sim-lib-agent-runner-core = { version = "0.1.0", optional = true, path = "../sim
 sim-lib-binding = { optional = true, version = "0.1.0" }
 sim-lib-core = { version = "0.1.0" }
 sim-lib-dispatch = { optional = true, version = "0.1.0" }
+sim-lib-numbers-complex = { optional = true, version = "0.1.0" }
 sim-lib-numbers-f64 = { optional = true, version = "0.1.0" }
 sim-lib-stream-core = { optional = true, version = "0.1.0" }
 
@@ -29,7 +30,7 @@ sim-test-support = { version = "0.1.0" }
 
 [features]
 default = ["seed-recipes"]
-seed-recipes = ["dep:sim-codec-json", "dep:sim-codec-lisp", "dep:sim-lib-agent-runner-core", "dep:sim-lib-binding", "dep:sim-lib-dispatch", "dep:sim-lib-numbers-f64", "dep:sim-lib-stream-core"]
+seed-recipes = ["dep:sim-codec-json", "dep:sim-codec-lisp", "dep:sim-lib-agent-runner-core", "dep:sim-lib-binding", "dep:sim-lib-dispatch", "dep:sim-lib-numbers-complex", "dep:sim-lib-numbers-f64", "dep:sim-lib-stream-core"]
 
 [lints]
 workspace = true
