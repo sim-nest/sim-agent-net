@@ -11,7 +11,7 @@ start a Model Context Protocol server so an MCP client -- an editor, an agent --
 can call SIM tools over stdio:
 
 ```shell
-sim serve mcp
+sim mcp
 ```
 
 It serves the SIM tool surface over stdio for any MCP client to connect to. This
