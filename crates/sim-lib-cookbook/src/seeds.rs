@@ -18,6 +18,8 @@ pub const SEEDED_RECIPE_BOOKS: &[(&str, EmbeddedDir)] = &[
     ("numbers/bigint", sim_lib_numbers_bigint::RECIPES),
     ("numbers/bool", sim_lib_numbers_bool::RECIPES),
     ("numbers/tensor", sim_lib_numbers_tensor::RECIPES),
+    ("numbers/tensor-cmplxf", sim_lib_numbers_tensor_cmplxf::RECIPES),
+    ("numbers/tensor-rat64", sim_lib_numbers_tensor_rat64::RECIPES),
     ("organ/binding", sim_lib_binding::RECIPES),
     ("organ/dispatch", sim_lib_dispatch::RECIPES),
     ("stream-core-shapes", sim_lib_stream_core::RECIPES),

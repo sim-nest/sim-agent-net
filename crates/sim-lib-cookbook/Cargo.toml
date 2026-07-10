@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-cookbook"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 license = "MPL-2.0"
 description = "Runtime cookbook: operations for SIM."
@@ -30,6 +30,8 @@ sim-lib-numbers-arith = { optional = true, version = "0.1.0" }
 sim-lib-numbers-bigint = { optional = true, version = "0.1.0" }
 sim-lib-numbers-bool = { optional = true, version = "0.1.0" }
 sim-lib-numbers-tensor = { optional = true, version = "0.1.0" }
+sim-lib-numbers-tensor-cmplxf = { optional = true, version = "0.1.0" }
+sim-lib-numbers-tensor-rat64 = { optional = true, version = "0.1.0" }
 sim-lib-stream-core = { optional = true, version = "0.1.0" }
 
 [dev-dependencies]
@@ -38,7 +40,7 @@ sim-test-support = { version = "0.1.0" }
 
 [features]
 default = ["seed-recipes"]
-seed-recipes = ["dep:sim-codec-json", "dep:sim-codec-lisp", "dep:sim-lib-agent-runner-core", "dep:sim-lib-binding", "dep:sim-lib-dispatch", "dep:sim-lib-numbers-rational", "dep:sim-lib-numbers-cas", "dep:sim-lib-numbers-func", "dep:sim-lib-numbers-complex", "dep:sim-lib-numbers-f64", "dep:sim-lib-numbers-i64", "dep:sim-lib-numbers-arith", "dep:sim-lib-numbers-bigint", "dep:sim-lib-numbers-bool", "dep:sim-lib-numbers-tensor", "dep:sim-lib-stream-core"]
+seed-recipes = ["dep:sim-codec-json", "dep:sim-codec-lisp", "dep:sim-lib-agent-runner-core", "dep:sim-lib-binding", "dep:sim-lib-dispatch", "dep:sim-lib-numbers-rational", "dep:sim-lib-numbers-cas", "dep:sim-lib-numbers-func", "dep:sim-lib-numbers-complex", "dep:sim-lib-numbers-f64", "dep:sim-lib-numbers-i64", "dep:sim-lib-numbers-arith", "dep:sim-lib-numbers-bigint", "dep:sim-lib-numbers-bool", "dep:sim-lib-numbers-tensor", "dep:sim-lib-numbers-tensor-cmplxf", "dep:sim-lib-numbers-tensor-rat64", "dep:sim-lib-stream-core"]
 
 [lints]
 workspace = true
