@@ -1,6 +1,5 @@
-# Fake Multimodal Fixtures
+# Fake multimodal agent (descriptor)
 
-This recipe records deterministic image, audio, and sensor fixture references
-for local agent runs. Vision captions, speech transcripts, and sensor frames
-come from scripted synthetic data, so the recipe runs without media files,
-network access, or live host state.
+Documents a deterministic fake multimodal agent (text plus a stand-in for image/audio input).
+The multimodal runner and model calls run outside the cookbook sandbox eval stack, so the shape
+is documented over a fixture rather than executed live.

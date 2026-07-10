@@ -1,10 +1,6 @@
-# Autonomous Decision Trace
+# Autonomous Decision (descriptor)
 
-This recipe records a deterministic autonomous decision as SIM data. The setup
-quotes an `agent-pattern` over a synthetic perception context, applies a
-weighted policy score table, chooses an action, and keeps a ledger trace that
-ties the inputs to the action record.
-
-The fixture runs with a fake runner and synthetic inputs only. It is suitable
-for browsing, recipe execution checks, and examples that need an autonomous
-decision without live model access.
+A deterministic, offline synthetic trace of the autonomous decision agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

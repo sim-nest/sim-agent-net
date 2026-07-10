@@ -1,8 +1,6 @@
-# Ethical Reasoning Agent
+# Ethical Reasoning (descriptor)
 
-This recipe records deterministic ethical-policy evaluation as SIM data. The
-setup quotes obligation, permission, and prohibition checks, then applies a
-capability gate to a synthetic cohort decision.
-
-The fixture is local and synthetic. It shows the fairness evidence, blocked
-action, and audit result that support the decision with no live model access.
+A deterministic, offline synthetic trace of the ethical reasoning agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

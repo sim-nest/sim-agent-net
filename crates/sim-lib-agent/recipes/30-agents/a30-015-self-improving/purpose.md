@@ -1,8 +1,6 @@
-# Self Improving Agent
+# Self Improving (descriptor)
 
-This recipe records deterministic self improvement as SIM data. The setup
-quotes a generated candidate, a fixture test, a reflect analysis step, a
-refactor descriptor, and a bounded improvement metric.
-
-The fixture is local and synthetic. It gives recipe browsers a stable
-generate-test-analyze-refactor trace with a fixed iteration cap.
+A deterministic, offline synthetic trace of the self improving agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 10
-tags = ["cookbook", "search", "show"]
+tags = ["cookbook", "search", "show", "sandbox-descriptor"]
 requires = ["cookbook", "codec/lisp"]

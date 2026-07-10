@@ -1,8 +1,6 @@
-# Document Intelligence Card
+# Document Intelligence (descriptor)
 
-This recipe records deterministic document extraction over a synthetic invoice.
-The setup quotes fake-vision OCR output, schema field mapping, confidence
-thresholding, and a validation Card that accepts the mapped fields.
-
-The fixture uses only local synthetic inputs. It gives recipe browsers a stable
-document-intelligence trace without live OCR, network access, or external files.
+A deterministic, offline synthetic trace of the document intelligence agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

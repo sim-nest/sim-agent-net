@@ -1,8 +1,6 @@
-# Knowledge Retrieval Answer
+# Knowledge Retrieval (descriptor)
 
-This recipe records a deterministic retrieval-augmented answer over a synthetic
-handbook. The setup quotes heading chunks, a deterministic embedding index,
-ranked retrieval results, the final answer, and the cited chunk ids.
-
-The fixture stays local and synthetic. It shows how document chunks and rank
-retrieval feed an answer with explicit provenance.
+A deterministic, offline synthetic trace of the knowledge retrieval agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

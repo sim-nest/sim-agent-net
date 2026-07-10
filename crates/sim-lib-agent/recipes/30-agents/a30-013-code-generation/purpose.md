@@ -1,9 +1,6 @@
-# Code Generation Agent
+# Code Generation (descriptor)
 
-This recipe records deterministic code generation as SIM data. The setup quotes
-a failing fixture, a proposed patch descriptor, a test plan, sandbox capability
-requirements, and the bounded check result.
-
-The fixture is local and synthetic. It gives recipe browsers a stable
-test-driven generation trace without file writes, live shell access, or
-unbounded execution.
+A deterministic, offline synthetic trace of the code generation agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

@@ -1,9 +1,6 @@
-# Agent Society Capstone
+# Capstone Agent Society (descriptor)
 
-This capstone records a deterministic five-agent society as SIM data. The setup
-quotes planner, tool-user, verifier, explainer, and safety-reviewer roles that
-debate a synthetic operations task and converge through a weighted consensus.
-
-The fixture is local and synthetic. It is marked outside the numbered thirty
-recipes, uses only simulated tools, and records explicit failure-mode handling
-for route lookup, verification, safety review, and explanation mismatch.
+A deterministic, offline synthetic trace of the capstone agent society agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

@@ -1,9 +1,6 @@
-# Scientific Research Synthesis
+# Scientific Research (descriptor)
 
-This recipe records deterministic research synthesis over synthetic abstracts.
-The setup quotes document chunks, ranked retrieval, rank scatter clustering,
-an extractive synthesis, a novelty filter, and provenance records for cited and
-excluded chunks.
-
-The fixture is local and synthetic. It shows how chunking, retrieval, clustering,
-and provenance combine into a reproducible research answer.
+A deterministic, offline synthetic trace of the scientific research agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

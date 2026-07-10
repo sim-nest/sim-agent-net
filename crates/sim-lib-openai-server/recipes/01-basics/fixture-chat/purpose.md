@@ -1,5 +1,5 @@
-# Fixture chat response
+# OpenAI-gateway chat (descriptor)
 
-Gateway examples should not depend on an upstream provider. This recipe records
-a chat-completions request and local cassette response for deterministic
-inspection and replay.
+Documents the OpenAI-compatible gateway answering a chat-completions request from a fixture. The
+gateway is a served network endpoint, not an expression the cookbook sandbox eval stack reduces,
+so the exchange is documented rather than run.

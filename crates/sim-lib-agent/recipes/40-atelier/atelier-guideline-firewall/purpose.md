@@ -1,8 +1,5 @@
-# Guideline Firewall Bad Fixture
+# Atelier self-hosting: guideline firewall (descriptor)
 
-This recipe records a refused edit against a deliberately bad public-doc
-fixture. The fake runner reports the exact rule, evidence token, and guarded
-capability denied by the Guideline Firewall.
-
-The fixture is local and synthetic. It proves that unsafe edits fail closed
-without a live model or network access.
+A deterministic self-hosting atelier trace demonstrating the guideline firewall (a governance gate on self-edits). The atelier is the runtime
+operating on its own sources; the trace shows the workflow shape over synthetic fixtures, while
+the real edit/build/review effects run outside the cookbook sandbox eval stack.

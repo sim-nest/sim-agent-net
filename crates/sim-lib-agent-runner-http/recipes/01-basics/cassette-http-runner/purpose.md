@@ -1,5 +1,5 @@
-# Cassette HTTP runner
+# HTTP cassette runner (descriptor)
 
-HTTP runner examples should not call a provider. This recipe shows the
-OpenAI-compatible request route and a fixture response through cassette replay
-data, keeping cookbook validation offline.
+Documents the HTTP agent runner replaying a recorded request/response cassette (a POST exchange).
+The runner performs network I/O, which the cookbook sandbox eval stack does not execute, so the
+cassette-replay flow is documented rather than run.

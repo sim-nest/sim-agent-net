@@ -1,9 +1,5 @@
-# Local model placement
+# Local model placement (descriptor)
 
-This recipe records the local model path as a placement graph. A runner is
-placed under `model-site:local`, the prompt graph realizes through
-`model/cached` and `model/at`, and the fixture answer is deterministic.
-
-The fixture uses `runner/fake` so cookbook validation stays offline. The same
-shape accepts the loadable local backend when an operator grants the local model
-capability and loads the site.
+Documents how a local model runner advertises its placement (an `Export::Site`) so `realize` can
+target it. Placement and model execution happen through the eval fabric outside the cookbook
+sandbox eval stack, so the surface is documented rather than run.

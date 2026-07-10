@@ -1,9 +1,6 @@
-# Domain-Transforming Integration Capstone
+# Capstone Domain Transforming Integration (descriptor)
 
-This capstone records deterministic cross-domain integration as SIM data. The
-setup quotes a typed graph that composes education, legal, financial, and
-embodied recipe outputs into one simulated training scenario.
-
-The fixture is local and synthetic. It is marked outside the numbered thirty
-recipes, denies live actuation and external network access, and keeps domain
-guardrails attached to their source nodes.
+A deterministic, offline synthetic trace of the capstone domain transforming integration agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

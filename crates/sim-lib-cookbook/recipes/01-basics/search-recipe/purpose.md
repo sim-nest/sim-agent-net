@@ -1,5 +1,5 @@
-# Search and show recipes
+# Cookbook search (descriptor)
 
-Cookbook users usually start by finding a related recipe and opening its setup.
-This recipe keeps those operations visible with `cookbook:search` and
-`cookbook:show` forms over seeded local data.
+Documents the cookbook's own `search` / `show` operations over the recipe store. These are host
+verbs served by the cookbook lib (the webui calls them), not expressions the sandbox eval stack
+reduces, so the operation surface is documented rather than run as a recipe.

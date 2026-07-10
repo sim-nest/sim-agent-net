@@ -5,7 +5,7 @@ setup = "setup.siml"
 purpose = "purpose.md"
 expected = "expected.txt"
 order = 10
-tags = ["agent", "runner", "local-model", "placement", "fixture", "cache"]
+tags = ["agent", "runner", "local-model", "placement", "fixture", "cache", "sandbox-descriptor"]
 requires = ["agent-runner-local", "agent", "codec/lisp"]
 
 [[expect]]

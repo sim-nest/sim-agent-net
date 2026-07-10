@@ -1,5 +1,5 @@
-# Cassette tools/list
+# MCP tools/list (descriptor)
 
-MCP recipes should demonstrate protocol data instead of live stdio or HTTP
-sessions. This recipe records a `tools/list` request and fixture response for
-cassette replay.
+Documents an MCP `tools/list` JSON-RPC exchange replayed from a cassette. MCP is a transport
+served over a channel, not an expression the cookbook sandbox eval stack reduces, so the
+request/response is documented rather than run.

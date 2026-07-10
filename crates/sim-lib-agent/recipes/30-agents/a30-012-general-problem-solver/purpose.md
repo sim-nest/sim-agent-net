@@ -1,8 +1,6 @@
-# General Problem Solver
+# General Problem Solver (descriptor)
 
-This recipe records deterministic problem solving as SIM data. The setup quotes
-goal decomposition, an analogy lookup from memory, a hypothesis, a fixture test,
-and the final answer selected from the test result.
-
-The fixture is local and synthetic. It gives recipe browsers a stable
-decompose-lookup-hypothesize-test trace without live model access.
+A deterministic, offline synthetic trace of the general problem solver agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

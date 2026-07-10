@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 10
-tags = ["agent", "runner", "http", "cassette"]
+tags = ["agent", "runner", "http", "cassette", "sandbox-descriptor"]
 requires = ["agent-runner-http", "codec/lisp"]

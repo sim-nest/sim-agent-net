@@ -1,8 +1,6 @@
-# Explainable Agent
+# Explainable (descriptor)
 
-This recipe records deterministic decision explanation as SIM data. The setup
-quotes a scored decision, an attribution card, a counterfactual, and two
-audience-specific explanation phrasings.
-
-The fixture is local and synthetic. It includes the evidence gate and
-fail-closed missing-evidence probe that make every emitted answer traceable.
+A deterministic, offline synthetic trace of the explainable agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

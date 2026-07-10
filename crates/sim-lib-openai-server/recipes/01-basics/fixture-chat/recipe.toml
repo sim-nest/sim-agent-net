@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 10
-tags = ["openai", "gateway", "fixture"]
+tags = ["openai", "gateway", "fixture", "sandbox-descriptor"]
 requires = ["openai-gateway", "codec/lisp"]

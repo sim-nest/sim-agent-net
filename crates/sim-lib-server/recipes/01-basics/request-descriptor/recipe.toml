@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 10
-tags = ["server", "request", "descriptor"]
+tags = ["server", "request", "descriptor", "sandbox-descriptor"]
 requires = ["server", "codec/lisp"]

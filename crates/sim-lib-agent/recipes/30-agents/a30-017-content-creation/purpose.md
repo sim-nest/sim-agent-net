@@ -1,9 +1,6 @@
-# Content Creation Agent
+# Content Creation (descriptor)
 
-This recipe records deterministic content creation as SIM data. The setup
-quotes a sense-model-plan-act role chain, an editor sub-agent, brand
-constraints, analytics feedback, and the adjusted draft decision.
-
-The fixture is local and synthetic. It gives recipe browsers a stable
-multi-role content workflow with feedback-driven revision and no live model
-access.
+A deterministic, offline synthetic trace of the content creation agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

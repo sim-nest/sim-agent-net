@@ -1,8 +1,6 @@
-# Conversational Agent
+# Conversational (descriptor)
 
-This recipe records deterministic conversational state as SIM data. The setup
-quotes a multi-turn transcript, a conversation buffer, persona memory, a safety
-sentinel, and an escalation record for a crisis keyword.
-
-The fixture is local and synthetic. It gives recipe browsers a stable
-conversation trace with explicit safety handling and no live model access.
+A deterministic, offline synthetic trace of the conversational agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

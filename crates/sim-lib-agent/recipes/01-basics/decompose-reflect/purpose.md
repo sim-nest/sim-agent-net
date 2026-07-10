@@ -1,5 +1,5 @@
-# Decompose And Reflect
+# Decompose and reflect (descriptor)
 
-This recipe records deterministic planning data for splitting a goal into
-ordered subtasks, running them with a local runner, critiquing the result, and
-performing one bounded retry without live model access.
+Documents the planning pattern that decomposes a goal into steps and reflects on collected
+evidence. Planning drives model and tool calls outside the cookbook sandbox eval stack, so the
+pattern is documented over a synthetic fixture rather than executed live.

@@ -1,8 +1,6 @@
-# Verification Validation Agent
+# Verification Validation (descriptor)
 
-This recipe records deterministic claim verification as SIM data. The setup
-quotes a claim, evidence records, an entailment score, consistency checks, and a
-decision that rejects a low-confidence claim.
-
-The fixture is local and synthetic. It gives recipe browsers a stable
-verification trace with numeric confidence and explicit rejection criteria.
+A deterministic, offline synthetic trace of the verification validation agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

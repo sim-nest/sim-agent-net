@@ -1,8 +1,6 @@
-# Tool Using Agent
+# Tool Using (descriptor)
 
-This recipe records deterministic tool use as SIM data. The setup quotes a
-think-plan-act trace with a skill registry, explicit capability gate, safe tool
-invoke, fake tool result, and fallback action for a denied write tool.
-
-The fixture is local and synthetic. It gives recipe browsers a stable tool-use
-example with visible capability checks and no live service access.
+A deterministic, offline synthetic trace of the tool using agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

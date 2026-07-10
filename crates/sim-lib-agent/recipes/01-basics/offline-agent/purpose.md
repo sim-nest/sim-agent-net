@@ -1,5 +1,5 @@
-# Offline agent descriptor
+# Offline agent assembly (descriptor)
 
-Agent recipes should start from deterministic data. This recipe records a
-local agent component with a fixture runner and table-backed memory, so it can
-be browsed or run without a model service, network access, or live host state.
+Documents assembling an offline agent from its components -- planner, memory table, runner, and
+fixtures. The assembled agent runs through the eval fabric outside the cookbook sandbox eval
+stack, so the assembly is documented rather than executed.

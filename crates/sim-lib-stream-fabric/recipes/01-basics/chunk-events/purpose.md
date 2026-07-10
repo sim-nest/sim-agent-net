@@ -1,4 +1,5 @@
-# Chunk event descriptor
+# Stream-fabric chunk events (descriptor)
 
-This recipe names the fabric bridge vocabulary: chunk events, stream frames,
-expression payloads, and remote error diagnostics.
+Documents the stream fabric framing an expression into chunked events for remote eval. The
+fabric moves frames across nodes -- transport outside the cookbook sandbox eval stack -- so the
+event framing is documented rather than run.

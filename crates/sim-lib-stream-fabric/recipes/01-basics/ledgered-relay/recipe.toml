@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 20
-tags = ["stream", "fabric", "ledger", "cassette"]
+tags = ["stream", "fabric", "ledger", "cassette", "sandbox-descriptor"]
 requires = ["stream-fabric", "standard"]

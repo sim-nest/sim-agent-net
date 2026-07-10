@@ -1,10 +1,6 @@
-# Memory Augmented Answer
+# Memory Augmented (descriptor)
 
-This recipe records a deterministic answer that consults working memory and
-episodic memory. The setup quotes the current goal, table-backed episodes, the
-labeled retrieve step, the recalled episode ids, and the answer derived from
-those episodes.
-
-The fixture stays local and synthetic. Its retrieve step is a table lookup so
-recipe execution remains deterministic while still showing the memory shape an
-agent uses for recall.
+A deterministic, offline synthetic trace of the memory augmented agent pattern. It demonstrates the
+SHAPE of the pattern -- its planning, decision, and effect-ledger structure over synthetic
+fixtures with no live model, network, or tool calls. Those effects run outside the cookbook
+sandbox eval stack, so the trace is documented and deterministic rather than executed live.

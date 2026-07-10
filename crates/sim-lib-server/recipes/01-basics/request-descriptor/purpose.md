@@ -1,5 +1,5 @@
-# Request descriptor
+# Server request routing (descriptor)
 
-Server examples should be inspectable without opening a socket. This recipe
-records a local request and response shape for a cookbook route instead of
-starting a listener or accepting live transport state.
+Documents the server routing a request to a local site (here a `/cookbook/search` route). Serving
+and routing are `realize`/eval-fabric concerns outside the cookbook sandbox eval stack, so the
+request path is documented rather than run.

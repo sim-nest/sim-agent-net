@@ -1,8 +1,5 @@
-# Multi-Agent Change Capsule
+# Atelier self-hosting: change capsule (descriptor)
 
-This recipe records a replayable Change Capsule over fake and cassette runners.
-Cartographer, Editor, Guard, Validator, Docs Agent, Pin Agent, Reviewer, and
-Human Gate all produce deterministic evidence and share one cassette hash.
-
-The fixture is local and synthetic. It proves the multi-agent review path with
-no live model and no network access.
+A deterministic self-hosting atelier trace demonstrating a change capsule (a reviewed, ledgered self-edit). The atelier is the runtime
+operating on its own sources; the trace shows the workflow shape over synthetic fixtures, while
+the real edit/build/review effects run outside the cookbook sandbox eval stack.

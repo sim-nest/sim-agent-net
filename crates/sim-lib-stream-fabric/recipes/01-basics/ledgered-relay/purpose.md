@@ -1,14 +1,5 @@
-# Ledgered relay descriptor
+# Ledgered relay (descriptor)
 
-This recipe describes the content-addressed relay surface. `ContentKey`
-identifies a stable eval request, `EvalCassette` stores successful replies by
-that key, and `LedgeredRelayFabric` returns cached replies before contacting
-the wrapped fabric.
-
-Exact commands:
-
-```bash
-cargo test -p sim-lib-stream-fabric ledgered_relay
-cargo test -p sim-lib-stream-fabric --test cassette_replay
-cargo test -p sim-lib-stream-fabric --test two_node_cadr
-```
+Documents a ledgered relay: a content-keyed eval cassette replayed with an append-only ledger.
+Relaying and ledgering are eval-fabric concerns outside the cookbook sandbox eval stack, so the
+relay is documented rather than run.
