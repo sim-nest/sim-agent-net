@@ -9,9 +9,11 @@
 //! model already carries a `Vec` of results and expectations, so multi-form
 //! setups are a forward-compatible extension.
 
-use sim_codec::{Input, decode_with_codec, encode_value_with_codec};
+use sim_codec::{Input, decode_term_with_codec, decode_with_codec, encode_value_with_codec};
 use sim_cookbook::{CheckResult, RecipeCard, RecipeRun};
-use sim_kernel::{Cx, EncodeOptions, Error, ReadPolicy, Result, Symbol, read_eval_capability};
+use sim_kernel::{
+    Cx, EncodeOptions, Error, Expr, ReadPolicy, Result, Symbol, read_eval_capability,
+};
 
 /// Error unless the runtime holds the read-eval capability.
 pub fn require_eval_capability(cx: &Cx) -> Result<()> {
@@ -70,7 +72,18 @@ pub fn run_recipe(cx: &mut Cx, card: &RecipeCard) -> Result<RecipeRun> {
     let codec = Symbol::qualified("codec", card.codec.as_str());
     let source = String::from_utf8(card.setup.clone())
         .map_err(|e| Error::Eval(format!("recipe {} setup is not UTF-8: {e}", card.id)))?;
-    let expr = decode_with_codec(cx, &codec, Input::Text(source), ReadPolicy::default())?;
+    // Decode to an evaluable TERM (per the codec's own lowering policy) so `(math/add
+    // 1.5 2.0)` becomes a call the runtime APPLIES -- not an inert data list. This is why
+    // recipes were historically limited to `(quote ...)` canaries: the old data-position
+    // decode turned a bare `(f x)` into a list, never a call, so nothing ran. `decode_term`
+    // lowers a lisp surface list to a call AND accepts a data codec's explicit call form
+    // (e.g. JSON's tagged `call`), so both codecs evaluate.
+    let expr = Expr::from(decode_term_with_codec(
+        cx,
+        &codec,
+        Input::Text(source),
+        ReadPolicy::default(),
+    )?);
 
     let (results, eval_ok) = match cx.eval_expr(expr) {
         Ok(value) => {
