@@ -12,7 +12,8 @@
 use sim_codec::{Input, decode_term_with_codec, decode_with_codec, encode_value_with_codec};
 use sim_cookbook::{CheckResult, RecipeCard, RecipeRun};
 use sim_kernel::{
-    Cx, EncodeOptions, Error, Expr, ReadPolicy, Result, Symbol, read_eval_capability,
+    CapabilitySet, Cx, EncodeOptions, Error, Expr, ReadPolicy, Result, Symbol, TrustLevel,
+    read_construct_capability, read_eval_capability,
 };
 
 /// Error unless the runtime holds the read-eval capability.
@@ -78,11 +79,21 @@ pub fn run_recipe(cx: &mut Cx, card: &RecipeCard) -> Result<RecipeRun> {
     // decode turned a bare `(f x)` into a list, never a call, so nothing ran. `decode_term`
     // lowers a lisp surface list to a call AND accepts a data codec's explicit call form
     // (e.g. JSON's tagged `call`), so both codecs evaluate.
+    // Recipes are trusted embedded content; grant the read the capabilities their setup
+    // needs -- read-construct so `#(Class ...)` builds a real domain value (complex,
+    // tensor, rational, CAS), and read-eval for eval-position reader forms.
+    // `ReadPolicy::default()` grants neither, which is why domain recipes could only quote.
+    let read_policy = ReadPolicy {
+        trust: TrustLevel::TrustedSource,
+        capabilities: CapabilitySet::new()
+            .grant(read_construct_capability())
+            .grant(read_eval_capability()),
+    };
     let expr = Expr::from(decode_term_with_codec(
         cx,
         &codec,
         Input::Text(source),
-        ReadPolicy::default(),
+        read_policy,
     )?);
 
     let (results, eval_ok) = match cx.eval_expr(expr) {
