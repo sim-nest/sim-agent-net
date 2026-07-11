@@ -1,0 +1,57 @@
+//! A [`LibCatalog`] over the crate-shipped seed domains.
+//!
+//! `sim-lib-cookbook` already depends on the seeded domain libs (to embed their
+//! recipe books), so exposing a catalog over them adds NO new dependency and no
+//! cycle: it is a convenience for hosts and for the COOKBOOK_7 spike, gated on
+//! the same `seed-recipes` feature. A production host assembles its own catalog
+//! from the full standard distribution at the facade level; this one covers the
+//! numbers domains, which is enough to demonstrate Category A (pure compute that
+//! only needs its lib loaded).
+//!
+//! A recipe resolves against this catalog by its `requires` name (`numbers/cas`,
+//! or the tail `cas`): the returned lib's own manifest id IS the cookbook name,
+//! so there is no separate name table to drift.
+
+use sim_kernel::Lib;
+
+use crate::catalog::LibCatalog;
+
+/// A catalog over the seeded numbers domains.
+pub struct SeededLibCatalog {
+    libs: Vec<Box<dyn Lib>>,
+}
+
+impl SeededLibCatalog {
+    /// Build a catalog over the seeded numbers domain libs.
+    ///
+    /// Each lib is a pure, deterministic number domain; loading one adds its ops
+    /// (construction, arithmetic, CAS diff/eval, tensor arithmetic) to the eval
+    /// `Cx` without any effect capability.
+    pub fn standard() -> Self {
+        let libs: Vec<Box<dyn Lib>> = vec![
+            Box::new(sim_lib_numbers_i64::I64NumbersLib::new()),
+            Box::new(sim_lib_numbers_arith::NumbersArithmeticLib::new()),
+            Box::new(sim_lib_numbers_bigint::BigIntNumbersLib::new()),
+            Box::new(sim_lib_numbers_bool::BoolNumbersLib::new()),
+            Box::new(sim_lib_numbers_f64::F64NumbersLib::new()),
+            Box::new(sim_lib_numbers_rational::RationalNumbersLib::new()),
+            Box::new(sim_lib_numbers_complex::ComplexNumbersLib::new()),
+            Box::new(sim_lib_numbers_func::FuncNumbersLib::new()),
+            Box::new(sim_lib_numbers_cas::CasNumbersLib::new()),
+            Box::new(sim_lib_numbers_tensor::TensorNumbersLib::new()),
+        ];
+        Self { libs }
+    }
+}
+
+impl LibCatalog for SeededLibCatalog {
+    fn resolve(&self, name: &str) -> Option<&dyn Lib> {
+        self.libs
+            .iter()
+            .find(|lib| {
+                let id = lib.manifest().id;
+                id.as_qualified_str() == name || id.name.as_ref() == name
+            })
+            .map(|lib| lib.as_ref())
+    }
+}

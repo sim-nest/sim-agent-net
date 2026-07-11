@@ -16,6 +16,8 @@ use sim_kernel::{
     read_construct_capability, read_eval_capability,
 };
 
+use crate::catalog::{EmptyCatalog, LibCatalog, load_requires};
+
 /// Error unless the runtime holds the read-eval capability.
 pub fn require_eval_capability(cx: &Cx) -> Result<()> {
     if cx.capabilities().contains(&read_eval_capability()) {
@@ -55,18 +57,38 @@ pub fn missing_requires(cx: &Cx, card: &RecipeCard) -> Vec<String> {
         .collect()
 }
 
-/// Run a recipe end to end. Hard errors (missing requires, unknown codec,
-/// undecodable setup) return `Err`; an evaluation error is captured as
-/// `ok == false` with empty results so the caller still sees a `RecipeRun`.
+/// Run a recipe end to end against an [`EmptyCatalog`] (the legacy path): every
+/// required lib must already be loaded into `cx`, or the run errors.
+///
+/// Hard errors (missing requires, unknown codec, undecodable setup) return
+/// `Err`; an evaluation error is captured as `ok == false` with empty results so
+/// the caller still sees a `RecipeRun`.
 pub fn run_recipe(cx: &mut Cx, card: &RecipeCard) -> Result<RecipeRun> {
+    run_recipe_with_catalog(cx, &EmptyCatalog, card)
+}
+
+/// Run a recipe end to end, loading its `requires` from `catalog` first
+/// (COOKBOOK_7 requires-driven loading).
+///
+/// Before decode+eval the runner asks `catalog` to resolve each `requires` entry
+/// and loads the returned lib into the eval `Cx`, idempotently. A require the
+/// catalog does not carry (and that is not already loaded) makes the recipe a
+/// descriptor: the run returns `Err(Error::Eval("descriptor: requires <x> not in
+/// catalog"))`. This is what turns runnability into a structural property of
+/// (catalog + capability profile) rather than a hand-applied label.
+pub fn run_recipe_with_catalog(
+    cx: &mut Cx,
+    catalog: &dyn LibCatalog,
+    card: &RecipeCard,
+) -> Result<RecipeRun> {
     require_eval_capability(cx)?;
 
-    let missing = missing_requires(cx, card);
-    if !missing.is_empty() {
+    let unresolved = load_requires(cx, catalog, card);
+    if !unresolved.is_empty() {
         return Err(Error::Eval(format!(
-            "recipe {} requires libs not loaded: {}",
+            "recipe {} descriptor: requires not in catalog: {}",
             card.id,
-            missing.join(", ")
+            unresolved.join(", ")
         )));
     }
 
@@ -128,6 +150,31 @@ pub fn run_recipe(cx: &mut Cx, card: &RecipeCard) -> Result<RecipeRun> {
         ok: eval_ok && all_pass,
         checks,
     })
+}
+
+/// Run a Category C recipe twice under the same (catalog + Cx) and confirm the
+/// two runs produce identical results -- the COOKBOOK_7 determinism guard.
+///
+/// Floating-point audio/FEM results drift across platforms, so Category C
+/// results are encoded as deterministic artifacts (digests, frames). Running the
+/// recipe twice and asserting the results match is a cheap, strong catch for an
+/// entropy or wall-clock leak: a non-deterministic recipe returns
+/// `Err(Error::Eval("... not deterministic ..."))`. The first run's `RecipeRun`
+/// is returned on success.
+pub fn run_recipe_twice(
+    cx: &mut Cx,
+    catalog: &dyn LibCatalog,
+    card: &RecipeCard,
+) -> Result<RecipeRun> {
+    let first = run_recipe_with_catalog(cx, catalog, card)?;
+    let second = run_recipe_with_catalog(cx, catalog, card)?;
+    if first.results != second.results {
+        return Err(Error::Eval(format!(
+            "recipe {} is not deterministic: {:?} != {:?}",
+            card.id, first.results, second.results
+        )));
+    }
+    Ok(first)
 }
 
 /// Decode a recipe's setup to an `Expr` without evaluating it (`cookbook:setup`).

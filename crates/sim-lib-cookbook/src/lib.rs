@@ -15,18 +15,27 @@
 #![deny(missing_docs)]
 
 mod build;
+mod catalog;
 mod cli;
 mod ops;
 mod run;
 mod runtime;
 #[cfg(feature = "seed-recipes")]
+mod seed_catalog;
+#[cfg(feature = "seed-recipes")]
 mod seeds;
 
+pub use catalog::{CookbookCapabilityProfile, EmptyCatalog, LibCatalog, load_requires};
 pub use ops::{CookbookOp, OpKind};
-pub use run::{decode_setup, missing_requires, require_eval_capability, run_recipe};
+pub use run::{
+    decode_setup, missing_requires, require_eval_capability, run_recipe, run_recipe_twice,
+    run_recipe_with_catalog,
+};
 pub use runtime::{
     CookbookLib, CookbookStoreHandle, install_cookbook_lib, manifest_name, op_exports, store_symbol,
 };
+#[cfg(feature = "seed-recipes")]
+pub use seed_catalog::SeededLibCatalog;
 #[cfg(feature = "seed-recipes")]
 pub use seeds::{SEEDED_RECIPE_BOOKS, install_seeded_cookbook_lib, seeded_recipe_store};
 

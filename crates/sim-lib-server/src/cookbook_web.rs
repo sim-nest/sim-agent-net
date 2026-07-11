@@ -1,6 +1,6 @@
 use sim_cookbook::{RecipeCard, RecipeStore, next, ordered_cards, view};
 use sim_kernel::{Cx, Result};
-use sim_lib_cookbook::{run_recipe, seeded_recipe_store};
+use sim_lib_cookbook::{SeededLibCatalog, run_recipe_with_catalog, seeded_recipe_store};
 
 use crate::cookbook_web_json::{
     render_error_json, render_index_json, render_recipe_json, render_run_json, render_search_json,
@@ -79,7 +79,11 @@ impl CookbookWebState {
                     Ok(card) => card.clone(),
                     Err(err) => return response_for_resolve_error(err),
                 };
-                match run_recipe(cx, &card) {
+                // COOKBOOK_7: the run loads the recipe's `requires` from the
+                // catalog before eval, so a domain absent from the boot Cx is
+                // loaded on demand rather than failing as "not loaded".
+                let catalog = SeededLibCatalog::standard();
+                match run_recipe_with_catalog(cx, &catalog, &card) {
                     Ok(run) => CookbookWebResponse::json(render_run_json(&run)),
                     Err(err) => CookbookWebResponse::server_error(err.to_string()),
                 }

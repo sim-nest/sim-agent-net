@@ -79,7 +79,7 @@ fn run_reports_failing_expectation() {
 }
 
 #[test]
-fn run_errors_on_missing_requires() {
+fn run_reports_descriptor_on_unresolved_require() {
     let mut cx = setup_cx();
     cx.grant(read_eval_capability());
     let book: Vec<(&str, &[u8])> = vec![
@@ -94,7 +94,11 @@ fn run_errors_on_missing_requires() {
     let card = store_with(&book).card("lisp/c/r").cloned().unwrap();
     let err = run_recipe(&mut cx, &card).unwrap_err();
     match err {
-        Error::Eval(message) => assert!(message.contains("requires libs not loaded"), "{message}"),
+        Error::Eval(message) => assert!(
+            message.contains("descriptor: requires not in catalog")
+                && message.contains("ghost-lib"),
+            "{message}"
+        ),
         other => panic!("expected Eval error, got {other:?}"),
     }
 }
@@ -212,4 +216,99 @@ fn seeded_expectation_recipe_runs_green() {
     let run = run_recipe(&mut cx, &card).unwrap();
     assert!(run.ok, "expected seeded run to pass, got {run:?}");
     assert_eq!(run.results, ["codec-lisp-ok"]);
+}
+
+// ---- COOKBOOK_7: requires-driven loading + capability profile ----
+
+use crate::catalog::CookbookCapabilityProfile;
+use crate::run::{run_recipe_twice, run_recipe_with_catalog};
+#[cfg(feature = "seed-recipes")]
+use crate::seed_catalog::SeededLibCatalog;
+
+// A recipe that needs a domain absent from the eval Cx: `math/add` over i64,
+// requiring `numbers/arith` + `numbers/i64`. `setup_cx` loads neither, so the
+// recipe can only compute if the catalog LOADS them per its `requires`.
+fn add_book() -> Vec<(&'static str, &'static [u8])> {
+    vec![
+        ("book.toml", b"book = \"t\"\ntitle = \"T\"\n" as &[u8]),
+        (
+            "c/add/recipe.toml",
+            b"id = \"add\"\ntitle = \"Add\"\ncodec = \"lisp\"\nsetup = \"s\"\npurpose = \"p\"\nrequires = [\"numbers/arith\", \"numbers/i64\"]\n[[expect]]\nform = 0\nresult = \"3\"\n",
+        ),
+        ("c/add/s", b"(math/add 1 2)"),
+        ("c/add/p", b"add two i64 literals"),
+    ]
+}
+
+// Category A: the catalog LOADS a recipe's `requires` before eval, so a pure
+// compute whose domain is absent from the base Cx runs to a real value.
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook7_requires_driven_loading_computes() {
+    let mut cx = setup_cx();
+    cx.grant(read_eval_capability());
+    let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
+    let catalog = SeededLibCatalog::standard();
+    let run = run_recipe_with_catalog(&mut cx, &catalog, &card).unwrap();
+    assert!(run.ok, "expected add via catalog to pass, got {run:?}");
+    assert_eq!(run.results, ["3"]);
+    assert!(run.checks[0].pass);
+}
+
+// Without a catalog (EmptyCatalog, the legacy path) the same recipe cannot load
+// its domain, so it stays a descriptor: the runner reports the unresolved
+// require rather than pretending to run.
+#[test]
+fn cook7_unresolved_require_is_descriptor() {
+    let mut cx = setup_cx();
+    cx.grant(read_eval_capability());
+    let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
+    let err = run_recipe(&mut cx, &card).unwrap_err();
+    match err {
+        Error::Eval(message) => assert!(
+            message.contains("descriptor: requires not in catalog")
+                && message.contains("numbers/arith"),
+            "{message}"
+        ),
+        other => panic!("expected descriptor Eval error, got {other:?}"),
+    }
+}
+
+// Category C guard: running a deterministic recipe twice under the same
+// (catalog + Cx) yields identical results, so the twice-run harness passes. A
+// non-deterministic recipe would surface as an Eval error here.
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook7_twice_run_determinism_holds() {
+    let mut cx = setup_cx();
+    cx.grant(read_eval_capability());
+    let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
+    let catalog = SeededLibCatalog::standard();
+    let run = run_recipe_twice(&mut cx, &catalog, &card).unwrap();
+    assert!(run.ok, "twice-run determinism: {run:?}");
+    assert_eq!(run.results, ["3"]);
+}
+
+// The capability profile grants the pure/offline vocabulary and denies the
+// live/effectful one; seating a Cx through a host GrantSeat installs exactly the
+// granted set, so a denied capability (Category D) is absent and fails closed.
+#[test]
+fn cook7_capability_profile_grants_and_denies() {
+    use sim_kernel::{CapabilityName, GrantSeat};
+
+    let read_construct = sim_kernel::read_construct_capability();
+    let net_connect = CapabilityName::new("net-connect");
+    assert!(CookbookCapabilityProfile::grants(&read_construct));
+    assert!(CookbookCapabilityProfile::grants(&read_eval_capability()));
+    assert!(CookbookCapabilityProfile::denies(&net_connect));
+    assert!(!CookbookCapabilityProfile::grants(&net_connect));
+
+    let mut cx = setup_cx();
+    let seat = GrantSeat::for_test();
+    CookbookCapabilityProfile::seat(&seat, &mut cx).unwrap();
+    assert!(cx.capabilities().contains(&read_construct));
+    assert!(cx.capabilities().contains(&read_eval_capability()));
+    // Category D: a denied capability is never seated, so an op demanding it
+    // fails closed.
+    assert!(!cx.capabilities().contains(&net_connect));
 }
