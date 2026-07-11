@@ -28,6 +28,34 @@ fn cookbook_api_index_returns_seeded_tree() {
 }
 
 #[test]
+fn cookbook_api_index_groups_by_family() {
+    // COOK8.00: the index also carries the two-level family -> domain tree and a
+    // runnable badge on each leaf, so the webui can browse the whole catalog by
+    // subsystem.
+    let state = CookbookWebState::seeded().unwrap();
+    let response = state.handle_request("GET", "/api/cookbook", None);
+    assert_eq!(response.status, 200);
+    assert!(response.body.contains("\"families\""), "{}", response.body);
+    // The seeded set spans the codec and numbers families.
+    assert!(
+        response.body.contains("\"family\":\"codec\""),
+        "{}",
+        response.body
+    );
+    assert!(
+        response.body.contains("\"family\":\"numbers\""),
+        "{}",
+        response.body
+    );
+    // Runnable badge is present on recipe summaries.
+    assert!(
+        response.body.contains("\"runnable\":true"),
+        "{}",
+        response.body
+    );
+}
+
+#[test]
 fn cookbook_api_search_filters_seeded_recipes() {
     let state = CookbookWebState::seeded().unwrap();
     let response = state.handle_request("GET", "/api/cookbook/search?q=symbol", None);
