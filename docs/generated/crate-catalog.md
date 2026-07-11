@@ -7,16 +7,16 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | Package | Publish | Targets | Description |
 | --- | --- | --- | --- |
 | `sim-lib-agent-runner-core` | `true` | `custom-build, lib` | Provider-neutral runner contracts for SIM model fabrics. |
-| `sim-lib-agent-runner-http` | `true` | `lib, test` | HTTP-backed model runners for SIM. |
-| `sim-lib-agent-runner-local` | `true` | `cdylib, rlib, test` | Loadable local model runner for SIM. |
-| `sim-lib-agent-runner-process` | `true` | `lib` | Local subprocess-backed model runners for SIM. |
-| `sim-lib-agent` | `true` | `lib` | Agent runtime surfaces for SIM. |
-| `sim-lib-cookbook` | `true` | `lib` | Runtime cookbook: operations for SIM. |
-| `sim-lib-mcp` | `true` | `lib, test` | Library-only MCP surface projection for SIM. |
-| `sim-lib-openai-server` | `true` | `lib` | OpenAI-compatible gateway skeleton for SIM. |
-| `sim-lib-server` | `true` | `lib` | SIM workspace package for sim lib server. |
-| `sim-lib-skill` | `true` | `lib, test` | SIM workspace package for sim lib skill. |
-| `sim-lib-stream-fabric` | `true` | `bin, lib, test` | Content-addressed distributed evaluation for remote stream realization. |
+| `sim-lib-agent-runner-http` | `true` | `custom-build, lib, test` | HTTP-backed model runners for SIM. |
+| `sim-lib-agent-runner-local` | `true` | `cdylib, custom-build, rlib, test` | Loadable local model runner for SIM. |
+| `sim-lib-agent-runner-process` | `true` | `custom-build, lib` | Local subprocess-backed model runners for SIM. |
+| `sim-lib-agent` | `true` | `custom-build, lib` | Agent runtime surfaces for SIM. |
+| `sim-lib-cookbook` | `true` | `custom-build, lib` | Runtime cookbook: operations for SIM. |
+| `sim-lib-mcp` | `true` | `custom-build, lib, test` | Library-only MCP surface projection for SIM. |
+| `sim-lib-openai-server` | `true` | `custom-build, lib` | OpenAI-compatible gateway skeleton for SIM. |
+| `sim-lib-server` | `true` | `custom-build, lib` | SIM workspace package for sim lib server. |
+| `sim-lib-skill` | `true` | `custom-build, lib, test` | SIM workspace package for sim lib skill. |
+| `sim-lib-stream-fabric` | `true` | `bin, custom-build, lib, test` | Content-addressed distributed evaluation for remote stream realization. |
 | `sim-mcp-server` | `true` | `bin` | SIM workspace package for sim mcp server. |
 | `sim-table-remote` | `true` | `lib` | SIM workspace package for sim table remote. |
 | `xtask` | `false` | `bin` | SIM workspace package for xtask. |

@@ -55,3 +55,7 @@ pub use wasm::{
     WasmModelBackend, WasmModelLib, WasmModelLimits, ai_runner_local_capability,
     ai_runner_wasm_capability, load_wasm_model, local_wasm_model_site_symbol,
 };
+
+/// Cookbook recipes for this lib, embedded at build time.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));

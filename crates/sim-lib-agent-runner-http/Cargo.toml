@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent-runner-http"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MPL-2.0"
 description = "HTTP-backed model runners for SIM."
@@ -18,10 +18,13 @@ rustls-native-certs = { version = "0.8", optional = true }
 serde_json = "1"
 sim-codec-chat = { version = "0.1.0" }
 sim-codec-json = { version = "0.1.0" }
+sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-agent-runner-core = { version = "0.1.0", path = "../sim-lib-agent-runner-core" }
 sim-lib-net-core = { version = "0.1.0" }
 sim-lib-openai-server = { version = "0.1.0", path = "../sim-lib-openai-server" }
+[build-dependencies]
+sim-cookbook = { version = "0.1.0" }
 
 [dev-dependencies]
 rcgen = "0.13"

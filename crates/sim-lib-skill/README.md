@@ -8,7 +8,7 @@ SIM workspace package for sim lib skill.
 
 - Manifest: `crates/sim-lib-skill/Cargo.toml`
 - Publish: `true`
-- Targets: `lib, test`
+- Targets: `custom-build, lib, test`
 
 ## Crate Documentation
 

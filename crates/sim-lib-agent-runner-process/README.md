@@ -8,7 +8,7 @@ Local subprocess-backed model runners for SIM.
 
 - Manifest: `crates/sim-lib-agent-runner-process/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

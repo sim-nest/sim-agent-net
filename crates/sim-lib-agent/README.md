@@ -8,7 +8,7 @@ Agent runtime surfaces for SIM.
 
 - Manifest: `crates/sim-lib-agent/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

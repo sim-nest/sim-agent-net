@@ -24,6 +24,7 @@
       "readme": "crates/sim-lib-agent-runner-http/README.md",
       "root": "crates/sim-lib-agent-runner-http",
       "target_kinds": [
+        "custom-build",
         "lib",
         "test"
       ]
@@ -38,6 +39,7 @@
       "root": "crates/sim-lib-agent-runner-local",
       "target_kinds": [
         "cdylib",
+        "custom-build",
         "rlib",
         "test"
       ]
@@ -51,6 +53,7 @@
       "readme": "crates/sim-lib-agent-runner-process/README.md",
       "root": "crates/sim-lib-agent-runner-process",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -63,6 +66,7 @@
       "readme": "crates/sim-lib-agent/README.md",
       "root": "crates/sim-lib-agent",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -75,6 +79,7 @@
       "readme": "crates/sim-lib-cookbook/README.md",
       "root": "crates/sim-lib-cookbook",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -87,6 +92,7 @@
       "readme": "crates/sim-lib-mcp/README.md",
       "root": "crates/sim-lib-mcp",
       "target_kinds": [
+        "custom-build",
         "lib",
         "test"
       ]
@@ -100,6 +106,7 @@
       "readme": "crates/sim-lib-openai-server/README.md",
       "root": "crates/sim-lib-openai-server",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -112,6 +119,7 @@
       "readme": "crates/sim-lib-server/README.md",
       "root": "crates/sim-lib-server",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -124,6 +132,7 @@
       "readme": "crates/sim-lib-skill/README.md",
       "root": "crates/sim-lib-skill",
       "target_kinds": [
+        "custom-build",
         "lib",
         "test"
       ]
@@ -138,6 +147,7 @@
       "root": "crates/sim-lib-stream-fabric",
       "target_kinds": [
         "bin",
+        "custom-build",
         "lib",
         "test"
       ]
