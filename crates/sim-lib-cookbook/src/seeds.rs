@@ -6,16 +6,8 @@ use sim_kernel::{Cx, Error, Result};
 /// Seed books embedded by crates that currently ship first-pass recipes.
 pub const SEEDED_RECIPE_BOOKS: &[(&str, EmbeddedDir)] = &[
     ("core", sim_lib_core::RECIPES),
-    ("codec/core", sim_codec::RECIPES),
     ("codec/lisp", sim_codec_lisp::RECIPES),
     ("codec/json", sim_codec_json::RECIPES),
-    ("codec/algol", sim_codec_algol::RECIPES),
-    ("codec/binary", sim_codec_binary::RECIPES),
-    ("codec/binary-base64", sim_codec_binary_base64::RECIPES),
-    ("codec/bitwise-base64", sim_codec_bitwise_base64::RECIPES),
-    ("codec/chat", sim_codec_chat::RECIPES),
-    ("codec/compare", sim_codec_compare::RECIPES),
-    ("codec/mcp", sim_codec_mcp::RECIPES),
     ("numbers/f64", sim_lib_numbers_f64::RECIPES),
     ("numbers/complex", sim_lib_numbers_complex::RECIPES),
     ("numbers/func", sim_lib_numbers_func::RECIPES),
@@ -34,11 +26,9 @@ pub const SEEDED_RECIPE_BOOKS: &[(&str, EmbeddedDir)] = &[
         "numbers/tensor-rat64",
         sim_lib_numbers_tensor_rat64::RECIPES,
     ),
-    // codec/bitwise and codec/doc ship RECIPES too (COOK8.02) but require their own
-    // codec lib (`codec/bitwise` / `codec/doc`) loaded to run; the cookbook sandbox
-    // loads only `core` + `codec/lisp`, so seeding them would fail the run-green
-    // invariant `cookbook-verify` enforces. They stay embedded-but-unseeded until the
-    // catalog carries codec libs (COOK8.05) or verify becomes descriptor-aware (COOK8.08).
+    // The newer codec embeds stay unseeded until their crates.io releases expose
+    // RECIPES; codec/compare is a non-publishable developer harness. codec/bitwise
+    // and codec/doc also require their own codec lib loaded to run.
     ("organ/binding", sim_lib_binding::RECIPES),
     ("organ/dispatch", sim_lib_dispatch::RECIPES),
     ("stream-core-shapes", sim_lib_stream_core::RECIPES),
