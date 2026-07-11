@@ -9,10 +9,10 @@
 //! model already carries a `Vec` of results and expectations, so multi-form
 //! setups are a forward-compatible extension.
 
-use sim_codec::{Input, decode_term_with_codec, decode_with_codec, encode_value_with_codec};
+use sim_codec::{Input, decode_eval_expr_with_codec, decode_with_codec, encode_value_with_codec};
 use sim_cookbook::{CheckResult, RecipeCard, RecipeRun};
 use sim_kernel::{
-    CapabilitySet, Cx, EncodeOptions, Error, Expr, ReadPolicy, Result, Symbol, TrustLevel,
+    CapabilitySet, Cx, EncodeOptions, Error, ReadPolicy, Result, Symbol, TrustLevel,
     read_construct_capability, read_eval_capability,
 };
 
@@ -111,12 +111,12 @@ pub fn run_recipe_with_catalog(
             .grant(read_construct_capability())
             .grant(read_eval_capability()),
     };
-    let expr = Expr::from(decode_term_with_codec(
-        cx,
-        &codec,
-        Input::Text(source),
-        read_policy,
-    )?);
+    // Decode to an evaluable Expr, applying the codec's eval-surface lowering (a lisp
+    // `(f x)` becomes a call the runtime APPLIES) but WITHOUT the Term/Datum round-trip:
+    // that round-trip forces every list to a pure Datum and rejects a list that contains a
+    // call -- e.g. a `let` binding container `((x 5))` or a `match` clause -- so special
+    // forms could not run. Function-call recipes are unaffected (behaviour-identical).
+    let expr = decode_eval_expr_with_codec(cx, &codec, Input::Text(source), read_policy)?;
 
     let (results, eval_ok) = match cx.eval_expr(expr) {
         Ok(value) => {

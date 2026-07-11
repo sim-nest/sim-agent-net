@@ -1,6 +1,6 @@
 //! Seed recipe registration for the crate-shipped cookbook books.
 
-use sim_cookbook::{EmbeddedDir, RecipeStore};
+use sim_cookbook::{EmbeddedDir, RecipeStore, recipes_from_embedded};
 use sim_kernel::{Cx, Error, Result};
 
 /// Seed books embedded by crates that currently ship first-pass recipes.
@@ -40,7 +40,38 @@ pub fn seeded_recipe_store() -> Result<RecipeStore> {
             .register_book(recipes)
             .map_err(|err| Error::Eval(format!("seed recipe book {book}: {err}")))?;
     }
+    // discrete: seed every recipe EXCEPT matrix-runtime -- it reads a `#(discrete/Matrix)`
+    // citizen class no runtime lib registers, so it cannot run in the cookbook sandbox and
+    // must stay a source-only descriptor (COOKBOOK_7).
+    register_book_except(
+        &mut store,
+        "discrete",
+        sim_lib_discrete::RECIPES,
+        &["matrix-runtime"],
+    )?;
     Ok(store)
+}
+
+/// Register every recipe in `dir` under `book`, skipping any whose id ends with an entry in
+/// `skip` (a non-runnable descriptor kept source-only). `register_book` is all-or-nothing, so
+/// a per-recipe skip goes through `recipes_from_embedded` + `insert_card`.
+fn register_book_except(
+    store: &mut RecipeStore,
+    book: &str,
+    dir: EmbeddedDir,
+    skip: &[&str],
+) -> Result<()> {
+    let cards = recipes_from_embedded(dir)
+        .map_err(|err| Error::Eval(format!("seed recipe book {book}: {err}")))?;
+    for card in cards {
+        if skip.iter().any(|s| card.id.ends_with(s)) {
+            continue;
+        }
+        store
+            .insert_card(card)
+            .map_err(|err| Error::Eval(format!("seed recipe {book}: {err}")))?;
+    }
+    Ok(())
 }
 
 /// Install the cookbook runtime over the embedded seed recipe store.

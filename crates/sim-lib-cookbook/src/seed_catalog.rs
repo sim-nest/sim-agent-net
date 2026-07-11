@@ -39,6 +39,7 @@ impl SeededLibCatalog {
             Box::new(sim_lib_numbers_func::FuncNumbersLib::new()),
             Box::new(sim_lib_numbers_cas::CasNumbersLib::new()),
             Box::new(sim_lib_numbers_tensor::TensorNumbersLib::new()),
+            Box::new(sim_lib_discrete::DiscreteLib),
         ];
         Self { libs }
     }
