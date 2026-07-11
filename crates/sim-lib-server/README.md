@@ -8,7 +8,7 @@ SIM workspace package for sim lib server.
 
 - Manifest: `crates/sim-lib-server/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

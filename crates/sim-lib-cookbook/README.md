@@ -8,7 +8,7 @@ Runtime cookbook: operations for SIM.
 
 - Manifest: `crates/sim-lib-cookbook/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

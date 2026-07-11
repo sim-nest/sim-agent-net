@@ -8,7 +8,7 @@ OpenAI-compatible gateway skeleton for SIM.
 
 - Manifest: `crates/sim-lib-openai-server/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-server"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 license = "MPL-2.0"
 description = "SIM workspace package for sim lib server."
@@ -23,6 +23,8 @@ sim-lib-net-core = { version = "0.1.0" }
 sim-lib-stream-core = { version = "0.1.0" }
 sim-shape = { version = "0.1.0" }
 sim-wasm-abi = { version = "0.1.0" }
+[build-dependencies]
+sim-cookbook = { version = "0.1.0" }
 
 [dev-dependencies]
 sim-codec-algol = { version = "0.1.0" }
