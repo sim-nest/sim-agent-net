@@ -2,7 +2,7 @@ use super::support::{
     as_component, eval_cx, install_agent_lib, install_roundtrip_codecs, request_frame,
     temp_memory_path,
 };
-use crate::expr_to_value;
+use crate::value_from_expr;
 use sim_kernel::{Expr, Symbol};
 use sim_lib_server::{EvalSite, FrameKind, ServerFrame, StreamSink, eval_reply_from_frame};
 
@@ -63,7 +63,7 @@ fn scripted_tool_events_stream_before_final() {
         model_event_expr("final", vec![key_expr("response", final_response.clone())]),
     ]);
 
-    let script_value = expr_to_value(&mut cx, &Expr::List(vec![script])).unwrap();
+    let script_value = value_from_expr(&mut cx, &Expr::List(vec![script])).unwrap();
     let runner = cx
         .call_function(
             &Symbol::qualified("runner", "fake"),
@@ -165,7 +165,8 @@ fn cached_request_expr(task: &str, key: &str) -> Expr {
 }
 
 fn fake_runner_with_text(cx: &mut sim_kernel::Cx, name: &str, text: &str) -> sim_kernel::Value {
-    let script_value = expr_to_value(cx, &Expr::List(vec![Expr::String(text.to_owned())])).unwrap();
+    let script_value =
+        value_from_expr(cx, &Expr::List(vec![Expr::String(text.to_owned())])).unwrap();
     cx.call_function(
         &Symbol::qualified("runner", "fake"),
         sim_kernel::Args::new(vec![

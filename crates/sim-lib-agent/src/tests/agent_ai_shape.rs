@@ -1,5 +1,5 @@
 use super::support::{as_component, eval_cx, install_agent_lib, install_test_codec};
-use crate::expr_to_value;
+use crate::value_from_expr;
 use sim_kernel::{Args, Consistency, Cx, EvalFabric, EvalMode, EvalRequest, Expr, Symbol, Value};
 
 #[test]
@@ -126,7 +126,7 @@ fn phase9_cx() -> Cx {
 }
 
 fn fake_runner(cx: &mut Cx, script: Vec<Expr>) -> Value {
-    let script_value = expr_to_value(cx, &Expr::List(script)).unwrap();
+    let script_value = value_from_expr(cx, &Expr::List(script)).unwrap();
     cx.call_function(
         &Symbol::qualified("runner", "fake"),
         Args::new(vec![

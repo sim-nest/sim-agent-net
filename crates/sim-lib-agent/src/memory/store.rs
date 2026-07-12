@@ -38,7 +38,7 @@ pub(crate) fn memory_entries_recent(
     let count = usize::try_from(count).unwrap_or(usize::MAX);
     entries[entries.len().saturating_sub(count)..]
         .iter()
-        .map(|expr| crate::expr_to_value(cx, expr))
+        .map(|expr| crate::value_from_expr(cx, expr))
         .collect()
 }
 
@@ -60,7 +60,7 @@ pub(crate) fn memory_entries_search(
     filtered
         .into_iter()
         .rev()
-        .map(|expr| crate::expr_to_value(cx, &expr))
+        .map(|expr| crate::value_from_expr(cx, &expr))
         .collect()
 }
 

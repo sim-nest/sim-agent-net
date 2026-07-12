@@ -2,7 +2,7 @@ use super::topology_runtime::{
     DebateSession, MeshSession, RingSession, evaluate_connection, map_field, number_expr,
     number_field, reply_expr, text_label,
 };
-use crate::{expr_to_value, memory::flatten_expr_text};
+use crate::{memory::flatten_expr_text, value_from_expr};
 use sim_kernel::{Cx, Error, EvalReply, Expr, Result, Symbol, Value};
 use sim_lib_server::{FrameEnvelope, ServerAddress, ServerFrame, server_frame_from_reply};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -16,7 +16,7 @@ pub(super) fn reply_expr_value(
     frame: &ServerFrame,
     expr: Expr,
 ) -> Result<ServerFrame> {
-    let value = expr_to_value(cx, &expr)?;
+    let value = value_from_expr(cx, &expr)?;
     let diagnostics = cx.take_diagnostics();
     server_frame_from_reply(
         cx,

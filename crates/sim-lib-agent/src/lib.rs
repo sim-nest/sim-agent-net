@@ -118,8 +118,8 @@ pub use tool_projection::{ToolSpec, install_tool};
 pub use tools::Tool;
 pub(crate) use tools::ToolFilter;
 pub(crate) use util::{
-    expr_to_value, installed_codecs, keyword, string_from_value, stringish_from_value,
-    symbol_from_value, u32_from_expr, u32_from_value,
+    installed_codecs, keyword, string_from_value, stringish_from_value, symbol_from_value,
+    u32_from_expr, u32_from_value, value_from_expr,
 };
 
 /// The agent runtime library, registering agent functions, tools, and CLI

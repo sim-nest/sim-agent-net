@@ -7,7 +7,7 @@ use super::runner_tool_schema::{
 use crate::{
     model_privacy::PrivacyPolicy,
     tools::resolve_tool_by_symbol,
-    util::{expr_to_value, shape_protocol},
+    util::{shape_protocol, value_from_expr},
 };
 use sim_codec_chat::model_error_expr;
 use sim_kernel::{
@@ -247,7 +247,7 @@ fn call_tool(cx: &mut Cx, tool: &crate::Tool, call: &ToolCall) -> ToolOutcome {
     let args = match call
         .args
         .iter()
-        .map(|arg| expr_to_value(cx, arg))
+        .map(|arg| value_from_expr(cx, arg))
         .collect::<Result<Vec<_>>>()
     {
         Ok(args) => args,
@@ -327,7 +327,7 @@ fn submit_shape_outcome(cx: &mut Cx, shape: &ShapeRef, call: &ToolCall) -> ToolO
     let [submitted] = call.args.as_slice() else {
         return ToolOutcome::error_text("submit_shape_value expects exactly one argument");
     };
-    let value = match expr_to_value(cx, submitted) {
+    let value = match value_from_expr(cx, submitted) {
         Ok(value) => value,
         Err(err) => return ToolOutcome::error_text(format!("submit_shape_value failed: {err}")),
     };

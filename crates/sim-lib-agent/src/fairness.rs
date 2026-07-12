@@ -1,6 +1,6 @@
 //! Deterministic fairness and explanation facets for offline agent recipes.
 
-use crate::expr_to_value;
+use crate::value_from_expr;
 use sim_kernel::{
     Cx, Error, Event, EventKind, EventLedger, Expr, NumberLiteral, Ref, Result, Symbol, Value,
     card::{Card, card_help_predicate, card_kind_predicate, card_result_predicate},
@@ -83,21 +83,24 @@ impl AttributionCard {
         let entries = vec![
             (
                 card_kind_predicate(),
-                expr_to_value(
+                value_from_expr(
                     cx,
                     &Expr::Symbol(Symbol::qualified("agent", ATTRIBUTION_KIND)),
                 )?,
             ),
             (
                 card_help_predicate(),
-                expr_to_value(
+                value_from_expr(
                     cx,
                     &Expr::String(
                         "Deterministic attribution over run events and effects".to_owned(),
                     ),
                 )?,
             ),
-            (card_result_predicate(), expr_to_value(cx, &self.as_expr())?),
+            (
+                card_result_predicate(),
+                value_from_expr(cx, &self.as_expr())?,
+            ),
         ];
         cx.factory()
             .opaque(Arc::new(Card::new(self.run.clone(), entries)))

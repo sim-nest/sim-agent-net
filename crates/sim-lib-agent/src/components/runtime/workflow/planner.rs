@@ -1,5 +1,5 @@
 use crate::components::model::{AgentComponent, PlannerBackend, number_expr, number_expr_from_f64};
-use crate::util::expr_to_value;
+use crate::util::value_from_expr;
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_server::{FrameKind, ServerFrame, eval_request_from_frame};
 
@@ -18,7 +18,7 @@ pub(in crate::components) fn answer_planner(
     let consistency = frame.envelope.consistency;
     let request = eval_request_from_frame(cx, &frame)?;
     let plan = planner_plan_expr(backend, request.expr);
-    let value = expr_to_value(cx, &plan)?;
+    let value = value_from_expr(cx, &plan)?;
     crate::reply::reply_frame(cx, &frame, value, consistency)
 }
 

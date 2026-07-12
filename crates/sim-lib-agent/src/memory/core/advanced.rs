@@ -175,7 +175,7 @@ impl MemoryBackend for VectorMemory {
         let count = usize::try_from(count).unwrap_or(usize::MAX);
         entries[entries.len().saturating_sub(count)..]
             .iter()
-            .map(|entry| crate::expr_to_value(cx, &entry.expr))
+            .map(|entry| crate::value_from_expr(cx, &entry.expr))
             .collect()
     }
 
@@ -202,7 +202,7 @@ impl MemoryBackend for VectorMemory {
         scored
             .into_iter()
             .take(usize::try_from(k).unwrap_or(usize::MAX))
-            .map(|(_, _, expr)| crate::expr_to_value(cx, &expr))
+            .map(|(_, _, expr)| crate::value_from_expr(cx, &expr))
             .collect()
     }
 
@@ -254,7 +254,7 @@ impl MemoryBackend for PersonaMemory {
         let count = usize::try_from(count).unwrap_or(usize::MAX);
         state.notes[state.notes.len().saturating_sub(count)..]
             .iter()
-            .map(|entry| crate::expr_to_value(cx, entry))
+            .map(|entry| crate::value_from_expr(cx, entry))
             .collect()
     }
 
@@ -278,7 +278,7 @@ impl MemoryBackend for PersonaMemory {
         filtered
             .into_iter()
             .rev()
-            .map(|expr| crate::expr_to_value(cx, &expr))
+            .map(|expr| crate::value_from_expr(cx, &expr))
             .collect()
     }
 

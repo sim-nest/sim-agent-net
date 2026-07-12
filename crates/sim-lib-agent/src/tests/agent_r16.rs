@@ -40,7 +40,7 @@ impl EvalSite for RecordingSite {
         let consistency = frame.envelope.consistency;
         let reply_codec = frame.codec.clone();
         let request = eval_request_from_frame(cx, &frame)?;
-        let value = crate::expr_to_value(cx, &request.expr)?;
+        let value = crate::value_from_expr(cx, &request.expr)?;
         let diagnostics = cx.take_diagnostics();
         server_frame_from_reply(
             cx,

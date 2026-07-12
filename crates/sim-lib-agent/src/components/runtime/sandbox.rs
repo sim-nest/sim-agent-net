@@ -86,7 +86,7 @@ fn answer_subprocess(
     )?
     .into_text()?;
     let stdout = run_subprocess_eval(command, &source, max_time, max_output_bytes)?;
-    let value = crate::util::expr_to_value(
+    let value = crate::util::value_from_expr(
         cx,
         &sim_kernel::Expr::Map(vec![
             (

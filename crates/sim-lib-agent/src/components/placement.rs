@@ -1,7 +1,7 @@
 use super::loaded_site::LoadedSite;
 use super::model::{AgentComponent, ComponentBackend};
 use super::placement_cards::{ModelSiteCard, model_sites_expr};
-use crate::util::{expr_to_value, installed_codecs, stringish_from_value};
+use crate::util::{installed_codecs, stringish_from_value, value_from_expr};
 use sim_kernel::{
     Args, CORE_LOCAL_EVAL_FABRIC_CLASS_ID, ClassRef, Cx, Error, EvalFabric, EvalReply, EvalRequest,
     Expr, Object, ObjectCompat, Result, Symbol, Value,
@@ -68,7 +68,7 @@ pub(crate) fn model_sites_value(cx: &mut Cx, args: Args) -> Result<Value> {
         return Err(Error::Eval("model/sites expects no arguments".to_owned()));
     }
     let cards = model_site_cards(cx)?;
-    expr_to_value(cx, &model_sites_expr(&cards))
+    value_from_expr(cx, &model_sites_expr(&cards))
 }
 
 pub(crate) fn model_site_card_value(cx: &mut Cx, args: Args) -> Result<Value> {
@@ -81,7 +81,7 @@ pub(crate) fn model_site_card_value(cx: &mut Cx, args: Args) -> Result<Value> {
         }
     };
     let entry = resolve_model_site(cx, &ModelSiteKey::new(key)?)?;
-    expr_to_value(cx, &entry.card.to_expr())
+    value_from_expr(cx, &entry.card.to_expr())
 }
 
 pub(crate) fn model_at_value(cx: &mut Cx, args: Args) -> Result<Value> {
@@ -209,7 +209,7 @@ fn catalog() -> Result<std::sync::MutexGuard<'static, ModelCatalog>> {
 }
 
 fn card_value(cx: &mut Cx, card: &ModelSiteCard) -> Result<Value> {
-    expr_to_value(cx, &card.to_expr())
+    value_from_expr(cx, &card.to_expr())
 }
 
 pub(in crate::components) fn routed_model_site_frame(
@@ -319,7 +319,7 @@ impl ModelCachedFabric {
 
     fn mark_reply(cx: &mut Cx, mut reply: EvalReply, hit: bool) -> Result<EvalReply> {
         let expr = reply.value.object().as_expr(cx)?;
-        reply.value = expr_to_value(cx, &set_cache_hit(expr, hit)?)?;
+        reply.value = value_from_expr(cx, &set_cache_hit(expr, hit)?)?;
         Ok(reply)
     }
 }

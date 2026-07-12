@@ -6,7 +6,7 @@ use super::swarm_support::{
 };
 use super::types::{AgentFabric, SwarmRunRecord};
 use crate::agents::ops::shared::agent_connection_for_value;
-use crate::{AgentRole, expr_to_value, installed_codecs};
+use crate::{AgentRole, installed_codecs, value_from_expr};
 use sim_kernel::{Cx, Error, Expr, Result, Symbol, Value};
 use sim_lib_server::{
     Connection, EvalSite, LoopEvalSite, PipelineEvalSite, ServerAddress, eval_reply_from_frame,
@@ -215,7 +215,7 @@ pub(crate) fn swarm_status_value_for_table(cx: &mut Cx, fabric: &AgentFabric) ->
         .map_err(|_| Error::PoisonedLock("swarm registry"))?
         .status
         .clone();
-    let last_value = expr_to_value(cx, &status.last_value)?;
+    let last_value = value_from_expr(cx, &status.last_value)?;
     cx.factory().table(vec![
         (Symbol::new("active"), cx.factory().bool(status.active)?),
         (

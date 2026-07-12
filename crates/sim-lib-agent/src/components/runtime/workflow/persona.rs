@@ -1,7 +1,7 @@
 use crate::components::model::{AgentComponent, PersonaBackend};
 use crate::components::runtime::stream_transform::transform_data_payloads;
 use crate::memory::flatten_expr_text;
-use crate::util::expr_to_value;
+use crate::util::value_from_expr;
 use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, Symbol};
 use sim_lib_server::{FrameKind, ServerFrame, eval_request_from_frame};
 use std::collections::HashMap;
@@ -29,7 +29,7 @@ fn answer_persona_request(
     let consistency = frame.envelope.consistency;
     let request = eval_request_from_frame(cx, &frame)?;
     let shaped = persona_shape_expr(cx, backend, request.expr)?;
-    let value = expr_to_value(cx, &shaped)?;
+    let value = value_from_expr(cx, &shaped)?;
     crate::reply::reply_frame(cx, &frame, value, consistency)
         .map_err(|err| Error::Eval(format!("{} failed to shape: {err}", component.symbol)))
 }

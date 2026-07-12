@@ -1,7 +1,7 @@
 use super::super::model::AgentComponent;
 use super::runner_stream::DiscardModelEventSink;
 use super::runner_tools::{run_stream_with_tool_loop, run_with_tool_loop};
-use crate::util::{expr_to_value, shape_from_expr, shape_protocol};
+use crate::util::{shape_from_expr, shape_protocol, value_from_expr};
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{Cx, Diagnostic, Error, EvalRequest, Expr, Result, ShapeRef, Symbol};
 use sim_lib_agent_runner_core::{ModelEventSink, ModelResponse, shape_to_grammar};
@@ -156,7 +156,7 @@ fn validate_shape_response(
             diagnostics,
         });
     };
-    let candidate_value = expr_to_value(cx, &candidate)?;
+    let candidate_value = value_from_expr(cx, &candidate)?;
     let matched = shape_protocol(&contract.shape)?.check_value(cx, candidate_value)?;
     if matched.accepted {
         return Ok(ShapeValidation {

@@ -4,7 +4,7 @@ use super::market_policy::{MarketPolicy, key_expr};
 use super::model::{AgentComponent, ComponentBackend, RunnerBackend, component_value};
 use super::options::parse_component_options;
 use crate::model_privacy::PrivacyPolicy;
-use crate::{ComponentKind, expr_to_value, installed_codecs};
+use crate::{ComponentKind, installed_codecs, value_from_expr};
 use sim_kernel::{Args, Cx, Error, Expr, Result, Symbol, Value};
 use sim_lib_agent_runner_core::{ModelBid, ModelCard, ModelRequest, ModelResponse, ModelRunner};
 use sim_lib_server::ServerAddress;
@@ -13,7 +13,7 @@ use std::{collections::HashMap, sync::Arc};
 pub(crate) fn model_policy_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let options = parse_component_options(cx, args, "model-policy")?;
     let policy = MarketPolicy::from_options(cx, &options)?;
-    expr_to_value(cx, &policy.to_expr())
+    value_from_expr(cx, &policy.to_expr())
 }
 
 pub(crate) fn runner_market_value(cx: &mut Cx, args: Args) -> Result<Value> {
@@ -68,7 +68,7 @@ pub(crate) fn runner_card_value(cx: &mut Cx, args: Args) -> Result<Value> {
         return Err(Error::Eval("runner/card expects one runner".to_owned()));
     };
     let expr: Expr = runner_card(cx, runner)?.into();
-    expr_to_value(cx, &expr)
+    value_from_expr(cx, &expr)
 }
 
 pub(crate) fn runner_cards_value(cx: &mut Cx, args: Args) -> Result<Value> {
@@ -81,7 +81,7 @@ pub(crate) fn runner_cards_value(cx: &mut Cx, args: Args) -> Result<Value> {
         .iter()
         .map(|runner| runner_card(cx, runner).map(Expr::from))
         .collect::<Result<Vec<_>>>()?;
-    expr_to_value(cx, &Expr::List(cards))
+    value_from_expr(cx, &Expr::List(cards))
 }
 
 pub(crate) fn runner_health_value(cx: &mut Cx, args: Args) -> Result<Value> {
@@ -89,7 +89,7 @@ pub(crate) fn runner_health_value(cx: &mut Cx, args: Args) -> Result<Value> {
         return Err(Error::Eval("runner/health expects one runner".to_owned()));
     };
     let card = runner_card(cx, runner)?;
-    expr_to_value(cx, &health_expr(&card))
+    value_from_expr(cx, &health_expr(&card))
 }
 
 #[derive(Clone)]

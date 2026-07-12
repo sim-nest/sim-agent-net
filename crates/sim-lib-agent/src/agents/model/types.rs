@@ -1,5 +1,5 @@
 use super::super::first_codec;
-use crate::{SWARM_LAUNCH_CAPABILITY, expr_to_value};
+use crate::{SWARM_LAUNCH_CAPABILITY, value_from_expr};
 use sim_citizen_derive::non_citizen;
 use sim_kernel::{
     CapabilityName, Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol, Value,
@@ -253,7 +253,7 @@ impl AgentFabric {
 impl EvalFabric for AgentFabric {
     fn realize(&self, cx: &mut Cx, request: EvalRequest) -> Result<EvalReply> {
         let expr = self.realize_expr(cx, request.expr)?;
-        let value = expr_to_value(cx, &expr)?;
+        let value = value_from_expr(cx, &expr)?;
         Ok(EvalReply {
             value,
             diagnostics: cx.take_diagnostics(),
@@ -284,7 +284,7 @@ impl EvalSite for AgentFabric {
         let consistency = frame.envelope.consistency;
         let expr = eval_request_from_frame(cx, &frame)?.expr;
         let result = self.realize_expr(cx, expr)?;
-        let value = expr_to_value(cx, &result)?;
+        let value = value_from_expr(cx, &result)?;
         let diagnostics = cx.take_diagnostics();
         server_frame_from_reply(
             cx,

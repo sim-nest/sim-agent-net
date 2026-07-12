@@ -1,6 +1,6 @@
 use crate::util::{
-    expr_to_value, installed_codecs, keyword, literal_expr, parse_capabilities_expr,
-    shape_from_expr, shape_id, string_literal, symbol_from_eval, symbol_from_value, symbol_of,
+    installed_codecs, keyword, literal_expr, parse_capabilities_expr, shape_from_expr, shape_id,
+    string_literal, symbol_from_eval, symbol_from_value, symbol_of, value_from_expr,
 };
 use crate::{AGENT_LIB_ID, Component, ComponentKind, TOOL_EXPORT_KIND};
 use sim_kernel::{
@@ -470,9 +470,9 @@ fn expr_args_to_values(cx: &mut Cx, expr: Expr) -> Result<Vec<Value>> {
     match expr {
         Expr::List(items) | Expr::Vector(items) => items
             .iter()
-            .map(|item| expr_to_value(cx, item))
+            .map(|item| value_from_expr(cx, item))
             .collect::<Result<Vec<_>>>(),
-        other => Ok(vec![expr_to_value(cx, &other)?]),
+        other => Ok(vec![value_from_expr(cx, &other)?]),
     }
 }
 

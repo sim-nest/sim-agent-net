@@ -3,8 +3,8 @@ use crate::agents::trace::{
 };
 use crate::agents::{audit_role_filter, parse_since_cutoff};
 use crate::{
-    Agent, AgentComponent, ComponentBackend, RecorderBackend, expr_to_value, installed_codecs,
-    lock_entries, parse_component_options, resolve_memory_backend, stringish_from_value,
+    Agent, AgentComponent, ComponentBackend, RecorderBackend, installed_codecs, lock_entries,
+    parse_component_options, resolve_memory_backend, stringish_from_value, value_from_expr,
 };
 use sim_kernel::{Args, Cx, Error, Result, Symbol, Value};
 use sim_lib_server::{EvalSite, Server, ServerAddress, ThreadMode};
@@ -100,7 +100,7 @@ pub(crate) fn agent_audit_value(cx: &mut Cx, args: Args) -> Result<Value> {
                     tool.as_ref()
                         .is_none_or(|tool| trace_tool_matches(entry, tool))
                 })
-                .map(|expr| expr_to_value(cx, expr))
+                .map(|expr| value_from_expr(cx, expr))
                 .collect::<Result<Vec<_>>>()?;
             entries.extend(filtered);
         }

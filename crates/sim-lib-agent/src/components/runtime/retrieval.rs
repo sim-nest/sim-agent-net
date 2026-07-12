@@ -4,7 +4,7 @@ mod vector;
 mod web;
 
 use super::super::model::{AgentComponent, RetrieverBackend};
-use crate::util::expr_to_value;
+use crate::util::value_from_expr;
 use sim_kernel::{Cx, Error, Result};
 use sim_lib_server::{FrameKind, ServerFrame, eval_request_from_frame};
 
@@ -30,6 +30,6 @@ pub(in crate::components) fn answer_retriever(
         RetrieverBackend::Web { endpoint } => web::web_result_expr(cx, endpoint, request.expr)?,
         RetrieverBackend::Db { path } => db::db_result_expr(cx, path, request.expr)?,
     };
-    let value = expr_to_value(cx, &result)?;
+    let value = value_from_expr(cx, &result)?;
     crate::reply::reply_frame(cx, &frame, value, consistency)
 }

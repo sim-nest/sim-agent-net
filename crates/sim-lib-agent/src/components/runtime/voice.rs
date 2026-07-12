@@ -1,7 +1,7 @@
 use super::super::model::{AgentComponent, VoiceBackend};
 use super::process::{capture_child_output, io_error_to_host, shell_child};
 use super::stream_transform::transform_stream_expr;
-use crate::{VOICE_CAPABILITY, memory::flatten_expr_text, util::expr_to_value};
+use crate::{VOICE_CAPABILITY, memory::flatten_expr_text, util::value_from_expr};
 use sim_kernel::CapabilityName;
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_server::{FrameKind, ServerFrame, eval_request_from_frame};
@@ -20,7 +20,7 @@ pub(in crate::components) fn answer_voice(
     let consistency = frame.envelope.consistency;
     let request = eval_request_from_frame(cx, &frame)?;
     let response = voice_result_expr(cx, backend, request.expr)?;
-    let value = expr_to_value(cx, &response)?;
+    let value = value_from_expr(cx, &response)?;
     crate::reply::reply_frame(cx, &frame, value, consistency)
 }
 
