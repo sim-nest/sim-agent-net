@@ -396,6 +396,23 @@ fn cook8_codec_algol_computes() {
     assert_eq!(run.results, ["7"]);
 }
 
+// COOK8.06 Category C: an offline MIDI render reduced to a deterministic frame
+// digest runs green and reproduces under the twice-run guard.
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook8_category_c_midi_digest_computes() {
+    let run = run_organ(
+        "(midi/chord-digest \"60\")",
+        "\"midi/digest\"",
+        "\\\"(frame (bytes 9) (hash 605946920012b4cc))\\\"",
+    );
+    assert!(run.ok, "midi digest: {run:?}");
+    assert_eq!(
+        run.results,
+        ["\"(frame (bytes 9) (hash 605946920012b4cc))\""]
+    );
+}
+
 #[cfg(feature = "seed-recipes")]
 #[test]
 fn cook8_codec_scheme_computes() {

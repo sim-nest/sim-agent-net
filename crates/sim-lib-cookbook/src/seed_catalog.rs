@@ -58,6 +58,9 @@ impl SeededLibCatalog {
             // general evaluator runs. Algol depends on `codec/lisp` (boot-loaded).
             Box::new(sim_codec_algol::AlgolCodecLib::new(CodecId(201))),
             Box::new(sim_lib_lang_scheme::SchemeCodecLib::new(CodecId(202))),
+            // COOK8.06 Category C: an offline MIDI render reduced to a
+            // deterministic frame digest (no device/clock/entropy).
+            Box::new(sim_lib_midi_core::MidiDigestLib),
         ];
         Self { libs }
     }
