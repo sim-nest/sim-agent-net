@@ -1,4 +1,9 @@
-use sim_kernel::{Error, Result};
+use sim_kernel::{CodecId, Error, Result};
+
+pub(crate) use decode_http_base64 as base64_decode;
+pub(crate) use sim_codec_binary_base64::encode_base64 as base64_encode;
+
+const HTTP_BASE64_CODEC_ID: CodecId = CodecId(0);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct HttpRequest {
@@ -66,74 +71,14 @@ pub(crate) fn header_value<'a>(headers: &'a [(String, String)], name: &str) -> O
         .map(|(_, value)| value.as_str())
 }
 
-pub(crate) fn base64_encode(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
-    for chunk in bytes.chunks(3) {
-        let b0 = chunk[0];
-        let b1 = *chunk.get(1).unwrap_or(&0);
-        let b2 = *chunk.get(2).unwrap_or(&0);
-        out.push(ALPHABET[(b0 >> 2) as usize] as char);
-        out.push(ALPHABET[(((b0 & 0x03) << 4) | (b1 >> 4)) as usize] as char);
-        if chunk.len() > 1 {
-            out.push(ALPHABET[(((b1 & 0x0f) << 2) | (b2 >> 6)) as usize] as char);
-        } else {
-            out.push('=');
-        }
-        if chunk.len() > 2 {
-            out.push(ALPHABET[(b2 & 0x3f) as usize] as char);
-        } else {
-            out.push('=');
-        }
-    }
-    out
-}
-
-pub(crate) fn base64_decode(text: &str) -> Result<Vec<u8>> {
-    let mut out = Vec::with_capacity(text.len() / 4 * 3);
-    let bytes = text.as_bytes();
-    if !bytes.len().is_multiple_of(4) {
-        return Err(Error::HostError("invalid base64 length".to_owned()));
-    }
-    for chunk in bytes.chunks(4) {
-        let c0 = decode_b64(chunk[0])?;
-        let c1 = decode_b64(chunk[1])?;
-        let c2 = if chunk[2] == b'=' {
-            None
-        } else {
-            Some(decode_b64(chunk[2])?)
-        };
-        let c3 = if chunk[3] == b'=' {
-            None
-        } else {
-            Some(decode_b64(chunk[3])?)
-        };
-        out.push((c0 << 2) | (c1 >> 4));
-        if let Some(c2) = c2 {
-            out.push(((c1 & 0x0f) << 4) | (c2 >> 2));
-            if let Some(c3) = c3 {
-                out.push(((c2 & 0x03) << 6) | c3);
-            }
-        }
-    }
-    Ok(out)
+pub(crate) fn decode_http_base64(text: &str) -> Result<Vec<u8>> {
+    sim_codec_binary_base64::decode_base64(HTTP_BASE64_CODEC_ID, text)
 }
 
 pub(crate) fn websocket_accept_value(client_key: &str) -> String {
     let mut bytes = client_key.as_bytes().to_vec();
     bytes.extend_from_slice(WS_GUID.as_bytes());
     base64_encode(&sha1_digest(&bytes))
-}
-
-fn decode_b64(byte: u8) -> Result<u8> {
-    match byte {
-        b'A'..=b'Z' => Ok(byte - b'A'),
-        b'a'..=b'z' => Ok(byte - b'a' + 26),
-        b'0'..=b'9' => Ok(byte - b'0' + 52),
-        b'+' => Ok(62),
-        b'/' => Ok(63),
-        _ => Err(Error::HostError("invalid base64 byte".to_owned())),
-    }
 }
 
 fn sha1_digest(bytes: &[u8]) -> [u8; 20] {

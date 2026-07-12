@@ -11,7 +11,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
 sim-citizen-derive = { version = "0.1.0" }
-sim-codec = { version = "0.1.0" }
+sim-codec = { version = "0.1.4" }
 sim-codec-json = { optional = true, version = "0.1.0" }
 sim-codec-lisp = { optional = true, version = "0.1.0" }
 sim-codec-algol = { optional = true, version = "0.1.0" }
