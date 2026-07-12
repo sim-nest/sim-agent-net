@@ -77,6 +77,14 @@ pub fn seeded_recipe_store() -> Result<RecipeStore> {
         sim_lib_lang_scheme::RECIPES,
         &["profile-descriptor", "matrix-row"],
     )?;
+    // midi: seed the runnable Category C chord-digest; keep the note-event
+    // descriptor source-only until descriptors are first-class (COOK8.08).
+    register_book_except(
+        &mut store,
+        "midi-io",
+        sim_lib_midi_core::RECIPES,
+        &["note-event"],
+    )?;
     Ok(store)
 }
 
