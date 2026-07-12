@@ -12,7 +12,7 @@
 //! or the tail `cas`): the returned lib's own manifest id IS the cookbook name,
 //! so there is no separate name table to drift.
 
-use sim_kernel::Lib;
+use sim_kernel::{CodecId, Lib};
 
 use crate::catalog::LibCatalog;
 
@@ -51,6 +51,13 @@ impl SeededLibCatalog {
             Box::new(sim_lib_control::ControlLib),
             Box::new(sim_lib_sequence::SequenceLib),
             Box::new(sim_lib_pattern::PatternLib),
+            // COOK8.05 language codecs: loaded on demand so a recipe with
+            // `codec = "algol"`/`"scheme"` parses+evals its own surface. Each is
+            // bound to a distinct fixed CodecId that cannot collide with the boot
+            // `codec/lisp` (id 1); both lower an eval-position surface to a Term the
+            // general evaluator runs. Algol depends on `codec/lisp` (boot-loaded).
+            Box::new(sim_codec_algol::AlgolCodecLib::new(CodecId(201))),
+            Box::new(sim_lib_lang_scheme::SchemeCodecLib::new(CodecId(202))),
         ];
         Self { libs }
     }

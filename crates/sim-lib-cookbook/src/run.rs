@@ -12,7 +12,7 @@
 use sim_codec::{Input, decode_eval_expr_with_codec, decode_with_codec, encode_value_with_codec};
 use sim_cookbook::{CheckResult, RecipeCard, RecipeRun};
 use sim_kernel::{
-    CapabilitySet, Cx, EncodeOptions, Error, ReadPolicy, Result, Symbol, TrustLevel,
+    CapabilitySet, Cx, EncodeOptions, Error, Expr, ReadPolicy, Result, Symbol, TrustLevel,
     read_construct_capability, read_eval_capability,
 };
 
@@ -55,6 +55,52 @@ pub fn missing_requires(cx: &Cx, card: &RecipeCard) -> Vec<String> {
         })
         .cloned()
         .collect()
+}
+
+/// Lower the pratt operator nodes (`Infix`/`Prefix`/`Postfix`) a language codec
+/// (algol, ...) produces into the `Call`s the evaluator applies, recursing
+/// through call args and structural containers but PRESERVING list/vector/map
+/// structure -- unlike the `Term` round-trip, which flattens every list to a
+/// `Datum` and so cannot carry a special form's structural args (`let` bindings,
+/// `match` clauses). This is what lets an operator surface (`1 + 2 * 3`) compute
+/// (COOK8.05) while the special-form organs still run (COOK8.03). For a codec
+/// whose surface has no operator nodes (lisp, json) it is the identity.
+fn resolve_operators(expr: Expr) -> Expr {
+    match expr {
+        Expr::Infix {
+            operator,
+            left,
+            right,
+        } => Expr::Call {
+            operator: Box::new(Expr::Symbol(operator)),
+            args: vec![resolve_operators(*left), resolve_operators(*right)],
+        },
+        Expr::Prefix { operator, arg } | Expr::Postfix { operator, arg } => Expr::Call {
+            operator: Box::new(Expr::Symbol(operator)),
+            args: vec![resolve_operators(*arg)],
+        },
+        Expr::Call { operator, args } => Expr::Call {
+            operator: Box::new(resolve_operators(*operator)),
+            args: args.into_iter().map(resolve_operators).collect(),
+        },
+        Expr::List(items) => Expr::List(items.into_iter().map(resolve_operators).collect()),
+        Expr::Vector(items) => Expr::Vector(items.into_iter().map(resolve_operators).collect()),
+        Expr::Set(items) => Expr::Set(items.into_iter().map(resolve_operators).collect()),
+        Expr::Block(items) => Expr::Block(items.into_iter().map(resolve_operators).collect()),
+        Expr::Map(entries) => Expr::Map(
+            entries
+                .into_iter()
+                .map(|(k, v)| (resolve_operators(k), resolve_operators(v)))
+                .collect(),
+        ),
+        Expr::Annotated { expr, annotations } => Expr::Annotated {
+            expr: Box::new(resolve_operators(*expr)),
+            annotations,
+        },
+        // Quote preserves its datum unevaluated; scalars, Local, and Extension
+        // carry no operator nodes.
+        other => other,
+    }
 }
 
 /// Run a recipe end to end against an [`EmptyCatalog`] (the legacy path): every
@@ -116,13 +162,27 @@ pub fn run_recipe_with_catalog(
     // that round-trip forces every list to a pure Datum and rejects a list that contains a
     // call -- e.g. a `let` binding container `((x 5))` or a `match` clause -- so special
     // forms could not run. Function-call recipes are unaffected (behaviour-identical).
-    let expr = decode_eval_expr_with_codec(cx, &codec, Input::Text(source), read_policy)?;
+    let expr = resolve_operators(decode_eval_expr_with_codec(
+        cx,
+        &codec,
+        Input::Text(source),
+        read_policy,
+    )?);
 
     let (results, eval_ok) = match cx.eval_expr(expr) {
         Ok(value) => {
-            let text = encode_value_with_codec(cx, &codec, &value, EncodeOptions::default())?
-                .into_text()?;
-            (vec![text], true)
+            // Encode the computed value back with the recipe's own codec so a
+            // round-tripping surface (lisp, json, algol) reports on its own
+            // surface. A decode-only language codec (e.g. scheme-r7rs-small, which
+            // parses its surface but has no encoder) cannot render the result, so
+            // fall back to the canonical `codec/lisp` display -- the setup still
+            // parsed and evaluated on its own surface (COOK8.05).
+            let encoded = encode_value_with_codec(cx, &codec, &value, EncodeOptions::default())
+                .or_else(|_| {
+                    let lisp = Symbol::qualified("codec", "lisp");
+                    encode_value_with_codec(cx, &lisp, &value, EncodeOptions::default())
+                })?;
+            (vec![encoded.into_text()?], true)
         }
         Err(_) => (Vec::new(), false),
     };

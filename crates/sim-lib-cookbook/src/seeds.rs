@@ -8,6 +8,8 @@ pub const SEEDED_RECIPE_BOOKS: &[(&str, EmbeddedDir)] = &[
     ("core", sim_lib_core::RECIPES),
     ("codec/lisp", sim_codec_lisp::RECIPES),
     ("codec/json", sim_codec_json::RECIPES),
+    // COOK8.05 language codecs: each parses+evals its own surface on demand.
+    ("codec/algol", sim_codec_algol::RECIPES),
     ("numbers/f64", sim_lib_numbers_f64::RECIPES),
     ("numbers/complex", sim_lib_numbers_complex::RECIPES),
     ("numbers/func", sim_lib_numbers_func::RECIPES),
@@ -65,6 +67,15 @@ pub fn seeded_recipe_store() -> Result<RecipeStore> {
         "control",
         sim_lib_control::RECIPES,
         &["a30-021-physical-sensing"],
+    )?;
+    // scheme: seed the runnable `(+ 1 2)` compute; keep the R7RS profile/matrix
+    // conformance descriptors source-only (matrix-row requires `standard`, absent
+    // from the sandbox catalog) until descriptors are first-class (COOK8.08).
+    register_book_except(
+        &mut store,
+        "lang/scheme",
+        sim_lib_lang_scheme::RECIPES,
+        &["profile-descriptor", "matrix-row"],
     )?;
     Ok(store)
 }
