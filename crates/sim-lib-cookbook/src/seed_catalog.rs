@@ -40,6 +40,13 @@ impl SeededLibCatalog {
             Box::new(sim_lib_numbers_cas::CasNumbersLib::new()),
             Box::new(sim_lib_numbers_tensor::TensorNumbersLib::new()),
             Box::new(sim_lib_discrete::DiscreteLib),
+            // COOK8.03 organs: the eval-policy special forms load on demand via a
+            // recipe's `requires` (`binding`/`control`/`sequence`/`pattern`), so
+            // `let`/`if`/`seq/*`/`match` recipes run without preloading them.
+            Box::new(sim_lib_binding::BindingLib),
+            Box::new(sim_lib_control::ControlLib),
+            Box::new(sim_lib_sequence::SequenceLib),
+            Box::new(sim_lib_pattern::PatternLib),
         ];
         Self { libs }
     }

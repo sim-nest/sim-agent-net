@@ -29,7 +29,11 @@ pub const SEEDED_RECIPE_BOOKS: &[(&str, EmbeddedDir)] = &[
     // The newer codec embeds stay unseeded until their crates.io releases expose
     // RECIPES; codec/compare is a non-publishable developer harness. codec/bitwise
     // and codec/doc also require their own codec lib loaded to run.
+    // COOK8.03 organs: each of these books' 01-basics recipe is a runnable compute
+    // (`let`/`seq/map`/`match`), loaded on demand via its `requires`.
     ("organ/binding", sim_lib_binding::RECIPES),
+    ("organ/sequence", sim_lib_sequence::RECIPES),
+    ("organ/pattern", sim_lib_pattern::RECIPES),
     ("organ/dispatch", sim_lib_dispatch::RECIPES),
     ("stream-core-shapes", sim_lib_stream_core::RECIPES),
     ("agent-runner-core", sim_lib_agent_runner_core::RECIPES),
@@ -51,6 +55,16 @@ pub fn seeded_recipe_store() -> Result<RecipeStore> {
         "discrete",
         sim_lib_discrete::RECIPES,
         &["matrix-runtime"],
+    )?;
+    // control: seed the runnable `if` recipe but skip the rich 30-agents descriptor
+    // (`a30-021-physical-sensing`), which carries the extended agents schema and is
+    // not runnable under the execute-everything verifier (kept source-only until
+    // descriptors are first-class, COOK8.08).
+    register_book_except(
+        &mut store,
+        "control",
+        sim_lib_control::RECIPES,
+        &["a30-021-physical-sensing"],
     )?;
     Ok(store)
 }

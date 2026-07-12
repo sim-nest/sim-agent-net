@@ -5,7 +5,9 @@ use std::sync::{Arc, Mutex};
 
 use sim_codec_lisp::LispCodecLib;
 use sim_cookbook::RecipeStore;
-use sim_kernel::{Args, Callable, Cx, Error, Expr, Symbol, Value, read_eval_capability};
+use sim_kernel::{
+    Args, Callable, Cx, Error, Expr, Symbol, Value, read_construct_capability, read_eval_capability,
+};
 use sim_test_support::core_cx;
 
 use crate::install_cookbook_lib;
@@ -311,4 +313,83 @@ fn cook7_capability_profile_grants_and_denies() {
     // Category D: a denied capability is never seated, so an op demanding it
     // fails closed.
     assert!(!cx.capabilities().contains(&net_connect));
+}
+
+// COOK8.03: the eval-policy organs (let/if/seq/match) run in the cookbook sandbox
+// once their lib loads via `requires`. Each organ recipe is exercised through the
+// catalog exactly as the webui serve path runs it.
+#[cfg(feature = "seed-recipes")]
+use sim_cookbook::RecipeRun;
+
+#[cfg(feature = "seed-recipes")]
+fn organ_book(id: &str, setup: &str, requires: &str, expect: &str) -> Vec<(String, Vec<u8>)> {
+    let recipe = format!(
+        "id = \"{id}\"\ntitle = \"{id}\"\ncodec = \"lisp\"\nsetup = \"s\"\npurpose = \"p\"\nrequires = [{requires}]\n[[expect]]\nform = 0\nresult = \"{expect}\"\n",
+    );
+    vec![
+        (
+            "book.toml".to_owned(),
+            b"book = \"organ\"\ntitle = \"Organ\"\n".to_vec(),
+        ),
+        (format!("c/{id}/recipe.toml"), recipe.into_bytes()),
+        (format!("c/{id}/s"), setup.as_bytes().to_vec()),
+        (format!("c/{id}/p"), b"organ".to_vec()),
+    ]
+}
+
+#[cfg(feature = "seed-recipes")]
+fn run_organ(setup: &str, requires: &str, expect: &str) -> RecipeRun {
+    let mut cx = setup_cx();
+    cx.grant(read_eval_capability());
+    // The webui bootloader grants read-construct on the cookbook Cx (cli.rs), so
+    // `#(numbers/Func ...)` reader constructs build a real value; mirror that here.
+    cx.grant(read_construct_capability());
+    let book = organ_book("r", setup, requires, expect);
+    let refs: Vec<(&str, &[u8])> = book
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.as_slice()))
+        .collect();
+    let card = store_with(&refs).card("organ/c/r").cloned().unwrap();
+    let catalog = SeededLibCatalog::standard();
+    run_recipe_twice(&mut cx, &catalog, &card).unwrap()
+}
+
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook8_organ_let_computes() {
+    let run = run_organ(
+        "(let ((x 5)) (math/mul x x))",
+        "\"binding\", \"numbers/arith\", \"numbers/i64\"",
+        "25",
+    );
+    assert!(run.ok, "let: {run:?}");
+    assert_eq!(run.results, ["25"]);
+}
+
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook8_organ_if_computes() {
+    let run = run_organ("(if true 10 20)", "\"control\"", "10");
+    assert!(run.ok, "if: {run:?}");
+    assert_eq!(run.results, ["10"]);
+}
+
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook8_organ_seq_map_computes() {
+    let run = run_organ(
+        "(seq/map #(numbers/Func (x) (* x x)) [1 2 3])",
+        "\"sequence\", \"numbers/func\", \"numbers/arith\", \"numbers/i64\"",
+        "(1 4 9)",
+    );
+    assert!(run.ok, "seq/map: {run:?}");
+    assert_eq!(run.results, ["(1 4 9)"]);
+}
+
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook8_organ_match_computes() {
+    let run = run_organ("(match [1 2] ([a b] a))", "\"pattern\"", "1");
+    assert!(run.ok, "match: {run:?}");
+    assert_eq!(run.results, ["1"]);
 }
