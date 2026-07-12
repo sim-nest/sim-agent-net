@@ -323,8 +323,19 @@ use sim_cookbook::RecipeRun;
 
 #[cfg(feature = "seed-recipes")]
 fn organ_book(id: &str, setup: &str, requires: &str, expect: &str) -> Vec<(String, Vec<u8>)> {
+    codec_book(id, "lisp", setup, requires, expect)
+}
+
+#[cfg(feature = "seed-recipes")]
+fn codec_book(
+    id: &str,
+    codec: &str,
+    setup: &str,
+    requires: &str,
+    expect: &str,
+) -> Vec<(String, Vec<u8>)> {
     let recipe = format!(
-        "id = \"{id}\"\ntitle = \"{id}\"\ncodec = \"lisp\"\nsetup = \"s\"\npurpose = \"p\"\nrequires = [{requires}]\n[[expect]]\nform = 0\nresult = \"{expect}\"\n",
+        "id = \"{id}\"\ntitle = \"{id}\"\ncodec = \"{codec}\"\nsetup = \"s\"\npurpose = \"p\"\nrequires = [{requires}]\n[[expect]]\nform = 0\nresult = \"{expect}\"\n",
     );
     vec![
         (
@@ -352,6 +363,50 @@ fn run_organ(setup: &str, requires: &str, expect: &str) -> RecipeRun {
     let card = store_with(&refs).card("organ/c/r").cloned().unwrap();
     let catalog = SeededLibCatalog::standard();
     run_recipe_twice(&mut cx, &catalog, &card).unwrap()
+}
+
+#[cfg(feature = "seed-recipes")]
+fn run_codec(codec: &str, setup: &str, requires: &str, expect: &str) -> RecipeRun {
+    let mut cx = setup_cx();
+    cx.grant(read_eval_capability());
+    cx.grant(read_construct_capability());
+    let book = codec_book("r", codec, setup, requires, expect);
+    let refs: Vec<(&str, &[u8])> = book
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.as_slice()))
+        .collect();
+    let card = store_with(&refs).card("organ/c/r").cloned().unwrap();
+    let catalog = SeededLibCatalog::standard();
+    run_recipe_twice(&mut cx, &catalog, &card).unwrap()
+}
+
+// COOK8.05: a recipe whose `codec` is a language surface parses+evals on that
+// surface once the codec loads via `requires`. The conformance surfaces become
+// "this surface computes X".
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook8_codec_algol_computes() {
+    let run = run_codec(
+        "algol",
+        "1 + 2 * 3",
+        "\"codec/algol\", \"numbers/arith\", \"numbers/i64\"",
+        "7",
+    );
+    assert!(run.ok, "algol: {run:?}");
+    assert_eq!(run.results, ["7"]);
+}
+
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn cook8_codec_scheme_computes() {
+    let run = run_codec(
+        "scheme-r7rs-small",
+        "(+ 1 2)",
+        "\"codec/scheme-r7rs-small\", \"numbers/arith\", \"numbers/i64\"",
+        "3",
+    );
+    assert!(run.ok, "scheme: {run:?}");
+    assert_eq!(run.results, ["3"]);
 }
 
 #[cfg(feature = "seed-recipes")]
