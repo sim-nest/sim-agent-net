@@ -8,7 +8,7 @@ use std::{
 
 mod body;
 
-use body::{read_chunked_body, read_content_length_body, read_to_end_limited};
+use body::{read_chunked_transfer_body, read_content_length_body, read_to_end_limited};
 
 type BodyChunkCallback<'a> = &'a mut dyn FnMut(&[u8]) -> Result<()>;
 type OptionalBodyChunkCallback<'a> = Option<BodyChunkCallback<'a>>;
@@ -153,7 +153,7 @@ fn read_response(
     let mode = sim_lib_net_core::body_mode(&parsed).map_err(map_head_error)?;
     match mode {
         sim_lib_net_core::HttpBodyMode::Chunked => {
-            let body = read_chunked_body(
+            let body = read_chunked_transfer_body(
                 runner_label,
                 &mut reader,
                 max_response_bytes,
