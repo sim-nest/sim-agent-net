@@ -27,7 +27,7 @@ sim-lib-rank = { version = "0.1.0" }
 sim-lib-server = { version = "0.1.0", path = "../sim-lib-server" }
 sim-lib-stream-fabric = { version = "0.1.0", path = "../sim-lib-stream-fabric" }
 sim-lib-stream-core = { version = "0.1.0" }
-sim-shape = { version = "0.1.0" }
+sim-shape = { version = "0.1.1" }
 sim-value = { version = "0.1.0" }
 sim-wasm-abi = { version = "0.1.0" }
 [build-dependencies]
