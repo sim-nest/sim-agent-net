@@ -8,6 +8,7 @@ use sim_kernel::{
     Consistency, Cx, Error, EvalFabricRef, EvalMode, EvalRequest, Expr, Result, Symbol,
 };
 use sim_lib_agent_runner_core::{ModelRequest, ModelResponse, ModelUsage};
+use sim_lib_net_core::hex_encode;
 
 use sim_codec_chat::text_part;
 use sim_codec_json::json_number_to_u64;
@@ -215,7 +216,7 @@ fn expr_to_json(expr: &Expr) -> JsonValue {
                 .map(|(key, value)| (json_key(key), expr_to_json(value)))
                 .collect(),
         ),
-        Expr::Bytes(bytes) => JsonValue::String(bytes_to_hex(bytes)),
+        Expr::Bytes(bytes) => JsonValue::String(hex_encode(bytes)),
         _ => JsonValue::String(format!("{expr:?}")),
     }
 }
@@ -290,14 +291,4 @@ fn usage_from_json(value: &JsonValue) -> Result<ModelUsage> {
         cost_usd: None,
         extra: Vec::new(),
     })
-}
-
-fn bytes_to_hex(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(HEX[(byte >> 4) as usize] as char);
-        output.push(HEX[(byte & 0x0f) as usize] as char);
-    }
-    output
 }

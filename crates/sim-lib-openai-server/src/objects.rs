@@ -1,5 +1,6 @@
 use sim_citizen_derive::non_citizen;
 use sim_kernel::{ContentId, Cx, Expr, Object, ObjectCompat, Result, Symbol};
+use sim_lib_net_core::hex_encode;
 
 /// Object-kind tag identifying a [`GatewayRequest`] in its `Expr` projection.
 pub const GATEWAY_REQUEST_OBJECT: &str = "openai-gateway/request";
@@ -469,13 +470,13 @@ pub fn content_id_expr(id: &ContentId) -> Expr {
     Expr::Map(vec![
         field("algorithm", Expr::Symbol(id.algorithm.clone())),
         field("bytes", Expr::Bytes(id.bytes.to_vec())),
-        field("hex", Expr::String(bytes_to_hex(&id.bytes))),
+        field("hex", Expr::String(hex_encode(&id.bytes))),
     ])
 }
 
 /// Returns the lowercase hex encoding of a [`ContentId`]'s digest bytes.
 pub fn content_id_hex(id: &ContentId) -> String {
-    bytes_to_hex(&id.bytes)
+    hex_encode(&id.bytes)
 }
 
 fn headers_expr(headers: &[(String, String)]) -> Expr {
@@ -513,16 +514,3 @@ fn optional_u64_field(name: &str, value: Option<u64>) -> (Expr, Expr) {
 }
 
 use sim_value::build::entry as field;
-
-/// Lowercase hex encoding of a byte slice. The one home for the `bytes_hex`
-/// forks the SIM/admin JSON renderers each re-grew; also backs
-/// [`content_id_hex`].
-pub(crate) fn bytes_to_hex(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(char::from(HEX[usize::from(byte >> 4)]));
-        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
-    }
-    output
-}

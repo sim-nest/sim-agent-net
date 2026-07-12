@@ -2,13 +2,12 @@ use std::collections::BTreeMap;
 
 use serde_json::{Map, Number, Value};
 use sim_kernel::{ContentId, Expr, NumberLiteral, Symbol};
+use sim_lib_net_core::hex_encode;
 use sim_value::access::field_any;
 
 use crate::{
     capabilities::OPENAI_GATEWAY_ADMIN_CAPABILITY,
-    objects::{
-        GatewayEvent, GatewayRequest, GatewayResponse, GatewayRun, bytes_to_hex, content_id_expr,
-    },
+    objects::{GatewayEvent, GatewayRequest, GatewayResponse, GatewayRun, content_id_expr},
     server::GatewayRouteState,
     storage::GatewayStoreCounts,
 };
@@ -281,7 +280,7 @@ pub(crate) fn admin_expr_json(expr: &Expr) -> Value {
         Expr::Number(value) => number_json(value),
         Expr::String(value) => Value::String(value.clone()),
         Expr::Symbol(symbol) | Expr::Local(symbol) => Value::String(symbol.to_string()),
-        Expr::Bytes(bytes) => Value::String(bytes_to_hex(bytes)),
+        Expr::Bytes(bytes) => Value::String(hex_encode(bytes)),
         Expr::List(values) | Expr::Vector(values) | Expr::Set(values) | Expr::Block(values) => {
             Value::Array(values.iter().map(admin_expr_json).collect())
         }
