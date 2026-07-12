@@ -1,6 +1,6 @@
 use super::super::{
     model::{AgentComponent, ComponentBackend, RunnerBackend, component_value},
-    options::{parse_component_options, string_option, symbol_option},
+    options::{check_component_option_map, parse_component_options, string_option, symbol_option},
 };
 use crate::{
     AI_RUNNER_CAPABILITY, AI_RUNNER_LOCAL_CAPABILITY, ComponentKind, util::installed_codecs,
@@ -8,7 +8,8 @@ use crate::{
 use sim_kernel::{Args, CapabilityName, Cx, Error, Expr, Result, Symbol, Value};
 use sim_lib_agent_runner_process::{ProcessProtocol, ProcessRunner};
 use sim_lib_server::{ServerAddress, parse_duration};
-use std::{sync::Arc, time::Duration};
+use sim_shape::{ExprKind, ExprKindShape, OptionFieldSpec, OrShape, Shape, TableExtraPolicy};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 pub(crate) fn runner_process_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let options = parse_component_options(cx, args, "runner/process")?;
@@ -27,6 +28,7 @@ pub(crate) fn runner_process_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let protocol = protocol_option(cx, &options)?;
     let timeout = timeout_option(cx, &options)?;
     let max_output_bytes = max_output_bytes_option(cx, &options)?;
+    check_runner_process_option_shape(cx, &options)?;
     component_value(
         cx,
         AgentComponent {
@@ -139,4 +141,35 @@ fn parse_max_output_bytes(text: &str) -> Result<usize> {
 
 fn max_output_bytes_error() -> Error {
     Error::Eval("runner/process :max-output-bytes expects an integer".to_owned())
+}
+
+fn check_runner_process_option_shape(cx: &mut Cx, options: &HashMap<String, Value>) -> Result<()> {
+    check_component_option_map(
+        cx,
+        options,
+        vec![
+            OptionFieldSpec::optional(Symbol::new("name"), string_or_symbol_shape()),
+            OptionFieldSpec::optional(Symbol::new("model"), string_or_symbol_shape()),
+            OptionFieldSpec::required(Symbol::new("command"), string_or_symbol_shape()),
+            OptionFieldSpec::optional(Symbol::new("protocol"), string_or_symbol_shape()),
+            OptionFieldSpec::optional(Symbol::new("timeout"), string_or_number_shape()),
+            OptionFieldSpec::optional(Symbol::new("max-output-bytes"), string_or_number_shape()),
+        ],
+        TableExtraPolicy::Allow,
+        "runner/process",
+    )
+}
+
+fn string_or_symbol_shape() -> Arc<dyn Shape> {
+    Arc::new(OrShape::new(vec![
+        Arc::new(ExprKindShape::new(ExprKind::String)),
+        Arc::new(ExprKindShape::new(ExprKind::Symbol)),
+    ]))
+}
+
+fn string_or_number_shape() -> Arc<dyn Shape> {
+    Arc::new(OrShape::new(vec![
+        Arc::new(ExprKindShape::new(ExprKind::String)),
+        Arc::new(ExprKindShape::new(ExprKind::Number)),
+    ]))
 }

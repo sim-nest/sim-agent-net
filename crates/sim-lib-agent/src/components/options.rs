@@ -3,6 +3,8 @@ use crate::util::{
     symbol_from_value, symbol_of, u32_from_value,
 };
 use sim_kernel::{Args, CapabilityName, Cx, Error, Expr, Result, Symbol, Value};
+#[cfg(feature = "runner-process")]
+use sim_shape::{OptionFieldSpec, TableExtraPolicy};
 use std::{collections::HashMap, path::PathBuf};
 
 pub(crate) fn parse_component_options(
@@ -148,4 +150,39 @@ pub(crate) fn strings_option(
             "expected string or string list option".to_owned(),
         )),
     }
+}
+
+#[cfg(feature = "runner-process")]
+pub(crate) fn check_component_option_map(
+    cx: &mut Cx,
+    options: &HashMap<String, Value>,
+    fields: Vec<OptionFieldSpec>,
+    extra: TableExtraPolicy,
+    name: &'static str,
+) -> Result<()> {
+    let expr = options_expr(cx, options)?;
+    let matched = sim_shape::check_option_map(cx, &expr, fields, extra)?;
+    if matched.accepted {
+        return Ok(());
+    }
+    let message = matched
+        .diagnostics
+        .first()
+        .map(|diagnostic| diagnostic.message.clone())
+        .unwrap_or_else(|| "option shape rejected".to_owned());
+    Err(Error::Eval(format!("{name} options rejected: {message}")))
+}
+
+#[cfg(feature = "runner-process")]
+fn options_expr(cx: &mut Cx, options: &HashMap<String, Value>) -> Result<Expr> {
+    options
+        .iter()
+        .map(|(key, value)| {
+            Ok((
+                Expr::Symbol(Symbol::new(key.clone())),
+                value.object().as_expr(cx)?,
+            ))
+        })
+        .collect::<Result<Vec<_>>>()
+        .map(Expr::Map)
 }
