@@ -1,5 +1,7 @@
 //! Deterministic self-hosting scenario fixtures for the Atelier.
 
+use sim_cookbook::fnv1a64_hex;
+
 /// One self-hosting scenario exercised by recipes and conformance tests.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SelfHostingScenario {
@@ -167,12 +169,9 @@ pub fn validate_self_hosting_scenarios(scenarios: &[SelfHostingScenario]) -> Vec
 
 /// Stable FNV-1a hash used by self-hosting cassette fixtures.
 pub fn cassette_content_hash(events: &[&str]) -> String {
-    let mut hash = 0xcbf29ce484222325u64;
+    let mut bytes = Vec::new();
     for event in events {
-        for byte in event.as_bytes() {
-            hash ^= u64::from(*byte);
-            hash = hash.wrapping_mul(0x100000001b3);
-        }
+        bytes.extend_from_slice(event.as_bytes());
     }
-    format!("fnv1a64:{hash:016x}")
+    format!("fnv1a64:{}", fnv1a64_hex(&bytes))
 }

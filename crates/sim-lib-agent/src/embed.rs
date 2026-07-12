@@ -1,4 +1,4 @@
-use std::hash::{Hash, Hasher};
+use sim_cookbook::fnv1a64;
 
 pub const EMBED_DIM: usize = 256;
 
@@ -28,24 +28,10 @@ pub fn cosine(a: &[f32; EMBED_DIM], b: &[f32; EMBED_DIM]) -> f32 {
 }
 
 fn stable_hash(text: &str) -> usize {
-    let mut hasher = StableHasher(0xcbf29ce484222325);
-    text.hash(&mut hasher);
-    hasher.0 as usize
-}
-
-struct StableHasher(u64);
-
-impl Hasher for StableHasher {
-    fn finish(&self) -> u64 {
-        self.0
-    }
-
-    fn write(&mut self, bytes: &[u8]) {
-        for byte in bytes {
-            self.0 ^= u64::from(*byte);
-            self.0 = self.0.wrapping_mul(0x100000001b3);
-        }
-    }
+    let mut bytes = Vec::with_capacity(text.len() + 1);
+    bytes.extend_from_slice(text.as_bytes());
+    bytes.push(0xff);
+    fnv1a64(&bytes) as usize
 }
 
 #[cfg(test)]
