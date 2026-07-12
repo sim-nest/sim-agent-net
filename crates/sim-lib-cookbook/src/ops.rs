@@ -14,6 +14,7 @@ use sim_kernel::{
 };
 
 use crate::build::{count_value, ids_value, recipe_value, run_value};
+use crate::loadable::{LifecycleAction, LoadableLibList, run_lifecycle_action};
 use crate::run::{decode_setup, require_eval_capability, run_recipe};
 
 /// Which cookbook operation a [`CookbookOp`] performs.
@@ -91,6 +92,58 @@ impl CookbookOp {
             .expect("recipe store lock")
             .card(id)
             .cloned()
+    }
+}
+
+/// A registered lifecycle operation over a loadable-lib directory.
+pub struct CookbookLifecycleOp {
+    directory: Arc<LoadableLibList>,
+    action: LifecycleAction,
+}
+
+impl CookbookLifecycleOp {
+    /// Build a lifecycle op for `action` over `directory`.
+    pub fn new(directory: Arc<LoadableLibList>, action: LifecycleAction) -> Self {
+        Self { directory, action }
+    }
+
+    /// The `cookbook:<load-lib|unload-lib>` symbol this op registers under.
+    pub fn symbol(action: LifecycleAction) -> Symbol {
+        Symbol::qualified("cookbook", lifecycle_op_name(action))
+    }
+}
+
+impl Object for CookbookLifecycleOp {
+    fn display(&self, _cx: &mut Cx) -> Result<String> {
+        Ok(format!(
+            "#<function {}>",
+            Self::symbol(self.action).as_qualified_str()
+        ))
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+impl ObjectCompat for CookbookLifecycleOp {
+    fn class(&self, cx: &mut Cx) -> Result<ClassRef> {
+        cx.resolve_class(&Symbol::qualified("core", "Function"))
+    }
+
+    fn as_callable(&self) -> Option<&dyn Callable> {
+        Some(self)
+    }
+}
+
+impl Callable for CookbookLifecycleOp {
+    fn call(&self, cx: &mut Cx, args: Args) -> Result<Value> {
+        let args = args.into_vec();
+        let op = format!("cookbook:{}", lifecycle_op_name(self.action));
+        let lib = arg_string(cx, &args, &op)?;
+        let recipe = format!("cookbook/{}", lifecycle_op_name(self.action));
+        let run = run_lifecycle_action(cx, &self.directory, self.action, &lib, &recipe);
+        run_value(cx, &run)
     }
 }
 
@@ -219,5 +272,12 @@ fn arg_string(cx: &mut Cx, args: &[Value], op: &str) -> Result<String> {
         other => Err(Error::Eval(format!(
             "{op} expects a string id, got {other:?}"
         ))),
+    }
+}
+
+fn lifecycle_op_name(action: LifecycleAction) -> &'static str {
+    match action {
+        LifecycleAction::Load => "load-lib",
+        LifecycleAction::Unload => "unload-lib",
     }
 }

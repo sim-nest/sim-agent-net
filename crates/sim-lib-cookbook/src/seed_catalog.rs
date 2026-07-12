@@ -209,7 +209,7 @@ impl LibCatalog for SeededLibCatalog {
 
 fn loadable<F>(id: &str, title: &str, recipes: Option<EmbeddedDir>, make: F) -> LoadableLibEntry
 where
-    F: Fn() -> Box<dyn Lib> + Send + Sync + 'static,
+    F: Fn() -> Box<dyn Lib + Send + Sync> + Send + Sync + 'static,
 {
     let catalog_lib = make();
     LoadableLibEntry {

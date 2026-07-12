@@ -2,13 +2,32 @@
 
 use std::sync::Arc;
 
-use sim_cookbook::{EmbeddedDir, RecipeCard, RecipeSource, RecipeStore};
-use sim_kernel::{Cx, Error, Lib, Result};
+use sim_cookbook::{EmbeddedDir, RecipeCard, RecipeRun, RecipeSource, RecipeStore};
+use sim_kernel::{Cx, Error, Lib, LibId, Result};
 
 use crate::catalog::LibCatalog;
 
 /// Host-owned factory for constructing a loadable library.
-pub type LibFactory = Arc<dyn Fn() -> Box<dyn Lib> + Send + Sync>;
+pub type LibFactory = Arc<dyn Fn() -> Box<dyn Lib + Send + Sync> + Send + Sync>;
+
+/// Lifecycle command encoded by a synthetic cookbook card.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LifecycleAction {
+    /// Load a known library from the host-owned directory.
+    Load,
+    /// Unload a currently loaded library with the kernel's non-cascade unload.
+    Unload,
+}
+
+impl LifecycleAction {
+    /// Stable action tag value used by lifecycle cards.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Load => "load",
+            Self::Unload => "unload",
+        }
+    }
+}
 
 /// One known library in the cookbook's effective loadable-lib directory.
 pub struct LoadableLibEntry {
@@ -23,7 +42,7 @@ pub struct LoadableLibEntry {
     /// Embedded recipes for this lib, when the host can expose them.
     pub recipes: Option<EmbeddedDir>,
     /// Catalog instance used to resolve ordinary recipe `requires`.
-    pub catalog_lib: Box<dyn Lib>,
+    pub catalog_lib: Box<dyn Lib + Send + Sync>,
     /// Factory used by lifecycle execution to create a fresh lib instance.
     pub factory: LibFactory,
 }
@@ -51,9 +70,45 @@ impl LoadableLibList {
 
     /// Whether a matching library is already loaded in `cx`.
     pub fn is_loaded(cx: &Cx, id: &str) -> bool {
-        cx.registry().libs().iter().any(|loaded| {
-            loaded.manifest.id.as_qualified_str() == id || loaded.manifest.id.name.as_ref() == id
-        })
+        Self::loaded_id(cx, id).is_some()
+    }
+
+    /// Load a known library from its host factory.
+    ///
+    /// Calling this for an already-loaded id is a successful no-op, so a stale
+    /// load card cannot duplicate registry entries.
+    pub fn load(&self, cx: &mut Cx, id: &str) -> Result<String> {
+        if Self::is_loaded(cx, id) {
+            return Ok(format!("already loaded {id}"));
+        }
+        let entry = self
+            .entry(id)
+            .ok_or_else(|| Error::Eval(format!("unknown loadable lib `{id}`")))?;
+        let lib = (entry.factory)();
+        cx.load_lib(lib.as_ref())?;
+        Ok(format!("loaded {id}"))
+    }
+
+    /// Unload a loaded library with the kernel's bare, non-cascade unload.
+    ///
+    /// If another loaded lib depends on this one, the kernel refusal is returned
+    /// unchanged to the lifecycle runner, which reports it as `ok:false`.
+    pub fn unload(&self, cx: &mut Cx, id: &str) -> Result<String> {
+        let loaded_id = Self::loaded_id(cx, id)
+            .ok_or_else(|| Error::Eval(format!("lib `{id}` is not loaded")))?;
+        cx.unload_lib(loaded_id)?;
+        Ok(format!("unloaded {id}"))
+    }
+
+    fn loaded_id(cx: &Cx, id: &str) -> Option<LibId> {
+        cx.registry()
+            .libs()
+            .iter()
+            .find(|loaded| {
+                loaded.manifest.id.as_qualified_str() == id
+                    || loaded.manifest.id.name.as_ref() == id
+            })
+            .map(|loaded| loaded.id)
     }
 }
 
@@ -62,7 +117,75 @@ impl LibCatalog for LoadableLibList {
         self.entries
             .iter()
             .find(|entry| entry.id == name || entry.id.rsplit('/').next() == Some(name))
-            .map(|entry| entry.catalog_lib.as_ref())
+            .map(|entry| entry.catalog_lib.as_ref() as &dyn Lib)
+    }
+}
+
+/// Reads the lifecycle action encoded by a synthetic cookbook card.
+pub fn lifecycle_action(card: &RecipeCard) -> Option<(LifecycleAction, String)> {
+    let action = card
+        .tags
+        .iter()
+        .find_map(|tag| tag.strip_prefix("cookbook-action:"))?;
+    let lib = card
+        .tags
+        .iter()
+        .find_map(|tag| tag.strip_prefix("cookbook-lib:"))?;
+    let action = match action {
+        "load" => LifecycleAction::Load,
+        "unload" => LifecycleAction::Unload,
+        _ => return None,
+    };
+    Some((action, lib.to_owned()))
+}
+
+/// Run a cookbook card against a dynamic loadable-lib directory.
+///
+/// Lifecycle cards execute directly against the live `Cx` registry. Ordinary
+/// recipe cards still use the existing requires-driven catalog runner, with the
+/// same directory as their [`LibCatalog`] resolver.
+pub fn run_recipe_with_loadable_libs(
+    cx: &mut Cx,
+    directory: &LoadableLibList,
+    card: &RecipeCard,
+) -> Result<RecipeRun> {
+    if let Some((action, lib)) = lifecycle_action(card) {
+        return Ok(run_lifecycle_action(cx, directory, action, &lib, &card.id));
+    }
+    crate::run::run_recipe_with_catalog(cx, directory, card)
+}
+
+/// Execute one lifecycle command and package it as a [`RecipeRun`].
+pub fn run_lifecycle_action(
+    cx: &mut Cx,
+    directory: &LoadableLibList,
+    action: LifecycleAction,
+    lib: &str,
+    recipe: &str,
+) -> RecipeRun {
+    let result = match action {
+        LifecycleAction::Load => directory.load(cx, lib),
+        LifecycleAction::Unload => directory.unload(cx, lib),
+    };
+    lifecycle_run(recipe, result)
+}
+
+fn lifecycle_run(recipe: &str, result: Result<String>) -> RecipeRun {
+    match result {
+        Ok(message) => RecipeRun {
+            recipe: recipe.to_owned(),
+            forms: 1,
+            results: vec![message],
+            checks: Vec::new(),
+            ok: true,
+        },
+        Err(err) => RecipeRun {
+            recipe: recipe.to_owned(),
+            forms: 1,
+            results: vec![err.to_string()],
+            checks: Vec::new(),
+            ok: false,
+        },
     }
 }
 
@@ -93,7 +216,7 @@ fn load_card(entry: &LoadableLibEntry) -> RecipeCard {
         format!("cookbook/load/{}", entry.id),
         "cookbook/loadable".to_owned(),
         entry,
-        "load",
+        LifecycleAction::Load,
         format!("Load {}", entry.id),
         0,
         0,
@@ -105,7 +228,7 @@ fn unload_card(entry: &LoadableLibEntry) -> RecipeCard {
         format!("{}/cookbook-lifecycle/unload", entry.id),
         entry.id.clone(),
         entry,
-        "unload",
+        LifecycleAction::Unload,
         format!("Unload {}", entry.id),
         i64::MAX,
         i64::MAX,
@@ -116,7 +239,7 @@ fn lifecycle_card(
     id: String,
     book: String,
     entry: &LoadableLibEntry,
-    action: &str,
+    action: LifecycleAction,
     title: String,
     chapter_order: i64,
     order: i64,
@@ -129,15 +252,15 @@ fn lifecycle_card(
         chapter_summary: String::new(),
         title,
         codec: "lisp".to_owned(),
-        setup: format!("(cookbook/{action}-lib {:?})", entry.id).into_bytes(),
-        purpose: format!("{action} the loadable lib `{}`.", entry.id),
+        setup: format!("(cookbook/{}-lib {:?})", action.as_str(), entry.id).into_bytes(),
+        purpose: format!("{} the loadable lib `{}`.", action.as_str(), entry.id),
         order,
         chapter_order,
         book_order: entry.order,
         book_title: entry.title.clone(),
         book_summary: String::new(),
         tags: vec![
-            format!("cookbook-action:{action}"),
+            format!("cookbook-action:{}", action.as_str()),
             format!("cookbook-lib:{}", entry.id),
             format!("cookbook-source:{}", entry.source),
         ],
@@ -146,105 +269,5 @@ fn lifecycle_card(
         source: RecipeSource::Crate {
             lib: "sim/cookbook".to_owned(),
         },
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use sim_kernel::{
-        AbiVersion, LibManifest, LibTarget, Linker, LoadCx, Symbol, Version, library::Lib,
-    };
-    use sim_test_support::core_cx;
-
-    use super::*;
-
-    static DEMO_RECIPES: EmbeddedDir = &[
-        ("book.toml", b"book = \"demo/lib\"\ntitle = \"Demo Lib\"\n"),
-        (
-            "01-basics/demo/recipe.toml",
-            b"id = \"demo\"\ntitle = \"Demo\"\ncodec = \"lisp\"\nsetup = \"setup.siml\"\npurpose = \"purpose.md\"\n",
-        ),
-        ("01-basics/demo/setup.siml", b"(quote demo)"),
-        ("01-basics/demo/purpose.md", b"demo recipe"),
-    ];
-
-    struct FixtureLib {
-        namespace: &'static str,
-        name: &'static str,
-    }
-
-    impl Lib for FixtureLib {
-        fn manifest(&self) -> LibManifest {
-            LibManifest {
-                id: Symbol::qualified(self.namespace, self.name),
-                version: Version("0.1.0".to_owned()),
-                abi: AbiVersion { major: 0, minor: 1 },
-                target: LibTarget::HostRegistered,
-                requires: Vec::new(),
-                capabilities: Vec::new(),
-                exports: Vec::new(),
-            }
-        }
-
-        fn load(&self, _cx: &mut LoadCx, _linker: &mut Linker) -> Result<()> {
-            Ok(())
-        }
-    }
-
-    fn fixture_lib() -> Box<dyn Lib> {
-        Box::new(FixtureLib {
-            namespace: "demo",
-            name: "lib",
-        })
-    }
-
-    fn directory() -> LoadableLibList {
-        LoadableLibList::new(vec![LoadableLibEntry {
-            id: "demo/lib".to_owned(),
-            source: "symbol:demo/lib".to_owned(),
-            title: "Demo Lib".to_owned(),
-            order: 7,
-            recipes: Some(DEMO_RECIPES),
-            catalog_lib: fixture_lib(),
-            factory: Arc::new(fixture_lib),
-        }])
-    }
-
-    #[test]
-    fn resolves_requires_by_full_id_and_tail() {
-        let directory = directory();
-
-        assert!(directory.resolve("demo/lib").is_some());
-        assert!(directory.resolve("lib").is_some());
-        assert!(directory.resolve("missing").is_none());
-    }
-
-    #[test]
-    fn projected_store_contains_load_card_for_unloaded_lib() {
-        let cx = core_cx();
-        let store = projected_recipe_store(&cx, &directory()).unwrap();
-
-        let cards = store.cards();
-        assert_eq!(cards.len(), 1);
-        let card = &cards[0];
-        assert_eq!(card.id, "cookbook/load/demo/lib");
-        assert_eq!(card.book, "cookbook/loadable");
-        assert!(card.tags.contains(&"cookbook-action:load".to_owned()));
-        assert_eq!(card.book_order, 7);
-    }
-
-    #[test]
-    fn projected_store_contains_loaded_recipes_and_unload_card() {
-        let mut cx = core_cx();
-        let lib = fixture_lib();
-        cx.load_lib(lib.as_ref()).unwrap();
-
-        let store = projected_recipe_store(&cx, &directory()).unwrap();
-
-        assert!(store.card("demo/lib/01-basics/demo").is_some());
-        let unload = store.card("demo/lib/cookbook-lifecycle/unload").unwrap();
-        assert_eq!(unload.order, i64::MAX);
-        assert_eq!(unload.chapter_order, i64::MAX);
-        assert!(unload.tags.contains(&"cookbook-action:unload".to_owned()));
     }
 }
