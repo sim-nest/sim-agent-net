@@ -18,7 +18,8 @@ use sim_cookbook::EmbeddedDir;
 use sim_kernel::{CodecId, Lib};
 
 use crate::catalog::LibCatalog;
-use crate::loadable::{LoadableLibEntry, LoadableLibList};
+use crate::config::{ConfigProvider, LoadableLibResolver, ResolvedLoadable, built_in_config};
+use crate::loadable::LoadableLibList;
 
 /// A catalog over the seeded numbers domains.
 pub struct SeededLibCatalog {
@@ -72,126 +73,11 @@ impl SeededLibCatalog {
 
     /// Build the default host loadable-lib directory for the seeded catalog.
     pub fn loadable_libs() -> LoadableLibList {
-        let mut entries = vec![
-            loadable(
-                "numbers/i64",
-                "I64 numbers",
-                Some(sim_lib_numbers_i64::RECIPES),
-                || Box::new(sim_lib_numbers_i64::I64NumbersLib::new()),
-            ),
-            loadable(
-                "numbers/arith",
-                "Arithmetic numbers",
-                Some(sim_lib_numbers_arith::RECIPES),
-                || Box::new(sim_lib_numbers_arith::NumbersArithmeticLib::new()),
-            ),
-            loadable(
-                "numbers/bigint",
-                "Big integer numbers",
-                Some(sim_lib_numbers_bigint::RECIPES),
-                || Box::new(sim_lib_numbers_bigint::BigIntNumbersLib::new()),
-            ),
-            loadable(
-                "numbers/bool",
-                "Boolean numbers",
-                Some(sim_lib_numbers_bool::RECIPES),
-                || Box::new(sim_lib_numbers_bool::BoolNumbersLib::new()),
-            ),
-            loadable(
-                "numbers/f64",
-                "F64 numbers",
-                Some(sim_lib_numbers_f64::RECIPES),
-                || Box::new(sim_lib_numbers_f64::F64NumbersLib::new()),
-            ),
-            loadable(
-                "numbers/rational",
-                "Rational numbers",
-                Some(sim_lib_numbers_rational::RECIPES),
-                || Box::new(sim_lib_numbers_rational::RationalNumbersLib::new()),
-            ),
-            loadable(
-                "numbers/complex",
-                "Complex numbers",
-                Some(sim_lib_numbers_complex::RECIPES),
-                || Box::new(sim_lib_numbers_complex::ComplexNumbersLib::new()),
-            ),
-            loadable(
-                "numbers/func",
-                "Function numbers",
-                Some(sim_lib_numbers_func::RECIPES),
-                || Box::new(sim_lib_numbers_func::FuncNumbersLib::new()),
-            ),
-            loadable(
-                "numbers/cas",
-                "CAS numbers",
-                Some(sim_lib_numbers_cas::RECIPES),
-                || Box::new(sim_lib_numbers_cas::CasNumbersLib::new()),
-            ),
-            loadable(
-                "numbers/tensor",
-                "Tensor numbers",
-                Some(sim_lib_numbers_tensor::RECIPES),
-                || Box::new(sim_lib_numbers_tensor::TensorNumbersLib::new()),
-            ),
-            loadable(
-                "numbers/tensor-bcast",
-                "Tensor broadcast numbers",
-                None,
-                || Box::new(sim_lib_numbers_tensor_bcast::TensorBroadcastLib::new()),
-            ),
-            loadable(
-                "discrete",
-                "Discrete math",
-                Some(sim_lib_discrete::RECIPES),
-                || Box::new(sim_lib_discrete::DiscreteLib),
-            ),
-            loadable(
-                "organ/binding",
-                "Binding organ",
-                Some(sim_lib_binding::RECIPES),
-                || Box::new(sim_lib_binding::BindingLib),
-            ),
-            loadable(
-                "organ/control",
-                "Control organ",
-                Some(sim_lib_control::RECIPES),
-                || Box::new(sim_lib_control::ControlLib),
-            ),
-            loadable(
-                "organ/sequence",
-                "Sequence organ",
-                Some(sim_lib_sequence::RECIPES),
-                || Box::new(sim_lib_sequence::SequenceLib),
-            ),
-            loadable(
-                "organ/pattern",
-                "Pattern organ",
-                Some(sim_lib_pattern::RECIPES),
-                || Box::new(sim_lib_pattern::PatternLib),
-            ),
-            loadable(
-                "codec/algol",
-                "Algol codec",
-                Some(sim_codec_algol::RECIPES),
-                || Box::new(sim_codec_algol::AlgolCodecLib::new(CodecId(201))),
-            ),
-            loadable(
-                "codec/scheme-r7rs-small",
-                "Scheme codec",
-                Some(sim_lib_lang_scheme::RECIPES),
-                || Box::new(sim_lib_lang_scheme::SchemeCodecLib::new(CodecId(202))),
-            ),
-            loadable(
-                "midi/digest",
-                "MIDI digest",
-                Some(sim_lib_midi_core::RECIPES),
-                || Box::new(sim_lib_midi_core::MidiDigestLib),
-            ),
-        ];
-        for (order, entry) in entries.iter_mut().enumerate() {
-            entry.order = order as i64;
-        }
-        LoadableLibList::new(entries)
+        let resolver = BuiltInLoadableResolver;
+        let provider = ConfigProvider::new(built_in_config(), &resolver);
+        let (directory, diagnostics) = provider.loadable_libs();
+        debug_assert!(diagnostics.is_empty(), "{diagnostics:?}");
+        directory
     }
 }
 
@@ -207,18 +93,119 @@ impl LibCatalog for SeededLibCatalog {
     }
 }
 
-fn loadable<F>(id: &str, title: &str, recipes: Option<EmbeddedDir>, make: F) -> LoadableLibEntry
+/// Resolver for the seed-recipes built-in loadable-lib directory.
+pub struct BuiltInLoadableResolver;
+
+impl LoadableLibResolver for BuiltInLoadableResolver {
+    fn resolve(&self, source: &str, _id: &str) -> Option<ResolvedLoadable> {
+        match source {
+            "symbol:numbers/i64" => Some(resolved(
+                "I64 numbers",
+                Some(sim_lib_numbers_i64::RECIPES),
+                || Box::new(sim_lib_numbers_i64::I64NumbersLib::new()),
+            )),
+            "symbol:numbers/arith" => Some(resolved(
+                "Arithmetic numbers",
+                Some(sim_lib_numbers_arith::RECIPES),
+                || Box::new(sim_lib_numbers_arith::NumbersArithmeticLib::new()),
+            )),
+            "symbol:numbers/bigint" => Some(resolved(
+                "Big integer numbers",
+                Some(sim_lib_numbers_bigint::RECIPES),
+                || Box::new(sim_lib_numbers_bigint::BigIntNumbersLib::new()),
+            )),
+            "symbol:numbers/bool" => Some(resolved(
+                "Boolean numbers",
+                Some(sim_lib_numbers_bool::RECIPES),
+                || Box::new(sim_lib_numbers_bool::BoolNumbersLib::new()),
+            )),
+            "symbol:numbers/f64" => Some(resolved(
+                "F64 numbers",
+                Some(sim_lib_numbers_f64::RECIPES),
+                || Box::new(sim_lib_numbers_f64::F64NumbersLib::new()),
+            )),
+            "symbol:numbers/rational" => Some(resolved(
+                "Rational numbers",
+                Some(sim_lib_numbers_rational::RECIPES),
+                || Box::new(sim_lib_numbers_rational::RationalNumbersLib::new()),
+            )),
+            "symbol:numbers/complex" => Some(resolved(
+                "Complex numbers",
+                Some(sim_lib_numbers_complex::RECIPES),
+                || Box::new(sim_lib_numbers_complex::ComplexNumbersLib::new()),
+            )),
+            "symbol:numbers/func" => Some(resolved(
+                "Function numbers",
+                Some(sim_lib_numbers_func::RECIPES),
+                || Box::new(sim_lib_numbers_func::FuncNumbersLib::new()),
+            )),
+            "symbol:numbers/cas" => Some(resolved(
+                "CAS numbers",
+                Some(sim_lib_numbers_cas::RECIPES),
+                || Box::new(sim_lib_numbers_cas::CasNumbersLib::new()),
+            )),
+            "symbol:numbers/tensor" => Some(resolved(
+                "Tensor numbers",
+                Some(sim_lib_numbers_tensor::RECIPES),
+                || Box::new(sim_lib_numbers_tensor::TensorNumbersLib::new()),
+            )),
+            "symbol:numbers/tensor-bcast" => {
+                Some(resolved("Tensor broadcast numbers", None, || {
+                    Box::new(sim_lib_numbers_tensor_bcast::TensorBroadcastLib::new())
+                }))
+            }
+            "symbol:discrete" => Some(resolved(
+                "Discrete math",
+                Some(sim_lib_discrete::RECIPES),
+                || Box::new(sim_lib_discrete::DiscreteLib),
+            )),
+            "symbol:organ/binding" => Some(resolved(
+                "Binding organ",
+                Some(sim_lib_binding::RECIPES),
+                || Box::new(sim_lib_binding::BindingLib),
+            )),
+            "symbol:organ/control" => Some(resolved(
+                "Control organ",
+                Some(sim_lib_control::RECIPES),
+                || Box::new(sim_lib_control::ControlLib),
+            )),
+            "symbol:organ/sequence" => Some(resolved(
+                "Sequence organ",
+                Some(sim_lib_sequence::RECIPES),
+                || Box::new(sim_lib_sequence::SequenceLib),
+            )),
+            "symbol:organ/pattern" => Some(resolved(
+                "Pattern organ",
+                Some(sim_lib_pattern::RECIPES),
+                || Box::new(sim_lib_pattern::PatternLib),
+            )),
+            "symbol:codec/algol" => Some(resolved(
+                "Algol codec",
+                Some(sim_codec_algol::RECIPES),
+                || Box::new(sim_codec_algol::AlgolCodecLib::new(CodecId(201))),
+            )),
+            "symbol:codec/scheme-r7rs-small" => Some(resolved(
+                "Scheme codec",
+                Some(sim_lib_lang_scheme::RECIPES),
+                || Box::new(sim_lib_lang_scheme::SchemeCodecLib::new(CodecId(202))),
+            )),
+            "symbol:midi/digest" => Some(resolved(
+                "MIDI digest",
+                Some(sim_lib_midi_core::RECIPES),
+                || Box::new(sim_lib_midi_core::MidiDigestLib),
+            )),
+            _ => None,
+        }
+    }
+}
+
+fn resolved<F>(title: &str, recipes: Option<EmbeddedDir>, make: F) -> ResolvedLoadable
 where
     F: Fn() -> Box<dyn Lib + Send + Sync> + Send + Sync + 'static,
 {
-    let catalog_lib = make();
-    LoadableLibEntry {
-        id: id.to_owned(),
-        source: format!("symbol:{id}"),
+    ResolvedLoadable {
         title: title.to_owned(),
-        order: 0,
         recipes,
-        catalog_lib,
         factory: Arc::new(make),
     }
 }

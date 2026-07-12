@@ -18,6 +18,9 @@
 mod build;
 mod catalog;
 mod cli;
+mod config;
+#[cfg(test)]
+mod config_tests;
 mod loadable;
 #[cfg(test)]
 mod loadable_tests;
@@ -30,6 +33,10 @@ mod seed_catalog;
 mod seeds;
 
 pub use catalog::{CookbookCapabilityProfile, EmptyCatalog, LibCatalog, load_requires};
+pub use config::{
+    ConfigProvider, CookbookConfig, LoadableLibConfig, LoadableLibResolver, ResolvedLoadable,
+    built_in_config,
+};
 pub use loadable::{
     LibFactory, LifecycleAction, LoadableLibEntry, LoadableLibList, lifecycle_action,
     projected_recipe_store, run_lifecycle_action, run_recipe_with_loadable_libs,
@@ -44,7 +51,7 @@ pub use runtime::{
     install_cookbook_lib_with_loadable_libs, manifest_name, op_exports, store_symbol,
 };
 #[cfg(feature = "seed-recipes")]
-pub use seed_catalog::SeededLibCatalog;
+pub use seed_catalog::{BuiltInLoadableResolver, SeededLibCatalog};
 #[cfg(feature = "seed-recipes")]
 pub use seeds::{SEEDED_RECIPE_BOOKS, install_seeded_cookbook_lib, seeded_recipe_store};
 
