@@ -1,6 +1,6 @@
 use crate::components::model::{AgentComponent, JudgeBackend, JudgeConfig};
 use crate::memory::flatten_expr_text;
-use crate::util::expr_to_value;
+use crate::util::value_from_expr;
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_server::{FrameKind, ServerFrame, eval_request_from_frame};
 use std::cmp::Ordering;
@@ -20,7 +20,7 @@ pub(in crate::components) fn answer_judge(
     let consistency = frame.envelope.consistency;
     let request = eval_request_from_frame(cx, &frame)?;
     let verdict = judge_verdict_expr(cx, backend, request.expr);
-    let value = expr_to_value(cx, &verdict)?;
+    let value = value_from_expr(cx, &verdict)?;
     crate::reply::reply_frame(cx, &frame, value, consistency)
 }
 

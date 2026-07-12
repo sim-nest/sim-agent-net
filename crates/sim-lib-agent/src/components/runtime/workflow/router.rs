@@ -1,7 +1,7 @@
 use crate::agents::site_from_value;
 use crate::components::model::{AgentComponent, RouterBackend};
 use crate::memory::flatten_expr_text;
-use crate::util::expr_to_value;
+use crate::util::value_from_expr;
 use sim_kernel::{Cx, Error, EvalRequest, Expr, ReadPolicy, Result, Symbol};
 use sim_lib_server::{
     FrameKind, ServerFrame, eval_reply_from_frame, eval_request_from_frame,
@@ -26,7 +26,7 @@ pub(in crate::components) fn answer_router(
     }
     let consistency = frame.envelope.consistency;
     let decision = route_decision_expr(cx, backend, &frame)?;
-    let value = expr_to_value(cx, &decision)?;
+    let value = value_from_expr(cx, &decision)?;
     crate::reply::reply_frame(cx, &frame, value, consistency)
         .map_err(|err| Error::Eval(format!("{} failed to route: {err}", component.symbol)))
 }

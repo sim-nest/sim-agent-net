@@ -3,41 +3,7 @@ use sim_kernel::{
 };
 use sim_shape::{Shape, parse_shape_expr, shape_value_with_encoding};
 
-pub(crate) fn expr_to_value(cx: &mut Cx, expr: &Expr) -> Result<Value> {
-    match expr {
-        Expr::Nil => cx.factory().nil(),
-        Expr::Bool(value) => cx.factory().bool(*value),
-        Expr::Number(number) => cx
-            .factory()
-            .number_literal(number.domain.clone(), number.canonical.clone()),
-        Expr::Symbol(symbol) => cx.factory().symbol(symbol.clone()),
-        Expr::String(text) => cx.factory().string(text.clone()),
-        Expr::Bytes(bytes) => cx.factory().bytes(bytes.clone()),
-        Expr::List(items) | Expr::Vector(items) => {
-            let values = items
-                .iter()
-                .map(|item| expr_to_value(cx, item))
-                .collect::<Result<Vec<_>>>()?;
-            cx.factory().list(values)
-        }
-        Expr::Map(entries) => {
-            let values = entries
-                .iter()
-                .map(|(key, value)| {
-                    let Expr::Symbol(key) = key else {
-                        return Err(Error::TypeMismatch {
-                            expected: "symbol table key",
-                            found: "non-symbol",
-                        });
-                    };
-                    Ok((key.clone(), expr_to_value(cx, value)?))
-                })
-                .collect::<Result<Vec<_>>>()?;
-            cx.factory().table(values)
-        }
-        _ => cx.factory().expr(expr.clone()),
-    }
-}
+pub(crate) use sim_citizen::value_from_expr;
 
 pub(crate) fn parse_capabilities_expr(expr: &Expr) -> Result<Vec<CapabilityName>> {
     match expr {

@@ -5,7 +5,7 @@ use super::{
     Agent, AgentFabric, AgentManifest, LoopbackStream, RuntimeValueSite, connection_from_value,
     site_from_value, swarm_status_value_for_table,
 };
-use crate::{AgentComponent, BlackboardMemory, FileMemory, Tool, WorkingMemory, expr_to_value};
+use crate::{AgentComponent, BlackboardMemory, FileMemory, Tool, WorkingMemory, value_from_expr};
 use crate::{PersonaMemory, VectorMemory};
 use sim_kernel::{ClassRef, Cx, Error, EvalReply, Expr, Object, Result, Symbol, Value};
 use sim_lib_server::{
@@ -103,7 +103,7 @@ impl EvalSite for AgentEvalSite {
                 expr = evaluate_component_expr(cx, voice, expr)?;
             }
         }
-        let reply_value = expr_to_value(cx, &expr)?;
+        let reply_value = value_from_expr(cx, &expr)?;
         let diagnostics = cx.take_diagnostics();
         let reply = server_frame_from_reply(
             cx,

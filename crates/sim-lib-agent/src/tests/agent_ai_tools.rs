@@ -1,6 +1,6 @@
 use super::support::{as_component, eval_cx, install_agent_lib, install_test_codec, request_frame};
 use crate::tools::register_tool;
-use crate::{Tool, expr_to_value};
+use crate::{Tool, value_from_expr};
 use sim_kernel::{Args, Cx, Error, EventKind, Expr, Object, Result, Symbol, Value};
 use sim_lib_server::{EvalSite, ServerAddress, eval_reply_from_frame};
 use sim_shape::{AnyShape, ListShape, NumberValueShape, shape_value};
@@ -197,7 +197,7 @@ fn phase8_cx() -> Cx {
 }
 
 fn fake_runner(cx: &mut Cx, script: Vec<Expr>) -> Value {
-    let script_value = expr_to_value(cx, &Expr::List(script)).unwrap();
+    let script_value = value_from_expr(cx, &Expr::List(script)).unwrap();
     cx.call_function(
         &Symbol::qualified("runner", "fake"),
         Args::new(vec![

@@ -1,3 +1,4 @@
+use sim_citizen::value_from_expr;
 use sim_kernel::{Cx, Error, Expr, Result, Value};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -48,20 +49,8 @@ impl McpToolResult {
 pub(crate) fn arguments_to_values(cx: &mut Cx, arguments: &[Expr]) -> Result<Vec<Value>> {
     arguments
         .iter()
-        .cloned()
-        .map(|expr| expr_to_value(cx, expr))
+        .map(|expr| value_from_expr(cx, expr))
         .collect()
-}
-
-fn expr_to_value(cx: &mut Cx, expr: Expr) -> Result<Value> {
-    match expr {
-        Expr::Nil => cx.factory().nil(),
-        Expr::Bool(value) => cx.factory().bool(value),
-        Expr::Number(number) => cx.factory().number_literal(number.domain, number.canonical),
-        Expr::String(value) => cx.factory().string(value),
-        Expr::Symbol(value) => cx.factory().symbol(value),
-        other => cx.factory().expr(other),
-    }
 }
 
 pub(crate) fn value_to_content(cx: &mut Cx, value: Value) -> Result<Expr> {

@@ -9,7 +9,7 @@ use sim_lib_server::{
     server_frame_from_reply, server_frame_from_request,
 };
 
-use crate::{expr_to_value, memory::resolve_memory_backend};
+use crate::{memory::resolve_memory_backend, value_from_expr};
 
 use super::swarm::{SwarmLoopSession, SwarmMember, SwarmRoundRecord};
 use super::swarm_support::{next_role, reply_cost, session_status, state_expr};
@@ -59,7 +59,7 @@ impl EvalSite for SwarmPlannerSite {
                     next_role(&session.planner.available_roles, &session.last_round);
             }
         }
-        let value = expr_to_value(cx, &state_expr(&self.session)?)?;
+        let value = value_from_expr(cx, &state_expr(&self.session)?)?;
         let diagnostics = cx.take_diagnostics();
         server_frame_from_reply(
             cx,
@@ -105,7 +105,7 @@ impl EvalSite for SwarmMemberSite {
             )
         };
         if !should_run {
-            let value = expr_to_value(cx, &state_expr(&self.session)?)?;
+            let value = value_from_expr(cx, &state_expr(&self.session)?)?;
             let diagnostics = cx.take_diagnostics();
             return server_frame_from_reply(
                 cx,
@@ -164,7 +164,7 @@ impl EvalSite for SwarmMemberSite {
             });
         }
 
-        let value = expr_to_value(cx, &state_expr(&self.session)?)?;
+        let value = value_from_expr(cx, &state_expr(&self.session)?)?;
         let diagnostics = cx.take_diagnostics();
         server_frame_from_reply(
             cx,
@@ -229,7 +229,7 @@ impl EvalSite for SwarmFinalizeSite {
         if let Some(blackboard) = &self.blackboard {
             let memory = resolve_memory_backend(blackboard)?;
             for record in &records {
-                let value = expr_to_value(cx, &record.expr())?;
+                let value = value_from_expr(cx, &record.expr())?;
                 memory.append(cx, value)?;
             }
         }
@@ -242,7 +242,7 @@ impl EvalSite for SwarmFinalizeSite {
             registry.status = session_status(&self.session)?;
         }
 
-        let value = expr_to_value(cx, &state_expr(&self.session)?)?;
+        let value = value_from_expr(cx, &state_expr(&self.session)?)?;
         let diagnostics = cx.take_diagnostics();
         server_frame_from_reply(
             cx,

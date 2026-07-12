@@ -115,7 +115,7 @@ pub(crate) fn memory_scan_value(cx: &mut Cx, args: Args) -> Result<Value> {
         let snapshot = resolve_memory_backend(memory)?.snapshot(cx)?;
         snapshot_entries(snapshot)?
             .into_iter()
-            .map(|expr| crate::expr_to_value(cx, &expr))
+            .map(|expr| crate::value_from_expr(cx, &expr))
             .collect::<Result<Vec<_>>>()?
     };
     cx.factory().list(entries)

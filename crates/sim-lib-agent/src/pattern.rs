@@ -1,6 +1,6 @@
 //! Agent-pattern descriptors used by deterministic recipes and browse surfaces.
 
-use crate::{expr_to_value, keyword, stringish_from_value, symbol_from_value};
+use crate::{keyword, stringish_from_value, symbol_from_value, value_from_expr};
 use sim_kernel::{Args, ClassRef, Cx, Error, Expr, Object, Result, Symbol, Value};
 use std::{any::Any, collections::BTreeMap, sync::Arc};
 
@@ -148,7 +148,7 @@ impl sim_kernel::ObjectCompat for AgentPattern {
     }
 
     fn as_table(&self, cx: &mut Cx) -> Result<Value> {
-        expr_to_value(cx, &self.as_expr())
+        value_from_expr(cx, &self.as_expr())
     }
 }
 

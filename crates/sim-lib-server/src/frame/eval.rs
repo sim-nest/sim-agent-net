@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use sim_citizen::value_from_expr;
 use sim_kernel::{
     CapabilityName, Consistency, Cx, Diagnostic, Error, EvalMode, EvalReply, EvalRequest, Expr,
     ObjectCompat, ReadPolicy, Result, Severity, Symbol, Value,
@@ -124,7 +125,7 @@ fn eval_request_from_expr(cx: &mut Cx, expr: Expr) -> Result<EvalRequest> {
 }
 
 fn eval_reply_from_expr(cx: &mut Cx, expr: Expr) -> Result<EvalReply> {
-    let value = expr_to_value(cx, required_table_field(&expr, "value")?)?;
+    let value = value_from_expr(cx, required_table_field(&expr, "value")?)?;
     let diagnostics = parse_diagnostics_expr(required_table_field(&expr, "diagnostics")?)?;
     let trace = parse_optional_value_expr(cx, required_table_field(&expr, "trace")?)?;
     Ok(EvalReply {
@@ -334,41 +335,5 @@ fn parse_optional_value_expr(cx: &mut Cx, expr: &Expr) -> Result<Option<Value>> 
     if matches!(expr, Expr::Nil) {
         return Ok(None);
     }
-    expr_to_value(cx, expr).map(Some)
-}
-
-fn expr_to_value(cx: &mut Cx, expr: &Expr) -> Result<Value> {
-    match expr {
-        Expr::Nil => cx.factory().nil(),
-        Expr::Bool(value) => cx.factory().bool(*value),
-        Expr::Number(number) => cx
-            .factory()
-            .number_literal(number.domain.clone(), number.canonical.clone()),
-        Expr::Symbol(symbol) => cx.factory().symbol(symbol.clone()),
-        Expr::String(text) => cx.factory().string(text.clone()),
-        Expr::Bytes(bytes) => cx.factory().bytes(bytes.clone()),
-        Expr::List(items) | Expr::Vector(items) => {
-            let values = items
-                .iter()
-                .map(|item| expr_to_value(cx, item))
-                .collect::<Result<Vec<_>>>()?;
-            cx.factory().list(values)
-        }
-        Expr::Map(entries) => {
-            let values = entries
-                .iter()
-                .map(|(key, value)| {
-                    let Expr::Symbol(key) = key else {
-                        return Err(Error::TypeMismatch {
-                            expected: "symbol table key",
-                            found: "non-symbol",
-                        });
-                    };
-                    Ok((key.clone(), expr_to_value(cx, value)?))
-                })
-                .collect::<Result<Vec<_>>>()?;
-            cx.factory().table(values)
-        }
-        _ => cx.factory().expr(expr.clone()),
-    }
+    value_from_expr(cx, expr).map(Some)
 }

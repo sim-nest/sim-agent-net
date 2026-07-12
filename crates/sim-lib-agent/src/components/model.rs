@@ -1,4 +1,4 @@
-use crate::{Component, ComponentKind, util::expr_to_value};
+use crate::{Component, ComponentKind, util::value_from_expr};
 use sim_kernel::{
     CapabilityName, ClassRef, Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, Object,
     ObjectCompat, Result, Symbol, Value,
@@ -246,7 +246,7 @@ impl sim_kernel::ObjectCompat for AgentComponent {
             ),
         ];
         for (key, value) in &self.spec {
-            entries.push((key.clone(), expr_to_value(cx, value)?));
+            entries.push((key.clone(), value_from_expr(cx, value)?));
         }
         cx.factory().table(entries)
     }

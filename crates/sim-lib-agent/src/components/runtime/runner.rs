@@ -9,7 +9,7 @@ use super::runner_stream::{
     FinalEventTracker, ModelEventStreamSink, TeeModelEventSink, model_stream_metadata,
 };
 use crate::model_privacy::enforce_component_runner_policy;
-use crate::util::expr_to_value;
+use crate::util::value_from_expr;
 use sim_codec_chat::{model_error_expr, model_response_expr, validate_chat_transcript};
 use sim_kernel::{ContentId, Cx, Error, EvalRequest, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{ModelEvent, ModelEventSink, ModelRequest, ModelResponse};
@@ -52,7 +52,7 @@ pub(in crate::components) fn answer_runner(
     let result = run_with_shape_contract(cx, component, request, |cx, request| {
         infer_runner_once(cx, component, backend, request)
     })?;
-    let value = expr_to_value(cx, &result)?;
+    let value = value_from_expr(cx, &result)?;
     crate::reply::reply_frame(cx, &frame, value, consistency)
 }
 

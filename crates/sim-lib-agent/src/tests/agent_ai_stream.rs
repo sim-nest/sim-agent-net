@@ -1,7 +1,7 @@
 use super::support::{
     as_component, eval_cx, install_agent_lib, install_roundtrip_codecs, request_frame,
 };
-use crate::expr_to_value;
+use crate::value_from_expr;
 use sim_kernel::{Expr, Symbol, seq_close_value, seq_next_value};
 use sim_lib_server::{EvalSite, FrameKind, ServerFrame, StreamSink, eval_reply_from_frame};
 
@@ -143,7 +143,7 @@ fn a5_phase7_fake_runner_streams_scripted_events() {
         ]),
     ]);
 
-    let script_value = expr_to_value(&mut cx, &Expr::List(vec![script])).unwrap();
+    let script_value = value_from_expr(&mut cx, &Expr::List(vec![script])).unwrap();
     let runner = cx
         .call_function(
             &Symbol::qualified("runner", "fake"),
@@ -207,7 +207,7 @@ fn phase0_fake_runner_stream_chunks_cover_current_model_event_kinds() {
         phase0_model_event_expr("final", vec![key_expr("response", final_response.clone())]),
     ]);
 
-    let script_value = expr_to_value(&mut cx, &Expr::List(vec![script])).unwrap();
+    let script_value = value_from_expr(&mut cx, &Expr::List(vec![script])).unwrap();
     let runner = cx
         .call_function(
             &Symbol::qualified("runner", "fake"),
@@ -313,7 +313,7 @@ fn a5_phase7_agent_stream_returns_event_chunks() {
     install_roundtrip_codecs(&mut cx);
     install_agent_lib(&mut cx).unwrap();
 
-    let runner_script = expr_to_value(
+    let runner_script = value_from_expr(
         &mut cx,
         &Expr::List(vec![Expr::Map(vec![
             (
@@ -359,7 +359,7 @@ fn a5_phase7_agent_stream_returns_event_chunks() {
             ]),
         )
         .unwrap();
-    let request_value = expr_to_value(&mut cx, &request_expr("agent stream")).unwrap();
+    let request_value = value_from_expr(&mut cx, &request_expr("agent stream")).unwrap();
     let stream = cx
         .call_function(
             &Symbol::qualified("agent", "stream"),

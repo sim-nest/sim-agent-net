@@ -15,7 +15,7 @@ pub(super) fn answer_memory_request(
                     "memory append frame expects one message".to_owned(),
                 ));
             };
-            let msg = crate::expr_to_value(cx, msg)?;
+            let msg = crate::value_from_expr(cx, msg)?;
             memory.append(cx, msg)?;
             cx.factory().nil()
         }
@@ -34,7 +34,7 @@ pub(super) fn answer_memory_request(
             let entries = match args.as_slice() {
                 [] => snapshot_entries(memory.snapshot(cx)?)?
                     .into_iter()
-                    .map(|entry| crate::expr_to_value(cx, &entry))
+                    .map(|entry| crate::value_from_expr(cx, &entry))
                     .collect::<Result<Vec<_>>>()?,
                 [count] => {
                     let count =
