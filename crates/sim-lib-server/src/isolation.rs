@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use sim_kernel::{
-    CapabilityName, CapabilitySet, Cx, DefaultFactory, Env, Error, Expr, Factory, Registry, Result,
-    Symbol, Value,
+    CapabilitySet, Cx, DefaultFactory, Env, Error, Expr, Factory, Registry, Result, Symbol, Value,
 };
+use sim_value::capability_names_from_expr;
 
 use crate::{EvalSite, ServerAddress, ServerFrame};
 
@@ -250,38 +250,8 @@ fn env_from_snapshot_expr(expr: &Expr, cx: &mut Cx) -> Result<Env> {
 
 fn capabilities_from_snapshot_expr(expr: &Expr) -> Result<CapabilitySet> {
     let mut capabilities = CapabilitySet::new();
-    match expr {
-        Expr::Nil => {}
-        Expr::Symbol(symbol) => {
-            capabilities.insert(CapabilityName::new(symbol.to_string()));
-        }
-        Expr::String(text) => {
-            capabilities.insert(CapabilityName::new(text.clone()));
-        }
-        Expr::List(items) | Expr::Vector(items) => {
-            for item in items {
-                match item {
-                    Expr::Symbol(symbol) => {
-                        capabilities.insert(CapabilityName::new(symbol.to_string()));
-                    }
-                    Expr::String(text) => {
-                        capabilities.insert(CapabilityName::new(text.clone()));
-                    }
-                    _ => {
-                        return Err(Error::TypeMismatch {
-                            expected: "capability symbol or string",
-                            found: "non-capability",
-                        });
-                    }
-                }
-            }
-        }
-        _ => {
-            return Err(Error::TypeMismatch {
-                expected: "capability list",
-                found: "non-list",
-            });
-        }
+    for capability in capability_names_from_expr(expr)? {
+        capabilities.insert(capability);
     }
     Ok(capabilities)
 }
