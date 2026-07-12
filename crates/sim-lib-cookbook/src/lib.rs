@@ -17,6 +17,7 @@
 mod build;
 mod catalog;
 mod cli;
+mod loadable;
 mod ops;
 mod run;
 mod runtime;
@@ -26,6 +27,7 @@ mod seed_catalog;
 mod seeds;
 
 pub use catalog::{CookbookCapabilityProfile, EmptyCatalog, LibCatalog, load_requires};
+pub use loadable::{LibFactory, LoadableLibEntry, LoadableLibList, projected_recipe_store};
 pub use ops::{CookbookOp, OpKind};
 pub use run::{
     decode_setup, missing_requires, require_eval_capability, run_recipe, run_recipe_twice,

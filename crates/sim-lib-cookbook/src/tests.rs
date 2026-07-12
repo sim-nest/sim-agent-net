@@ -14,7 +14,7 @@ use crate::install_cookbook_lib;
 use crate::ops::{CookbookOp, OpKind};
 use crate::run::run_recipe;
 #[cfg(feature = "seed-recipes")]
-use crate::{install_seeded_cookbook_lib, seeded_recipe_store};
+use crate::{install_seeded_cookbook_lib, projected_recipe_store, seeded_recipe_store};
 
 fn setup_cx() -> Cx {
     let mut cx = core_cx();
@@ -207,6 +207,22 @@ fn seeded_cookbook_list_is_non_empty() {
 
 #[cfg(feature = "seed-recipes")]
 #[test]
+fn seeded_loadable_directory_projects_load_cards() {
+    let directory = SeededLibCatalog::loadable_libs();
+    assert!(directory.entry("numbers/cas").is_some());
+    assert!(directory.resolve("numbers/cas").is_some());
+    assert!(directory.resolve("cas").is_some());
+
+    let cx = setup_cx();
+    let store = projected_recipe_store(&cx, &directory).unwrap();
+    let card = store.card("cookbook/load/numbers/cas").unwrap();
+    assert_eq!(card.book, "cookbook/loadable");
+    assert_eq!(card.title, "Load numbers/cas");
+    assert!(card.tags.contains(&"cookbook-action:load".to_owned()));
+}
+
+#[cfg(feature = "seed-recipes")]
+#[test]
 fn seeded_expectation_recipe_runs_green() {
     let mut cx = setup_cx();
     cx.grant(read_eval_capability());
@@ -220,9 +236,9 @@ fn seeded_expectation_recipe_runs_green() {
     assert_eq!(run.results, ["codec-lisp-ok"]);
 }
 
-// ---- COOKBOOK_7: requires-driven loading + capability profile ----
+// ---- Requires-driven loading and capability profile ----
 
-use crate::catalog::CookbookCapabilityProfile;
+use crate::catalog::{CookbookCapabilityProfile, LibCatalog};
 use crate::run::{run_recipe_twice, run_recipe_with_catalog};
 #[cfg(feature = "seed-recipes")]
 use crate::seed_catalog::SeededLibCatalog;
@@ -246,7 +262,7 @@ fn add_book() -> Vec<(&'static str, &'static [u8])> {
 // compute whose domain is absent from the base Cx runs to a real value.
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook7_requires_driven_loading_computes() {
+fn requires_driven_loading_computes() {
     let mut cx = setup_cx();
     cx.grant(read_eval_capability());
     let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
@@ -257,11 +273,11 @@ fn cook7_requires_driven_loading_computes() {
     assert!(run.checks[0].pass);
 }
 
-// Without a catalog (EmptyCatalog, the legacy path) the same recipe cannot load
-// its domain, so it stays a descriptor: the runner reports the unresolved
-// require rather than pretending to run.
+// Without a catalog, the same recipe cannot load its domain, so it stays a
+// descriptor: the runner reports the unresolved require rather than pretending
+// to run.
 #[test]
-fn cook7_unresolved_require_is_descriptor() {
+fn unresolved_require_is_descriptor() {
     let mut cx = setup_cx();
     cx.grant(read_eval_capability());
     let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
@@ -281,7 +297,7 @@ fn cook7_unresolved_require_is_descriptor() {
 // non-deterministic recipe would surface as an Eval error here.
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook7_twice_run_determinism_holds() {
+fn twice_run_determinism_holds() {
     let mut cx = setup_cx();
     cx.grant(read_eval_capability());
     let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
@@ -295,7 +311,7 @@ fn cook7_twice_run_determinism_holds() {
 // live/effectful one; seating a Cx through a host GrantSeat installs exactly the
 // granted set, so a denied capability (Category D) is absent and fails closed.
 #[test]
-fn cook7_capability_profile_grants_and_denies() {
+fn capability_profile_grants_and_denies() {
     use sim_kernel::{CapabilityName, GrantSeat};
 
     let read_construct = sim_kernel::read_construct_capability();
@@ -315,9 +331,9 @@ fn cook7_capability_profile_grants_and_denies() {
     assert!(!cx.capabilities().contains(&net_connect));
 }
 
-// COOK8.03: the eval-policy organs (let/if/seq/match) run in the cookbook sandbox
-// once their lib loads via `requires`. Each organ recipe is exercised through the
-// catalog exactly as the webui serve path runs it.
+// Eval-policy organs (let/if/seq/match) run in the cookbook sandbox once their
+// lib loads via `requires`. Each organ recipe is exercised through the catalog
+// exactly as the webui serve path runs it.
 #[cfg(feature = "seed-recipes")]
 use sim_cookbook::RecipeRun;
 
@@ -380,12 +396,12 @@ fn run_codec(codec: &str, setup: &str, requires: &str, expect: &str) -> RecipeRu
     run_recipe_twice(&mut cx, &catalog, &card).unwrap()
 }
 
-// COOK8.05: a recipe whose `codec` is a language surface parses+evals on that
-// surface once the codec loads via `requires`. The conformance surfaces become
-// "this surface computes X".
+// A recipe whose `codec` is a language surface parses+evals on that surface once
+// the codec loads via `requires`. The conformance surfaces become "this surface
+// computes X".
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook8_codec_algol_computes() {
+fn codec_algol_computes() {
     let run = run_codec(
         "algol",
         "1 + 2 * 3",
@@ -396,11 +412,11 @@ fn cook8_codec_algol_computes() {
     assert_eq!(run.results, ["7"]);
 }
 
-// COOK8.06 Category C: an offline MIDI render reduced to a deterministic frame
-// digest runs green and reproduces under the twice-run guard.
+// An offline MIDI render reduced to a deterministic frame digest runs green and
+// reproduces under the twice-run guard.
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook8_category_c_midi_digest_computes() {
+fn category_c_midi_digest_computes() {
     let run = run_organ(
         "(midi/chord-digest \"60\")",
         "\"midi/digest\"",
@@ -415,7 +431,7 @@ fn cook8_category_c_midi_digest_computes() {
 
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook8_codec_scheme_computes() {
+fn codec_scheme_computes() {
     let run = run_codec(
         "scheme-r7rs-small",
         "(+ 1 2)",
@@ -428,7 +444,7 @@ fn cook8_codec_scheme_computes() {
 
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook8_organ_let_computes() {
+fn organ_let_computes() {
     let run = run_organ(
         "(let ((x 5)) (math/mul x x))",
         "\"binding\", \"numbers/arith\", \"numbers/i64\"",
@@ -440,7 +456,7 @@ fn cook8_organ_let_computes() {
 
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook8_organ_if_computes() {
+fn organ_if_computes() {
     let run = run_organ("(if true 10 20)", "\"control\"", "10");
     assert!(run.ok, "if: {run:?}");
     assert_eq!(run.results, ["10"]);
@@ -448,7 +464,7 @@ fn cook8_organ_if_computes() {
 
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook8_organ_seq_map_computes() {
+fn organ_seq_map_computes() {
     let run = run_organ(
         "(seq/map #(numbers/Func (x) (* x x)) [1 2 3])",
         "\"sequence\", \"numbers/func\", \"numbers/arith\", \"numbers/i64\"",
@@ -460,7 +476,7 @@ fn cook8_organ_seq_map_computes() {
 
 #[cfg(feature = "seed-recipes")]
 #[test]
-fn cook8_organ_match_computes() {
+fn organ_match_computes() {
     let run = run_organ("(match [1 2] ([a b] a))", "\"pattern\"", "1");
     assert!(run.ok, "match: {run:?}");
     assert_eq!(run.results, ["1"]);
