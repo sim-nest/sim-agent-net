@@ -13,7 +13,8 @@ use sim_kernel::{
 };
 
 use crate::cli::{cookbook_cli_exports, register_cookbook_cli};
-use crate::ops::{CookbookOp, OpKind};
+use crate::loadable::{LifecycleAction, LoadableLibList};
+use crate::ops::{CookbookLifecycleOp, CookbookOp, OpKind};
 
 /// The lib id: `sim:cookbook`.
 pub fn manifest_name() -> Symbol {
@@ -80,6 +81,7 @@ impl ObjectCompat for CookbookStoreHandle {
 /// The cookbook lib, holding the shared recipe store the ops read.
 pub struct CookbookLib {
     store: Arc<Mutex<RecipeStore>>,
+    loadable_libs: Arc<LoadableLibList>,
 }
 
 impl CookbookLib {
@@ -87,6 +89,15 @@ impl CookbookLib {
     pub fn new(store: RecipeStore) -> Self {
         Self {
             store: Arc::new(Mutex::new(store)),
+            loadable_libs: Arc::new(LoadableLibList::new(Vec::new())),
+        }
+    }
+
+    /// Build the lib over `store` with a host-owned loadable-lib directory.
+    pub fn with_loadable_libs(store: RecipeStore, loadable_libs: LoadableLibList) -> Self {
+        Self {
+            store: Arc::new(Mutex::new(store)),
+            loadable_libs: Arc::new(loadable_libs),
         }
     }
 
@@ -118,6 +129,13 @@ impl Lib for CookbookLib {
             let op = CookbookOp::new(self.store.clone(), kind);
             linker.function_value(kind.symbol(), cx.factory().opaque(Arc::new(op))?)?;
         }
+        for action in [LifecycleAction::Load, LifecycleAction::Unload] {
+            let op = CookbookLifecycleOp::new(self.loadable_libs.clone(), action);
+            linker.function_value(
+                CookbookLifecycleOp::symbol(action),
+                cx.factory().opaque(Arc::new(op))?,
+            )?;
+        }
         let store = CookbookStoreHandle::new(self.store.clone());
         linker.value(store_symbol(), cx.factory().opaque(Arc::new(store))?)?;
         register_cookbook_cli(cx, linker)?;
@@ -134,6 +152,14 @@ pub fn op_exports() -> Vec<Export> {
             function_id: None,
         })
         .collect::<Vec<_>>();
+    exports.extend(
+        [LifecycleAction::Load, LifecycleAction::Unload]
+            .into_iter()
+            .map(|action| Export::Function {
+                symbol: CookbookLifecycleOp::symbol(action),
+                function_id: None,
+            }),
+    );
     exports.push(Export::Value {
         symbol: store_symbol(),
     });
@@ -143,5 +169,15 @@ pub fn op_exports() -> Vec<Export> {
 /// Install the cookbook lib over `store` (idempotent).
 pub fn install_cookbook_lib(cx: &mut Cx, store: RecipeStore) -> Result<()> {
     sim_lib_core::install_once(cx, &CookbookLib::new(store))?;
+    Ok(())
+}
+
+/// Install the cookbook lib with lifecycle ops over `loadable_libs`.
+pub fn install_cookbook_lib_with_loadable_libs(
+    cx: &mut Cx,
+    store: RecipeStore,
+    loadable_libs: LoadableLibList,
+) -> Result<()> {
+    sim_lib_core::install_once(cx, &CookbookLib::with_loadable_libs(store, loadable_libs))?;
     Ok(())
 }
