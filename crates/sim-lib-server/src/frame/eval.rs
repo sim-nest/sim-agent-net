@@ -4,6 +4,7 @@ use sim_kernel::{
     CapabilityName, Consistency, Cx, Diagnostic, Error, EvalMode, EvalReply, EvalRequest, Expr,
     ObjectCompat, ReadPolicy, Result, Severity, Symbol, Value,
 };
+use sim_value::capability_names_from_expr;
 
 use crate::helpers::parse_optional_duration;
 use crate::{FrameKind, ServerFrame};
@@ -198,28 +199,7 @@ fn parse_qualified_symbol(text: &str) -> Symbol {
 }
 
 fn parse_capability_expr(expr: &Expr) -> Result<Vec<CapabilityName>> {
-    match expr {
-        Expr::Nil => Ok(Vec::new()),
-        Expr::List(items) | Expr::Vector(items) => {
-            items.iter().cloned().map(capability_from_expr).collect()
-        }
-        Expr::Symbol(_) | Expr::String(_) => Ok(vec![capability_from_expr(expr.clone())?]),
-        _ => Err(Error::TypeMismatch {
-            expected: "capability list",
-            found: "non-list",
-        }),
-    }
-}
-
-fn capability_from_expr(expr: Expr) -> Result<CapabilityName> {
-    match expr {
-        Expr::Symbol(symbol) => Ok(CapabilityName::new(symbol.to_string())),
-        Expr::String(text) => Ok(CapabilityName::new(text)),
-        _ => Err(Error::TypeMismatch {
-            expected: "capability symbol or string",
-            found: "non-capability",
-        }),
-    }
+    capability_names_from_expr(expr)
 }
 
 fn parse_deadline_expr(expr: &Expr) -> Result<Option<Duration>> {

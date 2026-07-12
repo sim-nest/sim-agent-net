@@ -2,6 +2,7 @@ use std::fs;
 
 use crate::{Connection, Server};
 use sim_kernel::{Args, CapabilityName, Cx, Error, Expr, Result, Value};
+use sim_value::capability_names_from_expr;
 
 pub(crate) fn symbol_from_value(
     cx: &mut Cx,
@@ -71,29 +72,7 @@ pub(crate) fn capability_names_from_value(
     cx: &mut Cx,
     value: Value,
 ) -> Result<Vec<CapabilityName>> {
-    match value.object().as_expr(cx)? {
-        Expr::Nil => Ok(Vec::new()),
-        Expr::List(items) | Expr::Vector(items) => {
-            items.into_iter().map(capability_name_from_expr).collect()
-        }
-        Expr::Symbol(symbol) => Ok(vec![CapabilityName::new(symbol.to_string())]),
-        Expr::String(text) => Ok(vec![CapabilityName::new(text)]),
-        _ => Err(Error::TypeMismatch {
-            expected: "capability list",
-            found: "non-list",
-        }),
-    }
-}
-
-fn capability_name_from_expr(expr: Expr) -> Result<CapabilityName> {
-    match expr {
-        Expr::Symbol(symbol) => Ok(CapabilityName::new(symbol.to_string())),
-        Expr::String(text) => Ok(CapabilityName::new(text)),
-        _ => Err(Error::TypeMismatch {
-            expected: "capability symbol or string",
-            found: "non-capability",
-        }),
-    }
+    capability_names_from_expr(&value.object().as_expr(cx)?)
 }
 
 pub(crate) fn clone_server_cx(seed: &Cx) -> Cx {
