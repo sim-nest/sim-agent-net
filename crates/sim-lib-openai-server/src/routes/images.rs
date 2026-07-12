@@ -1,4 +1,5 @@
 use serde_json::json;
+use sim_cookbook::fnv1a64_hex;
 use sim_kernel::Expr;
 
 use crate::{
@@ -21,9 +22,6 @@ use super::errors::OpenAiRouteError;
 
 /// Route path for image generation (`POST /v1/images/generations`).
 pub const IMAGES_GENERATIONS_PATH: &str = "/v1/images/generations";
-
-const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
-const FNV_PRIME: u64 = 0x100000001b3;
 
 type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 
@@ -123,24 +121,13 @@ where
 }
 
 fn stable_image_id(model: &str, prompt: &str, index: u64) -> String {
-    let mut hash = FNV_OFFSET_BASIS;
-    mix_bytes(&mut hash, model.as_bytes());
-    mix_byte(&mut hash, 0xff);
-    mix_bytes(&mut hash, prompt.as_bytes());
-    mix_byte(&mut hash, 0xfe);
-    mix_bytes(&mut hash, &index.to_le_bytes());
-    format!("{hash:016x}")
-}
-
-fn mix_bytes(hash: &mut u64, bytes: &[u8]) {
-    for byte in bytes {
-        mix_byte(hash, *byte);
-    }
-}
-
-fn mix_byte(hash: &mut u64, byte: u8) {
-    *hash ^= u64::from(byte);
-    *hash = hash.wrapping_mul(FNV_PRIME);
+    let mut bytes = Vec::with_capacity(model.len() + prompt.len() + 10);
+    bytes.extend_from_slice(model.as_bytes());
+    bytes.push(0xff);
+    bytes.extend_from_slice(prompt.as_bytes());
+    bytes.push(0xfe);
+    bytes.extend_from_slice(&index.to_le_bytes());
+    fnv1a64_hex(&bytes)
 }
 
 fn image_event_payload(model: &str, prompt: &str, count: u64) -> Expr {

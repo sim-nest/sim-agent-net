@@ -1,4 +1,5 @@
 use serde_json::{Map, Value, json};
+use sim_cookbook::fnv1a64;
 use sim_kernel::{Error, Expr, Symbol};
 
 use crate::{
@@ -28,8 +29,6 @@ pub const EMBEDDINGS_PATH: &str = "/v1/embeddings";
 pub const TENSOR_F64_SMALL_EMBEDDING_MODEL: &str = "sim/embed/tensor-f64-small";
 
 const TENSOR_F64_SMALL_DIMENSION: usize = 8;
-const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
-const FNV_PRIME: u64 = 0x100000001b3;
 const EMBEDDING_SCALE: u64 = 1_000_000;
 
 type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
@@ -269,23 +268,14 @@ fn embedding_for_text(model: &str, input: &str, dimension: usize) -> Vec<f64> {
 }
 
 fn stable_embedding_hash(model: &str, input: &str, dimension_index: usize) -> u64 {
-    let mut hash = FNV_OFFSET_BASIS;
-    mix_bytes(&mut hash, model.as_bytes());
-    mix_byte(&mut hash, 0xff);
-    mix_bytes(&mut hash, input.as_bytes());
-    mix_byte(&mut hash, 0xfe);
-    mix_bytes(&mut hash, &dimension_index.to_le_bytes());
-    hash
-}
-
-fn mix_bytes(hash: &mut u64, bytes: &[u8]) {
-    for byte in bytes {
-        mix_byte(hash, *byte);
-    }
-}
-fn mix_byte(hash: &mut u64, byte: u8) {
-    *hash ^= u64::from(byte);
-    *hash = hash.wrapping_mul(FNV_PRIME);
+    let mut bytes =
+        Vec::with_capacity(model.len() + input.len() + 2 + std::mem::size_of::<usize>());
+    bytes.extend_from_slice(model.as_bytes());
+    bytes.push(0xff);
+    bytes.extend_from_slice(input.as_bytes());
+    bytes.push(0xfe);
+    bytes.extend_from_slice(&dimension_index.to_le_bytes());
+    fnv1a64(&bytes)
 }
 fn hash_to_unit(hash: u64) -> f64 {
     let bucket = hash % (EMBEDDING_SCALE * 2 + 1);
