@@ -16,7 +16,7 @@
 //!   a descriptor BY CONSTRUCTION.
 
 use sim_cookbook::RecipeCard;
-use sim_kernel::{CapabilityName, Cx, GrantSeat, Lib, Result};
+use sim_kernel::{CapabilityName, Cx, GrantSeat, Lib, Result, Symbol};
 
 /// A resolver from a recipe `requires` name to a loadable library.
 ///
@@ -59,25 +59,60 @@ impl LibCatalog for EmptyCatalog {
 pub fn load_requires(cx: &mut Cx, catalog: &dyn LibCatalog, card: &RecipeCard) -> Vec<String> {
     let mut unresolved = Vec::new();
     for req in &card.requires {
-        let already_loaded = cx.registry().libs().iter().any(|lib| {
-            lib.manifest.id.as_qualified_str() == *req
-                || lib.manifest.id.name.as_ref() == req.as_str()
-        });
-        if already_loaded {
+        if lib_present(cx, req) {
             continue;
         }
         match catalog.resolve(req) {
-            // Idempotent: only load when the id is not already registered.
-            Some(lib) if cx.registry().lib(&lib.manifest().id).is_none() => {
-                if let Err(err) = cx.load_lib(lib) {
+            Some(lib) => {
+                let mut visiting = Vec::new();
+                if let Err(err) = load_lib_with_deps(cx, catalog, lib, &mut visiting) {
                     unresolved.push(format!("{req} (load failed: {err})"));
                 }
             }
-            Some(_) => {}
             None => unresolved.push(req.clone()),
         }
     }
     unresolved
+}
+
+/// Whether a lib matching `name` (by qualified id or unqualified tail) is loaded.
+fn lib_present(cx: &Cx, name: &str) -> bool {
+    cx.registry().libs().iter().any(|lib| {
+        lib.manifest.id.as_qualified_str() == name || lib.manifest.id.name.as_ref() == name
+    })
+}
+
+/// Load `lib` into `cx` after its catalog-resolvable manifest dependencies, so a
+/// lib whose `load` observes already-registered libs (e.g. a promotion rule over
+/// existing number domains) sees them first regardless of the recipe's
+/// `requires` order (COOK8.07 dependency-order loading). Idempotent (a
+/// registered lib is skipped) and cycle-safe (an in-progress id is not
+/// re-entered; R7 keeps the lib graph acyclic anyway).
+fn load_lib_with_deps(
+    cx: &mut Cx,
+    catalog: &dyn LibCatalog,
+    lib: &dyn Lib,
+    visiting: &mut Vec<Symbol>,
+) -> Result<()> {
+    let manifest = lib.manifest();
+    if cx.registry().lib(&manifest.id).is_some() || visiting.contains(&manifest.id) {
+        return Ok(());
+    }
+    visiting.push(manifest.id.clone());
+    for dep in &manifest.requires {
+        let resolved = catalog
+            .resolve(&dep.id.as_qualified_str())
+            .or_else(|| catalog.resolve(dep.id.name.as_ref()));
+        // A dependency the catalog does not carry is assumed already loaded (the
+        // boot prelude) or genuinely absent; either way the lib's own load
+        // surfaces the error. Only catalog-resolvable deps are ordered here.
+        if let Some(dep_lib) = resolved {
+            load_lib_with_deps(cx, catalog, dep_lib, visiting)?;
+        }
+    }
+    cx.load_lib(lib)?;
+    visiting.pop();
+    Ok(())
 }
 
 /// The deterministic capability profile the cookbook seats its eval `Cx` with.

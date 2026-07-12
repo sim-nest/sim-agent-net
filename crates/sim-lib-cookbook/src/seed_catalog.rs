@@ -39,6 +39,10 @@ impl SeededLibCatalog {
             Box::new(sim_lib_numbers_func::FuncNumbersLib::new()),
             Box::new(sim_lib_numbers_cas::CasNumbersLib::new()),
             Box::new(sim_lib_numbers_tensor::TensorNumbersLib::new()),
+            // COOK8.07: tensor broadcast arithmetic, so `tensor-scale`
+            // (`(math/mul (vec 3 4) 2)`) loads via `requires` and runs
+            // host-independently rather than only through the boot prelude.
+            Box::new(sim_lib_numbers_tensor_bcast::TensorBroadcastLib::new()),
             Box::new(sim_lib_discrete::DiscreteLib),
             // COOK8.03 organs: the eval-policy special forms load on demand via a
             // recipe's `requires` (`binding`/`control`/`sequence`/`pattern`), so
