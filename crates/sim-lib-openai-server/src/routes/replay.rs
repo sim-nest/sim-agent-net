@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use serde_json::{Map, Value, json};
 use sim_kernel::{CapabilitySet, ContentId, Cx, DefaultFactory, Expr, NoopEvalPolicy};
+use sim_lib_net_core::hex_encode;
 
 use crate::{
     capabilities::OPENAI_GATEWAY_ADMIN_CAPABILITY,
     clock::{GatewayClock, SystemGatewayClock},
     codec_openai::gateway_event_data_packets,
-    objects::{GatewayEvent, GatewayRequest, GatewayResponse, bytes_to_hex, content_id_hex},
+    objects::{GatewayEvent, GatewayRequest, GatewayResponse, content_id_hex},
     routes::responses::{RESPONSE_RETRIEVAL_PREFIX, ResponseIdGenerators, ResponseRuntimeTargets},
     runtime::OpenAiPlanCache,
     server::GatewayRouteState,
@@ -410,7 +411,7 @@ fn expr_json(expr: &Expr) -> Value {
         Expr::String(value) => Value::String(value.clone()),
         Expr::Number(value) => Value::String(format!("{value:?}")),
         Expr::Symbol(symbol) => Value::String(symbol.name.as_ref().to_owned()),
-        Expr::Bytes(bytes) => Value::String(bytes_to_hex(bytes)),
+        Expr::Bytes(bytes) => Value::String(hex_encode(bytes)),
         Expr::List(values) | Expr::Vector(values) | Expr::Set(values) | Expr::Block(values) => {
             Value::Array(values.iter().map(expr_json).collect())
         }

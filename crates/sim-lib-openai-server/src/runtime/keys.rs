@@ -7,6 +7,7 @@ use sim_kernel::{
     CapabilityName, CapabilitySet, Cx, DefaultFactory, Error, Expr, GrantSeat, NoopEvalPolicy,
     Object, ObjectCompat, Result, Symbol, Table, Value,
 };
+use sim_lib_net_core::hex_encode;
 
 use crate::objects::GatewayRequest;
 
@@ -227,7 +228,7 @@ pub fn global_openai_key_table() -> &'static OpenAiKeyTable {
 
 /// Returns the lowercase hex SHA-256 hash of a key secret.
 pub fn key_hash(secret: &str) -> String {
-    hex_bytes(&Sha256::digest(secret.as_bytes()))
+    hex_encode(&Sha256::digest(secret.as_bytes()))
 }
 
 /// Returns a copy of `request` with sensitive auth headers replaced by `[redacted]`.
@@ -363,16 +364,6 @@ fn table_impl(value: &Value) -> Result<&dyn Table> {
         expected: "SIM table",
         found: "non-table",
     })
-}
-
-fn hex_bytes(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(char::from(HEX[usize::from(byte >> 4)]));
-        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
-    }
-    output
 }
 
 use sim_value::build::entry as field;
