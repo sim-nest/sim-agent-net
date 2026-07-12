@@ -71,6 +71,7 @@ pub use repl::{DriverSpec as ReplDriverSpec, LineDriver, ReplOptions, ReplOutput
 pub use router::FrameRouter;
 pub use runtime::ServerRuntime;
 pub use server::{Server, ServerStatus, ThreadMode};
+pub use sim_cookbook::EmbeddedDir;
 pub use sim_lib_cookbook::CookbookCapabilityProfile;
 pub use site::{
     CoroutineEvalSite, EvalSite, FabricEvalSite, LocalEvalSite, LoopEvalSite, PipelineEvalSite,

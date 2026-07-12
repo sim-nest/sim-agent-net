@@ -23,6 +23,21 @@ impl CookbookWebState {
         })
     }
 
+    /// Build a WebUI state from the seeded books PLUS `extra` books injected by the
+    /// host (COOK8.02 facade injection). The seeded set covers the lower-graph
+    /// domains `sim-lib-cookbook` can depend on directly; a host above the cookbook
+    /// (sim-web-shell, the `sim` facade) passes its own higher-graph recipe books
+    /// here -- which cannot be seed-deps of the engine without a cycle -- so the
+    /// browsable catalog grows toward full coverage. A book that fails to register
+    /// is skipped rather than blanking the whole catalog; it simply does not appear.
+    pub fn seeded_with_books(extra: &[(&str, sim_cookbook::EmbeddedDir)]) -> Result<Self> {
+        let mut store = seeded_recipe_store()?;
+        for (_book, recipes) in extra {
+            let _ = store.register_book(recipes);
+        }
+        Ok(Self { store })
+    }
+
     /// Build a WebUI state from an existing recipe store.
     pub fn from_store(store: RecipeStore) -> Self {
         Self { store }
