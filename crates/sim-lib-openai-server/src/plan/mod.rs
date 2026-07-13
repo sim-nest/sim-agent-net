@@ -16,7 +16,7 @@ pub mod parse;
 /// Structural plan validation, limits, and explanation.
 pub mod shape;
 
-pub use address::{BackendDescriptor, resolve_atom_address};
+pub use address::{BackendDescriptor, provider_prefixes, resolve_atom_address};
 pub use combinators::{PlanCombinator, plan_combinators, plan_combinators_expr, plan_symbol};
 pub use eval::{
     PlanEvalEvent, PlanEvalReport, eval_plan, eval_plan_report, eval_plan_report_with_cache,

@@ -88,7 +88,7 @@ pub use plan::{
     check_plan_with_limits, eval_plan, eval_plan_report, eval_plan_report_with_cache,
     eval_plan_report_with_cache_and_runners, eval_plan_report_with_cache_runners_and_federation,
     eval_plan_report_with_federation, explain_plan, parse_plan, plan_combinators,
-    plan_combinators_expr, plan_symbol, resolve_atom_address,
+    plan_combinators_expr, plan_symbol, provider_prefixes, resolve_atom_address,
 };
 pub use routes::admin::{
     ADMIN_CACHE_STATS_PATH, ADMIN_CAPABILITY_REPORT_PATH, ADMIN_EVENTS_PATH,

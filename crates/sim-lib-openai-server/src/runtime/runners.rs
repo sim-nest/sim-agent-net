@@ -50,26 +50,34 @@ impl OpenAiRunnerRegistry {
         });
     }
 
+    fn entry_for(&self, model: &str) -> Option<&OpenAiRunnerEntry> {
+        self.entries.iter().find(|entry| entry.model == model)
+    }
+
+    fn card_for_entry(entry: &OpenAiRunnerEntry) -> ModelCard {
+        let mut card = entry.runner.card();
+        if card.model != entry.model {
+            card.extra.push((
+                sim_kernel::Expr::Symbol(sim_kernel::Symbol::new("runner-model")),
+                sim_kernel::Expr::String(card.model.clone()),
+            ));
+            card.model = entry.model.clone();
+        }
+        card
+    }
+
     /// Returns the model card for each registered runner.
     ///
     /// When a runner's own card model differs from the registered id, the card
     /// is relabeled with the registered id and the original is preserved under a
     /// `runner-model` extra field.
     pub fn cards(&self) -> Vec<ModelCard> {
-        self.entries
-            .iter()
-            .map(|entry| {
-                let mut card = entry.runner.card();
-                if card.model != entry.model {
-                    card.extra.push((
-                        sim_kernel::Expr::Symbol(sim_kernel::Symbol::new("runner-model")),
-                        sim_kernel::Expr::String(card.model.clone()),
-                    ));
-                    card.model = entry.model.clone();
-                }
-                card
-            })
-            .collect()
+        self.entries.iter().map(Self::card_for_entry).collect()
+    }
+
+    /// Returns the model card for `model`, preserving registry relabeling.
+    pub fn card_for(&self, model: &str) -> Option<ModelCard> {
+        self.entry_for(model).map(Self::card_for_entry)
     }
 
     /// Dispatches `request` to the runner registered for `model`.
@@ -77,9 +85,7 @@ impl OpenAiRunnerRegistry {
     /// Returns a `model_not_found` error when no runner matches `model`.
     pub fn infer(&self, cx: &mut Cx, model: &str, request: ModelRequest) -> Result<ModelResponse> {
         let runner = self
-            .entries
-            .iter()
-            .find(|entry| entry.model == model)
+            .entry_for(model)
             .map(|entry| entry.runner.clone())
             .ok_or_else(|| Error::Eval(format!("model_not_found: {model}")))?;
         runner.infer(cx, request)

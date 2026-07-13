@@ -173,28 +173,37 @@ impl PlanEvaluator<'_> {
 
     fn eval_atom(&mut self, address: &str, context: EvalContext) -> Result<ModelResponse> {
         let descriptor = resolve_atom_address(address)?;
-        if !descriptor.fixture {
-            if context.privacy == PlanPrivacy::LocalOnly && descriptor.head != "skill" {
+        if descriptor.is_gateway() {
+            if context.privacy == PlanPrivacy::LocalOnly {
                 return Err(Error::Eval(format!(
                     "local-only privacy rejects remote model {address}"
                 )));
             }
-            return match descriptor.head.as_str() {
-                "openai" | "ollama" | "skill" => self
-                    .runners
-                    .ok_or_else(|| Error::Eval(format!("model_not_found: {address}")))?
-                    .infer(self.cx, address, self.request.clone()),
-                "gateway" => self
-                    .federation
-                    .ok_or_else(|| Error::Eval(format!("model_not_found: {address}")))?
-                    .infer(
-                        self.cx,
-                        address,
-                        &self.request,
-                        &context.federation_policy(),
-                    ),
-                _ => Err(Error::Eval(format!("model_not_found: {address}"))),
-            };
+            return self
+                .federation
+                .ok_or_else(|| Error::Eval(format!("model_not_found: {address}")))?
+                .infer(
+                    self.cx,
+                    address,
+                    &self.request,
+                    &context.federation_policy(),
+                );
+        }
+        if descriptor.is_runner_backed() {
+            let runners = self
+                .runners
+                .ok_or_else(|| Error::Eval(format!("model_not_found: {address}")))?;
+            let card = runners
+                .card_for(address)
+                .ok_or_else(|| Error::Eval(format!("model_not_found: {address}")))?;
+            if context.privacy == PlanPrivacy::LocalOnly
+                && !locality_is_allowed_for_local_only(&card.locality)
+            {
+                return Err(Error::Eval(format!(
+                    "local-only privacy rejects remote model {address}"
+                )));
+            }
+            return runners.infer(self.cx, address, self.request.clone());
         }
         match descriptor.address.as_str() {
             "fixture/echo" | "fixture/slow-echo" => {
@@ -448,4 +457,11 @@ impl PlanEvaluator<'_> {
             ]),
         });
     }
+}
+
+fn locality_is_allowed_for_local_only(locality: &Symbol) -> bool {
+    matches!(
+        locality.name.as_ref(),
+        "local" | "agent" | "agent-backed" | "fabric" | "in-process" | "process"
+    )
 }
