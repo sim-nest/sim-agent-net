@@ -1,0 +1,8 @@
+(quote
+  (provider lemonade
+    (config
+      (endpoint "http://127.0.0.1:13305/v1")
+      (model "Qwen3-Coder")
+      (probe (mode startup) (local-only true)))
+    (probe provider/probe)
+    (use runner/lemonade)))

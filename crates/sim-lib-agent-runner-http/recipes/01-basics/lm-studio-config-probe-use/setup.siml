@@ -1,0 +1,9 @@
+(quote
+  (provider lm-studio
+    (config
+      (endpoint "http://127.0.0.1:1234/v1")
+      (model "local/default")
+      (api-key-env "LM_STUDIO_API_KEY")
+      (probe (mode startup) (local-only true)))
+    (probe provider/probe)
+    (use runner/lm-studio)))

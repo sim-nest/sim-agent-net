@@ -1,0 +1,8 @@
+id = "anthropic-config-probe-use"
+title = "Anthropic config, probe, and use"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 30
+tags = ["agent", "runner", "http", "provider", "anthropic", "sandbox-descriptor"]
+requires = ["agent-runner-http", "codec/lisp"]
