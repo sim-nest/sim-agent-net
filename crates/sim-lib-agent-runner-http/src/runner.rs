@@ -4,9 +4,12 @@ use crate::config::ProviderConfig;
 use crate::redact::redact_text;
 use crate::stream::HttpStreamDecoder;
 use sim_codec_chat::{
-    AnthropicRequestOptions, OllamaRequestOptions, OpenAiRequestOptions, decode_anthropic_response,
-    decode_anthropic_stream, decode_ollama_response, decode_ollama_stream, decode_openai_response,
-    encode_anthropic_request, encode_ollama_request, encode_openai_request, model_error_expr,
+    AnthropicRequestOptions, LemonadeRequestOptions, LmStudioRequestOptions, OllamaRequestOptions,
+    OpenAiRequestOptions, decode_anthropic_response, decode_anthropic_stream,
+    decode_lemonade_response, decode_lemonade_stream, decode_lm_studio_response,
+    decode_lm_studio_stream, decode_ollama_response, decode_ollama_stream, decode_openai_response,
+    encode_anthropic_request, encode_lemonade_request, encode_lm_studio_request,
+    encode_ollama_request, encode_openai_request, model_error_expr,
 };
 use sim_kernel::{
     CapabilityName, Cx, Datum, DatumStore, Effect, Error, Expr, Ref, Result, Symbol, core_any_ref,
@@ -187,6 +190,8 @@ impl HttpRunner {
         let openai_codec = Symbol::qualified("codec", "openai");
         let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
+        let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
+        let lemonade_codec = Symbol::qualified("codec", "lemonade");
         let request_expr: Expr = request.into();
         if self.codec == openai_codec {
             encode_openai_request(
@@ -207,6 +212,16 @@ impl HttpRunner {
             encode_ollama_request(
                 &request_expr,
                 &OllamaRequestOptions::new(self.model.clone(), stream, self.tools),
+            )
+        } else if self.codec == lm_studio_codec {
+            encode_lm_studio_request(
+                &request_expr,
+                &LmStudioRequestOptions::new(self.model.clone(), stream, self.tools),
+            )
+        } else if self.codec == lemonade_codec {
+            encode_lemonade_request(
+                &request_expr,
+                &LemonadeRequestOptions::new(self.model.clone(), stream, self.tools),
             )
         } else {
             Err(Error::Eval(format!(
@@ -238,7 +253,10 @@ impl HttpRunner {
 
         let mut headers = vec![content_type_header()];
         match (&self.auth, secret) {
-            (ProviderAuth::BearerEnv { .. }, Some(secret)) => {
+            (
+                ProviderAuth::BearerEnv { .. } | ProviderAuth::OptionalBearerEnv { .. },
+                Some(secret),
+            ) => {
                 headers.push(("Authorization".to_owned(), format!("Bearer {secret}")));
             }
             (ProviderAuth::HeaderEnv { header, .. }, Some(secret)) => {
@@ -256,6 +274,8 @@ impl HttpRunner {
         let openai_codec = Symbol::qualified("codec", "openai");
         let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
+        let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
+        let lemonade_codec = Symbol::qualified("codec", "lemonade");
         let expr = if self.codec == openai_codec {
             decode_openai_response(self.runner.clone(), &self.model, body, include_raw)?
         } else if self.codec == anthropic_codec {
@@ -269,6 +289,18 @@ impl HttpRunner {
                 decode_ollama_stream(self.runner.clone(), &self.model, body, include_raw)?
             } else {
                 decode_ollama_response(self.runner.clone(), &self.model, body, include_raw)?
+            }
+        } else if self.codec == lm_studio_codec {
+            if self.stream {
+                decode_lm_studio_stream(self.runner.clone(), &self.model, body, include_raw)?
+            } else {
+                decode_lm_studio_response(self.runner.clone(), &self.model, body, include_raw)?
+            }
+        } else if self.codec == lemonade_codec {
+            if self.stream {
+                decode_lemonade_stream(self.runner.clone(), &self.model, body, include_raw)?
+            } else {
+                decode_lemonade_response(self.runner.clone(), &self.model, body, include_raw)?
             }
         } else {
             unreachable!("codec checked above")
@@ -286,6 +318,8 @@ impl HttpRunner {
         let openai_codec = Symbol::qualified("codec", "openai");
         let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
+        let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
+        let lemonade_codec = Symbol::qualified("codec", "lemonade");
         if self.codec == openai_codec {
             Ok(HttpStreamDecoder::openai(
                 self.runner.clone(),
@@ -300,6 +334,12 @@ impl HttpRunner {
             ))
         } else if self.codec == ollama_codec {
             Ok(HttpStreamDecoder::ollama(
+                self.runner.clone(),
+                self.model.clone(),
+                include_raw,
+            ))
+        } else if self.codec == lm_studio_codec || self.codec == lemonade_codec {
+            Ok(HttpStreamDecoder::openai(
                 self.runner.clone(),
                 self.model.clone(),
                 include_raw,

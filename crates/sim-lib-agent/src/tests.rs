@@ -6,6 +6,8 @@ mod agent_ai_cache;
 mod agent_ai_cassette;
 #[cfg(feature = "runner-http")]
 mod agent_ai_http;
+#[cfg(feature = "runner-http")]
+mod agent_ai_local_openai;
 mod agent_ai_market;
 mod agent_ai_market_phase7;
 #[cfg(feature = "runner-ollama")]

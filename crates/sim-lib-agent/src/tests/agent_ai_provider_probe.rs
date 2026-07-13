@@ -33,6 +33,15 @@ fn provider_profiles_returns_profile_table() {
         map_field(map_field(openai, "auth"), "kind"),
         &Expr::Symbol(Symbol::new("bearer-env"))
     );
+    let lm_studio = map_field(&expr, "lm-studio");
+    assert_eq!(
+        map_field(map_field(lm_studio, "auth"), "kind"),
+        &Expr::Symbol(Symbol::new("optional-bearer-env"))
+    );
+    assert_eq!(
+        map_field(map_field(lm_studio, "auth"), "env"),
+        &Expr::String("LM_STUDIO_API_KEY".to_owned())
+    );
     assert!(map_field(&expr, "ollama").canonical_eq(&Expr::Map(vec![
         (
             Expr::Symbol(Symbol::new("provider")),

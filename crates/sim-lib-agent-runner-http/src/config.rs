@@ -373,6 +373,25 @@ mod tests {
     }
 
     #[test]
+    fn lm_studio_auth_env_is_optional_but_accepted() {
+        let mut cx = test_cx();
+        let mut options = HashMap::new();
+        insert(
+            &mut cx,
+            &mut options,
+            "api-key-env",
+            Expr::String("LM_STUDIO_API_KEY".to_owned()),
+        );
+
+        let config =
+            ProviderConfig::from_options(provider_profiles::lm_studio(), &mut cx, &options)
+                .unwrap();
+
+        assert_eq!(config.api_key_env, Some("LM_STUDIO_API_KEY".to_owned()));
+        assert_eq!(config.locality, Symbol::new("local"));
+    }
+
+    #[test]
     fn nil_api_key_env_disables_profile_default_auth_env() {
         let mut cx = test_cx();
         let mut options = HashMap::new();

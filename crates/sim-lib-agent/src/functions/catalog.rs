@@ -149,6 +149,16 @@ pub(super) static AGENT_FUNCTIONS: LazyLock<Vec<(Symbol, AgentFnKind)>> = LazyLo
             Symbol::qualified("runner", "anthropic"),
             AgentFnKind::RunnerAnthropic,
         ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("runner", "lm-studio"),
+            AgentFnKind::RunnerLmStudio,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("runner", "lemonade"),
+            AgentFnKind::RunnerLemonade,
+        ),
         #[cfg(feature = "runner-ollama")]
         (
             Symbol::qualified("runner", "ollama"),

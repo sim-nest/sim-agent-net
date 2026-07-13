@@ -41,6 +41,18 @@ pub(crate) fn runner_anthropic_value(cx: &mut Cx, args: Args) -> Result<Value> {
     provider_runner_value(cx, config)
 }
 
+pub(crate) fn runner_lm_studio_value(cx: &mut Cx, args: Args) -> Result<Value> {
+    let options = parse_component_options(cx, args, "runner/lm-studio")?;
+    let config = ProviderConfig::from_options(provider_profiles::lm_studio(), cx, &options)?;
+    provider_runner_value(cx, config)
+}
+
+pub(crate) fn runner_lemonade_value(cx: &mut Cx, args: Args) -> Result<Value> {
+    let options = parse_component_options(cx, args, "runner/lemonade")?;
+    let config = ProviderConfig::from_options(provider_profiles::lemonade(), cx, &options)?;
+    provider_runner_value(cx, config)
+}
+
 fn provider_profiles_expr() -> Expr {
     Expr::Map(
         provider_profiles::all()
@@ -84,6 +96,10 @@ fn provider_auth_expr(auth: &ProviderAuth) -> Expr {
         ProviderAuth::None => Expr::Map(vec![map_entry("kind", Expr::Symbol(Symbol::new("none")))]),
         ProviderAuth::BearerEnv { env } => Expr::Map(vec![
             map_entry("kind", Expr::Symbol(Symbol::new("bearer-env"))),
+            map_entry("env", Expr::String(env.clone())),
+        ]),
+        ProviderAuth::OptionalBearerEnv { env } => Expr::Map(vec![
+            map_entry("kind", Expr::Symbol(Symbol::new("optional-bearer-env"))),
             map_entry("env", Expr::String(env.clone())),
         ]),
         ProviderAuth::HeaderEnv { header, env } => Expr::Map(vec![

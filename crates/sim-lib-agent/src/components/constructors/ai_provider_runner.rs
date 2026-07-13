@@ -1,7 +1,6 @@
-use super::super::{
-    model::{AgentComponent, ComponentBackend, RunnerBackend, component_value},
-    options::parse_component_options,
-};
+use super::super::model::{AgentComponent, ComponentBackend, RunnerBackend, component_value};
+#[cfg(feature = "runner-ollama")]
+use super::super::options::parse_component_options;
 use crate::{
     AI_RUNNER_CAPABILITY, AI_RUNNER_LOCAL_CAPABILITY, AI_RUNNER_NETWORK_CAPABILITY,
     AI_RUNNER_SECRET_CAPABILITY, ComponentKind, util::installed_codecs,
@@ -11,6 +10,7 @@ use sim_lib_agent_runner_http::{HttpRunner, ProviderConfig};
 use sim_lib_server::ServerAddress;
 use std::sync::Arc;
 
+#[cfg(feature = "runner-ollama")]
 pub(super) fn provider_runner_options(
     cx: &mut Cx,
     args: sim_kernel::Args,

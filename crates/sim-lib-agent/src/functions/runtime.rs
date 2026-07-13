@@ -26,8 +26,8 @@ use crate::components::{
 };
 #[cfg(feature = "runner-http")]
 use crate::components::{
-    provider_probe_value, provider_profiles_value, runner_anthropic_value,
-    runner_openai_compatible_value, runner_openai_value,
+    provider_probe_value, provider_profiles_value, runner_anthropic_value, runner_lemonade_value,
+    runner_lm_studio_value, runner_openai_compatible_value, runner_openai_value,
 };
 use crate::memory::{
     memory_append_value, memory_blackboard_value, memory_file_value, memory_persona_value,
@@ -100,6 +100,10 @@ pub(crate) enum AgentFnKind {
     RunnerOpenAi,
     #[cfg(feature = "runner-http")]
     RunnerAnthropic,
+    #[cfg(feature = "runner-http")]
+    RunnerLmStudio,
+    #[cfg(feature = "runner-http")]
+    RunnerLemonade,
     #[cfg(feature = "runner-ollama")]
     RunnerOllama,
     #[cfg(feature = "runner-process")]
@@ -275,6 +279,10 @@ fn dispatch_value_call(kind: AgentFnKind, cx: &mut Cx, args: Args) -> Result<Val
         AgentFnKind::RunnerOpenAi => runner_openai_value(cx, args),
         #[cfg(feature = "runner-http")]
         AgentFnKind::RunnerAnthropic => runner_anthropic_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::RunnerLmStudio => runner_lm_studio_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::RunnerLemonade => runner_lemonade_value(cx, args),
         #[cfg(feature = "runner-ollama")]
         AgentFnKind::RunnerOllama => runner_ollama_value(cx, args),
         #[cfg(feature = "runner-process")]

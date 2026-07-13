@@ -19,7 +19,8 @@ pub(crate) use ai::{runner_cassette_value, runner_echo_value, runner_fake_value}
 pub(crate) use ai_process::runner_process_value;
 #[cfg(feature = "runner-http")]
 pub(crate) use ai_provider::{
-    provider_probe_value, provider_profiles_value, runner_anthropic_value, runner_openai_value,
+    provider_probe_value, provider_profiles_value, runner_anthropic_value, runner_lemonade_value,
+    runner_lm_studio_value, runner_openai_value,
 };
 pub(crate) use interaction::{
     judge_ranked_vote_value, judge_rubric_value, judge_threshold_value, persona_language_value,

@@ -21,6 +21,12 @@ pub enum ProviderAuth {
         /// Default environment variable name.
         env: String,
     },
+    /// The provider may accept an `Authorization: Bearer <secret>` value, but
+    /// does not require one by default.
+    OptionalBearerEnv {
+        /// Suggested environment variable name.
+        env: String,
+    },
     /// The provider expects a named header value read from an environment
     /// variable.
     HeaderEnv {
@@ -37,6 +43,17 @@ impl ProviderAuth {
         match self {
             Self::None => None,
             Self::BearerEnv { env } | Self::HeaderEnv { env, .. } => Some(env),
+            Self::OptionalBearerEnv { .. } => None,
+        }
+    }
+
+    /// Returns the documented environment variable for optional auth shapes.
+    pub fn env_hint(&self) -> Option<&str> {
+        match self {
+            Self::None => None,
+            Self::BearerEnv { env }
+            | Self::OptionalBearerEnv { env }
+            | Self::HeaderEnv { env, .. } => Some(env),
         }
     }
 }
@@ -193,7 +210,9 @@ pub mod provider_profiles {
             default_endpoint: "http://127.0.0.1:1234/v1".to_owned(),
             models_path: "/models",
             chat_path: "/chat/completions",
-            auth: ProviderAuth::None,
+            auth: ProviderAuth::OptionalBearerEnv {
+                env: "LM_STUDIO_API_KEY".to_owned(),
+            },
             default_locality: Symbol::new("local"),
             default_model: "local/default".to_owned(),
             default_timeout: Duration::from_secs(120),
@@ -322,14 +341,26 @@ mod tests {
 
     #[test]
     fn local_profiles_default_to_loopback_without_auth() {
-        for profile in [
-            ProviderProfile::ollama(),
-            ProviderProfile::lm_studio(),
-            ProviderProfile::lemonade(),
-        ] {
+        for profile in [ProviderProfile::ollama(), ProviderProfile::lemonade()] {
             assert_eq!(profile.auth, ProviderAuth::None);
             assert_eq!(profile.default_locality, Symbol::new("local"));
             assert!(profile.default_endpoint.starts_with("http://127.0.0.1:"));
         }
+    }
+
+    #[test]
+    fn lm_studio_profile_records_optional_bearer_auth() {
+        let profile = ProviderProfile::lm_studio();
+
+        assert_eq!(
+            profile.auth,
+            ProviderAuth::OptionalBearerEnv {
+                env: "LM_STUDIO_API_KEY".to_owned()
+            }
+        );
+        assert_eq!(profile.auth.default_env(), None);
+        assert_eq!(profile.auth.env_hint(), Some("LM_STUDIO_API_KEY"));
+        assert_eq!(profile.default_locality, Symbol::new("local"));
+        assert!(profile.default_endpoint.starts_with("http://127.0.0.1:"));
     }
 }

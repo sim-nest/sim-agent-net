@@ -62,6 +62,18 @@ fn a4_exports_register_all_component_constructors() {
     assert!(exports.iter().any(|export| {
         matches!(export, sim_kernel::Export::Function { symbol, .. } if symbol == &Symbol::qualified("runner", "openai"))
     }));
+    #[cfg(feature = "runner-http")]
+    assert!(exports.iter().any(|export| {
+        matches!(export, sim_kernel::Export::Function { symbol, .. } if symbol == &Symbol::qualified("runner", "anthropic"))
+    }));
+    #[cfg(feature = "runner-http")]
+    assert!(exports.iter().any(|export| {
+        matches!(export, sim_kernel::Export::Function { symbol, .. } if symbol == &Symbol::qualified("runner", "lm-studio"))
+    }));
+    #[cfg(feature = "runner-http")]
+    assert!(exports.iter().any(|export| {
+        matches!(export, sim_kernel::Export::Function { symbol, .. } if symbol == &Symbol::qualified("runner", "lemonade"))
+    }));
     #[cfg(feature = "runner-ollama")]
     assert!(exports.iter().any(|export| {
         matches!(export, sim_kernel::Export::Function { symbol, .. } if symbol == &Symbol::qualified("runner", "ollama"))

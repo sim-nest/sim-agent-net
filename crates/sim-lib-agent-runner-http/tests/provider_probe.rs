@@ -1,13 +1,15 @@
 use sim_kernel::{Error, Result, Symbol};
 use sim_lib_agent_runner_http::{
-    ProbeHttpRequest, ProbeHttpResponse, ProbeStatus, ProbeTransport, ProviderAuth, ProviderConfig,
-    ProviderProfile, parse_ollama_tags, probe_provider, provider_profiles,
+    EndpointCandidate, ProbeHttpRequest, ProbeHttpResponse, ProbeStatus, ProbeTransport,
+    ProviderAuth, ProviderConfig, ProviderProfile, lemonade_candidates, parse_ollama_tags,
+    probe_provider, provider_profiles,
 };
 use sim_lib_net_core::HttpHead;
 use std::{sync::Mutex, time::Duration};
 
 const OPENAI_STYLE_MODELS: &str = r#"{"data":[{"id":"model-a"},{"id":"model-b"}]}"#;
 const OLLAMA_MODELS: &str = r#"{"models":[{"name":"llama3:8b"},{"name":"qwen3:4b"}]}"#;
+const LEMONADE_MODELS: &str = r#"{"data":[{"id":"lemonade-text","modalities":["text"],"input_modalities":["text","image"],"output_modalities":["text","audio"]}]}"#;
 const MISSING_SECRET_ENV: &str = "SIM_AGENT_NET_PROVIDER_PROBE_MISSING_SECRET";
 
 #[test]
@@ -45,7 +47,7 @@ fn provider_probe_discovers_models_for_every_provider() {
                 request.headers.is_empty() || only_anthropic_version(&request.headers),
                 "{provider}"
             ),
-            ProviderAuth::BearerEnv { .. } => assert!(
+            ProviderAuth::BearerEnv { .. } | ProviderAuth::OptionalBearerEnv { .. } => assert!(
                 request
                     .headers
                     .iter()
@@ -157,6 +159,77 @@ fn parse_ollama_tags_extracts_model_names() {
     assert_eq!(models, vec!["llama3:8b", "qwen3:4b"]);
 }
 
+#[test]
+fn lemonade_candidates_try_legacy_and_api_bases_by_default() {
+    assert_eq!(
+        lemonade_candidates(None),
+        vec![
+            EndpointCandidate {
+                endpoint: "http://127.0.0.1:13305/v1".to_owned(),
+                models_path: "/models"
+            },
+            EndpointCandidate {
+                endpoint: "http://127.0.0.1:13305/api/v1".to_owned(),
+                models_path: "/models"
+            },
+        ]
+    );
+    assert_eq!(
+        lemonade_candidates(Some("http://localhost:13305/custom".to_owned())),
+        vec![EndpointCandidate {
+            endpoint: "http://localhost:13305/custom".to_owned(),
+            models_path: "/models"
+        }]
+    );
+}
+
+#[test]
+fn lemonade_probe_keeps_first_healthy_candidate_and_model_modalities() {
+    let transport = SequenceTransport::new(vec![
+        MockResult::Response(ProbeHttpResponse {
+            head: HttpHead {
+                status: 404,
+                reason: "Not Found".to_owned(),
+                headers: Vec::new(),
+            },
+            body: b"not found".to_vec(),
+        }),
+        MockResult::Response(ProbeHttpResponse {
+            head: HttpHead {
+                status: 200,
+                reason: "OK".to_owned(),
+                headers: Vec::new(),
+            },
+            body: LEMONADE_MODELS.as_bytes().to_vec(),
+        }),
+    ]);
+    let config = config_for(provider_profiles::lemonade(), None);
+
+    let report = probe_provider(&transport, &config).unwrap();
+
+    assert_eq!(report.status, ProbeStatus::Available);
+    assert_eq!(report.endpoint, "http://127.0.0.1:13305/api/v1");
+    assert_eq!(report.models, vec!["lemonade-text"]);
+    assert_eq!(report.model_cards.len(), 1);
+    let card = &report.model_cards[0];
+    assert_eq!(card.runner, Symbol::qualified("runner", "lemonade"));
+    assert_eq!(card.provider, Symbol::new("lemonade"));
+    assert_eq!(card.locality, Symbol::new("local"));
+    assert_eq!(symbol_list(card_field(card, "modalities")), vec!["text"]);
+    assert_eq!(
+        symbol_list(card_field(card, "modalities-in")),
+        vec!["text", "image"]
+    );
+    assert_eq!(
+        symbol_list(card_field(card, "modalities-out")),
+        vec!["text", "audio"]
+    );
+    let requests = transport.requests();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(requests[0].endpoint, "http://127.0.0.1:13305/v1");
+    assert_eq!(requests[1].endpoint, "http://127.0.0.1:13305/api/v1");
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct SeenRequest {
     endpoint: String,
@@ -172,6 +245,28 @@ struct MockTransport {
     body: String,
     error: Option<String>,
     requests: Mutex<Vec<SeenRequest>>,
+}
+
+enum MockResult {
+    Response(ProbeHttpResponse),
+}
+
+struct SequenceTransport {
+    results: Mutex<Vec<MockResult>>,
+    requests: Mutex<Vec<SeenRequest>>,
+}
+
+impl SequenceTransport {
+    fn new(results: Vec<MockResult>) -> Self {
+        Self {
+            results: Mutex::new(results.into_iter().rev().collect()),
+            requests: Mutex::new(Vec::new()),
+        }
+    }
+
+    fn requests(&self) -> Vec<SeenRequest> {
+        self.requests.lock().unwrap().clone()
+    }
 }
 
 impl MockTransport {
@@ -226,6 +321,23 @@ impl ProbeTransport for MockTransport {
     }
 }
 
+impl ProbeTransport for SequenceTransport {
+    fn get(&self, request: ProbeHttpRequest<'_>) -> Result<ProbeHttpResponse> {
+        self.requests.lock().unwrap().push(SeenRequest {
+            endpoint: request.endpoint.to_owned(),
+            scheme: request.endpoint_parts.scheme,
+            path: request.path.to_owned(),
+            headers: request.headers,
+            timeout: request.timeout,
+            max_response_bytes: request.max_response_bytes,
+        });
+        match self.results.lock().unwrap().pop() {
+            Some(MockResult::Response(response)) => Ok(response),
+            None => panic!("unexpected extra probe request"),
+        }
+    }
+}
+
 fn config_for(profile: ProviderProfile, api_key_env: Option<&str>) -> ProviderConfig {
     let runner = profile.runner_symbol.clone();
     let codec = profile.codec.clone();
@@ -256,7 +368,9 @@ fn config_for(profile: ProviderProfile, api_key_env: Option<&str>) -> ProviderCo
 fn auth_env_for(auth: &ProviderAuth) -> Option<&'static str> {
     match auth {
         ProviderAuth::None => None,
-        ProviderAuth::BearerEnv { .. } | ProviderAuth::HeaderEnv { .. } => Some("PATH"),
+        ProviderAuth::BearerEnv { .. }
+        | ProviderAuth::OptionalBearerEnv { .. }
+        | ProviderAuth::HeaderEnv { .. } => Some("PATH"),
     }
 }
 
@@ -280,4 +394,30 @@ fn only_anthropic_version(headers: &[(String, String)]) -> bool {
     headers
         .iter()
         .all(|(name, value)| name == "anthropic-version" && value == "2023-06-01")
+}
+
+fn card_field<'a>(
+    card: &'a sim_lib_agent_runner_core::ModelCard,
+    name: &str,
+) -> &'a sim_kernel::Expr {
+    card.extra
+        .iter()
+        .find_map(|(key, value)| match key {
+            sim_kernel::Expr::Symbol(symbol) if symbol.name.as_ref() == name => Some(value),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("missing card field {name}"))
+}
+
+fn symbol_list(expr: &sim_kernel::Expr) -> Vec<&str> {
+    match expr {
+        sim_kernel::Expr::List(items) => items
+            .iter()
+            .map(|item| match item {
+                sim_kernel::Expr::Symbol(symbol) => symbol.name.as_ref(),
+                other => panic!("expected symbol, found {other:?}"),
+            })
+            .collect(),
+        other => panic!("expected symbol list, found {other:?}"),
+    }
 }
