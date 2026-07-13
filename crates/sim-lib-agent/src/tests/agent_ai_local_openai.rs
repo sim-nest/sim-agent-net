@@ -19,23 +19,23 @@ fn native_local_openai_runners_reflect_provider_defaults() {
     let lm_studio = call_runner(&mut cx, "lm-studio", Vec::new());
     let lm_reflected = as_component(&lm_studio).reflect(&mut cx).unwrap();
     assert_eq!(
-        field(&lm_reflected, "backend"),
+        map_value(&lm_reflected, "backend"),
         Some(&Expr::Symbol(Symbol::new("lm-studio")))
     );
     assert_eq!(
-        field(&lm_reflected, "codec"),
+        map_value(&lm_reflected, "codec"),
         Some(&Expr::Symbol(Symbol::qualified("codec", "lm-studio")))
     );
     assert_eq!(
-        field(&lm_reflected, "endpoint"),
+        map_value(&lm_reflected, "endpoint"),
         Some(&Expr::String("http://127.0.0.1:1234/v1".to_owned()))
     );
     assert_eq!(
-        field(&lm_reflected, "locality"),
+        map_value(&lm_reflected, "locality"),
         Some(&Expr::Symbol(Symbol::new("local")))
     );
     assert_eq!(
-        field(&lm_reflected, "model"),
+        map_value(&lm_reflected, "model"),
         Some(&Expr::String("local/default".to_owned()))
     );
     assert!(!capabilities(&lm_reflected).contains(&"ai-runner-secret".to_owned()));
@@ -47,7 +47,7 @@ fn native_local_openai_runners_reflect_provider_defaults() {
     );
     let lm_auth_reflected = as_component(&lm_studio_with_auth).reflect(&mut cx).unwrap();
     assert_eq!(
-        field(&lm_auth_reflected, "api-key-env"),
+        map_value(&lm_auth_reflected, "api-key-env"),
         Some(&Expr::String("LM_STUDIO_API_KEY".to_owned()))
     );
     assert!(capabilities(&lm_auth_reflected).contains(&"ai-runner-secret".to_owned()));
@@ -55,19 +55,19 @@ fn native_local_openai_runners_reflect_provider_defaults() {
     let lemonade = call_runner(&mut cx, "lemonade", Vec::new());
     let lemonade_reflected = as_component(&lemonade).reflect(&mut cx).unwrap();
     assert_eq!(
-        field(&lemonade_reflected, "backend"),
+        map_value(&lemonade_reflected, "backend"),
         Some(&Expr::Symbol(Symbol::new("lemonade")))
     );
     assert_eq!(
-        field(&lemonade_reflected, "codec"),
+        map_value(&lemonade_reflected, "codec"),
         Some(&Expr::Symbol(Symbol::qualified("codec", "lemonade")))
     );
     assert_eq!(
-        field(&lemonade_reflected, "endpoint"),
+        map_value(&lemonade_reflected, "endpoint"),
         Some(&Expr::String("http://127.0.0.1:13305/v1".to_owned()))
     );
     assert_eq!(
-        field(&lemonade_reflected, "locality"),
+        map_value(&lemonade_reflected, "locality"),
         Some(&Expr::Symbol(Symbol::new("local")))
     );
 }
@@ -111,7 +111,7 @@ fn lm_studio_local_only_accepts_loopback_and_rejects_non_loopback() {
     validate_chat_transcript(&expr).unwrap();
     assert!(flatten_text(&expr).contains("lm studio ok"));
     assert_eq!(
-        field(&expr, "provider"),
+        map_value(&expr, "provider"),
         Some(&Expr::Symbol(Symbol::new("lm-studio")))
     );
     server.join().unwrap();
@@ -174,7 +174,7 @@ fn lemonade_runner_accepts_api_v1_base_and_keeps_provider_identity() {
     validate_chat_transcript(&expr).unwrap();
     assert!(flatten_text(&expr).contains("lemonade ok"));
     assert_eq!(
-        field(&expr, "provider"),
+        map_value(&expr, "provider"),
         Some(&Expr::Symbol(Symbol::new("lemonade")))
     );
     server.join().unwrap();
@@ -232,7 +232,7 @@ fn reply_expr(cx: &mut sim_kernel::Cx, frame: &ServerFrame) -> Expr {
         .unwrap()
 }
 
-fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
+fn map_value<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
     let Expr::Map(entries) = expr else {
         return None;
     };
@@ -245,7 +245,7 @@ fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
 }
 
 fn capabilities(expr: &Expr) -> Vec<String> {
-    match field(expr, "capabilities") {
+    match map_value(expr, "capabilities") {
         Some(Expr::List(items)) => items
             .iter()
             .filter_map(|item| match item {
