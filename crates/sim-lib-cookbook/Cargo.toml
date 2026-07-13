@@ -24,7 +24,7 @@ sim-lib-midi-core = { optional = true, version = "0.1.0" }
 sim-lib-agent-runner-core = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-core" }
 sim-lib-binding = { optional = true, version = "0.1.0" }
 sim-lib-control = { optional = true, version = "0.1.0" }
-sim-lib-core = { version = "0.1.0" }
+sim-lib-core = { version = "0.1.2" }
 sim-lib-dispatch = { optional = true, version = "0.1.0" }
 sim-lib-pattern = { optional = true, version = "0.1.0" }
 sim-lib-sequence = { optional = true, version = "0.1.0" }

@@ -24,7 +24,7 @@ sim-lib-agent-runner-core = { version = "0.1.0", path = "../sim-lib-agent-runner
 sim-lib-agent-runner-http = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-http" }
 sim-lib-agent-runner-process = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-process" }
 sim-lib-cookbook = { version = "0.1.0", optional = true, path = "../sim-lib-cookbook" }
-sim-lib-core = { version = "0.1.0" }
+sim-lib-core = { version = "0.1.2" }
 sim-lib-numbers-stats = { version = "0.1.0" }
 sim-lib-rank = { version = "0.1.0" }
 sim-lib-server = { version = "0.1.0", path = "../sim-lib-server" }

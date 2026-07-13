@@ -20,7 +20,7 @@ sim-kernel = { version = "0.1.0" }
 sim-lib-agent = { version = "0.1.0", optional = true, path = "../sim-lib-agent" }
 sim-lib-agent-runner-core = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-core" }
 sim-lib-agent-runner-process = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-process" }
-sim-lib-core = { version = "0.1.0" }
+sim-lib-core = { version = "0.1.2" }
 sim-lib-openai-server = { version = "0.1.0", optional = true, path = "../sim-lib-openai-server" }
 sim-lib-surface-card = { version = "0.1.0" }
 sim-shape = { version = "0.1.0" }
