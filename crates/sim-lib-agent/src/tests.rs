@@ -1,5 +1,7 @@
 mod agent30_recipes;
 mod agent_ai_agent_runner;
+#[cfg(feature = "runner-http")]
+mod agent_ai_anthropic;
 mod agent_ai_cache;
 mod agent_ai_cassette;
 #[cfg(feature = "runner-http")]

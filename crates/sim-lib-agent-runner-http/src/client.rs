@@ -25,7 +25,7 @@ pub(crate) struct HttpRunnerRequest<'a> {
     pub(crate) runner_label: &'a str,
     pub(crate) endpoint: &'a str,
     pub(crate) path: &'a str,
-    pub(crate) bearer_token: Option<&'a str>,
+    pub(crate) headers: Vec<(String, String)>,
     pub(crate) timeout: Duration,
     pub(crate) body: Vec<u8>,
     pub(crate) max_response_bytes: usize,
@@ -308,14 +308,17 @@ fn post_json_with_tls_roots_impl(
     #[cfg(not(feature = "tls"))]
     let mut stream = connect_stream(request.runner_label, &url, stream, secret)?;
     let mut head = format!(
-        "POST {}{} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n",
+        "POST {}{} HTTP/1.1\r\nHost: {}\r\nContent-Length: {}\r\nConnection: close\r\n",
         url.path,
         request.path,
         url.host,
         request.body.len(),
     );
-    if let Some(token) = request.bearer_token {
-        head.push_str(&format!("Authorization: Bearer {token}\r\n"));
+    for (name, value) in &request.headers {
+        head.push_str(name);
+        head.push_str(": ");
+        head.push_str(value);
+        head.push_str("\r\n");
     }
     head.push_str("\r\n");
     write!(stream, "{head}").map_err(|err| host_error(request.runner_label, err, secret))?;

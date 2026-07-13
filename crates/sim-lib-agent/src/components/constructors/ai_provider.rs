@@ -39,6 +39,12 @@ pub(crate) fn runner_openai_value(cx: &mut Cx, args: Args) -> Result<Value> {
     provider_runner_value(cx, config)
 }
 
+pub(crate) fn runner_anthropic_value(cx: &mut Cx, args: Args) -> Result<Value> {
+    let options = parse_component_options(cx, args, "runner/anthropic")?;
+    let config = ProviderConfig::from_options(provider_profiles::anthropic(), cx, &options)?;
+    provider_runner_value(cx, config)
+}
+
 fn provider_profiles_expr() -> Expr {
     Expr::Map(
         provider_profiles::all()

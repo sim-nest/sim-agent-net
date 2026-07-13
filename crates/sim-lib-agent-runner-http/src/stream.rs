@@ -1,4 +1,7 @@
 use serde_json::Value;
+mod anthropic;
+
+use anthropic::AnthropicStreamDecoder;
 use sim_codec_chat::{number_field, text_part};
 use sim_codec_json::{JsonProjectionMode, json_number_to_u64, project_json_to_expr};
 use sim_kernel::{Error, Expr, Result, Symbol};
@@ -7,12 +10,17 @@ use sim_lib_net_core::{LineDecoder, SseEvent};
 
 pub(crate) enum HttpStreamDecoder {
     OpenAi(OpenAiStreamDecoder),
+    Anthropic(AnthropicStreamDecoder),
     Ollama(OllamaStreamDecoder),
 }
 
 impl HttpStreamDecoder {
     pub(crate) fn openai(runner: Symbol, model: String, include_raw: bool) -> Self {
         Self::OpenAi(OpenAiStreamDecoder::new(runner, model, include_raw))
+    }
+
+    pub(crate) fn anthropic(runner: Symbol, model: String, include_raw: bool) -> Self {
+        Self::Anthropic(AnthropicStreamDecoder::new(runner, model, include_raw))
     }
 
     pub(crate) fn ollama(runner: Symbol, model: String, include_raw: bool) -> Self {
@@ -22,6 +30,7 @@ impl HttpStreamDecoder {
     pub(crate) fn start_event(&self) -> ModelEvent {
         match self {
             Self::OpenAi(decoder) => decoder.start_event(),
+            Self::Anthropic(decoder) => decoder.start_event(),
             Self::Ollama(decoder) => decoder.start_event(),
         }
     }
@@ -29,6 +38,7 @@ impl HttpStreamDecoder {
     pub(crate) fn feed(&mut self, bytes: &[u8], sink: &mut dyn ModelEventSink) -> Result<()> {
         match self {
             Self::OpenAi(decoder) => decoder.feed(bytes, sink),
+            Self::Anthropic(decoder) => decoder.feed(bytes, sink),
             Self::Ollama(decoder) => decoder.feed(bytes, sink),
         }
     }
@@ -36,6 +46,7 @@ impl HttpStreamDecoder {
     pub(crate) fn has_stream_output(&self) -> bool {
         match self {
             Self::OpenAi(decoder) => decoder.has_stream_output(),
+            Self::Anthropic(decoder) => decoder.has_stream_output(),
             Self::Ollama(decoder) => decoder.has_stream_output(),
         }
     }
@@ -43,6 +54,7 @@ impl HttpStreamDecoder {
     pub(crate) fn finish(self, sink: &mut dyn ModelEventSink) -> Result<ModelResponse> {
         match self {
             Self::OpenAi(decoder) => decoder.finish(sink),
+            Self::Anthropic(decoder) => decoder.finish(sink),
             Self::Ollama(decoder) => decoder.finish(sink),
         }
     }

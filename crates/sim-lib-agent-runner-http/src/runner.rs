@@ -1,10 +1,12 @@
+use crate::ProviderAuth;
 use crate::client::{HttpRunnerRequest, post_json, post_json_stream};
 use crate::config::ProviderConfig;
 use crate::redact::redact_text;
 use crate::stream::HttpStreamDecoder;
 use sim_codec_chat::{
-    OllamaRequestOptions, OpenAiRequestOptions, decode_ollama_response, decode_ollama_stream,
-    decode_openai_response, encode_ollama_request, encode_openai_request, model_error_expr,
+    AnthropicRequestOptions, OllamaRequestOptions, OpenAiRequestOptions, decode_anthropic_response,
+    decode_anthropic_stream, decode_ollama_response, decode_ollama_stream, decode_openai_response,
+    encode_anthropic_request, encode_ollama_request, encode_openai_request, model_error_expr,
 };
 use sim_kernel::{
     CapabilityName, Cx, Datum, DatumStore, Effect, Error, Expr, Ref, Result, Symbol, core_any_ref,
@@ -26,6 +28,7 @@ pub struct HttpRunner {
     request_path: &'static str,
     endpoint: String,
     api_key_env: Option<String>,
+    auth: ProviderAuth,
     codec: Symbol,
     timeout: Duration,
     stream: bool,
@@ -37,6 +40,7 @@ impl HttpRunner {
     /// Builds a runner from an open provider config without changing the HTTP
     /// transport path.
     pub fn new_provider(config: ProviderConfig) -> Self {
+        let auth = config.profile.auth.clone();
         Self {
             runner: config.runner,
             model: config.model,
@@ -46,6 +50,7 @@ impl HttpRunner {
             request_path: config.profile.chat_path,
             endpoint: config.endpoint,
             api_key_env: config.api_key_env,
+            auth,
             codec: config.codec,
             timeout: config.timeout,
             stream: config.stream,
@@ -69,6 +74,7 @@ impl HttpRunner {
         tools: bool,
         max_response_bytes: usize,
     ) -> Self {
+        let api_key_env = api_key_env.into();
         Self {
             runner,
             model: model.into(),
@@ -77,7 +83,8 @@ impl HttpRunner {
             runner_label: "runner/openai-compatible",
             request_path: "/chat/completions",
             endpoint: endpoint.into(),
-            api_key_env: Some(api_key_env.into()),
+            api_key_env: Some(api_key_env.clone()),
+            auth: ProviderAuth::BearerEnv { env: api_key_env },
             codec,
             timeout,
             stream,
@@ -108,6 +115,7 @@ impl HttpRunner {
             request_path: "/api/chat",
             endpoint: endpoint.into(),
             api_key_env: None,
+            auth: ProviderAuth::None,
             codec,
             timeout,
             stream,
@@ -118,14 +126,15 @@ impl HttpRunner {
 
     fn infer_inner(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
         let include_raw = self.include_raw(cx, &request);
-        let body = self.encode_request(request, self.stream)?;
         let api_key = self.api_key()?;
+        let headers = self.request_headers(api_key.as_deref());
+        let body = self.encode_request(request, self.stream)?;
         let response = post_json(
             HttpRunnerRequest {
                 runner_label: self.runner_label,
                 endpoint: self.endpoint.as_str(),
                 path: self.request_path,
-                bearer_token: api_key.as_deref(),
+                headers,
                 timeout: self.timeout,
                 body,
                 max_response_bytes: self.max_response_bytes,
@@ -147,8 +156,9 @@ impl HttpRunner {
             return Ok(response);
         }
         let include_raw = self.include_raw(cx, &request);
-        let body = self.encode_request(request, true)?;
         let api_key = self.api_key()?;
+        let headers = self.request_headers(api_key.as_deref());
+        let body = self.encode_request(request, true)?;
         let mut decoder = self.stream_decoder(include_raw)?;
         sink.emit(decoder.start_event())?;
         let response = post_json_stream(
@@ -156,7 +166,7 @@ impl HttpRunner {
                 runner_label: self.runner_label,
                 endpoint: self.endpoint.as_str(),
                 path: self.request_path,
-                bearer_token: api_key.as_deref(),
+                headers,
                 timeout: self.timeout,
                 body,
                 max_response_bytes: self.max_response_bytes,
@@ -175,12 +185,23 @@ impl HttpRunner {
 
     fn encode_request(&self, request: ModelRequest, stream: bool) -> Result<Vec<u8>> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
         let request_expr: Expr = request.into();
         if self.codec == openai_codec {
             encode_openai_request(
                 &request_expr,
                 &OpenAiRequestOptions::new(self.model.clone(), stream, self.tools),
+            )
+        } else if self.codec == anthropic_codec {
+            encode_anthropic_request(
+                &request_expr,
+                &AnthropicRequestOptions::new(
+                    self.model.clone(),
+                    DEFAULT_ANTHROPIC_MAX_TOKENS,
+                    stream,
+                    self.tools,
+                ),
             )
         } else if self.codec == ollama_codec {
             encode_ollama_request(
@@ -207,11 +228,42 @@ impl HttpRunner {
         }
     }
 
+    fn request_headers(&self, secret: Option<&str>) -> Vec<(String, String)> {
+        if self.provider == Symbol::new("anthropic")
+            && matches!(self.auth, ProviderAuth::HeaderEnv { .. })
+            && let Some(secret) = secret
+        {
+            return anthropic_headers(secret);
+        }
+
+        let mut headers = vec![content_type_header()];
+        match (&self.auth, secret) {
+            (ProviderAuth::BearerEnv { .. }, Some(secret)) => {
+                headers.push(("Authorization".to_owned(), format!("Bearer {secret}")));
+            }
+            (ProviderAuth::HeaderEnv { header, .. }, Some(secret)) => {
+                headers.push((header.clone(), secret.to_owned()));
+            }
+            _ => {}
+        }
+        if self.provider == Symbol::new("anthropic") {
+            headers.push(("anthropic-version".to_owned(), ANTHROPIC_VERSION.to_owned()));
+        }
+        headers
+    }
+
     fn decode_response(&self, body: &[u8], include_raw: bool) -> Result<ModelResponse> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
         let expr = if self.codec == openai_codec {
             decode_openai_response(self.runner.clone(), &self.model, body, include_raw)?
+        } else if self.codec == anthropic_codec {
+            if self.stream {
+                decode_anthropic_stream(self.runner.clone(), &self.model, body, include_raw)?
+            } else {
+                decode_anthropic_response(self.runner.clone(), &self.model, body, include_raw)?
+            }
         } else if self.codec == ollama_codec {
             if self.stream {
                 decode_ollama_stream(self.runner.clone(), &self.model, body, include_raw)?
@@ -232,9 +284,16 @@ impl HttpRunner {
 
     fn stream_decoder(&self, include_raw: bool) -> Result<HttpStreamDecoder> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
         if self.codec == openai_codec {
             Ok(HttpStreamDecoder::openai(
+                self.runner.clone(),
+                self.model.clone(),
+                include_raw,
+            ))
+        } else if self.codec == anthropic_codec {
+            Ok(HttpStreamDecoder::anthropic(
                 self.runner.clone(),
                 self.model.clone(),
                 include_raw,
@@ -260,6 +319,21 @@ impl HttpRunner {
             message.into(),
         ))
     }
+}
+
+const ANTHROPIC_VERSION: &str = "2023-06-01";
+const DEFAULT_ANTHROPIC_MAX_TOKENS: u64 = 1024;
+
+fn anthropic_headers(secret: &str) -> Vec<(String, String)> {
+    vec![
+        ("x-api-key".to_owned(), secret.to_owned()),
+        ("anthropic-version".to_owned(), ANTHROPIC_VERSION.to_owned()),
+        content_type_header(),
+    ]
+}
+
+fn content_type_header() -> (String, String) {
+    ("content-type".to_owned(), "application/json".to_owned())
 }
 
 fn request_privacy_no_raw(request: &ModelRequest) -> bool {
@@ -403,61 +477,4 @@ fn response_from_ref(cx: &mut Cx, reference: &Ref) -> Result<ModelResponse> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::HttpRunner;
-    use crate::{ProviderConfig, provider_profiles};
-    use sim_kernel::Symbol;
-    use sim_lib_agent_runner_core::ModelRunner;
-    use std::{collections::HashMap, time::Duration};
-
-    #[test]
-    fn new_provider_maps_config_onto_existing_runner_fields() {
-        let profile = provider_profiles::anthropic();
-        let config = ProviderConfig {
-            profile: profile.clone(),
-            runner: Symbol::new("claude"),
-            codec: Symbol::qualified("codec", "anthropic"),
-            endpoint: "https://api.anthropic.com/v1".to_owned(),
-            model: "claude-sonnet-latest".to_owned(),
-            api_key_env: Some("ANTHROPIC_API_KEY".to_owned()),
-            locality: Symbol::new("network"),
-            timeout: Duration::from_secs(45),
-            stream: true,
-            tools: true,
-            max_output_bytes: 8192,
-        };
-
-        let runner = HttpRunner::new_provider(config);
-
-        assert_eq!(runner.runner, Symbol::new("claude"));
-        assert_eq!(runner.model, "claude-sonnet-latest");
-        assert_eq!(runner.provider, Symbol::new("anthropic"));
-        assert_eq!(runner.locality, Symbol::new("network"));
-        assert_eq!(runner.runner_label, "runner/provider");
-        assert_eq!(runner.request_path, "/messages");
-        assert_eq!(runner.endpoint, "https://api.anthropic.com/v1");
-        assert_eq!(runner.api_key_env, Some("ANTHROPIC_API_KEY".to_owned()));
-        assert_eq!(runner.codec, Symbol::qualified("codec", "anthropic"));
-        assert_eq!(runner.timeout, Duration::from_secs(45));
-        assert!(runner.stream);
-        assert!(runner.tools);
-        assert_eq!(runner.max_response_bytes, 8192);
-        assert_eq!(profile.chat_path, "/messages");
-    }
-
-    #[test]
-    fn new_provider_card_uses_provider_and_locality() {
-        let mut cx = sim_kernel::Cx::new(
-            std::sync::Arc::new(sim_kernel::EagerPolicy),
-            std::sync::Arc::new(sim_kernel::DefaultFactory),
-        );
-        let config =
-            ProviderConfig::from_options(provider_profiles::ollama(), &mut cx, &HashMap::new())
-                .unwrap();
-        let card = HttpRunner::new_provider(config).card();
-
-        assert_eq!(card.runner, Symbol::qualified("runner", "ollama"));
-        assert_eq!(card.provider, Symbol::new("ollama"));
-        assert_eq!(card.locality, Symbol::new("local"));
-    }
-}
+mod tests;
