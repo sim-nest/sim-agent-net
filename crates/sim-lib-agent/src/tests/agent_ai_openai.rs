@@ -22,7 +22,7 @@ fn native_openai_runner_posts_json_decodes_usage_and_keeps_tools_enabled() {
         assert!(body.contains("Summarize src/lib.rs"));
         write_response(
             stream,
-            r#"{"id":"chatcmpl-native","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"native ok"}}],"usage":{"prompt_tokens":9,"completion_tokens":2,"total_tokens":11}}"#,
+            r#"{"id":"chatcmpl-native","choices":[{"index":0,"finish_reason":"tool_calls","message":{"role":"assistant","content":"native ok","tool_calls":[{"id":"call_1","type":"function","function":{"name":"lookup_file","arguments":"{\"path\":\"src/lib.rs\"}"}}]}}],"usage":{"prompt_tokens":9,"completion_tokens":2,"total_tokens":11}}"#,
         );
     }) else {
         return;
@@ -48,6 +48,11 @@ fn native_openai_runner_posts_json_decodes_usage_and_keeps_tools_enabled() {
     let expr = reply_expr(&mut cx, &reply);
     validate_chat_transcript(&expr).unwrap();
     assert!(flatten_text(&expr).contains("native ok"));
+    let rendered = format!("{expr:?}");
+    assert!(rendered.contains("tool-call"));
+    assert!(rendered.contains("call_1"));
+    assert!(rendered.contains("lookup_file"));
+    assert!(rendered.contains("src/lib.rs"));
     let usage = field(&expr, "usage").unwrap();
     assert_eq!(number_field(usage, "input-tokens"), Some("9"));
     assert_eq!(number_field(usage, "output-tokens"), Some("2"));
