@@ -2,8 +2,8 @@ use crate::client::{HttpRunnerRequest, post_json, post_json_stream};
 use crate::redact::redact_text;
 use crate::stream::HttpStreamDecoder;
 use sim_codec_chat::{
-    OllamaRequestOptions, decode_ollama_response, decode_ollama_stream, encode_ollama_request,
-    model_error_expr,
+    OllamaRequestOptions, OpenAiRequestOptions, decode_ollama_response, decode_ollama_stream,
+    decode_openai_response, encode_ollama_request, encode_openai_request, model_error_expr,
 };
 use sim_kernel::{
     CapabilityName, Cx, Datum, DatumStore, Effect, Error, Expr, Ref, Result, Symbol, core_any_ref,
@@ -12,7 +12,6 @@ use sim_kernel::{
 use sim_lib_agent_runner_core::{
     ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
 };
-use sim_lib_openai_server::{OpenAiRequestOptions, decode_openai_response, encode_openai_request};
 use std::time::Duration;
 
 /// HTTP-backed [`ModelRunner`] for OpenAI-compatible and Ollama endpoints.

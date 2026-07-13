@@ -36,7 +36,7 @@ impl Lib for OpenAiGatewayLib {
     }
 
     fn load(&self, cx: &mut sim_kernel::LoadCx, linker: &mut Linker<'_>) -> Result<()> {
-        install_openai_codec(linker)?;
+        install_openai_codec(cx, linker)?;
         for function in [
             OpenAiGatewayFunction::serve(),
             OpenAiGatewayFunction::health(),
