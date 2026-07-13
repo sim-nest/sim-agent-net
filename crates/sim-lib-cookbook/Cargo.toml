@@ -18,6 +18,7 @@ sim-codec-algol = { optional = true, version = "0.1.0" }
 sim-config = { version = "0.1.1" }
 sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
+sim-value = { version = "0.1.2" }
 sim-lib-lang-scheme = { optional = true, version = "0.1.0" }
 sim-lib-midi-core = { optional = true, version = "0.1.0" }
 sim-lib-agent-runner-core = { version = "0.1.0", optional = true, path = "../sim-lib-agent-runner-core" }

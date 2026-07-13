@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use sim_config::{ConfigView, EffectiveConfig};
 use sim_cookbook::EmbeddedDir;
 use sim_kernel::{Expr, Symbol};
+use sim_value::access::field_any;
 
 use crate::loadable::{LibFactory, LoadableLibEntry, LoadableLibList};
 
@@ -202,29 +203,15 @@ fn loadable_lib_rows(view: &ConfigView<'_>) -> Vec<LoadableLibConfig> {
         .unwrap_or_default()
         .iter()
         .map(|entry| LoadableLibConfig {
-            id: string_field(entry, "id").unwrap_or_default().to_owned(),
-            source: string_field(entry, "source").unwrap_or_default().to_owned(),
+            id: string_at(entry, "id").unwrap_or_default().to_owned(),
+            source: string_at(entry, "source").unwrap_or_default().to_owned(),
         })
         .collect()
 }
 
-fn string_field<'a>(entry: &'a Expr, key: &str) -> Option<&'a str> {
-    let Expr::Map(entries) = entry else {
-        return None;
-    };
-    entries
-        .iter()
-        .find_map(|(entry_key, value)| key_matches(entry_key, key).then_some(value))
-        .and_then(|value| match value {
-            Expr::String(text) => Some(text.as_str()),
-            _ => None,
-        })
-}
-
-fn key_matches(entry_key: &Expr, expected: &str) -> bool {
-    match entry_key {
-        Expr::Symbol(symbol) if symbol.namespace.is_none() => symbol.name.as_ref() == expected,
-        Expr::String(text) => text == expected,
-        _ => false,
-    }
+fn string_at<'a>(entry: &'a Expr, key: &str) -> Option<&'a str> {
+    field_any(entry, key).and_then(|value| match value {
+        Expr::String(text) => Some(text.as_str()),
+        _ => None,
+    })
 }
