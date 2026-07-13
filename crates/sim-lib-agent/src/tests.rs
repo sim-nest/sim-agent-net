@@ -34,6 +34,7 @@ mod agent_stream_phase9;
 mod agent_swarm;
 mod basics;
 mod components;
+mod config_probe;
 mod fairness;
 mod memory_r15;
 mod multimodal;

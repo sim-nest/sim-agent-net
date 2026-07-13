@@ -1,14 +1,16 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
+use sim_config::{ConfigDir, ConfigLayer, ConfigSource, merge_layers};
 use sim_cookbook::EmbeddedDir;
 use sim_kernel::{
-    AbiVersion, LibManifest, LibTarget, Linker, LoadCx, Result, Symbol, Version, library::Lib,
+    AbiVersion, Expr, LibManifest, LibTarget, Linker, LoadCx, Result, Symbol, Version, library::Lib,
 };
 use sim_test_support::core_cx;
 
 use crate::{
-    ConfigProvider, CookbookConfig, LibCatalog, LoadableLibConfig, LoadableLibList,
-    LoadableLibResolver, ResolvedLoadable,
+    ConfigCookbookProvider, ConfigProvider, CookbookConfig, LibCatalog, LoadableLibConfig,
+    LoadableLibList, LoadableLibResolver, ResolvedLoadable, cookbook_config_from_effective,
+    cookbook_lib_symbol,
 };
 
 struct NamedLib {
@@ -146,6 +148,91 @@ fn minimum_loaded_does_not_force_load() {
     assert!(!LoadableLibList::is_loaded(&cx, "demo/alpha"));
 }
 
+#[test]
+fn effective_config_drives_loadable_directory_without_loading() {
+    let effective = merge_layers(&[ConfigLayer::new(
+        ConfigSource::Explicit {
+            label: "work".to_owned(),
+        },
+        ConfigDir::one(
+            cookbook_lib_symbol(),
+            map(vec![
+                ("minimum_loaded", list(vec![text("demo/alpha")])),
+                (
+                    "loadable_lib",
+                    list(vec![
+                        map(vec![
+                            ("id", text("demo/beta")),
+                            ("source", text("symbol:demo/beta")),
+                        ]),
+                        map(vec![
+                            ("id", text("demo/alpha")),
+                            ("source", text("symbol:demo/alpha")),
+                        ]),
+                    ]),
+                ),
+            ]),
+        )
+        .unwrap(),
+    )]);
+    let provider = ConfigCookbookProvider::new(&effective, &FixtureResolver);
+    let cx = core_cx();
+
+    let (directory, diagnostics) = provider.loadable_libs();
+
+    assert_eq!(provider.minimum_loaded(), ["demo/alpha"]);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    assert_eq!(ids(&directory), ["demo/beta", "demo/alpha"]);
+    assert!(!LoadableLibList::is_loaded(&cx, "demo/alpha"));
+    assert!(!LoadableLibList::is_loaded(&cx, "demo/beta"));
+}
+
+#[test]
+fn home_work_config_can_hide_subset_and_reorder_cookbook_libs() {
+    let home = ConfigLayer::new(
+        ConfigSource::HomeFile {
+            path: PathBuf::from("/tmp/home/libs/sim/cookbook.toml"),
+        },
+        ConfigDir::one(
+            cookbook_lib_symbol(),
+            map(vec![("minimum_loaded", list(vec![text("codec/lisp")]))]),
+        )
+        .unwrap(),
+    );
+    let work = ConfigLayer::new(
+        ConfigSource::WorkFile {
+            path: PathBuf::from("/tmp/work/libs/sim/cookbook.toml"),
+        },
+        ConfigDir::one(
+            cookbook_lib_symbol(),
+            map(vec![(
+                "loadable_lib",
+                list(vec![
+                    map(vec![
+                        ("id", text("demo/beta")),
+                        ("source", text("symbol:demo/beta")),
+                    ]),
+                    map(vec![
+                        ("id", text("demo/alpha")),
+                        ("source", text("symbol:demo/alpha")),
+                    ]),
+                ]),
+            )]),
+        )
+        .unwrap(),
+    );
+    let effective = merge_layers(&[home, work]);
+
+    let config = cookbook_config_from_effective(&effective);
+    let provider = ConfigProvider::new(config, &FixtureResolver);
+    let (directory, diagnostics) = provider.loadable_libs();
+
+    assert_eq!(provider.minimum_loaded(), ["codec/lisp"]);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    assert_eq!(ids(&directory), ["demo/beta", "demo/alpha"]);
+    assert!(directory.entry("numbers/cas").is_none());
+}
+
 #[cfg(feature = "seed-recipes")]
 #[test]
 fn built_in_provider_produces_seeded_directory() {
@@ -162,11 +249,27 @@ fn built_in_provider_produces_seeded_directory() {
     assert!(from_config.entry("codec/algol").is_some());
 }
 
-#[cfg(feature = "seed-recipes")]
 fn ids(directory: &LoadableLibList) -> Vec<&str> {
     directory
         .entries()
         .iter()
         .map(|entry| entry.id.as_str())
         .collect()
+}
+
+fn text(value: &str) -> Expr {
+    Expr::String(value.to_owned())
+}
+
+fn list(items: Vec<Expr>) -> Expr {
+    Expr::List(items)
+}
+
+fn map(entries: Vec<(&str, Expr)>) -> Expr {
+    Expr::Map(
+        entries
+            .into_iter()
+            .map(|(key, value)| (Expr::Symbol(Symbol::new(key)), value))
+            .collect(),
+    )
 }

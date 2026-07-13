@@ -14,7 +14,10 @@ use crate::install_cookbook_lib;
 use crate::ops::{CookbookOp, OpKind};
 use crate::run::run_recipe;
 #[cfg(feature = "seed-recipes")]
-use crate::{install_seeded_cookbook_lib, projected_recipe_store, seeded_recipe_store};
+use crate::{
+    LoadableLibList, install_seeded_cookbook_lib, projected_recipe_store,
+    run_recipe_with_loadable_libs, seeded_recipe_store,
+};
 
 fn setup_cx() -> Cx {
     let mut cx = core_cx();
@@ -107,8 +110,8 @@ fn run_reports_descriptor_on_unresolved_require() {
 
 #[test]
 fn run_recipe_is_denied_without_read_eval() {
-    // The runner gates on read-eval at the lowest level (REVIEW_12 F4), so a
-    // caller that never obtained read-eval cannot drive an eval, even directly.
+    // The runner gates on read-eval at the lowest level, so a caller that never
+    // obtained read-eval cannot drive an eval, even directly.
     let mut cx = setup_cx();
     let book: Vec<(&str, &[u8])> = vec![
         ("book.toml", b"book = \"lisp\"\ntitle = \"Lisp\"\n"),
@@ -219,6 +222,54 @@ fn seeded_loadable_directory_projects_load_cards() {
     assert_eq!(card.book, "cookbook/loadable");
     assert_eq!(card.title, "Load numbers/cas");
     assert!(card.tags.contains(&"cookbook-action:load".to_owned()));
+}
+
+#[cfg(feature = "seed-recipes")]
+#[test]
+fn seeded_loadable_directory_loads_idempotently_and_unloads() {
+    let directory = SeededLibCatalog::loadable_libs();
+    let mut cx = setup_cx();
+    let store = projected_recipe_store(&cx, &directory).unwrap();
+    let load = store.card("cookbook/load/numbers/i64").unwrap();
+
+    let first = run_recipe_with_loadable_libs(&mut cx, &directory, load).unwrap();
+    let second = run_recipe_with_loadable_libs(&mut cx, &directory, load).unwrap();
+    let matching = cx
+        .registry()
+        .libs()
+        .iter()
+        .filter(|loaded| loaded.manifest.id == Symbol::qualified("numbers", "i64"))
+        .count();
+
+    assert!(first.ok, "first load run: {first:?}");
+    assert_eq!(first.results, ["loaded numbers/i64"]);
+    assert!(second.ok, "second load run: {second:?}");
+    assert_eq!(second.results, ["already loaded numbers/i64"]);
+    assert_eq!(matching, 1);
+    assert!(LoadableLibList::is_loaded(&cx, "numbers/i64"));
+
+    let loaded_store = projected_recipe_store(&cx, &directory).unwrap();
+    assert!(loaded_store.card("cookbook/load/numbers/i64").is_none());
+    assert!(
+        loaded_store
+            .card("numbers/i64/01-basics/i64-domain")
+            .is_some()
+    );
+    let unload = loaded_store
+        .card("numbers/i64/cookbook-lifecycle/unload")
+        .unwrap();
+    let unload_run = run_recipe_with_loadable_libs(&mut cx, &directory, unload).unwrap();
+    assert!(unload_run.ok, "unload run: {unload_run:?}");
+    assert_eq!(unload_run.results, ["unloaded numbers/i64"]);
+
+    let restored_store = projected_recipe_store(&cx, &directory).unwrap();
+    assert!(restored_store.card("cookbook/load/numbers/i64").is_some());
+    assert!(
+        restored_store
+            .card("numbers/i64/cookbook-lifecycle/unload")
+            .is_none()
+    );
+    assert!(!LoadableLibList::is_loaded(&cx, "numbers/i64"));
 }
 
 #[cfg(feature = "seed-recipes")]
