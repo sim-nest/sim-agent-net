@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use sim_kernel::{
-    Cx, Datum, DatumStore, DefaultFactory, Event, EventKind, Expr, NoopEvalPolicy, ObserveMode,
-    Ref, Symbol, Term,
+    Cx, Datum, DatumStore, DefaultFactory, Error, Event, EventKind, Expr, NoopEvalPolicy,
+    ObserveMode, Ref, Symbol, Term, read_eval_capability,
 };
 use sim_lib_rank::order_score::rank_frontier_data_kind;
 use sim_lib_rank::{Nat, RankFrontier, RankFrontierPayload, ScoredOrdinal};
@@ -150,6 +150,32 @@ fn legacy_packet_chunk_frames_still_decode() {
     let remote = stream_frames_to_stream(&mut cx, &[start, chunk]).unwrap();
 
     assert_midi_packets(remote.take_packets(8).unwrap(), 1);
+}
+
+#[test]
+fn remote_stream_chunk_payload_rejects_read_eval() {
+    let mut cx = cx();
+    let start = stream_frame_from_expr(
+        &mut cx,
+        lisp_codec(),
+        FrameKind::StreamStart,
+        &data_metadata("stream/read-eval-denied").table_expr(),
+        FrameEnvelope::default(),
+    )
+    .unwrap();
+    let chunk = ServerFrame::new(
+        lisp_codec(),
+        FrameKind::StreamChunk,
+        FrameEnvelope::default(),
+        b"#. 1".to_vec(),
+    );
+
+    let err = match stream_frames_to_stream(&mut cx, &[start, chunk]) {
+        Ok(_) => panic!("read-eval stream chunk unexpectedly decoded"),
+        Err(err) => err,
+    };
+
+    assert_read_eval_denied(err);
 }
 
 #[test]
@@ -595,6 +621,13 @@ fn assert_limit_diagnostic(limits: StreamFrameLimits, expected_message: &str) {
         .unwrap_or_else(|| panic!("expected limit diagnostic packet"));
     assert_eq!(packet.kind(), &stream_limit_diagnostic_kind());
     assert!(packet.message().contains(expected_message));
+}
+
+fn assert_read_eval_denied(error: Error) {
+    assert!(
+        matches!(error, Error::CapabilityDenied { ref capability } if capability == &read_eval_capability()),
+        "expected read-eval denial, got {error:?}",
+    );
 }
 
 fn chunk_event_from_expr(cx: &mut Cx, expr: Expr) -> Event {

@@ -2,8 +2,10 @@ use super::support::{
     as_component, eval_cx, flatten_text, install_agent_lib, install_roundtrip_codecs, request_frame,
 };
 use crate::tools::{Tool, register_tool};
-use sim_kernel::{Args, Cx, Expr, Object, Result, Symbol, Value};
-use sim_lib_server::{EvalSite, ServerAddress, eval_reply_from_frame};
+use sim_kernel::{Args, Cx, Error, Expr, Object, Result, Symbol, Value, read_eval_capability};
+use sim_lib_server::{
+    EvalSite, FrameEnvelope, FrameKind, ServerAddress, ServerFrame, eval_reply_from_frame,
+};
 use sim_shape::{AnyShape, shape_value};
 use std::{any::Any, sync::Arc};
 
@@ -168,6 +170,39 @@ fn r12_router_bid_runs_real_auction_and_picks_best_worker() {
         Expr::Symbol(Symbol::qualified("test", "cheap-bid"))
     );
     assert_eq!(map_number_field(&expr, "bid"), 3.0);
+}
+
+#[test]
+fn r12_router_sticky_rejects_read_eval_payloads_before_routing() {
+    let mut cx = eval_cx();
+    install_roundtrip_codecs(&mut cx);
+    install_agent_lib(&mut cx).unwrap();
+    let router = cx
+        .call_function(
+            &Symbol::qualified("router", "sticky"),
+            Args::new(vec![
+                cx.factory().symbol(Symbol::new(":targets")).unwrap(),
+                cx.factory()
+                    .expr(Expr::List(vec![
+                        Expr::Symbol(Symbol::qualified("test", "first")),
+                        Expr::Symbol(Symbol::qualified("test", "second")),
+                    ]))
+                    .unwrap(),
+                cx.factory().symbol(Symbol::new(":sticky-key")).unwrap(),
+                cx.factory().symbol(Symbol::new("session")).unwrap(),
+            ]),
+        )
+        .unwrap();
+    let frame = ServerFrame::new(
+        Symbol::qualified("codec", "lisp"),
+        FrameKind::Request,
+        FrameEnvelope::default(),
+        b"#. 1".to_vec(),
+    );
+
+    let err = as_component(&router).answer(&mut cx, frame).unwrap_err();
+
+    assert_read_eval_denied(err);
 }
 
 #[test]
@@ -355,6 +390,13 @@ fn map_has_key(expr: &Expr, key: &str) -> bool {
     entries.iter().any(
         |(entry_key, _)| matches!(entry_key, Expr::Symbol(symbol) if symbol.name.as_ref() == key),
     )
+}
+
+fn assert_read_eval_denied(error: Error) {
+    assert!(
+        matches!(error, Error::CapabilityDenied { ref capability } if capability == &read_eval_capability()),
+        "expected read-eval denial, got {error:?}",
+    );
 }
 
 fn number_expr(value: f64) -> Expr {
