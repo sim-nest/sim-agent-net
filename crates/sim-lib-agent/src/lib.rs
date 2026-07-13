@@ -17,6 +17,7 @@ mod agents;
 pub mod atelier;
 mod cli;
 mod components;
+mod config_probe;
 #[cfg(feature = "cookbook")]
 mod cookbook_tools;
 mod embed;
@@ -90,6 +91,10 @@ pub(crate) use components::{
     AgentComponent, ComponentBackend, RecorderBackend, capabilities_option, component_kind_symbol,
     maybe_f64_option, maybe_u32_option, parse_component_options, path_option, string_option,
     symbol_option,
+};
+pub use config_probe::{
+    AgentModelConfigProbe, AgentModelProviderPresence, agent_model_config_probe_symbol,
+    model_defaults_config_lib_symbol,
 };
 pub(crate) use embed::{cosine, embed};
 pub use fairness::*;
