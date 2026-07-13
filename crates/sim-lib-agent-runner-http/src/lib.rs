@@ -15,7 +15,7 @@ mod stream;
 pub use config::ProviderConfig;
 pub use probe::{
     HttpProbeTransport, ProbeHttpRequest, ProbeHttpResponse, ProbeStatus, ProbeTransport,
-    ProviderProbeReport, probe_provider,
+    ProviderProbeReport, parse_ollama_tags, probe_provider,
 };
 pub use provider::{
     ProviderAuth, ProviderProfile, anthropic_profile, lemonade_profile, lm_studio_profile,

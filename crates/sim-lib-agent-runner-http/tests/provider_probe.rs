@@ -1,7 +1,7 @@
 use sim_kernel::{Error, Result, Symbol};
 use sim_lib_agent_runner_http::{
     ProbeHttpRequest, ProbeHttpResponse, ProbeStatus, ProbeTransport, ProviderAuth, ProviderConfig,
-    ProviderProfile, probe_provider, provider_profiles,
+    ProviderProfile, parse_ollama_tags, probe_provider, provider_profiles,
 };
 use sim_lib_net_core::HttpHead;
 use std::{sync::Mutex, time::Duration};
@@ -96,14 +96,18 @@ fn provider_probe_reports_malformed_json_for_every_provider() {
 
         assert_eq!(report.status, ProbeStatus::Unavailable, "{provider}");
         assert!(report.models.is_empty(), "{provider}");
-        assert!(
-            report
-                .reason
-                .as_deref()
-                .is_some_and(|reason| reason.contains("malformed model list json")),
-            "{provider}: {:?}",
-            report.reason
-        );
+        let reason = report.reason.as_deref().unwrap_or_default();
+        if provider == Symbol::new("ollama") {
+            assert!(
+                reason.contains("ollama tags invalid json"),
+                "{provider}: {reason}"
+            );
+        } else {
+            assert!(
+                reason.contains("malformed model list json"),
+                "{provider}: {reason}"
+            );
+        }
     }
 }
 
@@ -144,6 +148,13 @@ fn provider_probe_redacts_transport_errors() {
     let reason = report.reason.unwrap();
     assert!(!reason.contains(&secret));
     assert!(reason.contains("[REDACTED]"));
+}
+
+#[test]
+fn parse_ollama_tags_extracts_model_names() {
+    let models = parse_ollama_tags(OLLAMA_MODELS.as_bytes()).unwrap();
+
+    assert_eq!(models, vec!["llama3:8b", "qwen3:4b"]);
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

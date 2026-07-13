@@ -3,6 +3,8 @@ mod ai;
 mod ai_process;
 #[cfg(feature = "runner-http")]
 mod ai_provider;
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+mod ai_provider_runner;
 mod interaction;
 mod interaction_support;
 mod io;

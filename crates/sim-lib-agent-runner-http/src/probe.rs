@@ -228,17 +228,24 @@ fn secret_from_env(env: &str) -> Option<String> {
     }
 }
 
+/// Parses an Ollama `/api/tags` response into the provider model names it
+/// advertises.
+pub fn parse_ollama_tags(body: &[u8]) -> Result<Vec<String>> {
+    let value: serde_json::Value = serde_json::from_slice(body)
+        .map_err(|error| Error::Eval(format!("ollama tags invalid json: {error}")))?;
+    parse_ollama_models(&value).map_err(Error::Eval)
+}
+
 fn parse_provider_models(
     provider: &Symbol,
     body: &[u8],
 ) -> std::result::Result<Vec<String>, String> {
+    if provider == &Symbol::new("ollama") {
+        return parse_ollama_tags(body).map_err(|error| error.to_string());
+    }
     let value: serde_json::Value = serde_json::from_slice(body)
         .map_err(|error| format!("malformed model list json: {error}"))?;
-    if provider == &Symbol::new("ollama") {
-        parse_ollama_models(&value)
-    } else {
-        parse_openai_style_models(&value)
-    }
+    parse_openai_style_models(&value)
 }
 
 fn parse_openai_style_models(
