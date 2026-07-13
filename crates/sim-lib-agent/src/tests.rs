@@ -16,6 +16,8 @@ mod agent_ai_privacy;
 mod agent_ai_privacy_http;
 #[cfg(feature = "runner-process")]
 mod agent_ai_process;
+#[cfg(feature = "runner-http")]
+mod agent_ai_provider_probe;
 mod agent_ai_shape;
 mod agent_ai_stream;
 mod agent_ai_stream_phase4;

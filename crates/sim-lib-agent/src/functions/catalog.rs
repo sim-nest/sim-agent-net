@@ -126,6 +126,16 @@ pub(super) static AGENT_FUNCTIONS: LazyLock<Vec<(Symbol, AgentFnKind)>> = LazyLo
         (Symbol::new("model-policy"), AgentFnKind::ModelPolicy),
         #[cfg(feature = "runner-http")]
         (
+            Symbol::qualified("provider", "profiles"),
+            AgentFnKind::ProviderProfiles,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("provider", "probe"),
+            AgentFnKind::ProviderProbe,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
             Symbol::qualified("runner", "openai-compatible"),
             AgentFnKind::RunnerOpenAiCompatible,
         ),

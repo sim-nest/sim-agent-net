@@ -16,8 +16,6 @@ mod runtime;
 pub(crate) use agent_runner::{runner_agent_value, runner_debate_value};
 #[cfg(feature = "runner-ollama")]
 pub(crate) use constructors::runner_ollama_value;
-#[cfg(feature = "runner-http")]
-pub(crate) use constructors::runner_openai_compatible_value;
 #[cfg(feature = "runner-process")]
 pub(crate) use constructors::runner_process_value;
 pub(crate) use constructors::{
@@ -29,6 +27,10 @@ pub(crate) use constructors::{
     runner_cassette_value, runner_echo_value, runner_fake_value,
     sandbox_capability_restricted_value, sandbox_subprocess_value, sandbox_wasm_value,
     voice_stt_value, voice_tts_value,
+};
+#[cfg(feature = "runner-http")]
+pub(crate) use constructors::{
+    provider_probe_value, provider_profiles_value, runner_openai_compatible_value,
 };
 pub(crate) use market::{
     model_policy_value, runner_card_value, runner_cards_value, runner_health_value,

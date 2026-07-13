@@ -6,12 +6,17 @@
 
 mod client;
 mod config;
+mod probe;
 mod provider;
 mod redact;
 mod runner;
 mod stream;
 
 pub use config::ProviderConfig;
+pub use probe::{
+    HttpProbeTransport, ProbeHttpRequest, ProbeHttpResponse, ProbeStatus, ProbeTransport,
+    ProviderProbeReport, probe_provider,
+};
 pub use provider::{
     ProviderAuth, ProviderProfile, anthropic_profile, lemonade_profile, lm_studio_profile,
     ollama_profile, openai_compatible_profile, openai_profile, provider_profiles,

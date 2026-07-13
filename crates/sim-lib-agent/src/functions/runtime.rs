@@ -11,8 +11,6 @@ use crate::agents::{
 };
 #[cfg(feature = "runner-ollama")]
 use crate::components::runner_ollama_value;
-#[cfg(feature = "runner-http")]
-use crate::components::runner_openai_compatible_value;
 #[cfg(feature = "runner-process")]
 use crate::components::runner_process_value;
 use crate::components::{
@@ -25,6 +23,10 @@ use crate::components::{
     runner_debate_value, runner_echo_value, runner_fake_value, runner_health_value,
     runner_market_value, runner_place_value, sandbox_capability_restricted_value,
     sandbox_subprocess_value, sandbox_wasm_value, voice_stt_value, voice_tts_value,
+};
+#[cfg(feature = "runner-http")]
+use crate::components::{
+    provider_probe_value, provider_profiles_value, runner_openai_compatible_value,
 };
 use crate::memory::{
     memory_append_value, memory_blackboard_value, memory_file_value, memory_persona_value,
@@ -87,6 +89,10 @@ pub(crate) enum AgentFnKind {
     ModelSites,
     ModelSiteCard,
     ModelPolicy,
+    #[cfg(feature = "runner-http")]
+    ProviderProfiles,
+    #[cfg(feature = "runner-http")]
+    ProviderProbe,
     #[cfg(feature = "runner-http")]
     RunnerOpenAiCompatible,
     #[cfg(feature = "runner-ollama")]
@@ -254,6 +260,10 @@ fn dispatch_value_call(kind: AgentFnKind, cx: &mut Cx, args: Args) -> Result<Val
         AgentFnKind::ModelSites => crate::components::model_sites_value(cx, args),
         AgentFnKind::ModelSiteCard => crate::components::model_site_card_value(cx, args),
         AgentFnKind::ModelPolicy => crate::components::model_policy_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::ProviderProfiles => provider_profiles_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::ProviderProbe => provider_probe_value(cx, args),
         #[cfg(feature = "runner-http")]
         AgentFnKind::RunnerOpenAiCompatible => runner_openai_compatible_value(cx, args),
         #[cfg(feature = "runner-ollama")]
