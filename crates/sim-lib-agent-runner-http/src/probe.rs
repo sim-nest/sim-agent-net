@@ -51,21 +51,21 @@ impl ProviderProbeReport {
     /// Converts this report to table-visible expression data.
     pub fn to_expr(&self) -> Expr {
         Expr::Map(vec![
-            symbol_field("provider", Expr::Symbol(self.provider.clone())),
-            symbol_field("endpoint", Expr::String(self.endpoint.clone())),
-            symbol_field("status", Expr::Symbol(self.status.as_symbol())),
-            symbol_field(
+            map_entry("provider", Expr::Symbol(self.provider.clone())),
+            map_entry("endpoint", Expr::String(self.endpoint.clone())),
+            map_entry("status", Expr::Symbol(self.status.as_symbol())),
+            map_entry(
                 "models",
                 Expr::List(self.models.iter().cloned().map(Expr::String).collect()),
             ),
-            symbol_field(
+            map_entry(
                 "reason",
                 self.reason
                     .as_ref()
                     .map(|reason| Expr::String(reason.clone()))
                     .unwrap_or(Expr::Nil),
             ),
-            symbol_field("redacted", Expr::Bool(self.redacted)),
+            map_entry("redacted", Expr::Bool(self.redacted)),
         ])
     }
 }
@@ -273,6 +273,6 @@ fn redact_error(error: Error, secrets: &[String]) -> String {
     redact_text(&text, &secret_refs)
 }
 
-fn symbol_field(name: &str, value: Expr) -> (Expr, Expr) {
+fn map_entry(name: &str, value: Expr) -> (Expr, Expr) {
     (Expr::Symbol(Symbol::new(name)), value)
 }

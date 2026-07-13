@@ -44,22 +44,22 @@ fn provider_profiles_expr() -> Expr {
 
 fn provider_profile_expr(profile: &ProviderProfile) -> Expr {
     Expr::Map(vec![
-        expr_field("provider", Expr::Symbol(profile.provider.clone())),
-        expr_field("runner", Expr::Symbol(profile.runner_symbol.clone())),
-        expr_field("codec", Expr::Symbol(profile.codec.clone())),
-        expr_field("endpoint", Expr::String(profile.default_endpoint.clone())),
-        expr_field("models-path", Expr::String(profile.models_path.to_owned())),
-        expr_field("chat-path", Expr::String(profile.chat_path.to_owned())),
-        expr_field("auth", provider_auth_expr(&profile.auth)),
-        expr_field("locality", Expr::Symbol(profile.default_locality.clone())),
-        expr_field("model", Expr::String(profile.default_model.clone())),
-        expr_field(
+        map_entry("provider", Expr::Symbol(profile.provider.clone())),
+        map_entry("runner", Expr::Symbol(profile.runner_symbol.clone())),
+        map_entry("codec", Expr::Symbol(profile.codec.clone())),
+        map_entry("endpoint", Expr::String(profile.default_endpoint.clone())),
+        map_entry("models-path", Expr::String(profile.models_path.to_owned())),
+        map_entry("chat-path", Expr::String(profile.chat_path.to_owned())),
+        map_entry("auth", provider_auth_expr(&profile.auth)),
+        map_entry("locality", Expr::Symbol(profile.default_locality.clone())),
+        map_entry("model", Expr::String(profile.default_model.clone())),
+        map_entry(
             "timeout-ms",
             number_expr(profile.default_timeout.as_millis()),
         ),
-        expr_field("stream", Expr::Bool(profile.default_stream)),
-        expr_field("tools", Expr::Bool(profile.default_tools)),
-        expr_field(
+        map_entry("stream", Expr::Bool(profile.default_stream)),
+        map_entry("tools", Expr::Bool(profile.default_tools)),
+        map_entry(
             "max-output-bytes",
             number_expr(profile.default_max_output_bytes),
         ),
@@ -68,17 +68,15 @@ fn provider_profile_expr(profile: &ProviderProfile) -> Expr {
 
 fn provider_auth_expr(auth: &ProviderAuth) -> Expr {
     match auth {
-        ProviderAuth::None => {
-            Expr::Map(vec![expr_field("kind", Expr::Symbol(Symbol::new("none")))])
-        }
+        ProviderAuth::None => Expr::Map(vec![map_entry("kind", Expr::Symbol(Symbol::new("none")))]),
         ProviderAuth::BearerEnv { env } => Expr::Map(vec![
-            expr_field("kind", Expr::Symbol(Symbol::new("bearer-env"))),
-            expr_field("env", Expr::String(env.clone())),
+            map_entry("kind", Expr::Symbol(Symbol::new("bearer-env"))),
+            map_entry("env", Expr::String(env.clone())),
         ]),
         ProviderAuth::HeaderEnv { header, env } => Expr::Map(vec![
-            expr_field("kind", Expr::Symbol(Symbol::new("header-env"))),
-            expr_field("header", Expr::String(header.clone())),
-            expr_field("env", Expr::String(env.clone())),
+            map_entry("kind", Expr::Symbol(Symbol::new("header-env"))),
+            map_entry("header", Expr::String(header.clone())),
+            map_entry("env", Expr::String(env.clone())),
         ]),
     }
 }
@@ -122,7 +120,7 @@ fn require_provider_probe_capabilities(cx: &Cx, config: &ProviderConfig) -> Resu
     Ok(())
 }
 
-fn expr_field(name: &str, value: Expr) -> (Expr, Expr) {
+fn map_entry(name: &str, value: Expr) -> (Expr, Expr) {
     (Expr::Symbol(Symbol::new(name)), value)
 }
 
