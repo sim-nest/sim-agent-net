@@ -8,6 +8,8 @@ mod agent_ai_market;
 mod agent_ai_market_phase7;
 #[cfg(feature = "runner-ollama")]
 mod agent_ai_ollama;
+#[cfg(feature = "runner-http")]
+mod agent_ai_openai;
 mod agent_ai_placement;
 mod agent_ai_placement_cache;
 mod agent_ai_placement_swap;

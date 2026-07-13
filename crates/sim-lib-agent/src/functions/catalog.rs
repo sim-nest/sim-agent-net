@@ -139,6 +139,11 @@ pub(super) static AGENT_FUNCTIONS: LazyLock<Vec<(Symbol, AgentFnKind)>> = LazyLo
             Symbol::qualified("runner", "openai-compatible"),
             AgentFnKind::RunnerOpenAiCompatible,
         ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("runner", "openai"),
+            AgentFnKind::RunnerOpenAi,
+        ),
         #[cfg(feature = "runner-ollama")]
         (
             Symbol::qualified("runner", "ollama"),

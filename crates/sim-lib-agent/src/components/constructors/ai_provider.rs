@@ -1,14 +1,19 @@
-use super::super::options::parse_component_options;
+use super::super::{
+    model::{AgentComponent, ComponentBackend, RunnerBackend, component_value},
+    options::parse_component_options,
+};
 use crate::{
     AI_RUNNER_CAPABILITY, AI_RUNNER_LOCAL_CAPABILITY, AI_RUNNER_NETWORK_CAPABILITY,
-    AI_RUNNER_SECRET_CAPABILITY,
+    AI_RUNNER_SECRET_CAPABILITY, ComponentKind, util::installed_codecs,
 };
 use sim_kernel::{Args, CapabilityName, Cx, Error, Expr, NumberLiteral, Result, Symbol, Value};
 use sim_lib_agent_runner_http::{
-    HttpProbeTransport, ProviderAuth, ProviderConfig, ProviderProfile, probe_provider,
+    HttpProbeTransport, HttpRunner, ProviderAuth, ProviderConfig, ProviderProfile, probe_provider,
     provider_profiles,
 };
+use sim_lib_server::ServerAddress;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 pub(crate) fn provider_profiles_value(cx: &mut Cx, args: Args) -> Result<Value> {
     if !args.values().is_empty() {
@@ -26,6 +31,12 @@ pub(crate) fn provider_probe_value(cx: &mut Cx, args: Args) -> Result<Value> {
     require_provider_probe_capabilities(cx, &config)?;
     let report = probe_provider(&HttpProbeTransport, &config)?;
     crate::value_from_expr(cx, &report.to_expr())
+}
+
+pub(crate) fn runner_openai_value(cx: &mut Cx, args: Args) -> Result<Value> {
+    let options = parse_component_options(cx, args, "runner/openai")?;
+    let config = ProviderConfig::from_options(provider_profiles::openai(), cx, &options)?;
+    provider_runner_value(cx, config)
 }
 
 fn provider_profiles_expr() -> Expr {
@@ -118,6 +129,82 @@ fn require_provider_probe_capabilities(cx: &Cx, config: &ProviderConfig) -> Resu
         cx.require(&CapabilityName::new(AI_RUNNER_SECRET_CAPABILITY))?;
     }
     Ok(())
+}
+
+fn provider_runner_value(cx: &mut Cx, config: ProviderConfig) -> Result<Value> {
+    let symbol = config.runner.clone();
+    let capabilities = provider_runner_capabilities(&config);
+    let spec = provider_runner_spec(&config);
+    component_value(
+        cx,
+        AgentComponent {
+            symbol,
+            kind: ComponentKind::Runner,
+            capabilities,
+            address: ServerAddress::Local,
+            codecs: installed_codecs(cx),
+            spec,
+            backend: ComponentBackend::Runner(RunnerBackend::External {
+                runner: Arc::new(HttpRunner::new_provider(config)),
+            }),
+        },
+    )
+}
+
+fn provider_runner_capabilities(config: &ProviderConfig) -> Vec<CapabilityName> {
+    let mut capabilities = vec![CapabilityName::new(AI_RUNNER_CAPABILITY)];
+    if config.locality == Symbol::new("local") {
+        capabilities.push(CapabilityName::new(AI_RUNNER_LOCAL_CAPABILITY));
+    } else {
+        capabilities.push(CapabilityName::new(AI_RUNNER_NETWORK_CAPABILITY));
+    }
+    if config.api_key_env.is_some() {
+        capabilities.push(CapabilityName::new(AI_RUNNER_SECRET_CAPABILITY));
+    }
+    capabilities
+}
+
+fn provider_runner_spec(config: &ProviderConfig) -> Vec<(Symbol, Expr)> {
+    let mut spec = vec![
+        (
+            Symbol::new("backend"),
+            Expr::Symbol(config.profile.provider.clone()),
+        ),
+        (
+            Symbol::new("provider"),
+            Expr::Symbol(config.profile.provider.clone()),
+        ),
+        (
+            Symbol::new("locality"),
+            Expr::Symbol(config.locality.clone()),
+        ),
+        (Symbol::new("model"), Expr::String(config.model.clone())),
+        (
+            Symbol::new("endpoint"),
+            Expr::String(config.endpoint.clone()),
+        ),
+        (Symbol::new("codec"), Expr::Symbol(config.codec.clone())),
+        (
+            Symbol::new("timeout"),
+            Expr::String(format!("{}ms", config.timeout.as_millis())),
+        ),
+        (Symbol::new("stream"), Expr::Bool(config.stream)),
+        (Symbol::new("tools"), Expr::Bool(config.tools)),
+        (
+            Symbol::new("max-output-bytes"),
+            Expr::Number(NumberLiteral {
+                domain: Symbol::qualified("numbers", "f64"),
+                canonical: config.max_output_bytes.to_string(),
+            }),
+        ),
+    ];
+    if let Some(api_key_env) = &config.api_key_env {
+        spec.push((
+            Symbol::new("api-key-env"),
+            Expr::String(api_key_env.clone()),
+        ));
+    }
+    spec
 }
 
 fn map_entry(name: &str, value: Expr) -> (Expr, Expr) {
