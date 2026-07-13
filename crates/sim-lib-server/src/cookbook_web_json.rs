@@ -1,4 +1,6 @@
 use sim_cookbook::{RecipeCard, RecipeRun, RecipeStore, grouped_view, ordered_cards, search, view};
+use sim_kernel::Cx;
+use sim_lib_cookbook::{LifecycleAction, LoadableLibList, lifecycle_action};
 
 pub(crate) fn render_error_json(message: &str) -> String {
     let mut body = String::from("{\"error\":");
@@ -7,16 +9,16 @@ pub(crate) fn render_error_json(message: &str) -> String {
     body
 }
 
-pub(crate) fn render_index_json(store: &RecipeStore) -> String {
+pub(crate) fn render_index_json(cx: &Cx, store: &RecipeStore, diagnostics: &[String]) -> String {
     // `books` keeps the flat book -> chapter -> recipe tree (back-compat);
-    // `families` adds the COOK8.00 two-level grouping (family -> domain book ->
-    // chapter -> recipe) so the whole catalog browses by subsystem; `recipes` is
-    // the flat ordered list for search-free listing.
+    // `families` adds the two-level grouping (family -> domain book -> chapter
+    // -> recipe), and `recipes` is the flat ordered list for search-free
+    // listing.
     let mut out = String::from("{\"books\":[");
     let cookbook = view(store);
     for (book_index, book) in cookbook.books.iter().enumerate() {
         comma(&mut out, book_index);
-        push_book(&mut out, book);
+        push_book(&mut out, cx, book);
     }
     out.push_str("],\"families\":[");
     for (family_index, family) in grouped_view(store).families.iter().enumerate() {
@@ -26,20 +28,22 @@ pub(crate) fn render_index_json(store: &RecipeStore) -> String {
         out.push_str(",\"books\":[");
         for (book_index, book) in family.books.iter().enumerate() {
             comma(&mut out, book_index);
-            push_book(&mut out, book);
+            push_book(&mut out, cx, book);
         }
         out.push_str("]}");
     }
-    out.push_str("],\"recipes\":[");
+    out.push_str("],\"diagnostics\":");
+    push_json_array(&mut out, diagnostics);
+    out.push_str(",\"recipes\":[");
     for (index, card) in ordered_cards(store).iter().enumerate() {
         comma(&mut out, index);
-        push_recipe_summary(&mut out, card);
+        push_recipe_summary(&mut out, cx, card);
     }
     out.push_str("]}");
     out
 }
 
-fn push_book(out: &mut String, book: &sim_cookbook::BookView) {
+fn push_book(out: &mut String, cx: &Cx, book: &sim_cookbook::BookView) {
     out.push_str("{\"id\":");
     push_json_str(out, &book.id);
     out.push_str(",\"title\":");
@@ -54,26 +58,26 @@ fn push_book(out: &mut String, book: &sim_cookbook::BookView) {
         out.push_str(",\"recipes\":[");
         for (recipe_index, recipe) in chapter.recipes.iter().enumerate() {
             comma(out, recipe_index);
-            push_recipe_summary(out, recipe);
+            push_recipe_summary(out, cx, recipe);
         }
         out.push_str("]}");
     }
     out.push_str("]}");
 }
 
-pub(crate) fn render_search_json(store: &RecipeStore, query: &str) -> String {
+pub(crate) fn render_search_json(cx: &Cx, store: &RecipeStore, query: &str) -> String {
     let mut out = String::from("{\"query\":");
     push_json_str(&mut out, query);
     out.push_str(",\"recipes\":[");
     for (index, card) in search(store, query).iter().enumerate() {
         comma(&mut out, index);
-        push_recipe_summary(&mut out, card);
+        push_recipe_summary(&mut out, cx, card);
     }
     out.push_str("]}");
     out
 }
 
-pub(crate) fn render_recipe_json(store: &RecipeStore, card: &RecipeCard) -> String {
+pub(crate) fn render_recipe_json(cx: &Cx, store: &RecipeStore, card: &RecipeCard) -> String {
     let mut out = String::from("{\"id\":");
     push_json_str(&mut out, &card.id);
     out.push_str(",\"title\":");
@@ -98,6 +102,7 @@ pub(crate) fn render_recipe_json(store: &RecipeStore, card: &RecipeCard) -> Stri
     } else {
         out.push_str("null");
     }
+    push_lifecycle_fields(&mut out, cx, card);
     out.push('}');
     out
 }
@@ -128,7 +133,7 @@ pub(crate) fn render_run_json(run: &RecipeRun) -> String {
     out
 }
 
-fn push_recipe_summary(out: &mut String, card: &RecipeCard) {
+fn push_recipe_summary(out: &mut String, cx: &Cx, card: &RecipeCard) {
     out.push_str("{\"id\":");
     push_json_str(out, &card.id);
     out.push_str(",\"title\":");
@@ -137,14 +142,36 @@ fn push_recipe_summary(out: &mut String, card: &RecipeCard) {
     push_json_str(out, &card.book);
     out.push_str(",\"chapter\":");
     push_json_str(out, &card.chapter);
-    // COOK8.00 badge: a recipe tagged `sandbox-descriptor` is a documented
-    // descriptor (its live result is not reproducible in the sandbox); every
-    // other recipe is runnable. The badge mirrors the `cookbook-lint`
-    // classification so the webui can label leaves honestly.
+    // A `sandbox-descriptor` recipe documents a descriptor whose live result is
+    // not reproducible in the sandbox; every other recipe is runnable.
     out.push_str(",\"runnable\":");
     let runnable = !card.tags.iter().any(|t| t == "sandbox-descriptor");
     out.push_str(if runnable { "true" } else { "false" });
+    push_lifecycle_fields(out, cx, card);
     out.push('}');
+}
+
+fn push_lifecycle_fields(out: &mut String, cx: &Cx, card: &RecipeCard) {
+    let lifecycle = lifecycle_action(card);
+    let action = lifecycle.as_ref().map(|(action, _)| *action);
+    let lib = lifecycle
+        .as_ref()
+        .map(|(_, lib)| lib.as_str())
+        .unwrap_or(card.book.as_str());
+    out.push_str(",\"action\":");
+    match action {
+        Some(LifecycleAction::Load) => push_json_str(out, "load"),
+        Some(LifecycleAction::Unload) => push_json_str(out, "unload"),
+        None => out.push_str("null"),
+    }
+    out.push_str(",\"lib\":");
+    push_json_str(out, lib);
+    out.push_str(",\"loaded\":");
+    out.push_str(if LoadableLibList::is_loaded(cx, lib) {
+        "true"
+    } else {
+        "false"
+    });
 }
 
 fn push_json_array(out: &mut String, items: &[String]) {

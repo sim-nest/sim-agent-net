@@ -1,6 +1,8 @@
-use sim_cookbook::{RecipeCard, RecipeStore, next, ordered_cards, view};
+use sim_cookbook::{EmbeddedDir, RecipeCard, RecipeStore, next, ordered_cards, view};
 use sim_kernel::{Cx, Result};
-use sim_lib_cookbook::{SeededLibCatalog, run_recipe_with_catalog, seeded_recipe_store};
+use sim_lib_cookbook::{
+    LoadableLibList, SeededLibCatalog, projected_recipe_store, run_recipe_with_loadable_libs,
+};
 
 use crate::cookbook_web_json::{
     render_error_json, render_index_json, render_recipe_json, render_run_json, render_search_json,
@@ -10,47 +12,53 @@ const JSON: &str = "application/json; charset=utf-8";
 const HTML: &str = "text/html; charset=utf-8";
 
 /// Cookbook state exposed by the WebUI route and JSON API.
-#[derive(Clone, Debug)]
 pub struct CookbookWebState {
-    store: RecipeStore,
+    directory: LoadableLibList,
+    diagnostics: Vec<String>,
+    extra_books: Vec<EmbeddedDir>,
 }
 
 impl CookbookWebState {
-    /// Build a WebUI state from the crate-shipped seeded recipe books.
+    /// Build a WebUI state from the crate-shipped loadable-lib directory.
     pub fn seeded() -> Result<Self> {
-        Ok(Self {
-            store: seeded_recipe_store()?,
-        })
+        Ok(Self::from_loadable_libs(
+            SeededLibCatalog::loadable_libs(),
+            Vec::new(),
+        ))
     }
 
-    /// Build a WebUI state from the seeded books PLUS `extra` books injected by the
-    /// host (COOK8.02 facade injection). The seeded set covers the lower-graph
-    /// domains `sim-lib-cookbook` can depend on directly; a host above the cookbook
-    /// (sim-web-shell, the `sim` facade) passes its own higher-graph recipe books
-    /// here -- which cannot be seed-deps of the engine without a cycle -- so the
-    /// browsable catalog grows toward full coverage. A book that fails to register
-    /// is skipped rather than blanking the whole catalog; it simply does not appear.
-    pub fn seeded_with_books(extra: &[(&str, sim_cookbook::EmbeddedDir)]) -> Result<Self> {
-        let mut store = seeded_recipe_store()?;
-        for (_book, recipes) in extra {
-            let _ = store.register_book(recipes);
+    /// Build a WebUI state from the seeded directory plus host-injected books.
+    ///
+    /// Host-injected books cover facade-level descriptor recipes that are above
+    /// `sim-lib-cookbook` in the dependency graph. They are projected on each
+    /// request after the dynamic loadable-lib directory reflects the live `Cx`.
+    pub fn seeded_with_books(extra: &[(&str, EmbeddedDir)]) -> Result<Self> {
+        let mut state = Self::seeded()?;
+        state.extra_books = extra.iter().map(|(_, recipes)| *recipes).collect();
+        Ok(state)
+    }
+
+    /// Build a WebUI state from an effective loadable-lib directory.
+    pub fn from_loadable_libs(directory: LoadableLibList, diagnostics: Vec<String>) -> Self {
+        Self {
+            directory,
+            diagnostics,
+            extra_books: Vec::new(),
         }
-        Ok(Self { store })
-    }
-
-    /// Build a WebUI state from an existing recipe store.
-    pub fn from_store(store: RecipeStore) -> Self {
-        Self { store }
     }
 
     /// Build an empty WebUI state for tests and no-recipes deployments.
     pub fn empty() -> Self {
-        Self::from_store(RecipeStore::new())
+        Self::from_loadable_libs(LoadableLibList::new(Vec::new()), Vec::new())
     }
 
-    /// Access the backing cookbook store.
-    pub fn store(&self) -> &RecipeStore {
-        &self.store
+    /// Project a fresh cookbook store from the current runtime context.
+    pub fn store(&self, cx: &Cx) -> Result<RecipeStore> {
+        let mut store = projected_recipe_store(cx, &self.directory)?;
+        for recipes in &self.extra_books {
+            let _ = store.register_book(recipes);
+        }
+        Ok(store)
     }
 
     /// Route one cookbook WebUI request.
@@ -67,15 +75,44 @@ impl CookbookWebState {
         let (path, query) = split_target(target);
         match (method, path) {
             ("GET", "/cookbook") => {
+                let Some(cx) = cx else {
+                    return CookbookWebResponse::server_error(
+                        "cookbook page requires a runtime context",
+                    );
+                };
+                let store = match self.store(cx) {
+                    Ok(store) => store,
+                    Err(err) => return CookbookWebResponse::server_error(err.to_string()),
+                };
                 let selected = query.and_then(|q| query_value(q, "recipe"));
-                CookbookWebResponse::html(render_page(&self.store, selected.as_deref()))
+                CookbookWebResponse::html(render_page(&store, selected.as_deref()))
             }
-            ("GET", "/api/cookbook") => CookbookWebResponse::json(render_index_json(&self.store)),
+            ("GET", "/api/cookbook") => {
+                let Some(cx) = cx else {
+                    return CookbookWebResponse::server_error(
+                        "cookbook index requires a runtime context",
+                    );
+                };
+                match self.store(cx) {
+                    Ok(store) => {
+                        CookbookWebResponse::json(render_index_json(cx, &store, &self.diagnostics))
+                    }
+                    Err(err) => CookbookWebResponse::server_error(err.to_string()),
+                }
+            }
             ("GET", "/api/cookbook/search") => {
+                let Some(cx) = cx else {
+                    return CookbookWebResponse::server_error(
+                        "cookbook search requires a runtime context",
+                    );
+                };
                 let q = query
                     .and_then(|query| query_value(query, "q"))
                     .unwrap_or_default();
-                CookbookWebResponse::json(render_search_json(&self.store, &q))
+                match self.store(cx) {
+                    Ok(store) => CookbookWebResponse::json(render_search_json(cx, &store, &q)),
+                    Err(err) => CookbookWebResponse::server_error(err.to_string()),
+                }
             }
             ("POST", path)
                 if path.starts_with("/api/cookbook/recipe/") && path.ends_with("/run") =>
@@ -88,17 +125,17 @@ impl CookbookWebState {
                         "cookbook run endpoint requires a runtime context",
                     );
                 };
+                let store = match self.store(cx) {
+                    Ok(store) => store,
+                    Err(err) => return CookbookWebResponse::server_error(err.to_string()),
+                };
                 let card = match decode_component(raw_id, false)
-                    .and_then(|id| resolve_recipe(&self.store, &id))
+                    .and_then(|id| resolve_recipe(&store, &id))
                 {
                     Ok(card) => card.clone(),
                     Err(err) => return response_for_resolve_error(err),
                 };
-                // COOKBOOK_7: the run loads the recipe's `requires` from the
-                // catalog before eval, so a domain absent from the boot Cx is
-                // loaded on demand rather than failing as "not loaded".
-                let catalog = SeededLibCatalog::standard();
-                match run_recipe_with_catalog(cx, &catalog, &card) {
+                match run_recipe_with_loadable_libs(cx, &self.directory, &card) {
                     Ok(run) => CookbookWebResponse::json(render_run_json(&run)),
                     Err(err) => CookbookWebResponse::server_error(err.to_string()),
                 }
@@ -107,11 +144,18 @@ impl CookbookWebState {
                 CookbookWebResponse::method_not_allowed()
             }
             ("GET", path) if path.starts_with("/api/cookbook/recipe/") => {
+                let Some(cx) = cx else {
+                    return CookbookWebResponse::server_error(
+                        "cookbook detail requires a runtime context",
+                    );
+                };
+                let store = match self.store(cx) {
+                    Ok(store) => store,
+                    Err(err) => return CookbookWebResponse::server_error(err.to_string()),
+                };
                 let raw_id = &path["/api/cookbook/recipe/".len()..];
-                match decode_component(raw_id, false)
-                    .and_then(|id| resolve_recipe(&self.store, &id))
-                {
-                    Ok(card) => CookbookWebResponse::json(render_recipe_json(&self.store, card)),
+                match decode_component(raw_id, false).and_then(|id| resolve_recipe(&store, &id)) {
+                    Ok(card) => CookbookWebResponse::json(render_recipe_json(cx, &store, card)),
                     Err(err) => response_for_resolve_error(err),
                 }
             }
