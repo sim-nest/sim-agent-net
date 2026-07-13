@@ -42,9 +42,11 @@ architecture_family = "autonomous-decision"
 runner_mode = "fake"
 safety_posture = "offline"
 capabilities = ["read-eval"]
+allow_capabilities = ["read-eval"]
 descriptor_shape = "agent-decision"
 assert_tags = ["30-agents", "chapter-05", "autonomous-decision", "offline"]
 assert_capabilities = ["read-eval"]
+assert_allow_capabilities = ["read-eval"]
 assert_setup_codec = "lisp"
 assert_descriptor_shape = "agent-decision"
 expected = "expected.txt"
@@ -69,9 +71,11 @@ architecture_family = "domain-transforming-integration"
 runner_mode = "fake"
 safety_posture = "offline"
 capabilities = ["read-eval"]
+allow_capabilities = ["read-eval"]
 descriptor_shape = "domain-transforming-integration-capstone"
 assert_tags = ["30-agents", "chapter-16", "capstone", "outside-30-count"]
 assert_capabilities = ["read-eval"]
+assert_allow_capabilities = ["read-eval"]
 assert_setup_codec = "lisp"
 assert_descriptor_shape = "domain-transforming-integration-capstone"
 expected = "expected.txt"
@@ -148,5 +152,23 @@ fn reports_assertion_mismatch() {
     );
     let err = check_repo(&root).unwrap_err();
     assert!(err.contains("missing asserted tag `missing-tag`"), "{err}");
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn reports_allow_capability_assertion_mismatch() {
+    let root = temp_root("allow-cap");
+    write_recipe(
+        &root,
+        &valid_recipe().replace(
+            "assert_allow_capabilities = [\"read-eval\"]",
+            "assert_allow_capabilities = [\"missing-cap\"]",
+        ),
+    );
+    let err = check_repo(&root).unwrap_err();
+    assert!(
+        err.contains("missing asserted allowed capability `missing-cap`"),
+        "{err}"
+    );
     let _ = fs::remove_dir_all(root);
 }

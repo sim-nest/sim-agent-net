@@ -6,24 +6,90 @@ use std::sync::{Arc, Mutex};
 use sim_codec_lisp::LispCodecLib;
 use sim_cookbook::RecipeStore;
 use sim_kernel::{
-    Args, Callable, Cx, Error, Expr, Symbol, Value, read_construct_capability, read_eval_capability,
+    AbiVersion, Args, Callable, CapabilityName, ClassRef, Cx, Error, Export, Expr, Lib,
+    LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
+    read_construct_capability, read_eval_capability,
 };
+use sim_shape::{ExprKind, ExprKindShape};
 use sim_test_support::core_cx;
 
+use crate::catalog::EmptyCatalog;
 use crate::install_cookbook_lib;
 use crate::ops::{CookbookOp, OpKind};
-use crate::run::run_recipe;
+use crate::run::{run_recipe, run_recipe_with_catalog_for_shape_test};
 #[cfg(feature = "seed-recipes")]
 use crate::{
     LoadableLibList, install_seeded_cookbook_lib, projected_recipe_store,
     run_recipe_with_loadable_libs, seeded_recipe_store,
 };
 
+const RECIPE_CUSTOM_CAPABILITY: &str = "recipe.custom";
+
 fn setup_cx() -> Cx {
     let mut cx = core_cx();
     let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
     cx
+}
+
+struct CapabilityProbeLib;
+
+struct CapabilityProbeCallable;
+
+impl Object for CapabilityProbeCallable {
+    fn display(&self, _cx: &mut Cx) -> Result<String> {
+        Ok("#<capability-probe>".to_owned())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+impl ObjectCompat for CapabilityProbeCallable {
+    fn class(&self, cx: &mut Cx) -> Result<ClassRef> {
+        cx.resolve_class(&Symbol::qualified("core", "Function"))
+    }
+
+    fn as_callable(&self) -> Option<&dyn Callable> {
+        Some(self)
+    }
+}
+
+impl Callable for CapabilityProbeCallable {
+    fn call(&self, cx: &mut Cx, _args: Args) -> Result<Value> {
+        cx.require(&CapabilityName::new(RECIPE_CUSTOM_CAPABILITY))?;
+        cx.factory().string("capability-ok".to_owned())
+    }
+}
+
+impl Lib for CapabilityProbeLib {
+    fn manifest(&self) -> LibManifest {
+        LibManifest {
+            id: Symbol::qualified("test", "capability-probe"),
+            version: Version("0.1.0".to_owned()),
+            abi: AbiVersion { major: 0, minor: 1 },
+            target: LibTarget::HostRegistered,
+            requires: Vec::new(),
+            capabilities: Vec::new(),
+            exports: vec![Export::Function {
+                symbol: capability_probe_symbol(),
+                function_id: None,
+            }],
+        }
+    }
+
+    fn load(&self, cx: &mut LoadCx, linker: &mut Linker<'_>) -> Result<()> {
+        linker.function_value(
+            capability_probe_symbol(),
+            cx.factory().opaque(Arc::new(CapabilityProbeCallable))?,
+        )?;
+        Ok(())
+    }
+}
+
+fn capability_probe_symbol() -> Symbol {
+    Symbol::qualified("test", "needs-recipe-capability")
 }
 
 // Book id "lisp" so the recipe's defaulted `requires = ["lisp"]` is satisfied
@@ -128,6 +194,75 @@ fn run_recipe_is_denied_without_read_eval() {
         matches!(&err, Error::CapabilityDenied { capability } if *capability == read_eval_capability()),
         "expected CapabilityDenied, got {err:?}"
     );
+}
+
+#[test]
+fn run_recipe_denies_missing_declared_capability() {
+    let mut cx = setup_cx();
+    cx.grant(read_eval_capability());
+    let book: Vec<(&str, &[u8])> = vec![
+        ("book.toml", b"book = \"lisp\"\ntitle = \"Lisp\"\n"),
+        (
+            "c/r/recipe.toml",
+            b"id = \"r\"\ntitle = \"R\"\ncodec = \"lisp\"\nsetup = \"s\"\npurpose = \"p\"\ntags = [\"requires-capability:recipe.custom\", \"allow-capability:recipe.custom\"]\n",
+        ),
+        ("c/r/s", b"(quote ok)"),
+        ("c/r/p", b"x"),
+    ];
+    let card = store_with(&book).card("lisp/c/r").cloned().unwrap();
+    let err = run_recipe(&mut cx, &card).unwrap_err();
+    assert!(
+        matches!(
+            &err,
+            Error::CapabilityDenied { capability }
+                if capability.as_str() == RECIPE_CUSTOM_CAPABILITY
+        ),
+        "expected missing recipe capability, got {err:?}"
+    );
+}
+
+#[test]
+fn run_recipe_diminishes_to_runner_capabilities() {
+    let mut cx = setup_cx();
+    cx.load_lib(&CapabilityProbeLib).unwrap();
+    cx.grant(read_eval_capability());
+    let book: Vec<(&str, &[u8])> = vec![
+        ("book.toml", b"book = \"lisp\"\ntitle = \"Lisp\"\n"),
+        (
+            "c/r/recipe.toml",
+            b"id = \"r\"\ntitle = \"R\"\ncodec = \"lisp\"\nsetup = \"s\"\npurpose = \"p\"\ntags = [\"allow-capability:recipe.custom\"]\n",
+        ),
+        ("c/r/s", b"(test/needs-recipe-capability nil)"),
+        ("c/r/p", b"x"),
+    ];
+    let card = store_with(&book).card("lisp/c/r").cloned().unwrap();
+    let err = run_recipe(&mut cx, &card).unwrap_err();
+    assert!(
+        matches!(
+            &err,
+            Error::CapabilityDenied { capability }
+                if capability.as_str() == RECIPE_CUSTOM_CAPABILITY
+        ),
+        "expected diminished recipe capability, got {err:?}"
+    );
+}
+
+#[test]
+fn run_recipe_denies_shape_mismatch() {
+    let mut cx = setup_cx();
+    cx.grant(read_eval_capability());
+    let card = store_with(&lisp_book())
+        .card("lisp/01-basics/quote")
+        .cloned()
+        .unwrap();
+    let err = run_recipe_with_catalog_for_shape_test(
+        &mut cx,
+        &EmptyCatalog,
+        &card,
+        Arc::new(ExprKindShape::new(ExprKind::List)),
+    )
+    .unwrap_err();
+    assert!(matches!(err, Error::WrongShape { .. }), "{err:?}");
 }
 
 #[test]

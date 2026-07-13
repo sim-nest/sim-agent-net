@@ -2,7 +2,9 @@ use super::super::model::{AgentComponent, SandboxBackend};
 use super::process::{capture_child_output, io_error_to_host, shell_child};
 use crate::{SANDBOX_CAPABILITY, SANDBOX_SUBPROCESS_CAPABILITY, SANDBOX_WASM_CAPABILITY};
 use sim_codec::encode_with_codec;
-use sim_kernel::{CapabilityName, CapabilitySet, Cx, EncodeOptions, Error, Result, Symbol};
+use sim_kernel::{
+    CapabilityName, CapabilitySet, Cx, EncodeOptions, Error, Result, Symbol, capability::diminish,
+};
 use sim_lib_server::{
     EvalSite, FrameKind, LocalEvalSite, ServerAddress, ServerFrame, connect_transport_site,
     eval_request_from_frame,
@@ -59,12 +61,11 @@ fn answer_capability_restricted(
     frame: ServerFrame,
     allowed: &[CapabilityName],
 ) -> Result<ServerFrame> {
-    let mut restricted = CapabilitySet::new();
-    for capability in allowed {
-        if cx.capabilities().contains(capability) {
-            restricted.insert(capability.clone());
-        }
-    }
+    let allowed = allowed
+        .iter()
+        .cloned()
+        .fold(CapabilitySet::new(), CapabilitySet::grant);
+    let restricted = diminish(cx.capabilities(), &allowed);
     let site = LocalEvalSite::new(ServerAddress::Local, component.codecs.clone());
     cx.with_capabilities(restricted, |cx| site.answer(cx, frame))
 }

@@ -127,6 +127,7 @@ fn check_assertions(
     let mut checked = false;
     let tags = optional_array(doc, "tags").unwrap_or_default();
     let capabilities = optional_array(doc, "capabilities").unwrap_or_default();
+    let allow_capabilities = optional_array(doc, "allow_capabilities").unwrap_or_default();
 
     if let Some(assert_tags) = optional_array(doc, "assert_tags") {
         checked = true;
@@ -145,6 +146,17 @@ fn check_assertions(
             if !capabilities.contains(&capability) {
                 errors.push(format!(
                     "{}: missing asserted capability `{capability}`",
+                    slash(recipe_path)
+                ));
+            }
+        }
+    }
+    if let Some(assert_allow_capabilities) = optional_array(doc, "assert_allow_capabilities") {
+        checked = true;
+        for capability in assert_allow_capabilities {
+            if !allow_capabilities.contains(&capability) {
+                errors.push(format!(
+                    "{}: missing asserted allowed capability `{capability}`",
                     slash(recipe_path)
                 ));
             }
@@ -298,6 +310,12 @@ fn check_agent30_metadata(
         )),
         Some(_) => {}
         None => errors.push(format!("{}: missing `capabilities`", slash(recipe_path))),
+    }
+    if matches!(optional_array(doc, "allow_capabilities"), Some(values) if values.is_empty()) {
+        errors.push(format!(
+            "{}: `allow_capabilities` must list at least one capability when present",
+            slash(recipe_path)
+        ));
     }
 }
 

@@ -43,6 +43,7 @@ sim-lib-numbers-tensor-cmplxf = { optional = true, version = "0.1.0" }
 sim-lib-numbers-tensor-rat64 = { optional = true, version = "0.1.0" }
 sim-lib-discrete = { optional = true, version = "0.1.0", features = ["runtime"] }
 sim-lib-stream-core = { optional = true, version = "0.1.0" }
+sim-shape = { version = "0.1.1" }
 [build-dependencies]
 sim-cookbook = { version = "0.1.0" }
 
