@@ -15,6 +15,7 @@ sim-codec = { version = "0.1.4" }
 sim-codec-json = { optional = true, version = "0.1.0" }
 sim-codec-lisp = { optional = true, version = "0.1.0" }
 sim-codec-algol = { optional = true, version = "0.1.0" }
+sim-config = { version = "0.1.1" }
 sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-lang-scheme = { optional = true, version = "0.1.0" }
