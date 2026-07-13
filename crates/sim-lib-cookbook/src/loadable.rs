@@ -101,12 +101,14 @@ impl LoadableLibList {
     }
 
     fn loaded_id(cx: &Cx, id: &str) -> Option<LibId> {
+        let tail = id.rsplit('/').next().unwrap_or(id);
         cx.registry()
             .libs()
             .iter()
             .find(|loaded| {
                 loaded.manifest.id.as_qualified_str() == id
                     || loaded.manifest.id.name.as_ref() == id
+                    || loaded.manifest.id.name.as_ref() == tail
             })
             .map(|loaded| loaded.id)
     }

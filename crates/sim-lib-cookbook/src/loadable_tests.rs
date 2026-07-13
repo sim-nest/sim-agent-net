@@ -136,6 +136,22 @@ fn resolves_requires_by_full_id_and_tail() {
 }
 
 #[test]
+fn loaded_check_accepts_entry_tail_alias() {
+    let mut cx = core_cx();
+    let alias = FixtureLib {
+        namespace: "sim",
+        name: "binding",
+        requires: Vec::new(),
+        export_probe: false,
+    };
+    cx.load_lib(&alias).unwrap();
+
+    assert!(LoadableLibList::is_loaded(&cx, "organ/binding"));
+    assert!(LoadableLibList::is_loaded(&cx, "binding"));
+    assert!(!LoadableLibList::is_loaded(&cx, "organ/control"));
+}
+
+#[test]
 fn projected_store_contains_load_card_for_unloaded_lib() {
     let cx = core_cx();
     let store = projected_recipe_store(&cx, &directory()).unwrap();

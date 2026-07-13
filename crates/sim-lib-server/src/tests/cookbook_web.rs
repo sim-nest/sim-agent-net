@@ -1,5 +1,11 @@
+use std::sync::Arc;
+
 use sim_codec_lisp::LispCodecLib;
-use sim_kernel::{Cx, read_eval_capability};
+use sim_kernel::{
+    AbiVersion, Cx, Dependency, Export, LibManifest, LibTarget, Linker, LoadCx, Result, Symbol,
+    Version, library::Lib, read_eval_capability,
+};
+use sim_lib_cookbook::{LoadableLibEntry, LoadableLibList};
 use sim_test_support::core_cx;
 
 use crate::CookbookWebState;
@@ -10,6 +16,58 @@ fn lisp_cx() -> Cx {
     cx.load_lib(&lisp).unwrap();
     cx.grant(read_eval_capability());
     cx
+}
+
+struct FixtureLib {
+    name: &'static str,
+    requires: Vec<Dependency>,
+}
+
+impl Lib for FixtureLib {
+    fn manifest(&self) -> LibManifest {
+        LibManifest {
+            id: Symbol::qualified("demo", self.name),
+            version: Version("0.1.0".to_owned()),
+            abi: AbiVersion { major: 0, minor: 1 },
+            target: LibTarget::HostRegistered,
+            requires: self.requires.clone(),
+            capabilities: Vec::new(),
+            exports: Vec::<Export>::new(),
+        }
+    }
+
+    fn load(&self, _cx: &mut LoadCx, _linker: &mut Linker) -> Result<()> {
+        Ok(())
+    }
+}
+
+fn fixture_lib() -> Box<dyn Lib + Send + Sync> {
+    Box::new(FixtureLib {
+        name: "lib",
+        requires: Vec::new(),
+    })
+}
+
+fn dependent_lib() -> Box<dyn Lib + Send + Sync> {
+    Box::new(FixtureLib {
+        name: "consumer",
+        requires: vec![Dependency {
+            id: Symbol::qualified("demo", "lib"),
+            minimum_version: None,
+        }],
+    })
+}
+
+fn fixture_directory() -> LoadableLibList {
+    LoadableLibList::new(vec![LoadableLibEntry {
+        id: "demo/lib".to_owned(),
+        source: "symbol:demo/lib".to_owned(),
+        title: "Demo Lib".to_owned(),
+        order: 1,
+        recipes: None,
+        catalog_lib: fixture_lib(),
+        factory: Arc::new(fixture_lib),
+    }])
 }
 
 #[test]
@@ -169,6 +227,70 @@ fn cookbook_dynamic_api_load_changes_next_index_response() {
 }
 
 #[test]
+fn cookbook_dynamic_api_load_is_idempotent() {
+    let state = CookbookWebState::seeded().unwrap();
+    let mut cx = lisp_cx();
+    let first = state.handle_request(
+        "POST",
+        "/api/cookbook/recipe/cookbook/load/numbers/i64/run",
+        Some(&mut cx),
+    );
+    assert_eq!(first.status, 200, "{}", first.body);
+    assert!(first.body.contains("\"ok\":true"), "{}", first.body);
+    let first_index = state.handle_request("GET", "/api/cookbook", Some(&mut cx));
+    assert_eq!(first_index.status, 200, "{}", first_index.body);
+    let first_recipe_count = first_index
+        .body
+        .matches("\"id\":\"numbers/i64/01-basics/i64-domain\"")
+        .count();
+    let first_unload_count = first_index
+        .body
+        .matches("\"id\":\"numbers/i64/cookbook-lifecycle/unload\"")
+        .count();
+
+    let second = state.handle_request(
+        "POST",
+        "/api/cookbook/recipe/cookbook/load/numbers/i64/run",
+        Some(&mut cx),
+    );
+    assert_eq!(second.status, 200, "{}", second.body);
+    assert!(second.body.contains("\"ok\":true"), "{}", second.body);
+    assert!(
+        second.body.contains("already loaded numbers/i64"),
+        "{}",
+        second.body
+    );
+
+    let second_index = state.handle_request("GET", "/api/cookbook", Some(&mut cx));
+    assert_eq!(second_index.status, 200, "{}", second_index.body);
+    assert!(first_recipe_count > 0, "{}", first_index.body);
+    assert!(first_unload_count > 0, "{}", first_index.body);
+    assert_eq!(
+        first_recipe_count,
+        second_index
+            .body
+            .matches("\"id\":\"numbers/i64/01-basics/i64-domain\"")
+            .count(),
+        "{}",
+        second_index.body
+    );
+    assert_eq!(
+        first_unload_count,
+        second_index
+            .body
+            .matches("\"id\":\"numbers/i64/cookbook-lifecycle/unload\"")
+            .count(),
+        "{}",
+        second_index.body
+    );
+    assert!(
+        !second_index.body.contains("cookbook/load/numbers/i64"),
+        "{}",
+        second_index.body
+    );
+}
+
+#[test]
 fn cookbook_dynamic_api_unload_changes_next_index_response() {
     let state = CookbookWebState::seeded().unwrap();
     let mut cx = lisp_cx();
@@ -205,6 +327,40 @@ fn cookbook_dynamic_api_unload_changes_next_index_response() {
         "{}",
         index.body
     );
+}
+
+#[test]
+fn cookbook_dynamic_api_safe_unload_refusal_is_json_run_result() {
+    let state = CookbookWebState::from_loadable_libs(fixture_directory(), Vec::new());
+    let mut cx = core_cx();
+    let base = fixture_lib();
+    let dependent = dependent_lib();
+    cx.load_lib(base.as_ref()).unwrap();
+    cx.load_lib(dependent.as_ref()).unwrap();
+
+    let response = state.handle_request(
+        "POST",
+        "/api/cookbook/recipe/demo/lib/cookbook-lifecycle/unload/run",
+        Some(&mut cx),
+    );
+
+    assert_eq!(response.status, 200, "{}", response.body);
+    assert!(
+        response
+            .body
+            .contains("\"recipe\":\"demo/lib/cookbook-lifecycle/unload\""),
+        "{}",
+        response.body
+    );
+    assert!(response.body.contains("\"ok\":false"), "{}", response.body);
+    assert!(
+        response.body.contains("cannot unload demo/lib"),
+        "{}",
+        response.body
+    );
+    assert!(response.body.contains("consumer"), "{}", response.body);
+    assert!(LoadableLibList::is_loaded(&cx, "demo/lib"));
+    assert!(LoadableLibList::is_loaded(&cx, "demo/consumer"));
 }
 
 #[test]

@@ -1,7 +1,8 @@
 use sim_cookbook::{EmbeddedDir, RecipeCard, RecipeStore, next, ordered_cards, view};
 use sim_kernel::{Cx, Result};
 use sim_lib_cookbook::{
-    LoadableLibList, SeededLibCatalog, projected_recipe_store, run_recipe_with_loadable_libs,
+    LifecycleAction, LoadableLibList, SeededLibCatalog, projected_recipe_store,
+    run_lifecycle_action, run_recipe_with_loadable_libs,
 };
 
 use crate::cookbook_web_json::{
@@ -129,11 +130,19 @@ impl CookbookWebState {
                     Ok(store) => store,
                     Err(err) => return CookbookWebResponse::server_error(err.to_string()),
                 };
-                let card = match decode_component(raw_id, false)
-                    .and_then(|id| resolve_recipe(&store, &id))
-                {
-                    Ok(card) => card.clone(),
+                let id = match decode_component(raw_id, false) {
+                    Ok(id) => id,
                     Err(err) => return response_for_resolve_error(err),
+                };
+                let card = match resolve_recipe(&store, &id) {
+                    Ok(card) => card.clone(),
+                    Err(err) => {
+                        if let Some((action, lib)) = stale_lifecycle_id(&self.directory, &id) {
+                            let run = run_lifecycle_action(cx, &self.directory, action, lib, &id);
+                            return CookbookWebResponse::json(render_run_json(&run));
+                        }
+                        return response_for_resolve_error(err);
+                    }
                 };
                 match run_recipe_with_loadable_libs(cx, &self.directory, &card) {
                     Ok(run) => CookbookWebResponse::json(render_run_json(&run)),
@@ -233,6 +242,22 @@ fn response_for_resolve_error(err: ResolveError) -> CookbookWebResponse {
             CookbookWebResponse::error(400, message)
         }
     }
+}
+
+fn stale_lifecycle_id<'a>(
+    directory: &'a LoadableLibList,
+    id: &str,
+) -> Option<(LifecycleAction, &'a str)> {
+    let (action, lib) = if let Some(lib) = id.strip_prefix("cookbook/load/") {
+        (LifecycleAction::Load, lib)
+    } else if let Some(lib) = id.strip_suffix("/cookbook-lifecycle/unload") {
+        (LifecycleAction::Unload, lib)
+    } else {
+        return None;
+    };
+    directory
+        .entry(lib)
+        .map(|entry| (action, entry.id.as_str()))
 }
 
 fn resolve_recipe<'a>(
