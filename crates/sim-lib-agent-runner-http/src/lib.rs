@@ -5,10 +5,17 @@
 #![allow(deprecated)]
 
 mod client;
+mod config;
+mod provider;
 mod redact;
 mod runner;
 mod stream;
 
+pub use config::ProviderConfig;
+pub use provider::{
+    ProviderAuth, ProviderProfile, anthropic_profile, lemonade_profile, lm_studio_profile,
+    ollama_profile, openai_compatible_profile, openai_profile, provider_profiles,
+};
 pub use runner::HttpRunner;
 
 /// Cookbook recipes for this lib, embedded at build time.
