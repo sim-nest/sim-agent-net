@@ -10,6 +10,7 @@ use sim_kernel::{
     LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
     read_construct_capability, read_eval_capability,
 };
+use sim_lib_core::{SurfacePackLib, SurfacePackSpec};
 use sim_shape::{ExprKind, ExprKindShape};
 use sim_test_support::core_cx;
 
@@ -27,6 +28,13 @@ const RECIPE_CUSTOM_CAPABILITY: &str = "recipe.custom";
 
 fn setup_cx() -> Cx {
     let mut cx = core_cx();
+    let core = SurfacePackLib {
+        spec: SurfacePackSpec {
+            lib_id: sim_lib_core::manifest_name(),
+            values: Vec::new(),
+        },
+    };
+    cx.load_lib(&core).unwrap();
     let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
     cx
