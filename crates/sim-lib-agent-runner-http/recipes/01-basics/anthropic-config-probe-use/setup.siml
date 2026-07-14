@@ -1,9 +1,1 @@
-(quote
-  (provider anthropic
-    (config
-      (endpoint "https://api.anthropic.com/v1")
-      (model "claude-sonnet-latest")
-      (api-key-env "ANTHROPIC_API_KEY")
-      (probe (mode manual)))
-    (probe provider/probe)
-    (use runner/anthropic)))
+(runner/anthropic :model "claude-3-5-sonnet-latest")

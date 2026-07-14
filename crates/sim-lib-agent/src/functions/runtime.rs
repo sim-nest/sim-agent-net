@@ -41,6 +41,8 @@ use sim_kernel::{
     Value,
 };
 use std::any::Any;
+
+use super::recipe_result::agent_recipe_result_value;
 #[derive(Clone, Copy)]
 pub(crate) enum AgentFnKind {
     Defun,
@@ -64,6 +66,7 @@ pub(crate) enum AgentFnKind {
     Trace,
     Wire,
     Pattern,
+    RecipeResult,
     MemoryWorking,
     MemoryFile,
     MemoryVector,
@@ -243,6 +246,7 @@ fn dispatch_value_call(kind: AgentFnKind, cx: &mut Cx, args: Args) -> Result<Val
         AgentFnKind::Trace => agent_trace_value(cx, args),
         AgentFnKind::Wire => agent_wire_value(cx, args),
         AgentFnKind::Pattern => agent_pattern_value(cx, args),
+        AgentFnKind::RecipeResult => agent_recipe_result_value(cx, args),
         AgentFnKind::MemoryWorking => memory_working_value(cx, args),
         AgentFnKind::MemoryFile => memory_file_value(cx, args),
         AgentFnKind::MemoryVector => memory_vector_value(cx, args),

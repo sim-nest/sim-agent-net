@@ -5,4 +5,4 @@ setup = "setup.siml"
 purpose = "purpose.md"
 order = 50
 tags = ["agent", "runner", "http", "provider", "lm-studio", "sandbox-descriptor"]
-requires = ["agent-runner-http", "codec/lisp"]
+requires = ["agent", "agent-runner-http", "codec/lisp"]

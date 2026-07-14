@@ -1,4 +1,5 @@
 mod catalog;
+mod recipe_result;
 mod register;
 mod runtime;
 

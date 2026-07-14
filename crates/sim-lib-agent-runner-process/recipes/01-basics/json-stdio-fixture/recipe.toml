@@ -5,4 +5,4 @@ setup = "setup.siml"
 purpose = "purpose.md"
 order = 10
 tags = ["agent", "runner", "process", "fixture", "sandbox-descriptor"]
-requires = ["agent-runner-process", "codec/lisp"]
+requires = ["agent", "agent-runner-process", "codec/lisp"]

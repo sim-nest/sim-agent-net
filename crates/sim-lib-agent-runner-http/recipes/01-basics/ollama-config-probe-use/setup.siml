@@ -1,8 +1,1 @@
-(quote
-  (provider ollama
-    (config
-      (endpoint "http://127.0.0.1:11434")
-      (model "qwen3.5:4b")
-      (probe (mode startup) (local-only true)))
-    (probe provider/probe)
-    (use runner/ollama)))
+(runner/ollama :model "llama3.2")

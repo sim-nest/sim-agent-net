@@ -38,6 +38,7 @@ mod agent_r18;
 mod agent_r18_support;
 mod agent_r19;
 mod agent_r23;
+mod agent_recipe_result;
 mod agent_stream_phase9;
 mod agent_swarm;
 mod basics;

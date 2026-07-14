@@ -44,6 +44,10 @@ pub(super) static AGENT_FUNCTIONS: LazyLock<Vec<(Symbol, AgentFnKind)>> = LazyLo
         (Symbol::qualified("agent", "wire"), AgentFnKind::Wire),
         (Symbol::qualified("agent", "pattern"), AgentFnKind::Pattern),
         (
+            Symbol::qualified("agent", "recipe-result"),
+            AgentFnKind::RecipeResult,
+        ),
+        (
             Symbol::qualified("memory", "working"),
             AgentFnKind::MemoryWorking,
         ),

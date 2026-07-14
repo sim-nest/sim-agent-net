@@ -1,1 +1,1 @@
-(quote (stream-fabric content-addressed-fleet (nodes node-a node-b node-c) (request shared) (content-key stable) (holder node-b) (caller-api realize) (after-loss replay-from-local-cassette) (unknown fail-closed)))
+(stream-fabric content-addressed-fleet (nodes node-a node-b node-c) (request shared) (content-key stable) (holder node-b) (caller-api realize) (after-loss replay-from-local-cassette) (unknown fail-closed))

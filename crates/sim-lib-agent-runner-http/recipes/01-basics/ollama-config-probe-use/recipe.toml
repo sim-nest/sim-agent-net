@@ -5,4 +5,4 @@ setup = "setup.siml"
 purpose = "purpose.md"
 order = 40
 tags = ["agent", "runner", "http", "provider", "ollama", "sandbox-descriptor"]
-requires = ["agent-runner-http", "codec/lisp"]
+requires = ["agent", "agent-runner-http", "codec/lisp"]

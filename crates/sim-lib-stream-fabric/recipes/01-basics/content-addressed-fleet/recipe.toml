@@ -13,4 +13,5 @@ assert_capabilities = ["network", "eval/remote"]
 assert_setup_codec = "lisp"
 
 [[expect]]
+form = 0
 result = "(stream-fabric content-addressed-fleet (nodes node-a node-b node-c) (request shared) (content-key stable) (holder node-b) (caller-api realize) (after-loss replay-from-local-cassette) (unknown fail-closed))"
