@@ -4,20 +4,16 @@ use sim_codec_binary::BinaryCodecLib;
 use std::time::Duration;
 
 use sim_kernel::{
-    Consistency, Cx, DefaultFactory, EagerPolicy, EvalMode, EvalRequest, Expr, ObjectEncoding,
-    StrictNames, Symbol,
-    capability::{
-        eval_remote_capability, table_db_capability, table_db_mkdir_capability,
-        table_db_read_capability, table_db_rmdir_capability, table_db_write_capability,
-        table_remote_capability,
-    },
+    CapabilityName, Consistency, Cx, DefaultFactory, EagerPolicy, EvalMode, EvalRequest, Expr,
+    ObjectEncoding, StrictNames, Symbol, capability::eval_remote_capability,
     read_construct_capability,
 };
 use sim_lib_server::{EvalSite, LocalEvalSite, ServerAddress, server_frame_from_request};
 use sim_table_db::install_db_dir_lib;
 
 use crate::{
-    RemoteDirDescriptor, remote_dir_class_symbol, remote_dir_value, wrap_remote_table_site,
+    RemoteDirDescriptor, remote_dir_class_symbol, remote_dir_value, table_remote_capability,
+    wrap_remote_table_site,
 };
 
 fn cx() -> Cx {
@@ -41,6 +37,26 @@ fn grant(cx: &mut Cx, capabilities: &[sim_kernel::CapabilityName]) {
     for capability in capabilities {
         cx.grant(capability.clone());
     }
+}
+
+fn table_db_capability() -> CapabilityName {
+    CapabilityName::new("table.db")
+}
+
+fn table_db_read_capability() -> CapabilityName {
+    CapabilityName::new("table.db.read")
+}
+
+fn table_db_write_capability() -> CapabilityName {
+    CapabilityName::new("table.db.write")
+}
+
+fn table_db_mkdir_capability() -> CapabilityName {
+    CapabilityName::new("table.db.mkdir")
+}
+
+fn table_db_rmdir_capability() -> CapabilityName {
+    CapabilityName::new("table.db.rmdir")
 }
 
 fn remote_site(cx: &mut Cx) -> Arc<dyn EvalSite> {
