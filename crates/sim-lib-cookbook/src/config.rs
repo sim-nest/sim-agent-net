@@ -18,6 +18,19 @@ pub struct CookbookConfig {
     pub loadable_libs: Vec<LoadableLibConfig>,
 }
 
+/// Overlay parsed from the `sim/cookbook` effective config table.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CookbookOverrides {
+    /// Replacement host boot set, when the config explicitly names it.
+    pub minimum_loaded: Option<Vec<String>>,
+    /// Rows to add to, or replace in, the base loadable-lib directory.
+    pub add: Vec<LoadableLibConfig>,
+    /// Row ids hidden from the base loadable-lib directory.
+    pub hide: Vec<String>,
+    /// Preferred display order for row ids. Unmentioned rows keep relative order.
+    pub order: Vec<String>,
+}
+
 /// One configured loadable-lib row.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LoadableLibConfig {
@@ -110,8 +123,20 @@ impl<'a, R: LoadableLibResolver + ?Sized> ConfigCookbookProvider<'a, R> {
     /// Reads the effective `sim/cookbook` table and prepares a directory
     /// provider over `resolver`.
     pub fn new(effective: &EffectiveConfig, resolver: &'a R) -> Self {
+        Self::new_with_base(effective, built_in_config(), resolver)
+    }
+
+    /// Reads the effective `sim/cookbook` table as an overlay over `base`.
+    pub fn new_with_base(
+        effective: &EffectiveConfig,
+        base: CookbookConfig,
+        resolver: &'a R,
+    ) -> Self {
         Self {
-            inner: ConfigProvider::new(cookbook_config_from_effective(effective), resolver),
+            inner: ConfigProvider::new(
+                cookbook_config_from_effective_with_base(effective, base),
+                resolver,
+            ),
         }
     }
 
@@ -139,16 +164,69 @@ pub fn cookbook_lib_symbol() -> Symbol {
 /// Builds the in-memory cookbook directory config from an effective Dir.
 ///
 /// When no `sim/cookbook` table is present, the seeded built-in directory is
-/// used. Once a table is present, its rows are authoritative, so a user config
-/// can hide, subset, or reorder loadable libs without loading them.
+/// used. When a table is present, it overlays the base directory so a host or
+/// user config can add, hide, or reorder loadable libs without loading them.
 pub fn cookbook_config_from_effective(effective: &EffectiveConfig) -> CookbookConfig {
+    cookbook_config_from_effective_with_base(effective, built_in_config())
+}
+
+/// Builds the in-memory cookbook directory by applying effective overrides over
+/// a host-provided base directory.
+pub fn cookbook_config_from_effective_with_base(
+    effective: &EffectiveConfig,
+    base: CookbookConfig,
+) -> CookbookConfig {
+    apply_overrides(base, &cookbook_overrides_from_effective(effective))
+}
+
+/// Parses the effective `sim/cookbook` table as a directory overlay.
+pub fn cookbook_overrides_from_effective(effective: &EffectiveConfig) -> CookbookOverrides {
     let Some(table) = effective.dir.table(&cookbook_lib_symbol()) else {
-        return built_in_config();
+        return CookbookOverrides::default();
     };
     let view = ConfigView::new(table);
+    CookbookOverrides {
+        minimum_loaded: optional_string_array(&view, "minimum_loaded"),
+        add: loadable_lib_rows(&view),
+        hide: string_array(&view, "hide"),
+        order: string_array(&view, "order"),
+    }
+}
+
+/// Applies a cookbook config overlay over an existing directory snapshot.
+pub fn apply_overrides(base: CookbookConfig, overrides: &CookbookOverrides) -> CookbookConfig {
+    let CookbookConfig {
+        minimum_loaded,
+        loadable_libs,
+    } = base;
+    let minimum_loaded = overrides.minimum_loaded.clone().unwrap_or(minimum_loaded);
+    let mut rows: Vec<LoadableLibConfig> = loadable_libs
+        .into_iter()
+        .filter(|row| !overrides.hide.contains(&row.id))
+        .collect();
+    for add in &overrides.add {
+        match rows.iter_mut().find(|row| row.id == add.id) {
+            Some(row) => *row = add.clone(),
+            None => rows.push(add.clone()),
+        }
+    }
+    if !overrides.order.is_empty() {
+        let mut indexed = rows.into_iter().enumerate().collect::<Vec<_>>();
+        indexed.sort_by_key(|(index, row)| {
+            (
+                overrides
+                    .order
+                    .iter()
+                    .position(|id| id == &row.id)
+                    .unwrap_or(usize::MAX),
+                *index,
+            )
+        });
+        rows = indexed.into_iter().map(|(_, row)| row).collect();
+    }
     CookbookConfig {
-        minimum_loaded: string_array(&view, "minimum_loaded"),
-        loadable_libs: loadable_lib_rows(&view),
+        minimum_loaded,
+        loadable_libs: rows,
     }
 }
 
@@ -191,11 +269,22 @@ fn string_array(view: &ConfigView<'_>, key: &str) -> Vec<String> {
     view.list(key)
         .unwrap_or_default()
         .iter()
-        .filter_map(|item| match item {
-            Expr::String(value) => Some(value.clone()),
-            _ => None,
-        })
+        .filter_map(string_value)
         .collect()
+}
+
+fn optional_string_array(view: &ConfigView<'_>, key: &str) -> Option<Vec<String>> {
+    view.get(key).map(|value| match value {
+        Expr::List(items) => items.iter().filter_map(string_value).collect(),
+        _ => Vec::new(),
+    })
+}
+
+fn string_value(item: &Expr) -> Option<String> {
+    match item {
+        Expr::String(value) => Some(value.clone()),
+        _ => None,
+    }
 }
 
 fn loadable_lib_rows(view: &ConfigView<'_>) -> Vec<LoadableLibConfig> {

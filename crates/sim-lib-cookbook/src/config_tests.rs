@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use sim_config::{ConfigDir, ConfigLayer, ConfigSource, merge_layers};
-use sim_cookbook::EmbeddedDir;
+use sim_cookbook::{EmbeddedDir, ordered_cards};
 use sim_kernel::{
     AbiVersion, Expr, LibManifest, LibTarget, Linker, LoadCx, Result, Symbol, Version, library::Lib,
 };
@@ -9,8 +9,8 @@ use sim_test_support::core_cx;
 
 use crate::{
     ConfigCookbookProvider, ConfigProvider, CookbookConfig, LibCatalog, LoadableLibConfig,
-    LoadableLibList, LoadableLibResolver, ResolvedLoadable, cookbook_config_from_effective,
-    cookbook_lib_symbol,
+    LoadableLibList, LoadableLibResolver, ResolvedLoadable,
+    cookbook_config_from_effective_with_base, cookbook_lib_symbol, projected_recipe_store,
 };
 
 struct NamedLib {
@@ -150,6 +150,10 @@ fn minimum_loaded_does_not_force_load() {
 
 #[test]
 fn effective_config_drives_loadable_directory_without_loading() {
+    let base = CookbookConfig {
+        minimum_loaded: vec!["codec/lisp".to_owned()],
+        loadable_libs: vec![row("demo/alpha")],
+    };
     let effective = merge_layers(&[ConfigLayer::new(
         ConfigSource::Explicit {
             label: "work".to_owned(),
@@ -158,24 +162,19 @@ fn effective_config_drives_loadable_directory_without_loading() {
             cookbook_lib_symbol(),
             map(vec![
                 ("minimum_loaded", list(vec![text("demo/alpha")])),
+                ("order", list(vec![text("demo/beta"), text("demo/alpha")])),
                 (
                     "loadable_lib",
-                    list(vec![
-                        map(vec![
-                            ("id", text("demo/beta")),
-                            ("source", text("symbol:demo/beta")),
-                        ]),
-                        map(vec![
-                            ("id", text("demo/alpha")),
-                            ("source", text("symbol:demo/alpha")),
-                        ]),
-                    ]),
+                    list(vec![map(vec![
+                        ("id", text("demo/beta")),
+                        ("source", text("symbol:demo/beta")),
+                    ])]),
                 ),
             ]),
         )
         .unwrap(),
     )]);
-    let provider = ConfigCookbookProvider::new(&effective, &FixtureResolver);
+    let provider = ConfigCookbookProvider::new_with_base(&effective, base, &FixtureResolver);
     let cx = core_cx();
 
     let (directory, diagnostics) = provider.loadable_libs();
@@ -189,6 +188,10 @@ fn effective_config_drives_loadable_directory_without_loading() {
 
 #[test]
 fn home_work_config_can_hide_subset_and_reorder_cookbook_libs() {
+    let base = CookbookConfig {
+        minimum_loaded: vec!["codec/lisp".to_owned()],
+        loadable_libs: vec![row("demo/alpha"), row("demo/hidden")],
+    };
     let home = ConfigLayer::new(
         ConfigSource::HomeFile {
             path: PathBuf::from("/tmp/home/libs/sim/cookbook.toml"),
@@ -205,32 +208,49 @@ fn home_work_config_can_hide_subset_and_reorder_cookbook_libs() {
         },
         ConfigDir::one(
             cookbook_lib_symbol(),
-            map(vec![(
-                "loadable_lib",
-                list(vec![
-                    map(vec![
+            map(vec![
+                ("hide", list(vec![text("demo/hidden")])),
+                ("order", list(vec![text("demo/beta"), text("demo/alpha")])),
+                (
+                    "loadable_lib",
+                    list(vec![map(vec![
                         ("id", text("demo/beta")),
                         ("source", text("symbol:demo/beta")),
-                    ]),
-                    map(vec![
-                        ("id", text("demo/alpha")),
-                        ("source", text("symbol:demo/alpha")),
-                    ]),
-                ]),
-            )]),
+                    ])]),
+                ),
+            ]),
         )
         .unwrap(),
     );
     let effective = merge_layers(&[home, work]);
 
-    let config = cookbook_config_from_effective(&effective);
+    let config = cookbook_config_from_effective_with_base(&effective, base);
     let provider = ConfigProvider::new(config, &FixtureResolver);
+    let cx = core_cx();
     let (directory, diagnostics) = provider.loadable_libs();
 
     assert_eq!(provider.minimum_loaded(), ["codec/lisp"]);
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
     assert_eq!(ids(&directory), ["demo/beta", "demo/alpha"]);
-    assert!(directory.entry("numbers/cas").is_none());
+    assert!(directory.entry("demo/hidden").is_none());
+    assert!(!LoadableLibList::is_loaded(&cx, "demo/alpha"));
+    assert!(!LoadableLibList::is_loaded(&cx, "demo/beta"));
+
+    let store = projected_recipe_store(&cx, &directory).unwrap();
+    assert!(store.card("cookbook/load/demo/hidden").is_none());
+    let cards = ordered_cards(&store);
+    assert_eq!(
+        cards
+            .iter()
+            .filter(|card| card.id == "cookbook/load/demo/beta")
+            .count(),
+        1
+    );
+    let load_ids: Vec<_> = cards
+        .into_iter()
+        .filter_map(|card| card.id.strip_prefix("cookbook/load/"))
+        .collect();
+    assert_eq!(load_ids, ["demo/beta", "demo/alpha"]);
 }
 
 #[cfg(feature = "seed-recipes")]

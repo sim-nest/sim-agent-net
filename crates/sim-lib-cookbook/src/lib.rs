@@ -34,8 +34,10 @@ mod seeds;
 
 pub use catalog::{CookbookCapabilityProfile, EmptyCatalog, LibCatalog, load_requires};
 pub use config::{
-    ConfigCookbookProvider, ConfigProvider, CookbookConfig, LoadableLibConfig, LoadableLibResolver,
-    ResolvedLoadable, built_in_config, cookbook_config_from_effective, cookbook_lib_symbol,
+    ConfigCookbookProvider, ConfigProvider, CookbookConfig, CookbookOverrides, LoadableLibConfig,
+    LoadableLibResolver, ResolvedLoadable, apply_overrides, built_in_config,
+    cookbook_config_from_effective, cookbook_config_from_effective_with_base, cookbook_lib_symbol,
+    cookbook_overrides_from_effective,
 };
 pub use loadable::{
     LibFactory, LifecycleAction, LoadableLibEntry, LoadableLibList, lifecycle_action,
