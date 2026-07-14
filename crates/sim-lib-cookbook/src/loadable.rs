@@ -2,7 +2,9 @@
 
 use std::sync::Arc;
 
-use sim_cookbook::{EmbeddedDir, RecipeCard, RecipeRun, RecipeSource, RecipeStore};
+use sim_cookbook::{
+    EmbeddedDir, RecipeCard, RecipeRun, RecipeSource, RecipeStore, recipes_from_embedded,
+};
 use sim_kernel::{Cx, Error, Lib, LibId, Result};
 
 use crate::catalog::LibCatalog;
@@ -201,9 +203,12 @@ pub fn projected_recipe_store(cx: &Cx, directory: &LoadableLibList) -> Result<Re
     for entry in directory.entries() {
         if LoadableLibList::is_loaded(cx, &entry.id) {
             if let Some(recipes) = entry.recipes {
-                store
-                    .register_book(recipes)
-                    .map_err(|err| Error::Eval(format!("{} recipes: {err}", entry.id)))?;
+                for mut card in recipes_from_embedded(recipes)
+                    .map_err(|err| Error::Eval(format!("{} recipes: {err}", entry.id)))?
+                {
+                    card.book_order = entry.order;
+                    store.insert_card(card).map_err(Error::Eval)?;
+                }
             }
             store.insert_card(unload_card(entry)).map_err(Error::Eval)?;
         } else {

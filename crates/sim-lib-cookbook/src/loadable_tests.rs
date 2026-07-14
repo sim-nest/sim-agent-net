@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use sim_cookbook::{EmbeddedDir, RecipeStore};
+use sim_cookbook::{EmbeddedDir, RecipeStore, ordered_cards};
 use sim_kernel::{
     AbiVersion, Args, Callable, ClassRef, Cx, Dependency, Export, LibManifest, LibTarget, Linker,
     LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version, library::Lib,
@@ -202,6 +202,17 @@ fn projected_store_contains_loaded_recipes_and_unload_card() {
     assert_eq!(unload.order, i64::MAX);
     assert_eq!(unload.chapter_order, i64::MAX);
     assert!(unload.tags.contains(&"cookbook-action:unload".to_owned()));
+    let ids: Vec<&str> = ordered_cards(&store)
+        .into_iter()
+        .map(|card| card.id.as_str())
+        .collect();
+    assert_eq!(
+        ids,
+        [
+            "demo/lib/01-basics/demo",
+            "demo/lib/cookbook-lifecycle/unload"
+        ]
+    );
 }
 
 #[test]

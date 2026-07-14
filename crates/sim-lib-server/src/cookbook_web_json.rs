@@ -1,4 +1,6 @@
-use sim_cookbook::{RecipeCard, RecipeRun, RecipeStore, grouped_view, ordered_cards, search, view};
+use sim_cookbook::{
+    ChapterView, RecipeCard, RecipeRun, RecipeStore, grouped_view, ordered_cards, search, view,
+};
 use sim_kernel::Cx;
 use sim_lib_cookbook::{LifecycleAction, LoadableLibList, lifecycle_action};
 
@@ -10,11 +12,16 @@ pub(crate) fn render_error_json(message: &str) -> String {
 }
 
 pub(crate) fn render_index_json(cx: &Cx, store: &RecipeStore, diagnostics: &[String]) -> String {
-    // `books` keeps the flat book -> chapter -> recipe tree (back-compat);
-    // `families` adds the two-level grouping (family -> domain book -> chapter
-    // -> recipe), and `recipes` is the flat ordered list for search-free
-    // listing.
-    let mut out = String::from("{\"books\":[");
+    // `libs` is the WebUI primary tree. `books` keeps the flat book -> chapter
+    // -> recipe tree (back-compat); `families` adds the two-level grouping
+    // (family -> domain book -> chapter -> recipe), and `recipes` is the flat
+    // ordered list for search-free listing.
+    let mut out = String::from("{\"libs\":[");
+    for (lib_index, lib) in lib_views(store).iter().enumerate() {
+        comma(&mut out, lib_index);
+        push_lib(&mut out, cx, lib);
+    }
+    out.push_str("],\"books\":[");
     let cookbook = view(store);
     for (book_index, book) in cookbook.books.iter().enumerate() {
         comma(&mut out, book_index);
@@ -43,6 +50,101 @@ pub(crate) fn render_index_json(cx: &Cx, store: &RecipeStore, diagnostics: &[Str
     out
 }
 
+struct JsonLibView {
+    id: String,
+    title: String,
+    loaded: bool,
+    groups: Vec<ChapterView>,
+    recipes: Vec<RecipeCard>,
+}
+
+fn lib_views(store: &RecipeStore) -> Vec<JsonLibView> {
+    let mut libs: Vec<JsonLibView> = Vec::new();
+    for card in ordered_cards(store) {
+        let (id, loaded) = lib_target(card);
+        let index = match libs.iter().position(|lib| lib.id == id) {
+            Some(index) => index,
+            None => {
+                libs.push(JsonLibView {
+                    id: id.clone(),
+                    title: card.book_title.clone(),
+                    loaded,
+                    groups: Vec::new(),
+                    recipes: Vec::new(),
+                });
+                libs.len() - 1
+            }
+        };
+        let lib = &mut libs[index];
+        lib.loaded |= loaded;
+        if loaded {
+            push_grouped_recipe(lib, card);
+        } else {
+            lib.recipes.push(card.clone());
+        }
+    }
+    libs
+}
+
+fn lib_target(card: &RecipeCard) -> (String, bool) {
+    let action = tag_value(card, "cookbook-action:");
+    let lib = tag_value(card, "cookbook-lib:");
+    match (action, lib) {
+        (Some("load"), Some(id)) => (id.to_owned(), false),
+        (Some("unload"), Some(id)) => (id.to_owned(), true),
+        _ => (card.book.clone(), true),
+    }
+}
+
+fn tag_value<'a>(card: &'a RecipeCard, prefix: &str) -> Option<&'a str> {
+    card.tags.iter().find_map(|tag| tag.strip_prefix(prefix))
+}
+
+fn push_grouped_recipe(lib: &mut JsonLibView, card: &RecipeCard) {
+    let index = match lib
+        .groups
+        .iter()
+        .position(|group| group.name == card.chapter)
+    {
+        Some(index) => index,
+        None => {
+            lib.groups.push(ChapterView {
+                name: card.chapter.clone(),
+                title: card.chapter_title.clone(),
+                summary: card.chapter_summary.clone(),
+                recipes: Vec::new(),
+            });
+            lib.groups.len() - 1
+        }
+    };
+    lib.groups[index].recipes.push(card.clone());
+}
+
+fn push_lib(out: &mut String, cx: &Cx, lib: &JsonLibView) {
+    out.push_str("{\"id\":");
+    push_json_str(out, &lib.id);
+    out.push_str(",\"title\":");
+    push_json_str(out, &lib.title);
+    out.push_str(",\"loaded\":");
+    out.push_str(if lib.loaded { "true" } else { "false" });
+    if lib.loaded {
+        out.push_str(",\"groups\":[");
+        for (group_index, group) in lib.groups.iter().enumerate() {
+            comma(out, group_index);
+            push_chapter(out, cx, group);
+        }
+        out.push(']');
+    } else {
+        out.push_str(",\"recipes\":[");
+        for (recipe_index, recipe) in lib.recipes.iter().enumerate() {
+            comma(out, recipe_index);
+            push_recipe_summary(out, cx, recipe);
+        }
+        out.push(']');
+    }
+    out.push('}');
+}
+
 fn push_book(out: &mut String, cx: &Cx, book: &sim_cookbook::BookView) {
     out.push_str("{\"id\":");
     push_json_str(out, &book.id);
@@ -51,16 +153,20 @@ fn push_book(out: &mut String, cx: &Cx, book: &sim_cookbook::BookView) {
     out.push_str(",\"chapters\":[");
     for (chapter_index, chapter) in book.chapters.iter().enumerate() {
         comma(out, chapter_index);
-        out.push_str("{\"name\":");
-        push_json_str(out, &chapter.name);
-        out.push_str(",\"title\":");
-        push_json_str(out, &chapter.title);
-        out.push_str(",\"recipes\":[");
-        for (recipe_index, recipe) in chapter.recipes.iter().enumerate() {
-            comma(out, recipe_index);
-            push_recipe_summary(out, cx, recipe);
-        }
-        out.push_str("]}");
+        push_chapter(out, cx, chapter);
+    }
+    out.push_str("]}");
+}
+
+fn push_chapter(out: &mut String, cx: &Cx, chapter: &ChapterView) {
+    out.push_str("{\"name\":");
+    push_json_str(out, &chapter.name);
+    out.push_str(",\"title\":");
+    push_json_str(out, &chapter.title);
+    out.push_str(",\"recipes\":[");
+    for (recipe_index, recipe) in chapter.recipes.iter().enumerate() {
+        comma(out, recipe_index);
+        push_recipe_summary(out, cx, recipe);
     }
     out.push_str("]}");
 }

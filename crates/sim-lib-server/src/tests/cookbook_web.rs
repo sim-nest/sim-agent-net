@@ -5,7 +5,7 @@ use sim_kernel::{
     AbiVersion, Cx, Dependency, Export, LibManifest, LibTarget, Linker, LoadCx, Result, Symbol,
     Version, library::Lib, read_eval_capability,
 };
-use sim_lib_cookbook::{LoadableLibEntry, LoadableLibList};
+use sim_lib_cookbook::{LoadableLibEntry, LoadableLibList, SeededLibCatalog, built_in_config};
 use sim_test_support::core_cx;
 
 use crate::CookbookWebState;
@@ -71,6 +71,21 @@ fn fixture_directory() -> LoadableLibList {
 }
 
 #[test]
+fn cookbook_default_directory_and_startup_loaded_counts_are_current() {
+    let directory = SeededLibCatalog::loadable_libs();
+    let cx = lisp_cx();
+    let loaded = directory
+        .entries()
+        .iter()
+        .filter(|entry| LoadableLibList::is_loaded(&cx, &entry.id))
+        .count();
+
+    assert_eq!(built_in_config().minimum_loaded, ["codec/lisp"]);
+    assert_eq!(directory.entries().len(), 19);
+    assert_eq!(loaded, 0);
+}
+
+#[test]
 fn cookbook_dynamic_api_lists_load_recipe_for_unloaded_lib() {
     let state = CookbookWebState::seeded().unwrap();
     let mut cx = lisp_cx();
@@ -78,6 +93,18 @@ fn cookbook_dynamic_api_lists_load_recipe_for_unloaded_lib() {
 
     assert_eq!(response.status, 200);
     assert_eq!(response.content_type, "application/json; charset=utf-8");
+    assert!(
+        response.body.starts_with("{\"libs\":["),
+        "{}",
+        response.body
+    );
+    assert!(
+        response.body.contains(
+            "\"id\":\"numbers/i64\",\"title\":\"I64 numbers\",\"loaded\":false,\"recipes\":[{\"id\":\"cookbook/load/numbers/i64\""
+        ),
+        "{}",
+        response.body
+    );
     assert!(response.body.contains("\"books\""), "{}", response.body);
     assert!(
         response.body.contains("cookbook/load/numbers/i64"),
@@ -115,6 +142,11 @@ fn cookbook_api_index_keeps_grouped_and_flat_arrays() {
     let response = state.handle_request("GET", "/api/cookbook", Some(&mut cx));
 
     assert_eq!(response.status, 200);
+    assert!(
+        response.body.starts_with("{\"libs\":["),
+        "{}",
+        response.body
+    );
     assert!(response.body.contains("\"families\""), "{}", response.body);
     assert!(
         response.body.contains("\"family\":\"cookbook\""),
@@ -199,6 +231,13 @@ fn cookbook_dynamic_api_load_changes_next_index_response() {
     let index = state.handle_request("GET", "/api/cookbook", Some(&mut cx));
     assert_eq!(index.status, 200, "{}", index.body);
     assert!(
+        index.body.contains(
+            "\"id\":\"numbers/i64\",\"title\":\"Numbers I64\",\"loaded\":true,\"groups\":["
+        ),
+        "{}",
+        index.body
+    );
+    assert!(
         index.body.contains("numbers/i64/01-basics/i64-domain"),
         "{}",
         index.body
@@ -224,6 +263,17 @@ fn cookbook_dynamic_api_load_changes_next_index_response() {
         "{}",
         index.body
     );
+    let loaded_lib = index
+        .body
+        .find("\"id\":\"numbers/i64\",\"title\":\"Numbers I64\",\"loaded\":true")
+        .unwrap();
+    let loaded_recipe = index.body[loaded_lib..]
+        .find("numbers/i64/01-basics/i64-domain")
+        .unwrap();
+    let unload_recipe = index.body[loaded_lib..]
+        .find("numbers/i64/cookbook-lifecycle/unload")
+        .unwrap();
+    assert!(loaded_recipe < unload_recipe, "{}", index.body);
 }
 
 #[test]
@@ -418,6 +468,7 @@ fn cookbook_page_and_api_render_empty_state() {
 
     let api = state.handle_request("GET", "/api/cookbook", Some(&mut cx));
     assert_eq!(api.status, 200);
+    assert!(api.body.contains("\"libs\":[]"), "{}", api.body);
     assert!(api.body.contains("\"books\":[]"), "{}", api.body);
     assert!(api.body.contains("\"recipes\":[]"), "{}", api.body);
 }
