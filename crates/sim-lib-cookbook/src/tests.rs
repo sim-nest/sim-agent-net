@@ -427,7 +427,11 @@ fn seeded_expectation_recipe_runs_green() {
         .unwrap();
     let run = run_recipe(&mut cx, &card).unwrap();
     assert!(run.ok, "expected seeded run to pass, got {run:?}");
-    assert_eq!(run.results, ["codec-lisp-ok"]);
+    assert_eq!(run.checks.len(), card.expect.len());
+    assert!(run.checks.iter().all(|check| check.pass));
+    for expectation in &card.expect {
+        assert_eq!(run.results.get(expectation.form), Some(&expectation.result));
+    }
 }
 
 // ---- Requires-driven loading and capability profile ----
