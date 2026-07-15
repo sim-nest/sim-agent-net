@@ -1,4 +1,5 @@
 id = "loom-woven-repair"
 title = "LOOM woven row repair"
+codec = "lisp"
 summary = "Replace one invalid LOOM row through the constrained row frontier."
 entrypoint = "setup.siml"
