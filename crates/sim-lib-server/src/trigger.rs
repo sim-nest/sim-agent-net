@@ -21,7 +21,7 @@ mod source_options;
 mod sources;
 
 use source_options::source_loopback;
-use sources::{TriggerSource, build_network_source, source_capability};
+use sources::{TriggerSource, build_network_source, require_source_capability, source_capability};
 #[cfg(test)]
 use sources::{loopback_smtp_messages, queued_trigger_events};
 
@@ -148,9 +148,7 @@ pub(crate) fn register_trigger(
 ) -> Result<Arc<TriggerHandle>> {
     let source_expr = literal_expr(&source_expr).clone();
     let source = ServerAddress::from_expr(&source_expr)?;
-    if let Some(capability) = source_capability(&source) {
-        cx.require(&capability)?;
-    }
+    require_source_capability(cx, &source)?;
     let cron = match &source {
         ServerAddress::Cron { spec } => Some(CronMatcher::parse(spec)?),
         _ => None,

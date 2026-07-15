@@ -207,7 +207,7 @@ fn tcp_transport_uses_registry_loopback_only_when_requested() {
 
 #[test]
 fn start_and_connect_capabilities_gate_network_surfaces() {
-    let cx = cx();
+    let denied_cx = cx();
     let tcp = ServerAddress::Tcp {
         host: "127.0.0.1".to_owned(),
         port: 7171,
@@ -219,22 +219,26 @@ fn start_and_connect_capabilities_gate_network_surfaces() {
         url: "http://127.0.0.1:7171".to_owned(),
     };
 
-    let start_err = require_start_capabilities(&cx, &tcp).unwrap_err();
-    assert!(format!("{start_err}").contains("network"));
+    let start_err = require_start_capabilities(&denied_cx, &tcp).unwrap_err();
+    assert!(format!("{start_err}").contains("net/http"));
 
-    let connect_err = require_connect_capabilities(&cx, &tcp).unwrap_err();
-    assert!(format!("{connect_err}").contains("network"));
+    let connect_err = require_connect_capabilities(&denied_cx, &tcp).unwrap_err();
+    assert!(format!("{connect_err}").contains("net/http"));
 
-    let unix_start_err = require_start_capabilities(&cx, &unix).unwrap_err();
-    assert!(format!("{unix_start_err}").contains("network"));
+    let unix_start_err = require_start_capabilities(&denied_cx, &unix).unwrap_err();
+    assert!(format!("{unix_start_err}").contains("net/http"));
 
-    let unix_connect_err = require_connect_capabilities(&cx, &unix).unwrap_err();
-    assert!(format!("{unix_connect_err}").contains("network"));
+    let unix_connect_err = require_connect_capabilities(&denied_cx, &unix).unwrap_err();
+    assert!(format!("{unix_connect_err}").contains("net/http"));
 
-    let mut cx = cx;
-    cx.grant_named("network");
-    let http_err = require_start_capabilities(&cx, &http).unwrap_err();
+    let mut alias_cx = denied_cx;
+    alias_cx.grant_named("network");
+    let http_err = require_start_capabilities(&alias_cx, &http).unwrap_err();
     assert!(format!("{http_err}").contains("webhook-serve"));
+
+    let mut canonical_cx = cx();
+    canonical_cx.grant_named("net/http");
+    assert!(require_connect_capabilities(&canonical_cx, &tcp).is_ok());
 }
 
 #[cfg(not(unix))]

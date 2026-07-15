@@ -10,7 +10,7 @@ use sim_kernel::{
 /// runner demands this capability before reaching the shell, mirroring the way
 /// sibling crates gate their host effects with an explicit `cx.require(...)`.
 pub fn host_process_capability() -> CapabilityName {
-    CapabilityName::new("host.process")
+    CapabilityName::new("exec")
 }
 
 pub(super) fn resolve_process_effect<F>(
@@ -22,10 +22,8 @@ pub(super) fn resolve_process_effect<F>(
 where
     F: FnOnce(&ProcessRunner, ModelRequest) -> Result<ModelResponse>,
 {
-    // Refuse before spawning any shell: arbitrary host-process exec must rest on
-    // an explicit capability grant, not only on the kernel effect policy.
-    cx.require(&host_process_capability())?;
-    let effect = process_effect(runner, cx, &request)?;
+    let required_capability = process_effect_capability(cx);
+    let effect = process_effect(runner, cx, &request, required_capability)?;
     let result = effect::resolve_effect(cx, effect, |cx, _effect| {
         let response = perform(runner, request)?;
         response_ref(cx, response)
@@ -33,7 +31,12 @@ where
     response_from_ref(cx, &result)
 }
 
-fn process_effect(runner: &ProcessRunner, cx: &mut Cx, request: &ModelRequest) -> Result<Effect> {
+fn process_effect(
+    runner: &ProcessRunner,
+    cx: &mut Cx,
+    request: &ModelRequest,
+    required_capability: CapabilityName,
+) -> Result<Effect> {
     let input = Datum::Node {
         tag: Symbol::qualified("agent", "ProcessRunnerInput"),
         fields: vec![
@@ -58,6 +61,31 @@ fn process_effect(runner: &ProcessRunner, cx: &mut Cx, request: &ModelRequest) -
         "agent",
         "process-runner-v1",
     ))))
+    .map(|effect| effect.requiring(required_capability))
+}
+
+fn process_effect_capability(cx: &Cx) -> CapabilityName {
+    granted_capability_or_alias(cx, host_process_capability(), exec_aliases())
+        .unwrap_or_else(host_process_capability)
+}
+
+fn exec_aliases() -> &'static [&'static str] {
+    &["host.process"]
+}
+
+fn granted_capability_or_alias(
+    cx: &Cx,
+    canonical: CapabilityName,
+    aliases: &'static [&'static str],
+) -> Option<CapabilityName> {
+    if cx.capabilities().contains(&canonical) {
+        return Some(canonical);
+    }
+    aliases
+        .iter()
+        .copied()
+        .map(CapabilityName::new)
+        .find(|alias| cx.capabilities().contains(alias))
 }
 
 fn response_ref(cx: &mut Cx, response: ModelResponse) -> Result<Ref> {

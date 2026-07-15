@@ -15,6 +15,7 @@
 
 mod agents;
 pub mod atelier;
+mod capabilities;
 mod cli;
 mod components;
 mod config_probe;
@@ -54,9 +55,6 @@ const SANDBOX_CAPABILITY: &str = "sandbox";
 const SANDBOX_SUBPROCESS_CAPABILITY: &str = "sandbox-subprocess";
 const SANDBOX_WASM_CAPABILITY: &str = "sandbox-wasm";
 const VOICE_CAPABILITY: &str = "voice";
-const FILE_READ_CAPABILITY: &str = "file-read";
-const FILE_WRITE_CAPABILITY: &str = "file-write";
-const NETWORK_CAPABILITY: &str = "network";
 const AGENT_SPAWN_CAPABILITY: &str = "agent-spawn";
 const AGENT_REPLACE_CAPABILITY: &str = "agent-replace";
 const AGENT_REFLECT_CAPABILITY: &str = "agent-reflect";
@@ -84,6 +82,10 @@ pub use atelier::{
     RadarChunk, RadarError, RadarHint, RadarIndex, RadarQuery, RadarReport, RadarResult,
     SelfHostingScenario, SourceSpan, cassette_content_hash, evaluate_guarded_action, guard_action,
     retrieve_radar_hints, self_hosting_scenarios, validate_self_hosting_scenarios,
+};
+pub(crate) use capabilities::{
+    fs_read_capability, fs_write_capability, net_http_capability, require_component_capability,
+    require_fs_read_capability, require_fs_write_capability, require_net_http_capability,
 };
 use cli::{agent_cli_exports, register_agent_cli};
 pub use components::RunnerBackend;

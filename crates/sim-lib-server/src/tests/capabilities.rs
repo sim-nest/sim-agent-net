@@ -41,7 +41,7 @@ fn file_read_trigger_requires_capability() {
             Expr::Symbol(Symbol::new(":path")),
             Expr::String("/tmp/sim-s10-file".to_owned()),
         ])),
-        CapabilityName::new("file-read"),
+        CapabilityName::new("fs/read"),
     );
 }
 

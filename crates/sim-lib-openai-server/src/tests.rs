@@ -6,8 +6,8 @@ use sim_codec_chat::{
     ChatCodecLib, model_card_expr, model_response_expr, validate_chat_transcript,
 };
 use sim_kernel::{
-    Args, Callable, Cx, EncodeOptions, Error, Expr, Lib, Object, ObjectCompat, ReadPolicy, Result,
-    Symbol,
+    Args, Callable, CapabilityName, Cx, EncodeOptions, Error, Expr, Lib, Object, ObjectCompat,
+    ReadPolicy, Result, Symbol,
 };
 
 use super::*;
@@ -250,7 +250,7 @@ fn serve_function_requires_gateway_network_and_webhook_capabilities() {
         Error::CapabilityDenied { capability } if capability == network_capability()
     ));
 
-    cx.grant(network_capability());
+    cx.grant(CapabilityName::new("network"));
     let err = OpenAiGatewayFunction::serve()
         .call(&mut cx, sim_kernel::Args::new(Vec::new()))
         .unwrap_err();

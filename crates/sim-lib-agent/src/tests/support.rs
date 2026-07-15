@@ -131,7 +131,7 @@ impl DummyComponent {
     pub(super) fn new() -> Self {
         Self {
             name: Symbol::qualified("test", "component"),
-            capabilities: vec![sim_kernel::CapabilityName::new("network")],
+            capabilities: vec![crate::net_http_capability()],
         }
     }
 }

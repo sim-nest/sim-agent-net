@@ -513,9 +513,11 @@ fn capability_profile_grants_and_denies() {
     use sim_kernel::{CapabilityName, GrantSeat};
 
     let read_construct = sim_kernel::read_construct_capability();
+    let net_http = CapabilityName::new("net/http");
     let net_connect = CapabilityName::new("net-connect");
     assert!(CookbookCapabilityProfile::grants(&read_construct));
     assert!(CookbookCapabilityProfile::grants(&read_eval_capability()));
+    assert!(CookbookCapabilityProfile::denies(&net_http));
     assert!(CookbookCapabilityProfile::denies(&net_connect));
     assert!(!CookbookCapabilityProfile::grants(&net_connect));
 

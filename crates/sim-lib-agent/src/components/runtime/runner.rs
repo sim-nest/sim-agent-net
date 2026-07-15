@@ -32,7 +32,7 @@ pub(in crate::components) fn answer_runner(
         )));
     }
     for capability in &component.capabilities {
-        cx.require(capability)?;
+        crate::require_component_capability(cx, capability)?;
     }
     let consistency = frame.envelope.consistency;
     let msg_id = frame.msg_id;
@@ -70,7 +70,7 @@ pub(in crate::components) fn stream_runner(
         )));
     }
     for capability in &component.capabilities {
-        cx.require(capability)?;
+        crate::require_component_capability(cx, capability)?;
     }
     let request = eval_request_from_frame(cx, &frame)?;
     if let Some((site, routed_frame)) =

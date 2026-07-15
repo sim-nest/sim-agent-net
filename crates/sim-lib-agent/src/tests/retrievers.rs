@@ -279,8 +279,8 @@ fn r11_web_and_db_reflect_required_capabilities() {
 
     let web_expr = as_component(&web).reflect(&mut cx).unwrap();
     let db_expr = as_component(&db).reflect(&mut cx).unwrap();
-    assert!(format!("{web_expr:?}").contains("network"));
-    assert!(format!("{db_expr:?}").contains("file-read"));
+    assert!(format!("{web_expr:?}").contains("net/http"));
+    assert!(format!("{db_expr:?}").contains("fs/read"));
     let request = request_frame(&mut cx, Expr::String("test".to_owned()));
     let err = as_component(&web).answer(&mut cx, request).unwrap_err();
     assert!(matches!(err, Error::CapabilityDenied { .. }));

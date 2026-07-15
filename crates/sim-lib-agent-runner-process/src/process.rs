@@ -361,7 +361,7 @@ pub(super) fn io_error_to_host(err: std::io::Error) -> Error {
 mod tests {
     use super::*;
     use crate::{ProcessProtocol, ProcessRunner, effects::host_process_capability};
-    use sim_kernel::{CapabilityName, Cx, DefaultFactory, Expr, NoopEvalPolicy, Symbol};
+    use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, Symbol};
     use sim_lib_agent_runner_core::ModelRequest;
 
     #[test]
@@ -392,7 +392,7 @@ mod tests {
     #[test]
     fn granted_host_process_allows_spawn() {
         let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
-        cx.grant(CapabilityName::new("host.process"));
+        cx.grant(host_process_capability());
         // With the capability granted, the effect-path `cx.require` passes, so a
         // real `infer` would proceed to spawn; exercise the spawn directly.
         assert!(cx.require(&host_process_capability()).is_ok());

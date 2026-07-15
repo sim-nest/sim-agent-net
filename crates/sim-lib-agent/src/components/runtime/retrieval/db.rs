@@ -1,14 +1,14 @@
 use super::query::decode_query;
-use crate::{FILE_READ_CAPABILITY, memory::io_error};
+use crate::{memory::io_error, require_fs_read_capability};
 use sim_codec_binary::decode_frame;
-use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, Symbol};
+use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use std::{
     fs,
     path::{Path, PathBuf},
 };
 
 pub(super) fn file_result_expr(cx: &Cx, root: Option<&PathBuf>, expr: Expr) -> Result<Expr> {
-    cx.require(&CapabilityName::new(FILE_READ_CAPABILITY))?;
+    require_fs_read_capability(cx)?;
     let path = match expr {
         Expr::String(text) => PathBuf::from(text),
         Expr::Symbol(symbol) => PathBuf::from(symbol.to_string()),
@@ -36,7 +36,7 @@ pub(super) fn file_result_expr(cx: &Cx, root: Option<&PathBuf>, expr: Expr) -> R
 }
 
 pub(super) fn db_result_expr(cx: &Cx, path: &Path, expr: Expr) -> Result<Expr> {
-    cx.require(&CapabilityName::new(FILE_READ_CAPABILITY))?;
+    require_fs_read_capability(cx)?;
     let (query_expr, limit) = decode_query(expr)?;
     let query = tokenize(&query_text(&query_expr));
     let records = load_db_records(path)?;

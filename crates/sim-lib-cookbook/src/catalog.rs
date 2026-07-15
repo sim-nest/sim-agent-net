@@ -10,7 +10,7 @@
 //!   on this trait, never on a concrete domain lib.
 //! - [`CookbookCapabilityProfile`]: the deterministic capability set the cookbook
 //!   seats its eval `Cx` with. It GRANTS pure/offline/deterministic effects and
-//!   DENIES live-net, live-hardware, process-spawn, wall-clock, fs-write, and
+//!   DENIES live-net, live-hardware, process-spawn, wall-clock, fs/write, and
 //!   unseeded entropy. An op that requests a denied capability fails closed (the
 //!   capability is simply never granted), which is what makes a Category D recipe
 //!   a descriptor BY CONSTRUCTION.
@@ -37,7 +37,7 @@ pub trait LibCatalog {
 
 /// The empty catalog: resolves nothing.
 ///
-/// Callers on the legacy path pre-load every required lib into the `Cx`
+/// Callers on the compatibility path pre-load every required lib into the `Cx`
 /// themselves; the runner then finds each require already present and loads
 /// nothing. [`crate::run_recipe`] uses this so its behavior is unchanged.
 pub struct EmptyCatalog;
@@ -151,17 +151,17 @@ impl CookbookCapabilityProfile {
     /// entropy. These are the Category D boundary; a recipe requesting one fails
     /// closed and its purpose becomes the denial.
     pub fn denied() -> Vec<CapabilityName> {
-        [
-            "net-connect",
-            "device-open",
-            "process-spawn",
-            "clock-now",
-            "fs-write",
-            "rng-unseeded",
+        vec![
+            CapabilityName::new("net/http"),
+            CapabilityName::new("net-connect"),
+            CapabilityName::new("device-open"),
+            CapabilityName::new("exec"),
+            CapabilityName::new("process-spawn"),
+            CapabilityName::new("clock-now"),
+            CapabilityName::new("fs/write"),
+            CapabilityName::new("fs-write"),
+            CapabilityName::new("rng-unseeded"),
         ]
-        .into_iter()
-        .map(CapabilityName::new)
-        .collect()
     }
 
     /// Whether this profile grants `capability`.

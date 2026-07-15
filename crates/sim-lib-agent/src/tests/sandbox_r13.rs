@@ -237,7 +237,7 @@ fn r13_capability_restricted_intersects_allow_list_and_fails_closed() {
     assert!(matches!(
         err,
         Error::CapabilityDenied { capability }
-            if capability == sim_kernel::CapabilityName::new("file-write")
+            if capability == crate::fs_write_capability()
     ));
 
     let allowed = cx

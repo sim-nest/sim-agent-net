@@ -54,7 +54,8 @@ pub use capabilities::{
     network_capability, openai_gateway_admin_capability, openai_gateway_federate_capability,
     openai_gateway_plan_capability, openai_gateway_plan_remote_capability,
     openai_gateway_serve_capabilities, openai_gateway_serve_capability,
-    openai_gateway_tools_capability, webhook_serve_capability,
+    openai_gateway_tools_capability, require_openai_gateway_serve_capabilities,
+    webhook_serve_capability,
 };
 pub use clock::{DeterministicGatewayClock, GatewayClock, SystemGatewayClock};
 pub use codec_openai::{
