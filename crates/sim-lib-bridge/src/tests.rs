@@ -1,13 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 use sim_codec_bridge::{
-    BridgeBook, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgePatchPayload,
-    BridgeProvenance, BridgeScore, BridgeVotePayload, assert_total_ownership, encode_bridge_text,
-    stamp_packet_cid,
+    AuthorityClass, BridgeBook, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart,
+    BridgePartSpec, BridgePatchPayload, BridgeProvenance, BridgeScore, BridgeVotePayload,
+    BridgeWarrantPolicy, RenderClass, UnknownPolicy, assert_total_ownership, content_id_string,
+    encode_bridge_text, stamp_packet_cid,
 };
 use sim_codec_json::JsonCodecLib;
 use sim_kernel::{
-    Args, Callable, CapabilityName, Consistency, Cx, DefaultFactory, EagerPolicy, Error,
+    Args, Callable, CapabilityName, Consistency, Cx, Datum, DefaultFactory, EagerPolicy, Error,
     EvalFabric, EvalMode, EvalReply, EvalRequest, Export, Expr, Lib, Result, Symbol,
 };
 use sim_lib_agent_runner_core::ModelResponse;
@@ -20,7 +21,7 @@ mod loom;
 use crate::{
     BridgeFunction, BridgeFunctionKind, BridgeLib, MergePolicy, bridge_brief, bridge_brief_symbol,
     bridge_request_content_key, bridge_rx_response, bridge_tx, effective_caps, frontier,
-    merge_bridge_replies, render_model_face, run_bridge, rx_check,
+    merge_bridge_replies, prepare_packet, render_model_face, run_bridge, rx_check,
 };
 
 #[derive(Default)]
@@ -367,12 +368,16 @@ fn call_above_ceiling_fails_closed() {
 fn cassette_hit_skips_live_runner() {
     let mut cx = cx();
     let book = BridgeBook::standard();
-    let parent = stamp_packet_cid(&request_packet(
+    let parent = request_packet(
         Expr::Symbol(Symbol::qualified("core", "String")),
         vec![Symbol::qualified("ai", "run")],
+    );
+    let checked_parent = prepare_packet(&mut cx, &book, &parent).unwrap();
+    let reply = stamp_packet_cid(&reply_packet(
+        &checked_parent,
+        Expr::String("ok".to_owned()),
     ))
     .unwrap();
-    let reply = stamp_packet_cid(&reply_packet(&parent, Expr::String("ok".to_owned()))).unwrap();
     let calls = Arc::new(Mutex::new(0));
     let fabric = CountingFabric::new(response_for(&reply), calls.clone());
     let cassette = Arc::new(EvalCassette::new(Arc::new(MemoryLedger::default())));
@@ -497,6 +502,87 @@ fn one_frame_record_yields_both_faces() {
     assert!(face.contains("FLUENT"));
     assert!(face.contains("[T1] You MUST produce bridge/proposal for sim-human-model."));
     assert_total_ownership(&face, &spans).unwrap();
+}
+
+#[test]
+fn matching_books_accept() {
+    let mut cx = cx();
+    let book = BridgeBook::standard().with_warrant_policy(BridgeWarrantPolicy::Verify);
+    let packet = prepare_packet(
+        &mut cx,
+        &book,
+        &request_packet(
+            Expr::Symbol(Symbol::qualified("core", "Any")),
+            vec![Symbol::qualified("ai", "run")],
+        ),
+    )
+    .unwrap();
+    let report = rx_check(&mut cx, &book, &packet, None).unwrap();
+
+    assert!(packet.warrant.is_some());
+    assert!(report.accepted());
+}
+
+#[test]
+fn stale_book_emits_fetch_obligation() {
+    let mut cx = cx();
+    let book = BridgeBook::standard().with_warrant_policy(BridgeWarrantPolicy::Verify);
+    let packet = prepare_packet(
+        &mut cx,
+        &book,
+        &request_packet(
+            Expr::Symbol(Symbol::qualified("core", "Any")),
+            vec![Symbol::qualified("ai", "run")],
+        ),
+    )
+    .unwrap();
+    let stale_book = BridgeBook::standard()
+        .with_part(BridgePartSpec::new(
+            Symbol::qualified("bridge", "Frame"),
+            Expr::Symbol(Symbol::qualified("bridge", "StaleFrame")),
+            RenderClass::Frame,
+            AuthorityClass::Normative,
+            UnknownPolicy::Reject,
+        ))
+        .with_warrant_policy(BridgeWarrantPolicy::Verify);
+    let report = rx_check(&mut cx, &stale_book, &packet, None).unwrap();
+
+    assert!(!report.accepted());
+    assert!(report.obligations.iter().any(|obligation| {
+        obligation.path == "warrant/parts/bridge/Frame"
+            && obligation.reason == "typed context expansion requires Fetch"
+            && obligation.expected.starts_with("bridge/Fetch core/")
+            && obligation
+                .repair_menu
+                .contains(&"send Fetch packet".to_owned())
+    }));
+}
+
+#[test]
+fn forged_warrant_cid_is_obligation_not_panic() {
+    let mut cx = cx();
+    let book = BridgeBook::standard().with_warrant_policy(BridgeWarrantPolicy::Verify);
+    let mut packet = prepare_packet(
+        &mut cx,
+        &book,
+        &request_packet(
+            Expr::Symbol(Symbol::qualified("core", "Any")),
+            vec![Symbol::qualified("ai", "run")],
+        ),
+    )
+    .unwrap();
+    let forged = Datum::String("forged bridge warrant cid".to_owned())
+        .content_id()
+        .unwrap();
+    packet.warrant.as_mut().unwrap().parts[0].1 = forged.clone();
+    let packet = stamp_packet_cid(&packet).unwrap();
+    let report = rx_check(&mut cx, &book, &packet, None).unwrap();
+
+    assert!(!report.accepted());
+    assert!(report.obligations.iter().any(|obligation| {
+        obligation.path == "warrant/parts/bridge/Frame"
+            && obligation.expected == format!("bridge/Fetch {}", content_id_string(&forged))
+    }));
 }
 
 #[test]

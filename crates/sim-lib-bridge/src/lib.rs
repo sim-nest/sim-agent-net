@@ -24,6 +24,7 @@ mod report;
 mod runtime;
 mod rx;
 mod tx;
+mod warrant;
 
 #[cfg(test)]
 mod tests;
@@ -53,6 +54,7 @@ pub use runtime::{
 };
 pub use rx::{bridge_rx, bridge_rx_response, effective_caps, rx_check};
 pub use tx::{bridge_tx, prepare_packet, render_model_face, run_bridge};
+pub use warrant::verify_warrant;
 
 /// Cookbook recipes embedded from this crate's `recipes/` directory.
 pub static RECIPES: sim_cookbook::EmbeddedDir =

@@ -1,6 +1,6 @@
 use sim_codec_bridge::{
     BridgeBook, BridgeCallPayload, BridgePacket, OwnedSpan, assert_roundtrip,
-    assert_total_ownership, encode_bridge_text, stamp_packet_cid,
+    assert_total_ownership, encode_bridge_text, stamp_packet_cid, warrant_for_packet,
 };
 use sim_kernel::{Consistency, Cx, Error, EvalFabric, EvalMode, EvalRequest, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{FENCE_DATA_RULE, ModelRequest};
@@ -16,7 +16,9 @@ pub fn prepare_packet(
     book: &BridgeBook,
     packet: &BridgePacket,
 ) -> Result<BridgePacket> {
-    let packet = stamp_packet_cid(&packet.canonicalized())?;
+    let mut packet = packet.canonicalized();
+    packet.warrant = Some(warrant_for_packet(book, &packet)?);
+    let packet = stamp_packet_cid(&packet)?;
     let report = rx_check(cx, book, &packet, None)?;
     if !report.accepted() {
         return Err(Error::Eval(format!(
