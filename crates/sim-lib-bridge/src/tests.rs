@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use sim_codec_bridge::{
-    BridgeBook, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
-    assert_total_ownership, encode_bridge_text, stamp_packet_cid,
+    BridgeBook, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgePatchPayload,
+    BridgeProvenance, BridgeScore, BridgeVotePayload, assert_total_ownership, encode_bridge_text,
+    stamp_packet_cid,
 };
 use sim_codec_json::JsonCodecLib;
 use sim_kernel::{
@@ -17,9 +18,9 @@ mod ask;
 mod loom;
 
 use crate::{
-    BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_brief, bridge_brief_symbol,
+    BridgeFunction, BridgeFunctionKind, BridgeLib, MergePolicy, bridge_brief, bridge_brief_symbol,
     bridge_request_content_key, bridge_rx_response, bridge_tx, effective_caps, frontier,
-    render_model_face, run_bridge, rx_check,
+    merge_bridge_replies, render_model_face, run_bridge, rx_check,
 };
 
 #[derive(Default)]
@@ -153,6 +154,100 @@ fn reply_packet(parent: &BridgePacket, output: Expr) -> BridgePacket {
                 payload: output,
             },
         ],
+        warrant: None,
+    }
+}
+
+fn collaboration_base_packet() -> BridgePacket {
+    BridgePacket {
+        header: BridgeHeader {
+            cid: None,
+            move_kind: Symbol::new("reply"),
+            from: "model:drafter".to_owned(),
+            to: vec!["human:reviewer".to_owned(), "model:judge".to_owned()],
+            role: Symbol::new("implementer"),
+            parents: vec!["core/sha256-bridge-v1:root".to_owned()],
+            task: Symbol::new("T2"),
+            output: Symbol::new("O2"),
+            ceiling: Vec::new(),
+            context: Vec::new(),
+            provenance: BridgeProvenance::default(),
+        },
+        body: vec![
+            BridgePart {
+                id: Symbol::new("T2"),
+                kind: Symbol::qualified("bridge", "Frame"),
+                payload: Expr::Map(vec![entry(
+                    "frame",
+                    Expr::Symbol(Symbol::qualified("bridge", "answer")),
+                )]),
+            },
+            BridgePart {
+                id: Symbol::new("O2"),
+                kind: Symbol::qualified("bridge", "Return"),
+                payload: Expr::Map(vec![
+                    entry("codec", Expr::Symbol(Symbol::qualified("codec", "bridge"))),
+                    entry("shape", Expr::Symbol(Symbol::qualified("core", "Map"))),
+                ]),
+            },
+        ],
+        warrant: None,
+    }
+}
+
+fn patch_reply(parent: &BridgePacket, from: &str, replacement: Expr) -> BridgePacket {
+    let parent_cid = parent.header.cid.clone().unwrap();
+    BridgePacket {
+        header: BridgeHeader {
+            cid: None,
+            move_kind: Symbol::new("patch"),
+            from: from.to_owned(),
+            to: vec!["sim".to_owned()],
+            role: Symbol::new("reviewer"),
+            parents: vec![parent_cid.clone()],
+            task: Symbol::new("P1"),
+            output: Symbol::new("P1"),
+            ceiling: Vec::new(),
+            context: Vec::new(),
+            provenance: BridgeProvenance::default(),
+        },
+        body: vec![BridgePart {
+            id: Symbol::new("P1"),
+            kind: Symbol::qualified("bridge", "Patch"),
+            payload: BridgePatchPayload::new(parent_cid, "body/O2/payload", replacement).to_expr(),
+        }],
+        warrant: None,
+    }
+}
+
+fn vote_reply(parent: &BridgePacket, from: &str) -> BridgePacket {
+    BridgePacket {
+        header: BridgeHeader {
+            cid: None,
+            move_kind: Symbol::new("vote"),
+            from: from.to_owned(),
+            to: vec!["sim".to_owned()],
+            role: Symbol::new("judge"),
+            parents: vec![parent.header.cid.clone().unwrap()],
+            task: Symbol::new("V1"),
+            output: Symbol::new("V1"),
+            ceiling: Vec::new(),
+            context: Vec::new(),
+            provenance: BridgeProvenance::default(),
+        },
+        body: vec![BridgePart {
+            id: Symbol::new("V1"),
+            kind: Symbol::qualified("bridge", "Vote"),
+            payload: BridgeVotePayload::new(
+                "body/O2/payload",
+                vec![BridgeScore::new(
+                    Symbol::new("correctness"),
+                    1,
+                    "keeps the packet contract",
+                )],
+            )
+            .to_expr(),
+        }],
         warrant: None,
     }
 }
@@ -303,6 +398,53 @@ fn receive_uses_terminal_content_item() {
     let (decoded, report) = bridge_rx_response(&mut cx, &book, &response, Some(&parent)).unwrap();
 
     assert_eq!(decoded, reply);
+    assert!(report.accepted());
+}
+
+#[test]
+fn collaboration_is_packet_based() {
+    let base = stamp_packet_cid(&collaboration_base_packet()).unwrap();
+    let patch = stamp_packet_cid(&patch_reply(
+        &base,
+        "human:reviewer",
+        Expr::String("accepted answer".to_owned()),
+    ))
+    .unwrap();
+    let merged = merge_bridge_replies(&base, &[patch], &MergePolicy::Single).unwrap();
+    let patch = BridgePatchPayload::from_expr(&merged.body[0].payload).unwrap();
+
+    assert_eq!(merged.header.move_kind, Symbol::new("patch"));
+    assert_eq!(patch.parent_cid, base.header.cid.unwrap());
+    assert_eq!(patch.target, "body/O2/payload");
+    assert_eq!(
+        patch.replacement,
+        Expr::String("accepted answer".to_owned())
+    );
+}
+
+#[test]
+fn merge_still_satisfies_root_return() {
+    let mut cx = cx();
+    let book = BridgeBook::standard();
+    let base = stamp_packet_cid(&collaboration_base_packet()).unwrap();
+    let patch = stamp_packet_cid(&patch_reply(
+        &base,
+        "model:synthesizer",
+        Expr::String("accepted answer".to_owned()),
+    ))
+    .unwrap();
+    let vote = stamp_packet_cid(&vote_reply(&base, "model:judge")).unwrap();
+    let merged = merge_bridge_replies(
+        &base,
+        &[patch, vote],
+        &MergePolicy::SynthesisThenVote {
+            synthesizer: "model:synthesizer".to_owned(),
+            min_votes: 1,
+        },
+    )
+    .unwrap();
+    let report = rx_check(&mut cx, &book, &merged, Some(&base)).unwrap();
+
     assert!(report.accepted());
 }
 
