@@ -36,8 +36,8 @@ pub use model::{
 pub use receipt::{receipt_packet_for_report, receipt_symbol};
 pub use report::{BridgeObligation, BridgeReport};
 pub use runtime::{
-    BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_report_symbol, bridge_rx_symbol,
-    bridge_tx_symbol, install_bridge_lib, manifest_name,
+    BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_brief_symbol, bridge_report_symbol,
+    bridge_rx_symbol, bridge_tx_symbol, install_bridge_lib, manifest_name,
 };
 pub use rx::{bridge_rx, bridge_rx_response, effective_caps, rx_check};
 pub use tx::{bridge_tx, prepare_packet, render_model_face, run_bridge};

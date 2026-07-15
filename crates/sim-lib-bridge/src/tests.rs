@@ -5,16 +5,17 @@ use sim_codec_bridge::{
     assert_total_ownership, encode_bridge_text, stamp_packet_cid,
 };
 use sim_kernel::{
-    CapabilityName, Consistency, Cx, DefaultFactory, EagerPolicy, Error, EvalFabric, EvalMode,
-    EvalReply, EvalRequest, Expr, Result, Symbol,
+    Args, Callable, CapabilityName, Consistency, Cx, DefaultFactory, EagerPolicy, Error,
+    EvalFabric, EvalMode, EvalReply, EvalRequest, Export, Expr, Lib, Result, Symbol,
 };
 use sim_lib_agent_runner_core::ModelResponse;
 use sim_lib_stream_fabric::{ContentKey, EvalCassette, EvalCassetteLedger, LedgeredRelayFabric};
 use sim_value::build::entry;
 
 use crate::{
-    bridge_brief, bridge_request_content_key, bridge_rx_response, bridge_tx, effective_caps,
-    frontier, render_model_face, run_bridge, rx_check,
+    BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_brief, bridge_brief_symbol,
+    bridge_request_content_key, bridge_rx_response, bridge_tx, effective_caps, frontier,
+    render_model_face, run_bridge, rx_check,
 };
 
 #[derive(Default)]
@@ -372,4 +373,49 @@ fn frontier_emits_flat_oneof_that_lowers() {
     assert!(format!("{:?}", menu.heads).contains("reply"));
     assert!(menu.grammar.contains(r#""anyOf""#));
     assert!(menu.grammar.contains("reply"));
+}
+
+#[test]
+fn bridge_brief_runtime_export_constructs_packet() {
+    let mut cx = cx();
+    let exported = BridgeLib
+        .manifest()
+        .exports
+        .iter()
+        .any(|export| matches!(export, Export::Function { symbol, .. } if *symbol == bridge_brief_symbol()));
+    assert!(exported);
+
+    let target = cx
+        .factory()
+        .expr(Expr::String("model:drafter".to_owned()))
+        .unwrap();
+    let frame = cx
+        .factory()
+        .expr(
+            BridgeFramePayload::new(Symbol::qualified("bridge", "produce-artifact"))
+                .with_slot(
+                    Symbol::new("what"),
+                    Expr::Symbol(Symbol::qualified("bridge", "proposal")),
+                )
+                .with_slot(
+                    Symbol::new("target"),
+                    Expr::String("sim-human-model".to_owned()),
+                )
+                .to_expr(),
+        )
+        .unwrap();
+    let return_shape = cx
+        .factory()
+        .expr(Expr::Symbol(Symbol::qualified("core", "String")))
+        .unwrap();
+
+    let value = BridgeFunction::new(BridgeFunctionKind::Brief)
+        .call(&mut cx, Args::new(vec![target, frame, return_shape]))
+        .unwrap();
+    let packet =
+        sim_codec_bridge::expr_to_packet(&value.object().as_expr(&mut cx).unwrap()).unwrap();
+
+    assert_eq!(packet.header.to, vec!["model:drafter".to_owned()]);
+    assert_eq!(packet.body[0].kind, Symbol::qualified("bridge", "Frame"));
+    assert_eq!(packet.body[1].kind, Symbol::qualified("bridge", "Return"));
 }
