@@ -148,6 +148,7 @@ fn loaded_check_accepts_entry_tail_alias() {
 
     assert!(LoadableLibList::is_loaded(&cx, "organ/binding"));
     assert!(LoadableLibList::is_loaded(&cx, "binding"));
+    assert!(LoadableLibList::is_loaded(&cx, "sim-binding"));
     assert!(!LoadableLibList::is_loaded(&cx, "organ/control"));
 }
 

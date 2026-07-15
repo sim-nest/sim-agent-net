@@ -108,7 +108,9 @@ impl LoadableLibList {
             .libs()
             .iter()
             .find(|loaded| {
-                loaded.manifest.id.as_qualified_str() == id
+                let qualified = loaded.manifest.id.as_qualified_str();
+                qualified == id
+                    || qualified.replace('/', "-") == id
                     || loaded.manifest.id.name.as_ref() == id
                     || loaded.manifest.id.name.as_ref() == tail
             })
@@ -206,9 +208,16 @@ pub fn projected_recipe_store(cx: &Cx, directory: &LoadableLibList) -> Result<Re
                 for mut card in recipes_from_embedded(recipes)
                     .map_err(|err| Error::Eval(format!("{} recipes: {err}", entry.id)))?
                 {
+                    card.id = effective_recipe_id(&card.book, &card.id, &entry.id);
+                    card.book = entry.id.clone();
+                    card.book_title = entry.title.clone();
                     card.book_order = entry.order;
                     store.insert_card(card).map_err(Error::Eval)?;
                 }
+            } else {
+                store
+                    .insert_card(setup_debt_card(entry))
+                    .map_err(Error::Eval)?;
             }
             store.insert_card(unload_card(entry)).map_err(Error::Eval)?;
         } else {
@@ -230,6 +239,19 @@ fn load_card(entry: &LoadableLibEntry) -> RecipeCard {
     )
 }
 
+fn effective_recipe_id(original_book: &str, original_id: &str, entry_id: &str) -> String {
+    if original_id == original_book {
+        return entry_id.to_owned();
+    }
+    if let Some(suffix) = original_id.strip_prefix(&format!("{original_book}/")) {
+        return format!("{entry_id}/{suffix}");
+    }
+    if original_id == entry_id || original_id.starts_with(&format!("{entry_id}/")) {
+        return original_id.to_owned();
+    }
+    format!("{entry_id}/{original_id}")
+}
+
 fn unload_card(entry: &LoadableLibEntry) -> RecipeCard {
     lifecycle_card(
         format!("{}/cookbook-lifecycle/unload", entry.id),
@@ -240,6 +262,43 @@ fn unload_card(entry: &LoadableLibEntry) -> RecipeCard {
         i64::MAX,
         i64::MAX,
     )
+}
+
+fn setup_debt_card(entry: &LoadableLibEntry) -> RecipeCard {
+    RecipeCard {
+        id: format!("{}/cookbook-lifecycle/setup-debt", entry.id),
+        book: entry.id.clone(),
+        chapter: "cookbook-lifecycle".to_owned(),
+        chapter_title: "Lifecycle".to_owned(),
+        chapter_summary: String::new(),
+        title: format!("Setup debt for {}", entry.id),
+        codec: "lisp".to_owned(),
+        setup: format!(
+            "(cookbook/setup-debt {:?} {:?})",
+            "missing-recipes", entry.id
+        )
+        .into_bytes(),
+        purpose: format!(
+            "`{}` is loadable in this product build and exposes no embedded cookbook directory; this descriptor keeps the gap visible.",
+            entry.id
+        ),
+        order: i64::MAX - 1,
+        chapter_order: i64::MAX - 1,
+        book_order: entry.order,
+        book_title: entry.title.clone(),
+        book_summary: String::new(),
+        tags: vec![
+            "sandbox-descriptor".to_owned(),
+            "setup-debt:missing-recipes".to_owned(),
+            format!("cookbook-lib:{}", entry.id),
+            format!("cookbook-source:{}", entry.source),
+        ],
+        requires: Vec::new(),
+        expect: Vec::new(),
+        source: RecipeSource::Crate {
+            lib: "sim/cookbook".to_owned(),
+        },
+    }
 }
 
 fn lifecycle_card(

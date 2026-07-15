@@ -232,7 +232,7 @@ fn cookbook_dynamic_api_load_changes_next_index_response() {
     assert_eq!(index.status, 200, "{}", index.body);
     assert!(
         index.body.contains(
-            "\"id\":\"numbers/i64\",\"title\":\"Numbers I64\",\"loaded\":true,\"groups\":["
+            "\"id\":\"numbers/i64\",\"title\":\"I64 numbers\",\"loaded\":true,\"groups\":["
         ),
         "{}",
         index.body
@@ -265,7 +265,7 @@ fn cookbook_dynamic_api_load_changes_next_index_response() {
     );
     let loaded_lib = index
         .body
-        .find("\"id\":\"numbers/i64\",\"title\":\"Numbers I64\",\"loaded\":true")
+        .find("\"id\":\"numbers/i64\",\"title\":\"I64 numbers\",\"loaded\":true")
         .unwrap();
     let loaded_recipe = index.body[loaded_lib..]
         .find("numbers/i64/01-basics/i64-domain")
@@ -337,6 +337,70 @@ fn cookbook_dynamic_api_load_is_idempotent() {
         !second_index.body.contains("cookbook/load/numbers/i64"),
         "{}",
         second_index.body
+    );
+}
+
+#[test]
+fn cookbook_loaded_lib_without_embedded_recipes_shows_setup_debt_before_unload() {
+    let state = CookbookWebState::from_loadable_libs(fixture_directory(), Vec::new());
+    let mut cx = core_cx();
+    let load = state.handle_request(
+        "POST",
+        "/api/cookbook/recipe/cookbook/load/demo/lib/run",
+        Some(&mut cx),
+    );
+    assert_eq!(load.status, 200, "{}", load.body);
+
+    let index = state.handle_request("GET", "/api/cookbook", Some(&mut cx));
+    assert_eq!(index.status, 200, "{}", index.body);
+    assert!(
+        index
+            .body
+            .contains("\"id\":\"demo/lib/cookbook-lifecycle/setup-debt\""),
+        "{}",
+        index.body
+    );
+    assert!(
+        index
+            .body
+            .contains("\"id\":\"demo/lib/cookbook-lifecycle/unload\""),
+        "{}",
+        index.body
+    );
+    assert!(
+        index
+            .body
+            .contains("\"id\":\"demo/lib/cookbook-lifecycle/setup-debt\",\"title\":\"Setup debt for demo/lib\",\"book\":\"demo/lib\",\"chapter\":\"cookbook-lifecycle\",\"runnable\":false"),
+        "{}",
+        index.body
+    );
+    let setup_debt = index
+        .body
+        .find("demo/lib/cookbook-lifecycle/setup-debt")
+        .unwrap();
+    let unload = index
+        .body
+        .find("demo/lib/cookbook-lifecycle/unload")
+        .unwrap();
+    assert!(setup_debt < unload, "{}", index.body);
+
+    let detail = state.handle_request(
+        "GET",
+        "/api/cookbook/recipe/demo/lib/cookbook-lifecycle/setup-debt",
+        Some(&mut cx),
+    );
+    assert_eq!(detail.status, 200, "{}", detail.body);
+    assert!(
+        detail.body.contains("setup-debt:missing-recipes"),
+        "{}",
+        detail.body
+    );
+    assert!(
+        detail
+            .body
+            .contains("exposes no embedded cookbook directory"),
+        "{}",
+        detail.body
     );
 }
 
