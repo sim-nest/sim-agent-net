@@ -11,6 +11,7 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-agent-runner-local` | `true` | `cdylib, custom-build, rlib, test` | Loadable local model runner for SIM. |
 | `sim-lib-agent-runner-process` | `true` | `custom-build, lib` | Local subprocess-backed model runners for SIM. |
 | `sim-lib-agent` | `true` | `custom-build, lib` | Agent runtime surfaces for SIM. |
+| `sim-lib-bridge` | `true` | `custom-build, lib` | Checked BRIDGE packet runtime for SIM model exchanges. |
 | `sim-lib-cookbook` | `true` | `custom-build, lib` | Runtime cookbook: operations for SIM. |
 | `sim-lib-mcp` | `true` | `custom-build, lib, test` | Library-only MCP surface projection for SIM. |
 | `sim-lib-openai-server` | `true` | `custom-build, lib` | OpenAI-compatible gateway skeleton for SIM. |

@@ -7,7 +7,7 @@ Checked BRIDGE packet runtime for SIM model exchanges.
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-bridge/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `custom-build, lib`
 
 ## Crate Documentation

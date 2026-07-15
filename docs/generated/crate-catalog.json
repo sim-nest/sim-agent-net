@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 14,
+  "package_count": 15,
   "packages": [
     {
       "description": "Provider-neutral runner contracts for SIM model fabrics.",
@@ -65,6 +65,19 @@
       "publish": "true",
       "readme": "crates/sim-lib-agent/README.md",
       "root": "crates/sim-lib-agent",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Checked BRIDGE packet runtime for SIM model exchanges.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-bridge/Cargo.toml",
+      "name": "sim-lib-bridge",
+      "publish": "true",
+      "readme": "crates/sim-lib-bridge/README.md",
+      "root": "crates/sim-lib-bridge",
       "target_kinds": [
         "custom-build",
         "lib"
