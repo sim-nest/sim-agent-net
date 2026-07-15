@@ -8,6 +8,7 @@ use sim_lib_agent_runner_core::InjectionFence;
 use sim_lib_bridge::{BridgeObligation, BridgeReport, RepairPolicy, run_bridge, rx_check};
 use sim_value::build::entry;
 
+use crate::normalize::normalize_prose;
 use crate::{CompiledIntent, IntentStatus, assert_return_shape_parses};
 
 const RETURN_SHAPE_PROMPT: &str = "Emit a concrete Return shape expression for the packet output. A missing or unparsable shape is an obligation.";
@@ -49,9 +50,7 @@ pub fn forge_lift_once(
     prose: &str,
     opts: &LiftOptions,
 ) -> Result<CompiledIntent> {
-    let normalized = normalize_prose(prose)?;
-    let source_expr = Expr::String(normalized.clone());
-    let source = content_id_for_expr(&source_expr)?;
+    let (normalized, source) = normalize_prose(prose)?;
     let book = BridgeBook::standard();
     let policy = RepairPolicy::new(opts.max_repairs);
     let mut repair_report = None;
@@ -78,14 +77,6 @@ pub fn forge_lift_once(
         usize::from(policy.max_retries) + 1,
         report_summary(&report)
     )))
-}
-
-pub(crate) fn normalize_prose(prose: &str) -> Result<String> {
-    let normalized = prose.trim().to_owned();
-    if normalized.is_empty() {
-        return Err(Error::Eval("forge lift prose must not be empty".to_owned()));
-    }
-    Ok(normalized)
 }
 
 fn lift_request_packet(

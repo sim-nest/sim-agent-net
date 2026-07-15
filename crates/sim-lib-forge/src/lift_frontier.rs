@@ -14,9 +14,8 @@ use sim_lib_bridge::{
 };
 use sim_value::{access::field, build::entry};
 
-use crate::lift::{
-    compiled_intent, content_id_for_expr, normalize_prose, report_summary, validate_candidate,
-};
+use crate::lift::{compiled_intent, report_summary, validate_candidate};
+use crate::normalize::normalize_prose;
 use crate::{CompiledIntent, LiftOptions};
 
 const FRONTIER_TARGET: &str = "model:forge-frontier";
@@ -30,9 +29,7 @@ pub fn forge_lift_frontier(
     prose: &str,
     opts: &LiftOptions,
 ) -> Result<CompiledIntent> {
-    let normalized = normalize_prose(prose)?;
-    let source_expr = Expr::String(normalized.clone());
-    let source = content_id_for_expr(&source_expr)?;
+    let (normalized, source) = normalize_prose(prose)?;
     let book = BridgeBook::standard();
     let mut packet = seed_packet(&normalized, &source)?;
     let mut row_index = 0usize;
