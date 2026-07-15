@@ -194,6 +194,11 @@
 {"kind":"recipe","path":"crates/sim-lib-cookbook/recipes/01-basics/search-recipe/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-cookbook/recipes/01-basics/search-recipe/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-cookbook/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/compiled-intent-record/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/compiled-intent-record/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/compiled-intent-record/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-forge/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-mcp/recipes/01-basics/cassette-tools-list/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-mcp/recipes/01-basics/cassette-tools-list/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-mcp/recipes/01-basics/cassette-tools-list/setup.siml"}

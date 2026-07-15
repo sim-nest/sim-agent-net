@@ -1,0 +1,5 @@
+book = "forge"
+title = "Forge"
+summary = "Compiled intent records for reusable BRIDGE packet programs."
+order = 119
+chapters = ["01-basics"]

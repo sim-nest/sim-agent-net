@@ -1,0 +1,8 @@
+id = "compiled-intent-record"
+title = "Compiled intent record"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["forge", "bridge", "compiled-intent", "descriptor", "network-free"]
+requires = ["forge", "bridge", "codec/lisp"]
