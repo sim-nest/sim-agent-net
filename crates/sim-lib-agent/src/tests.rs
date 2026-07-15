@@ -44,6 +44,7 @@ mod agent_swarm;
 mod basics;
 mod components;
 mod config_probe;
+mod core_tools;
 mod fairness;
 mod memory_r15;
 mod multimodal;

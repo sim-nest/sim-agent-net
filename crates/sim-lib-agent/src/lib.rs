@@ -21,6 +21,7 @@ mod components;
 mod config_probe;
 #[cfg(feature = "cookbook")]
 mod cookbook_tools;
+mod core_tools;
 mod embed;
 mod fairness;
 mod functions;
@@ -84,8 +85,9 @@ pub use atelier::{
     retrieve_radar_hints, self_hosting_scenarios, validate_self_hosting_scenarios,
 };
 pub(crate) use capabilities::{
-    fs_read_capability, fs_write_capability, net_http_capability, require_component_capability,
-    require_fs_read_capability, require_fs_write_capability, require_net_http_capability,
+    edit_capability, exec_capability, find_capability, fs_read_capability, fs_write_capability,
+    net_http_capability, require_component_capability, require_fs_read_capability,
+    require_fs_write_capability, require_net_http_capability,
 };
 use cli::{agent_cli_exports, register_agent_cli};
 pub use components::RunnerBackend;
@@ -163,6 +165,7 @@ pub fn install_agent_lib(cx: &mut Cx) -> Result<()> {
     register_address_resolver(Symbol::new("agent"), resolve_agent_address)?;
     register_line_driver(Symbol::new("agent"), agent_line_driver_factory)?;
     sim_lib_core::install_once(cx, &AgentLib)?;
+    core_tools::install_core_tools(cx)?;
     #[cfg(feature = "cookbook")]
     cookbook_tools::install_cookbook_tools(cx)?;
     Ok(())

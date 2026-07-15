@@ -8,6 +8,18 @@ pub(crate) fn fs_write_capability() -> CapabilityName {
     CapabilityName::new("fs/write")
 }
 
+pub(crate) fn find_capability() -> CapabilityName {
+    CapabilityName::new("find")
+}
+
+pub(crate) fn edit_capability() -> CapabilityName {
+    CapabilityName::new("edit")
+}
+
+pub(crate) fn exec_capability() -> CapabilityName {
+    CapabilityName::new("exec")
+}
+
 pub(crate) fn net_http_capability() -> CapabilityName {
     CapabilityName::new("net/http")
 }
