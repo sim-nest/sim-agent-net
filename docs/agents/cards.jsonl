@@ -35,6 +35,9 @@
 {"kind":"recipe","path":"crates/sim-lib-agent-runner-process/recipes/01-basics/json-stdio-fixture/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-agent-runner-process/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/core-tool-projection/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/core-tool-projection/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/core-tool-projection/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/decompose-reflect/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/decompose-reflect/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/decompose-reflect/setup.siml"}
