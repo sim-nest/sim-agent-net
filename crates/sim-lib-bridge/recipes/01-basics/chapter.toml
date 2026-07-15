@@ -1,4 +1,4 @@
 title = "Basics"
 order = 10
 summary = "Describe a checked packet exchange."
-recipe_ids = ["checked-exchange", "brief-instruction", "ask-call", "loom-valid", "loom-invalid"]
+recipe_ids = ["checked-exchange", "brief-instruction", "ask-call", "loom-valid", "loom-invalid", "loom-woven-repair"]
