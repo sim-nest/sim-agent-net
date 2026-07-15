@@ -1,0 +1,356 @@
+use std::collections::BTreeSet;
+use std::sync::Arc;
+
+use sim_codec_bridge::{
+    BridgeBook, BridgePacket, BridgePart, BridgePartSpec, content_id_string, decode_bridge_text,
+    packet_content_id,
+};
+use sim_kernel::{CapabilitySet, Cx, Error, Expr, Result, Symbol};
+use sim_lib_agent_runner_core::{ModelResponse, effective_ceiling, terminal_model_content};
+use sim_shape::{AnyShape, ExprKind, ExprKindShape, Shape, check_value_report, shape_value};
+use sim_value::access::field;
+
+use crate::report::{BridgeObligation, BridgeReport};
+
+/// Resolves a packet's declared capability ceiling against the current context.
+pub fn effective_caps(cx: &Cx, packet: &BridgePacket) -> Result<CapabilitySet> {
+    effective_ceiling(cx.capabilities(), &packet.header.ceiling)
+}
+
+/// Checks a BRIDGE packet against the local book and optional parent packet.
+pub fn rx_check(
+    cx: &mut Cx,
+    book: &BridgeBook,
+    packet: &BridgePacket,
+    reply_to: Option<&BridgePacket>,
+) -> Result<BridgeReport> {
+    let mut report = BridgeReport::new(packet_report_cid(packet));
+    check_header_linkage(&mut report, packet, reply_to);
+    check_move(book, &mut report, packet, reply_to);
+    check_parts(cx, book, &mut report, packet)?;
+    if let Some(parent) = reply_to {
+        check_parent_return(cx, &mut report, packet, parent)?;
+    }
+    Ok(report)
+}
+
+/// Decodes and checks the last content item of a model response.
+pub fn bridge_rx_response(
+    cx: &mut Cx,
+    book: &BridgeBook,
+    response: &ModelResponse,
+    reply_to: Option<&BridgePacket>,
+) -> Result<(BridgePacket, BridgeReport)> {
+    let text = terminal_bridge_text(response)?;
+    let packet = decode_bridge_text(text, book)?;
+    let report = rx_check(cx, book, &packet, reply_to)?;
+    if report.accepted() {
+        Ok((packet, report))
+    } else {
+        Err(Error::Eval(format!(
+            "bridge rx check failed: {:?}",
+            report.obligations
+        )))
+    }
+}
+
+/// Decodes and checks a model response expression.
+pub fn bridge_rx(
+    cx: &mut Cx,
+    book: &BridgeBook,
+    response: Expr,
+    reply_to: Option<&BridgePacket>,
+) -> Result<(BridgePacket, BridgeReport)> {
+    let response = ModelResponse::try_from(response)?;
+    bridge_rx_response(cx, book, &response, reply_to)
+}
+
+pub(crate) fn terminal_bridge_text(response: &ModelResponse) -> Result<&str> {
+    match terminal_model_content(response)? {
+        Expr::String(text) => Ok(text),
+        Expr::Map(_) => match field(terminal_model_content(response)?, "text") {
+            Some(Expr::String(text)) => Ok(text),
+            _ => Err(Error::Eval(
+                "terminal BRIDGE response content must be a string or text map".to_owned(),
+            )),
+        },
+        _ => Err(Error::Eval(
+            "terminal BRIDGE response content must be text".to_owned(),
+        )),
+    }
+}
+
+fn packet_report_cid(packet: &BridgePacket) -> String {
+    packet.header.cid.clone().unwrap_or_else(|| {
+        packet_content_id(packet)
+            .map(|id| content_id_string(&id))
+            .unwrap_or_else(|_| "unhashable".to_owned())
+    })
+}
+
+fn check_header_linkage(
+    report: &mut BridgeReport,
+    packet: &BridgePacket,
+    reply_to: Option<&BridgePacket>,
+) {
+    let mut seen = BTreeSet::new();
+    for part in &packet.body {
+        if !seen.insert(part.id.clone()) {
+            report.reject(&part.id);
+            report.obligate(BridgeObligation::repair_packet(
+                format!("body/{}", part.id.as_qualified_str()),
+                "duplicate part id",
+                "unique part id",
+                part.id.as_qualified_str(),
+            ));
+        }
+    }
+
+    require_part_id(report, packet, &packet.header.task, "header/task");
+    require_part_id(report, packet, &packet.header.output, "header/output");
+    for context in &packet.header.context {
+        require_part_id(report, packet, context, "header/context");
+    }
+
+    if let Some(parent) = reply_to {
+        let Some(parent_cid) = &parent.header.cid else {
+            report.obligate(BridgeObligation::repair_packet(
+                "header/parents",
+                "parent packet is missing a cid",
+                "stamped parent cid",
+                "none",
+            ));
+            return;
+        };
+        if !packet.header.parents.contains(parent_cid) {
+            report.obligate(BridgeObligation::repair_packet(
+                "header/parents",
+                "reply does not cite parent packet",
+                parent_cid,
+                format!("{:?}", packet.header.parents),
+            ));
+        }
+    }
+}
+
+fn require_part_id(report: &mut BridgeReport, packet: &BridgePacket, id: &Symbol, path: &str) {
+    if packet.body.iter().any(|part| &part.id == id) {
+        return;
+    }
+    report.obligate(BridgeObligation::repair_packet(
+        path,
+        "header references a missing part",
+        id.as_qualified_str(),
+        "missing",
+    ));
+}
+
+fn check_move(
+    book: &BridgeBook,
+    report: &mut BridgeReport,
+    packet: &BridgePacket,
+    reply_to: Option<&BridgePacket>,
+) {
+    let parent_moves = reply_to
+        .map(|parent| vec![parent.header.move_kind.clone()])
+        .unwrap_or_default();
+    let part_kinds = packet
+        .body
+        .iter()
+        .map(|part| part.kind.clone())
+        .collect::<Vec<_>>();
+    if let Err(err) = book
+        .moves
+        .check_move(&packet.header.move_kind, &parent_moves, &part_kinds)
+    {
+        report.obligate(BridgeObligation::repair_packet(
+            "header/move",
+            "illegal BRIDGE move",
+            "move book accepts intent, parent, and required parts",
+            err.to_string(),
+        ));
+    }
+}
+
+fn check_parts(
+    cx: &mut Cx,
+    book: &BridgeBook,
+    report: &mut BridgeReport,
+    packet: &BridgePacket,
+) -> Result<()> {
+    for part in &packet.body {
+        match book.parts.spec(&part.kind) {
+            Some(spec) => {
+                if check_part_shape(cx, spec, part, report)? {
+                    report.accept(&part.id);
+                } else {
+                    report.reject(&part.id);
+                }
+            }
+            None => {
+                report.reject(&part.id);
+                report.obligate(BridgeObligation::repair_packet(
+                    format!("body/{}", part.id.as_qualified_str()),
+                    "unknown BRIDGE part kind",
+                    "registered part kind",
+                    part.kind.as_qualified_str(),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn check_part_shape(
+    cx: &mut Cx,
+    spec: &BridgePartSpec,
+    part: &BridgePart,
+    report: &mut BridgeReport,
+) -> Result<bool> {
+    let expected = expected_part_payload_shape(spec);
+    check_payload_shape(
+        cx,
+        &format!("body/{}/payload", part.id.as_qualified_str()),
+        &format!("{} payload", spec.kind.as_qualified_str()),
+        expected,
+        &part.payload,
+        report,
+    )
+}
+
+fn expected_part_payload_shape(spec: &BridgePartSpec) -> Arc<dyn Shape> {
+    if spec.kind == Symbol::qualified("bridge", "Extension")
+        || spec.kind == Symbol::qualified("bridge", "Return")
+    {
+        Arc::new(AnyShape)
+    } else {
+        Arc::new(ExprKindShape::new(ExprKind::Map))
+    }
+}
+
+fn check_parent_return(
+    cx: &mut Cx,
+    report: &mut BridgeReport,
+    packet: &BridgePacket,
+    parent: &BridgePacket,
+) -> Result<()> {
+    let Some(contract) = part_by_id(parent, &parent.header.output) else {
+        report.obligate(BridgeObligation::repair_packet(
+            "reply-to/header/output",
+            "parent output part is missing",
+            parent.header.output.as_qualified_str(),
+            "missing",
+        ));
+        return Ok(());
+    };
+    if contract.kind != Symbol::qualified("bridge", "Return") {
+        report.obligate(BridgeObligation::repair_packet(
+            "reply-to/header/output",
+            "parent output part is not a Return contract",
+            "bridge/Return",
+            contract.kind.as_qualified_str(),
+        ));
+        return Ok(());
+    }
+
+    if !return_codec_is_bridge(&contract.payload) {
+        report.obligate(BridgeObligation::repair_packet(
+            "reply-to/return/codec",
+            "parent Return contract uses an unsupported codec",
+            "codec/bridge",
+            format!("{:?}", field(&contract.payload, "codec")),
+        ));
+    }
+
+    let Some(shape_expr) = field(&contract.payload, "shape") else {
+        return Ok(());
+    };
+    let Some(reply_output) = part_by_id(packet, &packet.header.output) else {
+        report.obligate(BridgeObligation::repair_packet(
+            "header/output",
+            "reply output part is missing",
+            packet.header.output.as_qualified_str(),
+            "missing",
+        ));
+        return Ok(());
+    };
+    let Some(shape) = shape_from_contract_expr(shape_expr) else {
+        report.obligate(BridgeObligation::repair_packet(
+            "reply-to/return/shape",
+            "unsupported Return shape expression",
+            "core/Any, core/String, core/Bool, core/Number, core/Symbol, core/List, or core/Map",
+            format!("{shape_expr:?}"),
+        ));
+        return Ok(());
+    };
+    check_payload_shape(
+        cx,
+        &format!("body/{}/payload", reply_output.id.as_qualified_str()),
+        "parent Return contract",
+        shape,
+        &reply_output.payload,
+        report,
+    )?;
+    Ok(())
+}
+
+fn part_by_id<'a>(packet: &'a BridgePacket, id: &Symbol) -> Option<&'a BridgePart> {
+    packet.body.iter().find(|part| &part.id == id)
+}
+
+fn return_codec_is_bridge(payload: &Expr) -> bool {
+    match field(payload, "codec") {
+        None => true,
+        Some(Expr::Symbol(symbol)) => symbol == &Symbol::qualified("codec", "bridge"),
+        Some(_) => false,
+    }
+}
+
+pub(crate) fn shape_from_contract_expr(expr: &Expr) -> Option<Arc<dyn Shape>> {
+    let Expr::Symbol(symbol) = expr else {
+        return None;
+    };
+    let shape: Arc<dyn Shape> = match (symbol.namespace.as_deref(), symbol.name.as_ref()) {
+        (Some("core"), "Any") => Arc::new(AnyShape),
+        (Some("core"), "String") => Arc::new(ExprKindShape::new(ExprKind::String)),
+        (Some("core"), "Bool") => Arc::new(ExprKindShape::new(ExprKind::Bool)),
+        (Some("core"), "Number") => Arc::new(ExprKindShape::new(ExprKind::Number)),
+        (Some("core"), "Symbol") => Arc::new(ExprKindShape::new(ExprKind::Symbol)),
+        (Some("core"), "List") => Arc::new(ExprKindShape::new(ExprKind::List)),
+        (Some("core"), "Map") => Arc::new(ExprKindShape::new(ExprKind::Map)),
+        _ => return None,
+    };
+    Some(shape)
+}
+
+fn check_payload_shape(
+    cx: &mut Cx,
+    path: &str,
+    expected: &str,
+    shape: Arc<dyn Shape>,
+    payload: &Expr,
+    report: &mut BridgeReport,
+) -> Result<bool> {
+    let shape_ref = shape_value(Symbol::qualified("bridge", expected), shape);
+    let value = cx.factory().expr(payload.clone())?;
+    let matched = check_value_report(cx, &shape_ref, value)?;
+    if matched.accepted {
+        return Ok(true);
+    }
+    report.obligate(BridgeObligation::repair_packet(
+        path,
+        "payload failed Shape check",
+        expected,
+        if matched.diagnostics.is_empty() {
+            format!("{payload:?}")
+        } else {
+            matched
+                .diagnostics
+                .iter()
+                .map(|diagnostic| diagnostic.message.clone())
+                .collect::<Vec<_>>()
+                .join("; ")
+        },
+    ));
+    Ok(false)
+}

@@ -1,0 +1,5 @@
+book = "bridge"
+title = "Bridge Runtime"
+summary = "Checked BRIDGE packet send and receive runtime."
+order = 118
+chapters = ["01-basics"]
