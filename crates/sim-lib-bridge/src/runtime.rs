@@ -7,7 +7,7 @@ use sim_kernel::{
 };
 use sim_shape::{AnyShape, ListShape, Shape, shape_value};
 
-use crate::{bridge_brief, bridge_tx, receipt_packet_for_report, rx_check};
+use crate::{ask_packet, bridge_brief, bridge_tx, receipt_packet_for_report, rx_check};
 
 /// Loadable BRIDGE runtime library.
 pub struct BridgeLib;
@@ -64,6 +64,11 @@ pub fn bridge_brief_symbol() -> Symbol {
     Symbol::qualified("bridge", "brief")
 }
 
+/// Runtime symbol for `bridge/ask`.
+pub fn bridge_ask_symbol() -> Symbol {
+    Symbol::qualified("bridge", "ask")
+}
+
 fn bridge_exports() -> Vec<Export> {
     BridgeFunctionKind::ALL
         .iter()
@@ -87,11 +92,20 @@ pub enum BridgeFunctionKind {
     Receipt,
     /// Build a BRIEF request packet from one typed frame.
     Brief,
+    /// Build an ASK request packet from one typed call.
+    Ask,
 }
 
 impl BridgeFunctionKind {
     /// All exported function kinds.
-    pub const ALL: [Self; 5] = [Self::Tx, Self::Rx, Self::Report, Self::Receipt, Self::Brief];
+    pub const ALL: [Self; 6] = [
+        Self::Tx,
+        Self::Rx,
+        Self::Report,
+        Self::Receipt,
+        Self::Brief,
+        Self::Ask,
+    ];
 
     /// Runtime symbol for this kind.
     pub fn symbol(self) -> Symbol {
@@ -101,6 +115,7 @@ impl BridgeFunctionKind {
             Self::Report => bridge_report_symbol(),
             Self::Receipt => crate::receipt_symbol(),
             Self::Brief => bridge_brief_symbol(),
+            Self::Ask => bridge_ask_symbol(),
         }
     }
 }
@@ -152,6 +167,7 @@ impl Callable for BridgeFunction {
             BridgeFunctionKind::Report => call_report(cx, args),
             BridgeFunctionKind::Receipt => call_receipt(cx, args),
             BridgeFunctionKind::Brief => call_brief(cx, args),
+            BridgeFunctionKind::Ask => call_ask(cx, args),
         }
     }
 
@@ -163,6 +179,12 @@ impl Callable for BridgeFunction {
             BridgeFunctionKind::Rx => Arc::new(ListShape::new(vec![Arc::new(AnyShape)])),
             BridgeFunctionKind::Receipt => Arc::new(ListShape::new(vec![Arc::new(AnyShape)])),
             BridgeFunctionKind::Brief => Arc::new(ListShape::new(vec![
+                Arc::new(AnyShape),
+                Arc::new(AnyShape),
+                Arc::new(AnyShape),
+            ])),
+            BridgeFunctionKind::Ask => Arc::new(ListShape::new(vec![
+                Arc::new(AnyShape),
                 Arc::new(AnyShape),
                 Arc::new(AnyShape),
                 Arc::new(AnyShape),
@@ -222,6 +244,32 @@ fn call_brief(cx: &mut Cx, args: Args) -> Result<Value> {
     cx.factory().expr(packet_to_expr(&packet))
 }
 
+fn call_ask(cx: &mut Cx, args: Args) -> Result<Value> {
+    let mut exprs = expr_args(
+        cx,
+        args,
+        "bridge/ask expects target, call, params, and return shape",
+    )?;
+    if exprs.len() != 4 {
+        return Err(Error::Eval(format!(
+            "bridge/ask expects 4 argument(s), found {}",
+            exprs.len()
+        )));
+    }
+    let return_shape = exprs.pop().expect("length checked");
+    let params = exprs.pop().expect("length checked");
+    let call = exprs.pop().expect("length checked");
+    let target = exprs.pop().expect("length checked");
+    let packet = ask_packet(
+        cx,
+        &call_name(&call)?,
+        call_params(&params)?,
+        return_shape,
+        &target_name(&target)?,
+    )?;
+    cx.factory().expr(packet_to_expr(&packet))
+}
+
 fn packet_arg(
     cx: &mut Cx,
     args: Args,
@@ -232,7 +280,7 @@ fn packet_arg(
 
 fn expr_args(cx: &mut Cx, args: Args, message: &'static str) -> Result<Vec<sim_kernel::Expr>> {
     let values = args.into_vec();
-    if values.len() != 3 {
+    if values.is_empty() {
         return Err(Error::Eval(message.to_owned()));
     }
     values
@@ -268,4 +316,35 @@ fn target_name(expr: &sim_kernel::Expr) -> Result<String> {
             "bridge/brief target must be a string or symbol".to_owned(),
         )),
     }
+}
+
+fn call_name(expr: &sim_kernel::Expr) -> Result<String> {
+    match expr {
+        sim_kernel::Expr::String(name) => Ok(name.clone()),
+        sim_kernel::Expr::Symbol(name) => Ok(name.as_qualified_str()),
+        _ => Err(Error::Eval(
+            "bridge/ask call must be a string or symbol".to_owned(),
+        )),
+    }
+}
+
+fn call_params(expr: &sim_kernel::Expr) -> Result<Vec<(String, sim_kernel::Expr)>> {
+    let sim_kernel::Expr::Map(entries) = expr else {
+        return Err(Error::Eval("bridge/ask params must be a map".to_owned()));
+    };
+    entries
+        .iter()
+        .map(|(key, value)| {
+            let name = match key {
+                sim_kernel::Expr::String(name) => name.clone(),
+                sim_kernel::Expr::Symbol(name) => name.as_qualified_str(),
+                _ => {
+                    return Err(Error::Eval(
+                        "bridge/ask param keys must be strings or symbols".to_owned(),
+                    ));
+                }
+            };
+            Ok((name, value.clone()))
+        })
+        .collect()
 }

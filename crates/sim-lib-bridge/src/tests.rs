@@ -4,6 +4,7 @@ use sim_codec_bridge::{
     BridgeBook, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
     assert_total_ownership, encode_bridge_text, stamp_packet_cid,
 };
+use sim_codec_json::JsonCodecLib;
 use sim_kernel::{
     Args, Callable, CapabilityName, Consistency, Cx, DefaultFactory, EagerPolicy, Error,
     EvalFabric, EvalMode, EvalReply, EvalRequest, Export, Expr, Lib, Result, Symbol,
@@ -11,6 +12,8 @@ use sim_kernel::{
 use sim_lib_agent_runner_core::ModelResponse;
 use sim_lib_stream_fabric::{ContentKey, EvalCassette, EvalCassetteLedger, LedgeredRelayFabric};
 use sim_value::build::entry;
+
+mod ask;
 
 use crate::{
     BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_brief, bridge_brief_symbol,
@@ -74,6 +77,9 @@ impl EvalFabric for CountingFabric {
 
 fn cx() -> Cx {
     let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    sim_test_support::register_core_classes(&mut cx);
+    let json = JsonCodecLib::new(cx.registry_mut().fresh_codec_id());
+    cx.load_lib(&json).unwrap();
     cx.grant(CapabilityName::new("ai/run"));
     cx.grant(CapabilityName::new("bridge/given.materialize"));
     cx

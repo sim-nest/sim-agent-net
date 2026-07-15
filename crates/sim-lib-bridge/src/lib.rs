@@ -10,11 +10,13 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod ask;
 mod brief;
 mod frontier;
 mod materialize;
 mod model;
 mod receipt;
+mod repair;
 mod report;
 mod runtime;
 mod rx;
@@ -23,6 +25,9 @@ mod tx;
 #[cfg(test)]
 mod tests;
 
+pub use ask::{
+    ask_default_codec, ask_packet, ask_packet_with_model_params, run_ask, run_ask_with_policy,
+};
 pub use brief::{bridge_brief, render_brief_sentences};
 pub use frontier::{FrontierMenu, frontier};
 pub use materialize::{
@@ -34,10 +39,11 @@ pub use model::{
     terminal_response_packet,
 };
 pub use receipt::{receipt_packet_for_report, receipt_symbol};
+pub use repair::{AskFailure, RepairPolicy};
 pub use report::{BridgeObligation, BridgeReport};
 pub use runtime::{
-    BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_brief_symbol, bridge_report_symbol,
-    bridge_rx_symbol, bridge_tx_symbol, install_bridge_lib, manifest_name,
+    BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_ask_symbol, bridge_brief_symbol,
+    bridge_report_symbol, bridge_rx_symbol, bridge_tx_symbol, install_bridge_lib, manifest_name,
 };
 pub use rx::{bridge_rx, bridge_rx_response, effective_caps, rx_check};
 pub use tx::{bridge_tx, prepare_packet, render_model_face, run_bridge};

@@ -1,9 +1,10 @@
 use sim_codec_bridge::{
-    BridgeBook, BridgePacket, OwnedSpan, assert_roundtrip, assert_total_ownership,
-    encode_bridge_text, stamp_packet_cid,
+    BridgeBook, BridgeCallPayload, BridgePacket, OwnedSpan, assert_roundtrip,
+    assert_total_ownership, encode_bridge_text, stamp_packet_cid,
 };
 use sim_kernel::{Consistency, Cx, Error, EvalFabric, EvalMode, EvalRequest, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{FENCE_DATA_RULE, ModelRequest};
+use sim_value::build::entry;
 
 use crate::brief::render_brief_sentences;
 use crate::model::output_contract_for_packet;
@@ -46,6 +47,16 @@ pub fn render_model_face(
             let text = format!("{sentence}\n");
             face.push_str(&text);
             spans.push(OwnedSpan::Frame { id, text });
+        }
+    }
+    let fences = render_call_fences(packet)?;
+    if !fences.is_empty() {
+        let marker = "\nCALL-DATA\n".to_owned();
+        face.push_str(&marker);
+        spans.push(OwnedSpan::Structural(marker));
+        for (id, text) in fences {
+            face.push_str(&text);
+            spans.push(OwnedSpan::Fence { id, text });
         }
     }
     Ok((face, spans))
@@ -92,6 +103,7 @@ pub(crate) fn eval_request_for_checked_packet(
         ));
     }
     output_contract_for_packet(packet)?.into_extra_entries(&mut model.extra);
+    append_call_model_params(packet, &mut model.extra)?;
     let required_capabilities = effective_caps(cx, packet)?.iter().cloned().collect();
     Ok(EvalRequest {
         expr: Expr::from(model),
@@ -105,4 +117,54 @@ pub(crate) fn eval_request_for_checked_packet(
         stream: false,
         trace: false,
     })
+}
+
+fn render_call_fences(packet: &BridgePacket) -> Result<Vec<(String, String)>> {
+    let mut fences = Vec::new();
+    for part in &packet.body {
+        if part.kind != Symbol::qualified("bridge", "Call") {
+            continue;
+        }
+        let payload = BridgeCallPayload::from_expr(&part.payload)?;
+        for arg in payload.args {
+            let id = format!(
+                "{}.{}",
+                part.id.as_qualified_str(),
+                arg.name.as_qualified_str()
+            );
+            fences.push((id.clone(), format!("[{id}]\n{}\n", arg.fenced)));
+        }
+    }
+    Ok(fences)
+}
+
+fn append_call_model_params(packet: &BridgePacket, extra: &mut Vec<(Expr, Expr)>) -> Result<()> {
+    let mut calls = Vec::new();
+    for part in &packet.body {
+        if part.kind != Symbol::qualified("bridge", "Call") {
+            continue;
+        }
+        let payload = BridgeCallPayload::from_expr(&part.payload)?;
+        calls.push(Expr::Map(vec![
+            entry("part", Expr::Symbol(part.id.clone())),
+            entry("name", Expr::Symbol(payload.name)),
+            entry(
+                "model-params",
+                Expr::Map(
+                    payload
+                        .model_params
+                        .into_iter()
+                        .map(|(name, value)| (Expr::Symbol(name), value))
+                        .collect(),
+                ),
+            ),
+        ]));
+    }
+    if !calls.is_empty() {
+        extra.push((
+            Expr::Symbol(Symbol::new("bridge-calls")),
+            Expr::Vector(calls),
+        ));
+    }
+    Ok(())
 }

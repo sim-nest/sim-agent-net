@@ -7,7 +7,10 @@ use sim_codec_bridge::{
 };
 use sim_kernel::{CapabilitySet, Cx, Error, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{ModelResponse, effective_ceiling, terminal_model_content};
-use sim_shape::{AnyShape, ExprKind, ExprKindShape, Shape, check_value_report, shape_value};
+use sim_shape::{
+    AnyShape, ExactExprShape, ExprKind, ExprKindShape, FieldShape, FieldSpec, OneOfShape, Shape,
+    check_value_report, shape_value,
+};
 use sim_value::access::field;
 
 use crate::report::{BridgeObligation, BridgeReport};
@@ -253,15 +256,6 @@ fn check_parent_return(
         return Ok(());
     }
 
-    if !return_codec_is_bridge(&contract.payload) {
-        report.obligate(BridgeObligation::repair_packet(
-            "reply-to/return/codec",
-            "parent Return contract uses an unsupported codec",
-            "codec/bridge",
-            format!("{:?}", field(&contract.payload, "codec")),
-        ));
-    }
-
     let Some(shape_expr) = field(&contract.payload, "shape") else {
         return Ok(());
     };
@@ -278,7 +272,7 @@ fn check_parent_return(
         report.obligate(BridgeObligation::repair_packet(
             "reply-to/return/shape",
             "unsupported Return shape expression",
-            "core/Any, core/String, core/Bool, core/Number, core/Symbol, core/List, or core/Map",
+            "core primitives, bridge/Answer, bridge/Refusal, or shape/OneOf",
             format!("{shape_expr:?}"),
         ));
         return Ok(());
@@ -298,29 +292,62 @@ fn part_by_id<'a>(packet: &'a BridgePacket, id: &Symbol) -> Option<&'a BridgePar
     packet.body.iter().find(|part| &part.id == id)
 }
 
-fn return_codec_is_bridge(payload: &Expr) -> bool {
-    match field(payload, "codec") {
-        None => true,
-        Some(Expr::Symbol(symbol)) => symbol == &Symbol::qualified("codec", "bridge"),
-        Some(_) => false,
+pub(crate) fn shape_from_contract_expr(expr: &Expr) -> Option<Arc<dyn Shape>> {
+    match expr {
+        Expr::Symbol(symbol) => symbol_shape(symbol),
+        Expr::Map(_) => shape_descriptor(expr),
+        _ => None,
     }
 }
 
-pub(crate) fn shape_from_contract_expr(expr: &Expr) -> Option<Arc<dyn Shape>> {
-    let Expr::Symbol(symbol) = expr else {
-        return None;
-    };
+fn symbol_shape(symbol: &Symbol) -> Option<Arc<dyn Shape>> {
     let shape: Arc<dyn Shape> = match (symbol.namespace.as_deref(), symbol.name.as_ref()) {
         (Some("core"), "Any") => Arc::new(AnyShape),
-        (Some("core"), "String") => Arc::new(ExprKindShape::new(ExprKind::String)),
+        (Some("core"), "String") | (Some("bridge"), "Answer") => {
+            Arc::new(ExprKindShape::new(ExprKind::String))
+        }
         (Some("core"), "Bool") => Arc::new(ExprKindShape::new(ExprKind::Bool)),
         (Some("core"), "Number") => Arc::new(ExprKindShape::new(ExprKind::Number)),
         (Some("core"), "Symbol") => Arc::new(ExprKindShape::new(ExprKind::Symbol)),
         (Some("core"), "List") => Arc::new(ExprKindShape::new(ExprKind::List)),
         (Some("core"), "Map") => Arc::new(ExprKindShape::new(ExprKind::Map)),
+        (Some("bridge"), "Refusal") => refusal_shape(),
         _ => return None,
     };
     Some(shape)
+}
+
+fn shape_descriptor(expr: &Expr) -> Option<Arc<dyn Shape>> {
+    let Some(Expr::Symbol(kind)) = field(expr, "shape") else {
+        return None;
+    };
+    if kind != &Symbol::qualified("shape", "OneOf") {
+        return None;
+    }
+    let choices = match field(expr, "choices")? {
+        Expr::Vector(items) | Expr::List(items) => items,
+        _ => return None,
+    };
+    let choices = choices
+        .iter()
+        .map(shape_from_contract_expr)
+        .collect::<Option<Vec<_>>>()?;
+    Some(Arc::new(OneOfShape::new(choices)))
+}
+
+fn refusal_shape() -> Arc<dyn Shape> {
+    Arc::new(FieldShape::anonymous(vec![
+        FieldSpec::required(
+            Symbol::new("kind"),
+            Arc::new(ExactExprShape::new(Expr::Symbol(Symbol::qualified(
+                "bridge", "Refusal",
+            )))),
+        ),
+        FieldSpec::required(
+            Symbol::new("reason"),
+            Arc::new(ExprKindShape::new(ExprKind::String)),
+        ),
+    ]))
 }
 
 fn check_payload_shape(
