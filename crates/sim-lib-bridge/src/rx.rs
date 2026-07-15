@@ -13,6 +13,7 @@ use sim_shape::{
 };
 use sim_value::access::field;
 
+use crate::loom_validate::validate_packet_weaves;
 use crate::report::{BridgeObligation, BridgeReport};
 
 /// Resolves a packet's declared capability ceiling against the current context.
@@ -31,6 +32,7 @@ pub fn rx_check(
     check_header_linkage(&mut report, packet, reply_to);
     check_move(book, &mut report, packet, reply_to);
     check_parts(cx, book, &mut report, packet)?;
+    validate_packet_weaves(cx, packet, &mut report)?;
     if let Some(parent) = reply_to {
         check_parent_return(cx, &mut report, packet, parent)?;
     }

@@ -14,6 +14,7 @@ use sim_lib_stream_fabric::{ContentKey, EvalCassette, EvalCassetteLedger, Ledger
 use sim_value::build::entry;
 
 mod ask;
+mod loom;
 
 use crate::{
     BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_brief, bridge_brief_symbol,

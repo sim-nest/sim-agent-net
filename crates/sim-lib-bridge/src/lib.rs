@@ -13,6 +13,7 @@
 mod ask;
 mod brief;
 mod frontier;
+mod loom_validate;
 mod materialize;
 mod model;
 mod receipt;
@@ -30,6 +31,7 @@ pub use ask::{
 };
 pub use brief::{bridge_brief, render_brief_sentences};
 pub use frontier::{FrontierMenu, frontier};
+pub use loom_validate::{LoomObligation, next_frontier_menu, validate_weave};
 pub use materialize::{
     GivenMaterialization, bridge_fetch_capability, bridge_given_materialize_capability,
     fetch_obligation, materialize_given,
