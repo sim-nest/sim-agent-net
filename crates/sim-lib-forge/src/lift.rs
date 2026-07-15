@@ -80,7 +80,7 @@ pub fn forge_lift_once(
     )))
 }
 
-fn normalize_prose(prose: &str) -> Result<String> {
+pub(crate) fn normalize_prose(prose: &str) -> Result<String> {
     let normalized = prose.trim().to_owned();
     if normalized.is_empty() {
         return Err(Error::Eval("forge lift prose must not be empty".to_owned()));
@@ -177,7 +177,7 @@ fn candidate_packet_from_reply(reply: &BridgePacket) -> Result<BridgePacket> {
     expr_to_packet(&output.payload)
 }
 
-fn validate_candidate(
+pub(crate) fn validate_candidate(
     cx: &mut Cx,
     book: &BridgeBook,
     candidate: &BridgePacket,
@@ -194,7 +194,7 @@ fn validate_candidate(
     Ok(report)
 }
 
-fn compiled_intent(
+pub(crate) fn compiled_intent(
     opts: &LiftOptions,
     source: ContentId,
     candidate: BridgePacket,
@@ -243,11 +243,11 @@ fn fenced_expr(label: &str, expr: &Expr) -> Result<(ContentId, String)> {
     Ok((content_id, fence.wrap(label, &body)))
 }
 
-fn content_id_for_expr(expr: &Expr) -> Result<ContentId> {
+pub(crate) fn content_id_for_expr(expr: &Expr) -> Result<ContentId> {
     Datum::try_from(expr.clone())?.content_id()
 }
 
-fn report_summary(report: &BridgeReport) -> String {
+pub(crate) fn report_summary(report: &BridgeReport) -> String {
     if report.obligations.is_empty() {
         return "no obligations".to_owned();
     }

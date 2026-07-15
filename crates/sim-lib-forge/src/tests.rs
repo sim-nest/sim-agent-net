@@ -2,16 +2,18 @@ use std::sync::Mutex;
 
 use sim_citizen::CitizenField;
 use sim_codec_bridge::{
-    BridgeBook, BridgeCallPayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
-    encode_bridge_text, packet_content_id, packet_to_expr, stamp_packet_cid,
+    BridgeBook, BridgeCallPayload, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart,
+    BridgeProvenance, encode_bridge_text, packet_content_id, packet_to_expr, stamp_packet_cid,
 };
 use sim_kernel::{
     ContentId, Cx, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol, testing::bare_cx as cx,
 };
-use sim_lib_agent_runner_core::ModelResponse;
+use sim_lib_agent_runner_core::{
+    ModelResponse, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
+};
 use sim_value::{access::field, build::entry};
 
-use crate::{CompiledIntent, IntentStatus, LiftOptions, forge_lift_once};
+use crate::{CompiledIntent, IntentStatus, LiftOptions, forge_lift_frontier, forge_lift_once};
 
 fn content_id(byte: u8) -> ContentId {
     ContentId::from_bytes(Symbol::qualified("core", "sha256"), [byte; 32])
@@ -118,6 +120,56 @@ impl EvalFabric for ScriptedLiftFabric {
     }
 }
 
+struct ScriptedFrontierFabric {
+    rows: Mutex<Vec<Expr>>,
+    requests: Mutex<Vec<Expr>>,
+}
+
+impl ScriptedFrontierFabric {
+    fn new(rows: Vec<Expr>) -> Self {
+        Self {
+            rows: Mutex::new(rows),
+            requests: Mutex::new(Vec::new()),
+        }
+    }
+
+    fn requests(&self) -> Vec<Expr> {
+        self.requests.lock().unwrap().clone()
+    }
+}
+
+impl EvalFabric for ScriptedFrontierFabric {
+    fn realize(&self, cx: &mut Cx, request: EvalRequest) -> Result<EvalReply> {
+        self.requests.lock().unwrap().push(request.expr.clone());
+        let row = {
+            let mut rows = self.rows.lock().unwrap();
+            if rows.is_empty() {
+                return Err(sim_kernel::Error::Eval(
+                    "scripted frontier fabric is exhausted".to_owned(),
+                ));
+            }
+            rows.remove(0)
+        };
+        let response = ModelResponse::new(
+            Symbol::qualified("runner", "forge-frontier-fixture"),
+            "forge-frontier-fixture",
+            vec![Expr::Map(vec![
+                entry(
+                    "type",
+                    Expr::Symbol(Symbol::qualified("forge", "FrontierPart")),
+                ),
+                entry("row", row),
+            ])],
+            Symbol::new("stop"),
+        );
+        Ok(EvalReply {
+            value: cx.factory().expr(Expr::from(response))?,
+            diagnostics: Vec::new(),
+            trace: None,
+        })
+    }
+}
+
 fn bridge_cid_from_request(request: &EvalRequest) -> Result<String> {
     match field(&request.expr, "bridge-cid") {
         Some(Expr::String(cid)) => Ok(cid.clone()),
@@ -192,6 +244,55 @@ fn candidate_packet(return_shape: Expr) -> BridgePacket {
     }
 }
 
+fn task_frame_part() -> BridgePart {
+    BridgePart {
+        id: Symbol::new("T1"),
+        kind: Symbol::qualified("bridge", "Frame"),
+        payload: BridgeFramePayload::new(Symbol::qualified("bridge", "produce-artifact"))
+            .with_slot(Symbol::new("what"), Expr::Symbol(Symbol::new("summary")))
+            .with_slot(
+                Symbol::new("target"),
+                Expr::Symbol(Symbol::new("transcript")),
+            )
+            .to_expr(),
+    }
+}
+
+fn malformed_task_frame_part() -> BridgePart {
+    BridgePart {
+        id: Symbol::new("T1"),
+        kind: Symbol::qualified("bridge", "Frame"),
+        payload: BridgeFramePayload::new(Symbol::qualified("bridge", "produce-artifact"))
+            .with_slot(Symbol::new("what"), Expr::Symbol(Symbol::new("summary")))
+            .to_expr(),
+    }
+}
+
+fn return_part(return_shape: Expr) -> BridgePart {
+    BridgePart {
+        id: Symbol::new("O1"),
+        kind: Symbol::qualified("bridge", "Return"),
+        payload: Expr::Map(vec![
+            entry("codec", Expr::Symbol(Symbol::qualified("codec", "json"))),
+            entry("shape", return_shape),
+        ]),
+    }
+}
+
+fn frontier_row(head: &str, part: BridgePart) -> Expr {
+    Expr::Map(vec![
+        entry("head", Expr::Symbol(Symbol::new(head))),
+        entry(
+            "part",
+            Expr::Map(vec![
+                entry("id", Expr::Symbol(part.id)),
+                entry("kind", Expr::Symbol(part.kind)),
+                entry("payload", part.payload),
+            ]),
+        ),
+    ])
+}
+
 fn candidate_payload(return_shape: Expr) -> Expr {
     packet_to_expr(&candidate_packet(return_shape))
 }
@@ -208,6 +309,10 @@ fn request_task_text(expr: &Expr) -> &str {
         Some(Expr::String(task)) => task,
         _ => panic!("request missing task text"),
     }
+}
+
+fn model_extra<'a>(request: &'a Expr, name: &str) -> Option<&'a Expr> {
+    field(request, name)
 }
 
 #[test]
@@ -273,4 +378,115 @@ fn unowned_normative_prose_fails_ownership() {
     .unwrap_err();
 
     assert!(err.to_string().contains("bridge/Packet"));
+}
+
+#[test]
+fn frontier_lift_authors_two_part_intent() {
+    let mut cx = cx();
+    let fabric = ScriptedFrontierFabric::new(vec![
+        frontier_row("reply", task_frame_part()),
+        frontier_row(
+            "reply",
+            return_part(Expr::Symbol(Symbol::qualified("core", "String"))),
+        ),
+    ]);
+    let intent = forge_lift_frontier(
+        &mut cx,
+        &fabric,
+        "summarize the transcript",
+        &lift_options(),
+    )
+    .unwrap();
+    let requests = fabric.requests();
+
+    assert_eq!(intent.status, IntentStatus::Candidate);
+    assert_eq!(intent.name, Symbol::qualified("forge", "summarize"));
+    assert_eq!(requests.len(), 2);
+}
+
+#[test]
+fn off_menu_part_rejected_with_valid_menu() {
+    let mut cx = cx();
+    let fabric = ScriptedFrontierFabric::new(vec![
+        frontier_row("invented-head", task_frame_part()),
+        frontier_row("reply", task_frame_part()),
+        frontier_row(
+            "reply",
+            return_part(Expr::Symbol(Symbol::qualified("core", "String"))),
+        ),
+    ]);
+    let intent = forge_lift_frontier(
+        &mut cx,
+        &fabric,
+        "summarize the transcript",
+        &lift_options(),
+    )
+    .unwrap();
+    let requests = fabric.requests();
+
+    assert_eq!(intent.status, IntentStatus::Candidate);
+    assert_eq!(requests.len(), 3);
+    assert!(format!("{:?}", model_extra(&requests[1], "forge-obligations")).contains("off-menu"));
+    assert!(format!("{:?}", model_extra(&requests[1], "forge-obligations")).contains("reply"));
+    assert!(format!("{:?}", model_extra(&requests[1], "forge-expected-part")).contains("T1"));
+}
+
+#[test]
+fn off_shape_part_is_row_scoped_and_not_committed() {
+    let mut cx = cx();
+    let fabric = ScriptedFrontierFabric::new(vec![
+        frontier_row("reply", malformed_task_frame_part()),
+        frontier_row("reply", task_frame_part()),
+        frontier_row(
+            "reply",
+            return_part(Expr::Symbol(Symbol::qualified("core", "String"))),
+        ),
+    ]);
+    let intent = forge_lift_frontier(
+        &mut cx,
+        &fabric,
+        "summarize the transcript",
+        &lift_options(),
+    )
+    .unwrap();
+    let requests = fabric.requests();
+
+    assert_eq!(intent.status, IntentStatus::Candidate);
+    assert_eq!(requests.len(), 3);
+    assert!(
+        format!("{:?}", model_extra(&requests[1], "forge-obligations"))
+            .contains("frontier/rows/0/part")
+    );
+    assert!(format!("{:?}", model_extra(&requests[1], "forge-expected-part")).contains("T1"));
+}
+
+#[test]
+fn typed_slot_never_offered_as_free_text() {
+    let mut cx = cx();
+    let fabric = ScriptedFrontierFabric::new(vec![
+        frontier_row("reply", task_frame_part()),
+        frontier_row(
+            "reply",
+            return_part(Expr::Symbol(Symbol::qualified("core", "String"))),
+        ),
+    ]);
+    forge_lift_frontier(
+        &mut cx,
+        &fabric,
+        "summarize the transcript",
+        &lift_options(),
+    )
+    .unwrap();
+    let requests = fabric.requests();
+    let second = &requests[1];
+
+    assert!(format!("{:?}", model_extra(second, "forge-frontier-slots")).contains("T1.what"));
+    assert!(format!("{:?}", model_extra(second, "forge-frontier-slots")).contains("String"));
+    assert_eq!(
+        model_extra(second, OUTPUT_GRAMMAR_REQUIRED_EXTRA),
+        Some(&Expr::Bool(true))
+    );
+    assert!(
+        matches!(model_extra(second, OUTPUT_GRAMMAR_EXTRA), Some(Expr::String(grammar)) if grammar.contains("\"head\"") && grammar.contains("\"const\""))
+    );
 }

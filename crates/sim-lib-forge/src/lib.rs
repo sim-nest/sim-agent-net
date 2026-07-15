@@ -12,6 +12,7 @@
 
 mod intent;
 mod lift;
+mod lift_frontier;
 mod shape_infer;
 
 #[cfg(test)]
@@ -19,6 +20,7 @@ mod tests;
 
 pub use intent::{CompiledIntent, IntentStatus};
 pub use lift::{LiftOptions, forge_lift_once};
+pub use lift_frontier::forge_lift_frontier;
 pub use shape_infer::assert_return_shape_parses;
 
 /// Cookbook recipes embedded from this crate's `recipes/` directory.
