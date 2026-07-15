@@ -10,6 +10,8 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod brief;
+mod frontier;
 mod materialize;
 mod model;
 mod receipt;
@@ -21,6 +23,8 @@ mod tx;
 #[cfg(test)]
 mod tests;
 
+pub use brief::{bridge_brief, render_brief_sentences};
+pub use frontier::{FrontierMenu, frontier};
 pub use materialize::{
     GivenMaterialization, bridge_fetch_capability, bridge_given_materialize_capability,
     fetch_obligation, materialize_given,

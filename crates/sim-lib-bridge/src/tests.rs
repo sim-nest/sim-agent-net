@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use sim_codec_bridge::{
-    BridgeBook, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance, encode_bridge_text,
-    stamp_packet_cid,
+    BridgeBook, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
+    assert_total_ownership, encode_bridge_text, stamp_packet_cid,
 };
 use sim_kernel::{
     CapabilityName, Consistency, Cx, DefaultFactory, EagerPolicy, Error, EvalFabric, EvalMode,
@@ -13,7 +13,8 @@ use sim_lib_stream_fabric::{ContentKey, EvalCassette, EvalCassetteLedger, Ledger
 use sim_value::build::entry;
 
 use crate::{
-    bridge_request_content_key, bridge_rx_response, bridge_tx, effective_caps, run_bridge, rx_check,
+    bridge_brief, bridge_request_content_key, bridge_rx_response, bridge_tx, effective_caps,
+    frontier, render_model_face, run_bridge, rx_check,
 };
 
 #[derive(Default)]
@@ -316,4 +317,59 @@ fn content_key_changes_when_request_changes() {
     let right = ContentKey::from_request(&eval_request("right"));
 
     assert_ne!(left, right);
+}
+
+#[test]
+fn one_frame_record_yields_both_faces() {
+    let book = BridgeBook::standard();
+    let packet = stamp_packet_cid(
+        &bridge_brief(
+            "model:drafter",
+            BridgeFramePayload::new(Symbol::qualified("bridge", "produce-artifact"))
+                .with_slot(
+                    Symbol::new("what"),
+                    Expr::Symbol(Symbol::qualified("bridge", "proposal")),
+                )
+                .with_slot(
+                    Symbol::new("target"),
+                    Expr::String("sim-human-model".to_owned()),
+                ),
+            Expr::Symbol(Symbol::qualified("core", "String")),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let canonical = encode_bridge_text(&packet, &book).unwrap();
+    let (face, spans) = render_model_face(&book, &packet).unwrap();
+
+    assert!(canonical.contains("FRAME T1 payload="));
+    assert!(face.starts_with(&canonical));
+    assert!(face.contains("FLUENT"));
+    assert!(face.contains("[T1] You MUST produce bridge/proposal for sim-human-model."));
+    assert_total_ownership(&face, &spans).unwrap();
+}
+
+#[test]
+fn frontier_emits_flat_oneof_that_lowers() {
+    let mut cx = cx();
+    let packet = bridge_brief(
+        "model:drafter",
+        BridgeFramePayload::new(Symbol::qualified("bridge", "produce-artifact"))
+            .with_slot(
+                Symbol::new("what"),
+                Expr::Symbol(Symbol::qualified("bridge", "proposal")),
+            )
+            .with_slot(
+                Symbol::new("target"),
+                Expr::String("sim-human-model".to_owned()),
+            ),
+        Expr::Symbol(Symbol::qualified("core", "String")),
+    )
+    .unwrap();
+    let menu = frontier(&mut cx, &packet).unwrap();
+
+    assert_eq!(menu.slots.len(), 2);
+    assert!(format!("{:?}", menu.heads).contains("reply"));
+    assert!(menu.grammar.contains(r#""anyOf""#));
+    assert!(menu.grammar.contains("reply"));
 }

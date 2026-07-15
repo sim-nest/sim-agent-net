@@ -166,6 +166,9 @@
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/40-atelier/atelier-runtime-operation/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/40-atelier/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-bridge/recipes/01-basics/brief-instruction/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-bridge/recipes/01-basics/brief-instruction/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-bridge/recipes/01-basics/brief-instruction/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-bridge/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-bridge/recipes/01-basics/checked-exchange/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-bridge/recipes/01-basics/checked-exchange/recipe.toml"}

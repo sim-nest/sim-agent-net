@@ -5,6 +5,7 @@ use sim_codec_bridge::{
 use sim_kernel::{Consistency, Cx, Error, EvalFabric, EvalMode, EvalRequest, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{FENCE_DATA_RULE, ModelRequest};
 
+use crate::brief::render_brief_sentences;
 use crate::model::output_contract_for_packet;
 use crate::rx::{bridge_rx_response, effective_caps, rx_check};
 
@@ -15,9 +16,6 @@ pub fn prepare_packet(
     packet: &BridgePacket,
 ) -> Result<BridgePacket> {
     let packet = stamp_packet_cid(&packet.canonicalized())?;
-    assert_roundtrip(&packet, book)?;
-    let (face, spans) = render_model_face(book, &packet)?;
-    assert_total_ownership(&face, &spans)?;
     let report = rx_check(cx, book, &packet, None)?;
     if !report.accepted() {
         return Err(Error::Eval(format!(
@@ -25,6 +23,9 @@ pub fn prepare_packet(
             report.obligations
         )));
     }
+    assert_roundtrip(&packet, book)?;
+    let (face, spans) = render_model_face(book, &packet)?;
+    assert_total_ownership(&face, &spans)?;
     Ok(packet)
 }
 
@@ -33,8 +34,21 @@ pub fn render_model_face(
     book: &BridgeBook,
     packet: &BridgePacket,
 ) -> Result<(String, Vec<OwnedSpan>)> {
-    let face = encode_bridge_text(packet, book)?;
-    Ok((face.clone(), vec![OwnedSpan::Structural(face)]))
+    let script = encode_bridge_text(packet, book)?;
+    let mut face = script.clone();
+    let mut spans = vec![OwnedSpan::Structural(script)];
+    let sentences = render_brief_sentences(book, packet)?;
+    if !sentences.is_empty() {
+        let marker = "\nFLUENT\n".to_owned();
+        face.push_str(&marker);
+        spans.push(OwnedSpan::Structural(marker));
+        for (id, sentence) in sentences {
+            let text = format!("{sentence}\n");
+            face.push_str(&text);
+            spans.push(OwnedSpan::Frame { id, text });
+        }
+    }
+    Ok((face, spans))
 }
 
 /// Builds an eval request for a packet after running the TX self-check gate.

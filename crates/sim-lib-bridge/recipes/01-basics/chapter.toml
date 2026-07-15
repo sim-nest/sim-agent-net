@@ -1,3 +1,4 @@
 title = "Basics"
 order = 10
 summary = "Describe a checked packet exchange."
+recipe_ids = ["checked-exchange", "brief-instruction"]
