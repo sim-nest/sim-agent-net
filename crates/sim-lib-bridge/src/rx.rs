@@ -3,13 +3,13 @@ use std::sync::Arc;
 
 use sim_codec_bridge::{
     BridgeBook, BridgePacket, BridgePart, BridgePartSpec, content_id_string, decode_bridge_text,
-    packet_content_id,
+    expr_to_packet, packet_content_id,
 };
-use sim_kernel::{CapabilitySet, Cx, Error, Expr, Result, Symbol};
+use sim_kernel::{CapabilitySet, Cx, Diagnostic, Error, Expr, Result, Symbol, Value};
 use sim_lib_agent_runner_core::{ModelResponse, effective_ceiling, terminal_model_content};
 use sim_shape::{
-    AnyShape, ExactExprShape, ExprKind, ExprKindShape, FieldShape, FieldSpec, OneOfShape, Shape,
-    check_value_report, shape_value,
+    AnyShape, ExactExprShape, ExprKind, ExprKindShape, FieldShape, FieldSpec, MatchScore,
+    OneOfShape, Shape, ShapeDoc, ShapeMatch, check_value_report, shape_value,
 };
 use sim_value::access::field;
 
@@ -317,10 +317,37 @@ fn symbol_shape(symbol: &Symbol) -> Option<Arc<dyn Shape>> {
         (Some("core"), "Symbol") => Arc::new(ExprKindShape::new(ExprKind::Symbol)),
         (Some("core"), "List") => Arc::new(ExprKindShape::new(ExprKind::List)),
         (Some("core"), "Map") => Arc::new(ExprKindShape::new(ExprKind::Map)),
+        (Some("bridge"), "Packet") => Arc::new(BridgePacketExprShape),
         (Some("bridge"), "Refusal") => refusal_shape(),
         _ => return None,
     };
     Some(shape)
+}
+
+struct BridgePacketExprShape;
+
+impl Shape for BridgePacketExprShape {
+    fn symbol(&self) -> Option<Symbol> {
+        Some(Symbol::qualified("bridge", "Packet"))
+    }
+
+    fn check_value(&self, cx: &mut Cx, value: Value) -> Result<ShapeMatch> {
+        let expr = value.object().as_expr(cx)?;
+        self.check_expr(cx, &expr)
+    }
+
+    fn check_expr(&self, _cx: &mut Cx, expr: &Expr) -> Result<ShapeMatch> {
+        match expr_to_packet(expr) {
+            Ok(_) => Ok(ShapeMatch::accept(MatchScore::exact(10))),
+            Err(err) => Ok(ShapeMatch::reject_with_diagnostic(Diagnostic::error(
+                format!("expected bridge/Packet expression: {err}"),
+            ))),
+        }
+    }
+
+    fn describe(&self, _cx: &mut Cx) -> Result<ShapeDoc> {
+        Ok(ShapeDoc::new("bridge/Packet"))
+    }
 }
 
 fn shape_descriptor(expr: &Expr) -> Option<Arc<dyn Shape>> {

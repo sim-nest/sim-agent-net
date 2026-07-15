@@ -1,6 +1,8 @@
 use std::sync::Mutex;
 
-use sim_codec_bridge::{BridgeBook, assert_total_ownership, stamp_packet_cid};
+use sim_codec_bridge::{
+    BridgeBook, assert_total_ownership, expr_to_packet, packet_to_expr, stamp_packet_cid,
+};
 use sim_kernel::{
     Args, Callable, Cx, Error, EvalFabric, EvalReply, EvalRequest, Export, Expr, Lib, Result,
     Symbol,
@@ -158,6 +160,25 @@ fn return_shape_validation_rejects_bad_answer() {
     let err = run_ask_with_policy(&mut cx, &fabric, packet, RepairPolicy::new(0)).unwrap_err();
 
     assert!(err.to_string().contains("shape"));
+}
+
+#[test]
+fn bridge_packet_return_shape_accepts_packet_expr() {
+    let mut cx = cx();
+    let candidate = stamp_packet_cid(&super::request_packet(
+        Expr::Symbol(Symbol::qualified("core", "String")),
+        Vec::new(),
+    ))
+    .unwrap();
+    let packet = ask_request(&mut cx, Expr::Symbol(Symbol::qualified("bridge", "Packet")));
+    let fabric = SequenceFabric::new(vec![json_response(vec![Expr::String(json_text(
+        &packet_to_expr(&candidate),
+    ))])]);
+
+    let reply = run_ask_with_policy(&mut cx, &fabric, packet, RepairPolicy::new(0)).unwrap();
+    let decoded = expr_to_packet(&reply.body[0].payload).unwrap();
+
+    assert_eq!(decoded.header.cid, candidate.header.cid);
 }
 
 #[test]

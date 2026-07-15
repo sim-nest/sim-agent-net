@@ -1,7 +1,17 @@
-use sim_citizen::CitizenField;
-use sim_kernel::{ContentId, Expr, Symbol};
+use std::sync::Mutex;
 
-use crate::{CompiledIntent, IntentStatus};
+use sim_citizen::CitizenField;
+use sim_codec_bridge::{
+    BridgeBook, BridgeCallPayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
+    encode_bridge_text, packet_content_id, packet_to_expr, stamp_packet_cid,
+};
+use sim_kernel::{
+    ContentId, Cx, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol, testing::bare_cx as cx,
+};
+use sim_lib_agent_runner_core::ModelResponse;
+use sim_value::{access::field, build::entry};
+
+use crate::{CompiledIntent, IntentStatus, LiftOptions, forge_lift_once};
 
 fn content_id(byte: u8) -> ContentId {
     ContentId::from_bytes(Symbol::qualified("core", "sha256"), [byte; 32])
@@ -57,4 +67,210 @@ fn compiled_intent_keeps_content_ids_and_human_approval_separate() {
     assert_eq!(intent.status, IntentStatus::Verified);
     assert_ne!(intent.status, IntentStatus::Golden);
     assert!(intent.approval.is_none());
+}
+
+struct ScriptedLiftFabric {
+    responses: Mutex<Vec<Expr>>,
+    requests: Mutex<Vec<Expr>>,
+}
+
+impl ScriptedLiftFabric {
+    fn new(responses: Vec<Expr>) -> Self {
+        Self {
+            responses: Mutex::new(responses),
+            requests: Mutex::new(Vec::new()),
+        }
+    }
+
+    fn requests(&self) -> Vec<Expr> {
+        self.requests.lock().unwrap().clone()
+    }
+}
+
+impl EvalFabric for ScriptedLiftFabric {
+    fn realize(&self, cx: &mut Cx, request: EvalRequest) -> Result<EvalReply> {
+        self.requests.lock().unwrap().push(request.expr.clone());
+        let parent_cid = bridge_cid_from_request(&request)?;
+        let payload = {
+            let mut responses = self.responses.lock().unwrap();
+            if responses.is_empty() {
+                return Err(sim_kernel::Error::Eval(
+                    "scripted lift fabric is exhausted".to_owned(),
+                ));
+            }
+            responses.remove(0)
+        };
+        let reply = stamp_packet_cid(&reply_packet(&parent_cid, payload))?;
+        let response = ModelResponse::new(
+            Symbol::qualified("runner", "forge-fixture"),
+            "forge-fixture",
+            vec![text_content(encode_bridge_text(
+                &reply,
+                &BridgeBook::standard(),
+            )?)],
+            Symbol::new("stop"),
+        );
+        Ok(EvalReply {
+            value: cx.factory().expr(Expr::from(response))?,
+            diagnostics: Vec::new(),
+            trace: None,
+        })
+    }
+}
+
+fn bridge_cid_from_request(request: &EvalRequest) -> Result<String> {
+    match field(&request.expr, "bridge-cid") {
+        Some(Expr::String(cid)) => Ok(cid.clone()),
+        _ => Err(sim_kernel::Error::Eval(
+            "forge test request is missing bridge-cid".to_owned(),
+        )),
+    }
+}
+
+fn text_content(text: String) -> Expr {
+    Expr::Map(vec![
+        entry("type", Expr::Symbol(Symbol::new("text"))),
+        entry("text", Expr::String(text)),
+    ])
+}
+
+fn reply_packet(parent_cid: &str, payload: Expr) -> BridgePacket {
+    BridgePacket {
+        header: BridgeHeader {
+            cid: None,
+            move_kind: Symbol::new("reply"),
+            from: "model:forge-lift".to_owned(),
+            to: vec!["sim".to_owned()],
+            role: Symbol::new("implementer"),
+            parents: vec![parent_cid.to_owned()],
+            task: Symbol::new("A1"),
+            output: Symbol::new("A1"),
+            ceiling: Vec::new(),
+            context: Vec::new(),
+            provenance: BridgeProvenance::default(),
+        },
+        body: vec![BridgePart {
+            id: Symbol::new("A1"),
+            kind: Symbol::qualified("bridge", "Return"),
+            payload,
+        }],
+        warrant: None,
+    }
+}
+
+fn candidate_packet(return_shape: Expr) -> BridgePacket {
+    BridgePacket {
+        header: BridgeHeader {
+            cid: None,
+            move_kind: Symbol::new("request"),
+            from: "sim".to_owned(),
+            to: vec!["model:worker".to_owned()],
+            role: Symbol::new("implementer"),
+            parents: Vec::new(),
+            task: Symbol::new("C1"),
+            output: Symbol::new("O1"),
+            ceiling: Vec::new(),
+            context: Vec::new(),
+            provenance: BridgeProvenance::default(),
+        },
+        body: vec![
+            BridgePart {
+                id: Symbol::new("C1"),
+                kind: Symbol::qualified("bridge", "Call"),
+                payload: BridgeCallPayload::new(Symbol::qualified("forge", "answer")).to_expr(),
+            },
+            BridgePart {
+                id: Symbol::new("O1"),
+                kind: Symbol::qualified("bridge", "Return"),
+                payload: Expr::Map(vec![
+                    entry("codec", Expr::Symbol(Symbol::qualified("codec", "json"))),
+                    entry("shape", return_shape),
+                ]),
+            },
+        ],
+        warrant: None,
+    }
+}
+
+fn candidate_payload(return_shape: Expr) -> Expr {
+    packet_to_expr(&candidate_packet(return_shape))
+}
+
+fn lift_options() -> LiftOptions {
+    LiftOptions {
+        name: Symbol::qualified("forge", "summarize"),
+        max_repairs: 0,
+    }
+}
+
+fn request_task_text(expr: &Expr) -> &str {
+    match field(expr, "task") {
+        Some(Expr::String(task)) => task,
+        _ => panic!("request missing task text"),
+    }
+}
+
+#[test]
+fn prose_compiles_to_packet_with_typed_return() {
+    let mut cx = cx();
+    let candidate = stamp_packet_cid(&candidate_packet(Expr::Symbol(Symbol::qualified(
+        "core", "String",
+    ))))
+    .unwrap();
+    let fabric = ScriptedLiftFabric::new(vec![packet_to_expr(&candidate)]);
+    let intent = forge_lift_once(
+        &mut cx,
+        &fabric,
+        "summarize the transcript",
+        &lift_options(),
+    )
+    .unwrap();
+
+    assert_eq!(intent.status, IntentStatus::Candidate);
+    assert_eq!(intent.name, Symbol::qualified("forge", "summarize"));
+    assert_eq!(intent.packet, packet_content_id(&candidate).unwrap());
+}
+
+#[test]
+fn untypeable_prose_is_a_shape_obligation() {
+    let mut cx = cx();
+    let fabric = ScriptedLiftFabric::new(vec![candidate_payload(Expr::Bool(false))]);
+    let err =
+        forge_lift_once(&mut cx, &fabric, "do the untyped thing", &lift_options()).unwrap_err();
+
+    assert!(err.to_string().contains("return Shape does not parse"));
+}
+
+#[test]
+fn bounded_repair_fixes_near_miss() {
+    let mut cx = cx();
+    let fabric = ScriptedLiftFabric::new(vec![
+        candidate_payload(Expr::Bool(false)),
+        candidate_payload(Expr::Symbol(Symbol::qualified("core", "String"))),
+    ]);
+    let opts = LiftOptions {
+        name: Symbol::qualified("forge", "repairable"),
+        max_repairs: 1,
+    };
+    let intent = forge_lift_once(&mut cx, &fabric, "repair the packet", &opts).unwrap();
+    let requests = fabric.requests();
+
+    assert_eq!(intent.status, IntentStatus::Candidate);
+    assert_eq!(requests.len(), 2);
+    assert!(request_task_text(&requests[1]).contains("bridge-report"));
+}
+
+#[test]
+fn unowned_normative_prose_fails_ownership() {
+    let mut cx = cx();
+    let fabric = ScriptedLiftFabric::new(vec![Expr::String("just do it".to_owned())]);
+    let err = forge_lift_once(
+        &mut cx,
+        &fabric,
+        "emit prose instead of a packet",
+        &lift_options(),
+    )
+    .unwrap_err();
+
+    assert!(err.to_string().contains("bridge/Packet"));
 }
