@@ -268,6 +268,19 @@ fn malformed_task_frame_part() -> BridgePart {
     }
 }
 
+fn data_degrade_frame_part() -> BridgePart {
+    BridgePart {
+        id: Symbol::new("T1"),
+        kind: Symbol::qualified("bridge", "Frame"),
+        payload: BridgeFramePayload::new(Symbol::qualified("bridge", "explain"))
+            .with_slot(
+                Symbol::new("text"),
+                Expr::String("summarize the transcript".to_owned()),
+            )
+            .to_expr(),
+    }
+}
+
 fn return_part(return_shape: Expr) -> BridgePart {
     BridgePart {
         id: Symbol::new("O1"),
@@ -458,6 +471,40 @@ fn off_shape_part_is_row_scoped_and_not_committed() {
             .contains("frontier/rows/0/part")
     );
     assert!(format!("{:?}", model_extra(&requests[1], "forge-expected-part")).contains("T1"));
+}
+
+#[test]
+fn data_degrade_is_reported_not_silent() {
+    let mut cx = cx();
+    let fabric = ScriptedFrontierFabric::new(vec![
+        frontier_row("reply", data_degrade_frame_part()),
+        frontier_row("reply", task_frame_part()),
+        frontier_row(
+            "reply",
+            return_part(Expr::Symbol(Symbol::qualified("core", "String"))),
+        ),
+    ]);
+    let intent = forge_lift_frontier(
+        &mut cx,
+        &fabric,
+        "summarize the transcript",
+        &lift_options(),
+    )
+    .unwrap();
+    let requests = fabric.requests();
+
+    assert_eq!(intent.status, IntentStatus::Candidate);
+    assert_eq!(requests.len(), 3);
+    assert!(
+        format!("{:?}", model_extra(&requests[0], "forge-frame-proposal")).contains("candidate")
+    );
+    assert!(
+        format!("{:?}", model_extra(&requests[1], "forge-obligations"))
+            .contains("data because no frame matched")
+    );
+    assert!(
+        format!("{:?}", model_extra(&requests[1], "forge-frame-proposal")).contains("frame-task")
+    );
 }
 
 #[test]

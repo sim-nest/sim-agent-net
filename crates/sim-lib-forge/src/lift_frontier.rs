@@ -1,6 +1,7 @@
 use sim_codec_bridge::{
-    BridgeBook, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance, canonical_packet_datum,
-    content_id_string, packet_content_id, packet_to_expr, stamp_packet_cid,
+    BridgeBook, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
+    FrameHoleKind, canonical_packet_datum, content_id_string, packet_content_id, packet_to_expr,
+    stamp_packet_cid,
 };
 use sim_kernel::{
     Consistency, ContentId, Cx, DatumStore, Error, EvalFabric, EvalMode, EvalRequest, Expr, Result,
@@ -15,6 +16,7 @@ use sim_lib_bridge::{
 };
 use sim_value::{access::field, build::entry};
 
+use crate::frame_propose::propose_frame;
 use crate::lift::{compiled_intent, report_summary, validate_candidate};
 use crate::normalize::normalize_prose;
 use crate::{CompiledIntent, LiftOptions};
@@ -217,21 +219,28 @@ fn frontier_part_request(
     obligations: &[BridgeObligation],
 ) -> Result<EvalRequest> {
     let row_path = format!("frontier/rows/{row_index}");
-    let mut model = ModelRequest::new(
-        Expr::Map(vec![
-            entry(
-                "mode",
-                Expr::Symbol(Symbol::qualified("forge", "frontier-part")),
-            ),
-            entry("row-path", Expr::String(row_path.clone())),
-            entry("expected-part", expected.to_expr()),
-            entry("head-menu", menu.heads.clone()),
-            entry("slot-menu", slot_menu_expr(menu)),
-            entry("partial-packet", packet_to_expr(packet)),
-            entry("obligations", obligations_expr(obligations)),
-        ]),
-        Vec::new(),
-    );
+    let frame_proposal = if matches!(expected, ExpectedPart::TaskFrame) {
+        frame_proposal_expr(cx, packet)?
+    } else {
+        None
+    };
+    let mut body_fields = vec![
+        entry(
+            "mode",
+            Expr::Symbol(Symbol::qualified("forge", "frontier-part")),
+        ),
+        entry("row-path", Expr::String(row_path.clone())),
+        entry("expected-part", expected.to_expr()),
+        entry("head-menu", menu.heads.clone()),
+        entry("slot-menu", slot_menu_expr(menu)),
+        entry("partial-packet", packet_to_expr(packet)),
+        entry("obligations", obligations_expr(obligations)),
+    ];
+    if let Some(proposal) = &frame_proposal {
+        body_fields.push(entry("frame-proposal", proposal.clone()));
+    }
+
+    let mut model = ModelRequest::new(Expr::Map(body_fields), Vec::new());
     model.extra.push(entry(
         "forge-mode",
         Expr::Symbol(Symbol::qualified("forge", "frontier-part")),
@@ -256,6 +265,9 @@ fn frontier_part_request(
         model
             .extra
             .push(entry("forge-obligations", obligations_expr(obligations)));
+    }
+    if let Some(proposal) = frame_proposal {
+        model.extra.push(entry("forge-frame-proposal", proposal));
     }
     model.extra.push(entry(
         RETURN_CODEC_EXTRA,
@@ -367,6 +379,17 @@ fn validate_frontier_part(
         return Ok(report);
     }
 
+    if matches!(expected, ExpectedPart::TaskFrame) && data_degrade_frame(book, &row.part.payload) {
+        report.obligate(BridgeObligation::new(
+            format!("frontier/rows/{row_index}/part"),
+            "frontier row fell through to data because no frame matched",
+            "approved typed bridge/Frame or candidate FrameSpec proposal",
+            "prose data frame",
+            vec!["propose-frame".to_owned()],
+        ));
+        return Ok(report);
+    }
+
     if matches!(expected, ExpectedPart::TaskFrame)
         && let Err(err) = book.frames.validate_payload(&row.part.payload)
     {
@@ -449,6 +472,37 @@ fn head_choices(menu: &FrontierMenu) -> Vec<Symbol> {
             .collect(),
         _ => Vec::new(),
     }
+}
+
+fn data_degrade_frame(book: &BridgeBook, payload: &Expr) -> bool {
+    let Ok(payload) = BridgeFramePayload::from_expr(payload) else {
+        return false;
+    };
+    let Ok(spec) = book.frames.require_spec(&payload.frame) else {
+        return false;
+    };
+    spec.holes
+        .iter()
+        .any(|hole| matches!(hole.kind, FrameHoleKind::Prose))
+}
+
+fn frame_proposal_expr(cx: &mut Cx, packet: &BridgePacket) -> Result<Option<Expr>> {
+    let Some(prose) = packet_source_prose(packet) else {
+        return Ok(None);
+    };
+    Ok(Some(propose_frame(cx, prose)?.to_expr()))
+}
+
+fn packet_source_prose(packet: &BridgePacket) -> Option<&str> {
+    packet.body.iter().find_map(|part| {
+        if part.id != Symbol::new("G1") {
+            return None;
+        }
+        match field(&part.payload, "prose") {
+            Some(Expr::String(prose)) => Some(prose.as_str()),
+            _ => None,
+        }
+    })
 }
 
 fn row_shape_expr(menu: &FrontierMenu, expected: &ExpectedPart) -> Expr {

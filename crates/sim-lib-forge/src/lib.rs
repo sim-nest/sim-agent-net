@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod frame_propose;
 mod intent;
 mod library;
 mod lift;
@@ -23,6 +24,8 @@ mod shape_infer;
 mod verify;
 
 #[cfg(test)]
+mod frame_propose_tests;
+#[cfg(test)]
 mod resolve_tests;
 #[cfg(test)]
 mod route_tests;
@@ -31,6 +34,9 @@ mod tests;
 #[cfg(test)]
 mod verify_tests;
 
+pub use frame_propose::{
+    FrameSpecProposal, approve_frame_proposal, propose_frame, proposed_frame_part,
+};
 pub use intent::{CompiledIntent, IntentStatus};
 pub use library::IntentLibrary;
 pub use lift::{LiftOptions, forge_lift_once};
