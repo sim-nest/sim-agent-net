@@ -5,7 +5,10 @@ use sim_kernel::{
     AbiVersion, Args, Callable, Cx, Datum, DatumStore, Error, Export, Expr, Lib, LibManifest,
     LibTarget, Linker, LoadCx, NumberLiteral, Object, ObjectCompat, Result, Symbol, Value, Version,
 };
-use sim_value::build::entry;
+use sim_value::{
+    access::{field_str as report_field_str, field_sym as report_field_sym},
+    build::entry,
+};
 
 use crate::normalize_prose;
 
@@ -460,25 +463,9 @@ fn display_intent(report: &Expr) -> String {
 }
 
 fn field_symbol(report: &Expr, name: &str) -> Option<String> {
-    match field(report, name)? {
-        Expr::Symbol(symbol) => Some(symbol.to_string()),
-        _ => None,
-    }
+    report_field_sym(report, name).map(|symbol| symbol.to_string())
 }
 
 fn field_string(report: &Expr, name: &str) -> Option<String> {
-    match field(report, name)? {
-        Expr::String(text) => Some(text.clone()),
-        _ => None,
-    }
-}
-
-fn field<'a>(report: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = report else {
-        return None;
-    };
-    let key = Expr::Symbol(Symbol::new(name));
-    entries
-        .iter()
-        .find_map(|(entry_key, value)| (entry_key == &key).then_some(value))
+    report_field_str(report, name).map(str::to_owned)
 }
