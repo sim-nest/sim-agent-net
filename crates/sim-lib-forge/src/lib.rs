@@ -18,11 +18,14 @@ mod lift_frontier;
 mod normalize;
 mod resolve;
 mod shape_infer;
+mod verify;
 
 #[cfg(test)]
 mod resolve_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod verify_tests;
 
 pub use intent::{CompiledIntent, IntentStatus};
 pub use library::IntentLibrary;
@@ -31,6 +34,9 @@ pub use lift_frontier::forge_lift_frontier;
 pub use normalize::normalize_prose;
 pub use resolve::{ForgeResolver, PromotePolicy, forge_resolve, forge_resolve_with_options};
 pub use shape_infer::assert_return_shape_parses;
+pub use verify::{
+    ProbeOracle, Verifier, VerifyCatalog, VerifyFailure, VerifyProbe, VerifyReport, verify_answer,
+};
 
 /// Cookbook recipes embedded from this crate's `recipes/` directory.
 pub static RECIPES: sim_cookbook::EmbeddedDir =

@@ -1,7 +1,8 @@
 use sim_kernel::{Cx, EvalFabric, Result};
 
 use crate::{
-    CompiledIntent, IntentLibrary, IntentStatus, LiftOptions, forge_lift_once, normalize_prose,
+    CompiledIntent, IntentLibrary, IntentStatus, LiftOptions, VerifyCatalog, forge_lift_once,
+    normalize_prose,
 };
 
 /// Promotion rule applied after a resolve miss lifts a fresh candidate.
@@ -11,8 +12,8 @@ pub enum PromotePolicy {
     KeepCandidate,
     /// Promote only after semantic probes pass.
     ///
-    /// FORGE has no probe runner until the semantic-verification phase, so this
-    /// policy currently keeps the artifact as a candidate.
+    /// The resolver uses its verifier catalog for probe lookup, and missing or
+    /// failing probes leave the artifact as a candidate.
     AutoVerifiedOnProbePass,
     /// Require an approval record before any golden artifact is created.
     RequireHumanApprovalForGolden,
@@ -23,14 +24,26 @@ pub enum PromotePolicy {
 pub struct ForgeResolver {
     library: IntentLibrary,
     lift_options: LiftOptions,
+    verify_catalog: VerifyCatalog,
 }
 
 impl ForgeResolver {
     /// Builds a resolver from an existing intent library and lift options.
     pub fn new(library: IntentLibrary, lift_options: LiftOptions) -> Self {
+        Self::new_with_verifiers(library, lift_options, VerifyCatalog::new())
+    }
+
+    /// Builds a resolver from an existing intent library, lift options, and
+    /// semantic verifier catalog.
+    pub fn new_with_verifiers(
+        library: IntentLibrary,
+        lift_options: LiftOptions,
+        verify_catalog: VerifyCatalog,
+    ) -> Self {
         Self {
             library,
             lift_options,
+            verify_catalog,
         }
     }
 
@@ -42,6 +55,16 @@ impl ForgeResolver {
     /// Returns a mutable handle to the intent library backing this resolver.
     pub fn library_mut(&mut self) -> &mut IntentLibrary {
         &mut self.library
+    }
+
+    /// Returns the semantic verifier catalog backing this resolver.
+    pub fn verify_catalog(&self) -> &VerifyCatalog {
+        &self.verify_catalog
+    }
+
+    /// Returns a mutable semantic verifier catalog handle.
+    pub fn verify_catalog_mut(&mut self) -> &mut VerifyCatalog {
+        &mut self.verify_catalog
     }
 
     /// Resolves prose to a compiled intent, reusing a golden source hit.
@@ -63,8 +86,28 @@ impl ForgeResolver {
         }
 
         let mut lifted = forge_lift_once(cx, target, prose, &self.lift_options)?;
-        lifted.status = status_after_policy(policy);
+        self.apply_policy(cx, &mut lifted, policy)?;
         self.library.store_resolved(lifted)
+    }
+
+    fn apply_policy(
+        &self,
+        cx: &mut Cx,
+        intent: &mut CompiledIntent,
+        policy: PromotePolicy,
+    ) -> Result<()> {
+        intent.status = IntentStatus::Candidate;
+        match policy {
+            PromotePolicy::KeepCandidate | PromotePolicy::RequireHumanApprovalForGolden => {}
+            PromotePolicy::AutoVerifiedOnProbePass => {
+                intent.probes = self.verify_catalog.probe_ids_for(&intent.name);
+                let report = self.verify_catalog.verify_intent_probes(cx, intent)?;
+                if report.accepted() {
+                    intent.status = IntentStatus::Verified;
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -101,8 +144,4 @@ pub fn forge_resolve_with_options(
     let intent = resolver.resolve(cx, target, prose, policy)?;
     *library = resolver.library;
     Ok(intent)
-}
-
-fn status_after_policy(_policy: PromotePolicy) -> IntentStatus {
-    IntentStatus::Candidate
 }
