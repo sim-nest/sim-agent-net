@@ -201,6 +201,9 @@
 {"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/eval-harness/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/eval-harness/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/eval-harness/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/forge-cli/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/forge-cli/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-forge/recipes/01-basics/forge-cli/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-forge/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-mcp/recipes/01-basics/cassette-tools-list/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-mcp/recipes/01-basics/cassette-tools-list/recipe.toml"}

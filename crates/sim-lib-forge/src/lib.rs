@@ -22,6 +22,7 @@ mod packet_artifact;
 mod resolve;
 mod route;
 mod shape_infer;
+mod verb;
 mod verify;
 
 #[cfg(test)]
@@ -34,6 +35,8 @@ mod resolve_tests;
 mod route_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod verb_tests;
 #[cfg(test)]
 mod verify_tests;
 
@@ -56,6 +59,7 @@ pub use route::{
     run_intent_routed, run_intent_routed_report,
 };
 pub use shape_infer::assert_return_shape_parses;
+pub use verb::{ForgeLib, forge_entrypoint_symbol, forge_verb};
 pub use verify::{
     ProbeOracle, Verifier, VerifyCatalog, VerifyFailure, VerifyProbe, VerifyReport, verify_answer,
 };
