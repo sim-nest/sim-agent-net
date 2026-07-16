@@ -4,7 +4,7 @@ In one line: The part of SIM that lets an assistant use tools, remember things, 
 
 ## What it gives you
 
-This is the home base for agents inside SIM. It brings together the pieces an assistant needs to do real work: the tools it can call, the memory it keeps between turns, the patterns that shape its behavior, and the fixtures used to try things out safely. It also decides where a model request actually runs, choosing from a catalog of placements you have set up, whether that is a model on your own machine or one reached across a network. When a request has been answered once, it can keep that reply and hand back the same result for the same question, so you are not paying to ask twice. Everything stays fair and orderly when many requests arrive at once.
+This is the home base for agents inside SIM. It brings together the pieces an assistant needs to do real work: the tools it can call, the memory it keeps between turns, the patterns that shape its behavior, and the fixtures for trying things out safely. It also decides where a model request actually runs, choosing from a catalog of placements you have set up, whether that is a model on your own machine or one reached across a network. When a request has been answered once, it can keep that reply and hand back the same result for the same question, so you are not paying to ask twice. Everything stays fair and orderly when many requests arrive at once.
 
 ## Why you will be glad
 
