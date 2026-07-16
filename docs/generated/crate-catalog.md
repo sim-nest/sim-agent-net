@@ -13,6 +13,7 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-agent` | `true` | `custom-build, lib` | Agent runtime surfaces for SIM. |
 | `sim-lib-bridge` | `true` | `custom-build, lib` | Checked BRIDGE packet runtime for SIM model exchanges. |
 | `sim-lib-cookbook` | `true` | `custom-build, lib` | Runtime cookbook: operations for SIM. |
+| `sim-lib-forge` | `true` | `custom-build, lib` | Compiled intent records and one-shot BRIDGE lifts for reusable packet programs. |
 | `sim-lib-mcp` | `true` | `custom-build, lib, test` | Library-only MCP surface projection for SIM. |
 | `sim-lib-openai-server` | `true` | `custom-build, lib` | OpenAI-compatible gateway skeleton for SIM. |
 | `sim-lib-server` | `true` | `custom-build, lib` | SIM workspace package for sim lib server. |

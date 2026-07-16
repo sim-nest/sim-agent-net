@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 15,
+  "package_count": 16,
   "packages": [
     {
       "description": "Provider-neutral runner contracts for SIM model fabrics.",
@@ -91,6 +91,19 @@
       "publish": "true",
       "readme": "crates/sim-lib-cookbook/README.md",
       "root": "crates/sim-lib-cookbook",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Compiled intent records and one-shot BRIDGE lifts for reusable packet programs.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-forge/Cargo.toml",
+      "name": "sim-lib-forge",
+      "publish": "true",
+      "readme": "crates/sim-lib-forge/README.md",
+      "root": "crates/sim-lib-forge",
       "target_kinds": [
         "custom-build",
         "lib"
