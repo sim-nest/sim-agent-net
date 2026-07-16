@@ -513,10 +513,14 @@ fn capability_profile_grants_and_denies() {
     use sim_kernel::{CapabilityName, GrantSeat};
 
     let read_construct = sim_kernel::read_construct_capability();
+    let macro_expand = CapabilityName::new("macro.expand");
+    let macro_expand_eval = CapabilityName::new("macro.expand.eval");
     let net_http = CapabilityName::new("net/http");
     let net_connect = CapabilityName::new("net-connect");
     assert!(CookbookCapabilityProfile::grants(&read_construct));
     assert!(CookbookCapabilityProfile::grants(&read_eval_capability()));
+    assert!(CookbookCapabilityProfile::grants(&macro_expand));
+    assert!(CookbookCapabilityProfile::grants(&macro_expand_eval));
     assert!(CookbookCapabilityProfile::denies(&net_http));
     assert!(CookbookCapabilityProfile::denies(&net_connect));
     assert!(!CookbookCapabilityProfile::grants(&net_connect));
@@ -526,6 +530,8 @@ fn capability_profile_grants_and_denies() {
     CookbookCapabilityProfile::seat(&seat, &mut cx).unwrap();
     assert!(cx.capabilities().contains(&read_construct));
     assert!(cx.capabilities().contains(&read_eval_capability()));
+    assert!(cx.capabilities().contains(&macro_expand));
+    assert!(cx.capabilities().contains(&macro_expand_eval));
     // Category D: a denied capability is never seated, so an op demanding it
     // fails closed.
     assert!(!cx.capabilities().contains(&net_connect));

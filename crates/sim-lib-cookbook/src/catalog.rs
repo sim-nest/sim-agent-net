@@ -126,23 +126,27 @@ fn load_lib_with_deps(
 
 /// The deterministic capability profile the cookbook seats its eval `Cx` with.
 ///
-/// GRANTS the pure/offline/deterministic effects a recipe may legitimately need
-/// and DENIES (by omission) every live/effectful capability. A recipe requesting
-/// a denied capability fails closed: it is a Category D descriptor whose purpose
-/// is the denial. The profile is data, not a closed enum -- the granted and
-/// denied vocabularies are named capability strings the kernel interns.
+/// GRANTS the pure/offline/deterministic effects a recipe may legitimately need,
+/// including eval-time macro expansion for recipes that load macro-capable
+/// libraries. It DENIES (by omission) every live/effectful capability. A recipe
+/// requesting a denied capability fails closed: it is a Category D descriptor
+/// whose purpose is the denial. The profile is data, not a closed enum -- the
+/// granted and denied vocabularies are named capability strings the kernel
+/// interns.
 #[derive(Clone, Debug, Default)]
 pub struct CookbookCapabilityProfile;
 
 impl CookbookCapabilityProfile {
-    /// The capabilities this profile GRANTS: read-construct, read-eval, and the
-    /// pure/offline/deterministic effect vocabulary (compute, codec round-trip,
-    /// offline render with no device, deterministic cassette replay, and a
-    /// deterministic model fixture).
+    /// The capabilities this profile GRANTS: read-construct, read-eval,
+    /// eval-time macro expansion, and the pure/offline/deterministic effect
+    /// vocabulary (compute, codec round-trip, offline render with no device,
+    /// deterministic cassette replay, and a deterministic model fixture).
     pub fn granted() -> Vec<CapabilityName> {
         [
             "read-construct",
             "read-eval",
+            "macro.expand",
+            "macro.expand.eval",
             "compute",
             "codec-encode",
             "codec-decode",
