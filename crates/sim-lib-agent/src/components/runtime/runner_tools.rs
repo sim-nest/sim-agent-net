@@ -17,6 +17,10 @@ use sim_kernel::{
 use sim_lib_agent_runner_core::{ModelEvent, ModelEventSink, ModelResponse};
 use std::collections::BTreeSet;
 
+fn tool_call_effect_kind() -> Symbol {
+    Symbol::qualified("effect", "tool-call")
+}
+
 pub(super) fn run_with_tool_loop<F>(
     cx: &mut Cx,
     component: &AgentComponent,
@@ -280,7 +284,7 @@ fn tool_call_effect(cx: &mut Cx, tool: &crate::Tool, call: &ToolCall) -> Result<
         None => core_any_ref(),
     };
     Effect::new(
-        effect::effect_tool_call_kind(),
+        tool_call_effect_kind(),
         Ref::Symbol(tool.symbol.clone()),
         input_ref,
         result_shape,

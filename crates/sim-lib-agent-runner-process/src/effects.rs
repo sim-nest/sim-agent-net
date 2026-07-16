@@ -50,7 +50,7 @@ fn process_effect(
     };
     let input = Ref::Content(cx.datum_store_mut().intern(input)?);
     Effect::new(
-        effect::effect_host_process_kind(),
+        host_process_effect_kind(),
         Ref::Symbol(runner.runner.clone()),
         input,
         core_any_ref(),
@@ -62,6 +62,10 @@ fn process_effect(
         "process-runner-v1",
     ))))
     .map(|effect| effect.requiring(required_capability))
+}
+
+fn host_process_effect_kind() -> Symbol {
+    Symbol::qualified("effect", "host-process")
 }
 
 fn process_effect_capability(cx: &Cx) -> CapabilityName {

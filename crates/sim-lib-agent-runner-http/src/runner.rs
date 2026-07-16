@@ -491,7 +491,7 @@ impl HttpRunner {
         };
         let input = Ref::Content(cx.datum_store_mut().intern(input)?);
         Effect::new(
-            effect::effect_network_kind(),
+            network_effect_kind(),
             Ref::Symbol(self.runner.clone()),
             input,
             core_any_ref(),
@@ -503,6 +503,10 @@ impl HttpRunner {
             "http-runner-v1",
         ))))
     }
+}
+
+fn network_effect_kind() -> Symbol {
+    Symbol::qualified("effect", "network")
 }
 
 fn response_ref(cx: &mut Cx, response: ModelResponse) -> Result<Ref> {
