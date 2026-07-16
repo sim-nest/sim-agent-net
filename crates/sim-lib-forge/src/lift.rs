@@ -1,9 +1,9 @@
 use sim_codec_bridge::{
     BridgeBook, BridgeCallArgument, BridgeCallPayload, BridgeHeader, BridgePacket, BridgePart,
-    BridgeProvenance, CallArgumentMedia, content_id_string, expr_to_packet, packet_content_id,
-    stamp_packet_cid,
+    BridgeProvenance, CallArgumentMedia, canonical_packet_datum, content_id_string, expr_to_packet,
+    packet_content_id, stamp_packet_cid,
 };
-use sim_kernel::{ContentId, Cx, Datum, Error, EvalFabric, Expr, Result, Symbol};
+use sim_kernel::{ContentId, Cx, Datum, DatumStore, Error, EvalFabric, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::InjectionFence;
 use sim_lib_bridge::{BridgeObligation, BridgeReport, RepairPolicy, run_bridge, rx_check};
 use sim_value::build::entry;
@@ -62,6 +62,8 @@ pub fn forge_lift_once(
         let candidate = stamp_packet_cid(&candidate_packet_from_reply(&reply)?)?;
         let report = validate_candidate(cx, &book, &candidate)?;
         if report.accepted() {
+            cx.datum_store_mut()
+                .intern(canonical_packet_datum(&candidate))?;
             return compiled_intent(opts, source, candidate);
         }
         if attempt < policy.max_retries {

@@ -1,9 +1,10 @@
 use sim_codec_bridge::{
-    BridgeBook, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance, content_id_string,
-    packet_content_id, packet_to_expr, stamp_packet_cid,
+    BridgeBook, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance, canonical_packet_datum,
+    content_id_string, packet_content_id, packet_to_expr, stamp_packet_cid,
 };
 use sim_kernel::{
-    Consistency, ContentId, Cx, Error, EvalFabric, EvalMode, EvalRequest, Expr, Result, Symbol,
+    Consistency, ContentId, Cx, DatumStore, Error, EvalFabric, EvalMode, EvalRequest, Expr, Result,
+    Symbol,
 };
 use sim_lib_agent_runner_core::{
     ModelRequest, ModelResponse, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
@@ -127,6 +128,8 @@ fn completed_intent(
     let stamped = stamp_packet_cid(packet)?;
     let report = validate_candidate(cx, book, &stamped)?;
     if report.accepted() {
+        cx.datum_store_mut()
+            .intern(canonical_packet_datum(&stamped))?;
         Ok(Some(compiled_intent(opts, source, stamped)?))
     } else {
         Ok(None)

@@ -16,12 +16,16 @@ mod library;
 mod lift;
 mod lift_frontier;
 mod normalize;
+mod packet_artifact;
 mod resolve;
+mod route;
 mod shape_infer;
 mod verify;
 
 #[cfg(test)]
 mod resolve_tests;
+#[cfg(test)]
+mod route_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
@@ -32,7 +36,12 @@ pub use library::IntentLibrary;
 pub use lift::{LiftOptions, forge_lift_once};
 pub use lift_frontier::forge_lift_frontier;
 pub use normalize::normalize_prose;
+pub use packet_artifact::store_packet_artifact;
 pub use resolve::{ForgeResolver, PromotePolicy, forge_resolve, forge_resolve_with_options};
+pub use route::{
+    RouteAttempt, RouteAttemptStatus, RoutePolicy, RouteProvenance, RouteTarget, RoutedAnswer,
+    run_intent_routed, run_intent_routed_report,
+};
 pub use shape_infer::assert_return_shape_parses;
 pub use verify::{
     ProbeOracle, Verifier, VerifyCatalog, VerifyFailure, VerifyProbe, VerifyReport, verify_answer,
