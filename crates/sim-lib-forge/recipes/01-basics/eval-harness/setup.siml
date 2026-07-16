@@ -1,0 +1,6 @@
+(forge/eval-report
+  (profiles (brief ask loom collab))
+  (arms (raw-prose-baseline compiled-uncached compiled-cached compiled-cached-downshifted identical-request-replay))
+  (network denied)
+  (live-model denied)
+  (assertions (golden-hit-zero-compiler replay-zero-execution downshift-lower-cost)))

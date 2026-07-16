@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod eval;
 mod frame_propose;
 mod intent;
 mod library;
@@ -24,6 +25,8 @@ mod shape_infer;
 mod verify;
 
 #[cfg(test)]
+mod eval_tests;
+#[cfg(test)]
 mod frame_propose_tests;
 #[cfg(test)]
 mod resolve_tests;
@@ -34,6 +37,10 @@ mod tests;
 #[cfg(test)]
 mod verify_tests;
 
+pub use eval::{
+    ArmMetrics, EvalArm, EvalCase, EvalCassette, EvalPlayback, EvalReport, run_eval,
+    standard_eval_arms, standard_eval_corpus,
+};
 pub use frame_propose::{
     FrameSpecProposal, approve_frame_proposal, propose_frame, proposed_frame_part,
 };
