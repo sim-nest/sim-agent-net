@@ -25,6 +25,29 @@ use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
 /// The verb the bootloader dispatches to run the fixture (`sim-fabric-cadr-fixture`).
 const CADR_FIXTURE_VERB: &str = "sim-fabric-cadr-fixture";
 
+trait GrantOutcome {
+    fn expect_granted(self);
+}
+
+impl GrantOutcome for () {
+    fn expect_granted(self) {}
+}
+
+impl GrantOutcome for Result<()> {
+    fn expect_granted(self) {
+        self.expect("fixture grant seat grants into its own Cx");
+    }
+}
+
+macro_rules! expect_granted {
+    ($grant:expr) => {{
+        #[allow(clippy::let_unit_value)]
+        let grant_result = $grant;
+        #[allow(clippy::unit_arg)]
+        grant_result.expect_granted();
+    }};
+}
+
 fn main() -> ExitCode {
     // Boot through sim-run like every other product binary: the bootloader dispatches
     // the `sim-fabric-cadr-fixture` verb into the fixture entrypoint. The fixture's
@@ -439,7 +462,7 @@ fn cx() -> Cx {
     let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory)); // bin-boot-exempt
     let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&binary).expect("binary codec loads");
-    seat.grant_named(&mut cx, "network");
+    expect_granted!(seat.grant_named(&mut cx, "network"));
     cx
 }
 

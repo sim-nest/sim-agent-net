@@ -11,6 +11,7 @@ use crate::{
     objects::{GatewayEvent, GatewayRequest, GatewayResponse, content_id_hex},
     routes::responses::{RESPONSE_RETRIEVAL_PREFIX, ResponseIdGenerators, ResponseRuntimeTargets},
     runtime::OpenAiPlanCache,
+    runtime::grant_capability_set,
     server::GatewayRouteState,
     storage::{GatewayResponseObjectStore, GatewayStateStore, GatewayStore, StoredGatewayResponse},
 };
@@ -217,9 +218,7 @@ where
     })?;
     let forked_request = forked_request(&source_request, patch)?;
     let (mut cx, seat) = Cx::new_seated(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
-    for capability in capabilities.iter() {
-        seat.grant(&mut cx, capability.clone());
-    }
+    grant_capability_set(&seat, &mut cx, capabilities).map_err(OpenAiRouteError::internal)?;
     let mut cache = OpenAiPlanCache::new();
     let execution = execute_response_request_with_cache_runners_and_federation(
         &mut cx,

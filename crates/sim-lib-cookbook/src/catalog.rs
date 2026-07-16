@@ -18,6 +18,15 @@
 use sim_cookbook::RecipeCard;
 use sim_kernel::{CapabilityName, Cx, GrantSeat, Lib, Result, Symbol};
 
+macro_rules! grant_into_result {
+    ($grant:expr) => {{
+        #[allow(clippy::let_unit_value)]
+        let grant_result = $grant;
+        #[allow(clippy::unit_arg)]
+        grant_result.into_result()
+    }};
+}
+
 /// A resolver from a recipe `requires` name to a loadable library.
 ///
 /// A recipe's `requires = [...]` list names the libs its setup needs
@@ -182,8 +191,24 @@ impl CookbookCapabilityProfile {
     /// first call.
     pub fn seat(seat: &GrantSeat, cx: &mut Cx) -> Result<()> {
         for capability in Self::granted() {
-            seat.grant(cx, capability);
+            grant_into_result!(seat.grant(cx, capability))?;
         }
         Ok(())
+    }
+}
+
+trait GrantOutcome {
+    fn into_result(self) -> Result<()>;
+}
+
+impl GrantOutcome for () {
+    fn into_result(self) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl GrantOutcome for Result<()> {
+    fn into_result(self) -> Result<()> {
+        self
     }
 }
