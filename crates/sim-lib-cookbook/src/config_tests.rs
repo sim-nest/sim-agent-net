@@ -306,11 +306,7 @@ fn assert_provider_override_table_shape(table: &Expr) {
         other => panic!("loadable_lib should be a repeated table list: {other:?}"),
     };
     assert_eq!(rows.len(), 1);
-    let row = ConfigTable::new(
-        Symbol::qualified("sim", "cookbook/loadable-lib"),
-        rows[0].clone(),
-    )
-    .unwrap();
+    let row = ConfigTable::new(cookbook_lib_symbol(), rows[0].clone()).unwrap();
     let row = ConfigView::new(&row);
     assert_eq!(row.required_string("id").unwrap(), "demo/beta");
     assert_eq!(row.required_string("source").unwrap(), "symbol:demo/beta");
