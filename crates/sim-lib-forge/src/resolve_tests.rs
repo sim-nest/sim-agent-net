@@ -1,8 +1,8 @@
 use std::sync::Mutex;
 
 use sim_codec_bridge::{
-    BridgeBook, BridgeCallPayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
-    encode_bridge_text, packet_content_id, packet_to_expr, stamp_packet_cid,
+    BridgeBook, BridgeCallPayload, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart,
+    BridgeProvenance, encode_bridge_text, packet_content_id, packet_to_expr, stamp_packet_cid,
 };
 use sim_kernel::{
     ContentId, Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol,
@@ -109,18 +109,25 @@ fn reply_packet(parent_cid: &str, payload: Expr) -> BridgePacket {
             from: "model:forge-lift".to_owned(),
             to: vec!["sim".to_owned()],
             role: Symbol::new("implementer"),
-            parents: vec![parent_cid.to_owned()],
-            task: Symbol::new("A1"),
+            parents: vec![format!("{parent_cid}#move=request")],
+            task: Symbol::new("A0"),
             output: Symbol::new("A1"),
             ceiling: Vec::new(),
             context: Vec::new(),
             provenance: BridgeProvenance::default(),
         },
-        body: vec![BridgePart {
-            id: Symbol::new("A1"),
-            kind: Symbol::qualified("bridge", "Return"),
-            payload,
-        }],
+        body: vec![
+            BridgePart {
+                id: Symbol::new("A0"),
+                kind: Symbol::qualified("bridge", "Frame"),
+                payload: BridgeFramePayload::new(Symbol::qualified("bridge", "answer")).to_expr(),
+            },
+            BridgePart {
+                id: Symbol::new("A1"),
+                kind: Symbol::qualified("bridge", "Return"),
+                payload,
+            },
+        ],
         warrant: None,
     }
 }

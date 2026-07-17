@@ -1,8 +1,9 @@
 use std::sync::Mutex;
 
 use sim_codec_bridge::{
-    BridgeBook, BridgeCallPayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
-    BridgeScore, BridgeVotePayload, encode_bridge_text, packet_to_expr, stamp_packet_cid,
+    BridgeBook, BridgeCallPayload, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart,
+    BridgeProvenance, BridgeScore, BridgeVotePayload, encode_bridge_text, packet_to_expr,
+    stamp_packet_cid,
 };
 use sim_kernel::{
     ContentId, Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, NumberLiteral, Result, Symbol,
@@ -82,18 +83,25 @@ fn reply_packet(parent_cid: &str, payload: Expr) -> BridgePacket {
             from: "model:forge-lift".to_owned(),
             to: vec!["sim".to_owned()],
             role: Symbol::new("implementer"),
-            parents: vec![parent_cid.to_owned()],
-            task: Symbol::new("A1"),
+            parents: vec![format!("{parent_cid}#move=request")],
+            task: Symbol::new("A0"),
             output: Symbol::new("A1"),
             ceiling: Vec::new(),
             context: Vec::new(),
             provenance: BridgeProvenance::default(),
         },
-        body: vec![BridgePart {
-            id: Symbol::new("A1"),
-            kind: Symbol::qualified("bridge", "Return"),
-            payload,
-        }],
+        body: vec![
+            BridgePart {
+                id: Symbol::new("A0"),
+                kind: Symbol::qualified("bridge", "Frame"),
+                payload: BridgeFramePayload::new(Symbol::qualified("bridge", "answer")).to_expr(),
+            },
+            BridgePart {
+                id: Symbol::new("A1"),
+                kind: Symbol::qualified("bridge", "Return"),
+                payload,
+            },
+        ],
         warrant: None,
     }
 }
@@ -378,21 +386,28 @@ fn judge_parent_packet() -> BridgePacket {
             from: "model:worker".to_owned(),
             to: vec!["sim".to_owned()],
             role: Symbol::new("implementer"),
-            parents: vec!["core/sha256-bridge-v1:root".to_owned()],
-            task: Symbol::new("O1"),
+            parents: vec!["core/sha256-bridge-v1:root#move=request".to_owned()],
+            task: Symbol::new("O0"),
             output: Symbol::new("O1"),
             ceiling: Vec::new(),
             context: Vec::new(),
             provenance: BridgeProvenance::default(),
         },
-        body: vec![BridgePart {
-            id: Symbol::new("O1"),
-            kind: Symbol::qualified("bridge", "Return"),
-            payload: Expr::Map(vec![
-                entry("codec", Expr::Symbol(Symbol::qualified("codec", "json"))),
-                entry("shape", Expr::Symbol(Symbol::qualified("core", "Any"))),
-            ]),
-        }],
+        body: vec![
+            BridgePart {
+                id: Symbol::new("O0"),
+                kind: Symbol::qualified("bridge", "Frame"),
+                payload: BridgeFramePayload::new(Symbol::qualified("bridge", "answer")).to_expr(),
+            },
+            BridgePart {
+                id: Symbol::new("O1"),
+                kind: Symbol::qualified("bridge", "Return"),
+                payload: Expr::Map(vec![
+                    entry("codec", Expr::Symbol(Symbol::qualified("codec", "json"))),
+                    entry("shape", Expr::Symbol(Symbol::qualified("core", "Any"))),
+                ]),
+            },
+        ],
         warrant: None,
     }
 }
@@ -409,7 +424,7 @@ fn judge_vote_packet(seat: &str, target: &str, votes: u32) -> BridgePacket {
             from: seat.to_owned(),
             to: vec!["sim".to_owned()],
             role: Symbol::new("reviewer"),
-            parents: vec!["core/sha256-bridge-v1:parent".to_owned()],
+            parents: vec!["core/sha256-bridge-v1:parent#move=reply".to_owned()],
             task: Symbol::new("V1"),
             output: Symbol::new("V1"),
             ceiling: vec![Symbol::qualified("ai", "run")],

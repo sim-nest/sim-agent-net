@@ -5,6 +5,7 @@ use sim_codec_bridge::{
 };
 use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Error, Result, Symbol};
 
+use crate::parent::parents_contain_cid;
 use crate::rx_check;
 
 /// Declared policy for combining collaboration contributions.
@@ -63,12 +64,7 @@ fn patch_candidates<'a>(
 ) -> Result<Vec<PatchCandidate<'a>>> {
     let mut patches = Vec::new();
     for packet in replies {
-        if !packet
-            .header
-            .parents
-            .iter()
-            .any(|parent| parent == base_cid)
-        {
+        if !parents_contain_cid(&packet.header.parents, base_cid) {
             continue;
         }
         for part in &packet.body {
@@ -171,12 +167,7 @@ fn select_quorum_patch<'a>(
 fn votes_for_target(base_cid: &str, replies: &[BridgePacket], target: &str) -> Result<u32> {
     let mut votes = 0u32;
     for packet in replies {
-        if !packet
-            .header
-            .parents
-            .iter()
-            .any(|parent| parent == base_cid)
-        {
+        if !parents_contain_cid(&packet.header.parents, base_cid) {
             continue;
         }
         for part in &packet.body {

@@ -13,6 +13,7 @@ use sim_shape::{check_value_report, shape_value};
 use sim_value::{access::field, build::entry};
 
 use crate::model::output_contract_for_packet;
+use crate::parent::parent_token;
 use crate::repair::{AskFailure, RepairPolicy};
 use crate::rx::{effective_caps, rx_check, shape_from_contract_expr};
 use crate::tx::{eval_request_for_checked_packet, prepare_packet};
@@ -184,7 +185,7 @@ fn answer_packet(
                 .unwrap_or_else(|| "model".to_owned()),
             to: vec![parent.header.from.clone()],
             role: Symbol::new("implementer"),
-            parents: vec![parent.header.cid.clone().unwrap_or_default()],
+            parents: parent_token(parent).into_iter().collect(),
             task: Symbol::new("A1"),
             output: Symbol::new("A1"),
             ceiling: Vec::new(),

@@ -14,6 +14,7 @@ use sim_shape::{
 use sim_value::access::field;
 
 use crate::loom_validate::validate_packet_weaves;
+use crate::parent::parents_contain_cid;
 use crate::report::{BridgeObligation, BridgeReport};
 use crate::warrant::verify_warrant;
 
@@ -131,7 +132,7 @@ fn check_header_linkage(
             ));
             return;
         };
-        if !packet.header.parents.contains(parent_cid) {
+        if !parents_contain_cid(&packet.header.parents, parent_cid) {
             report.obligate(BridgeObligation::repair_packet(
                 "header/parents",
                 "reply does not cite parent packet",

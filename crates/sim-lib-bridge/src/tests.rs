@@ -18,6 +18,7 @@ use sim_value::build::entry;
 mod ask;
 mod loom;
 
+use crate::parent::parent_token;
 use crate::{
     BridgeFunction, BridgeFunctionKind, BridgeLib, MergePolicy, bridge_brief, bridge_brief_symbol,
     bridge_request_content_key, bridge_rx_response, bridge_tx, effective_caps, frontier,
@@ -133,7 +134,7 @@ fn reply_packet(parent: &BridgePacket, output: Expr) -> BridgePacket {
             from: "model:drafter".to_owned(),
             to: vec!["sim".to_owned()],
             role: Symbol::new("implementer"),
-            parents: vec![parent.header.cid.clone().unwrap()],
+            parents: parent_token(parent).into_iter().collect(),
             task: Symbol::new("T2"),
             output: Symbol::new("O2"),
             ceiling: Vec::new(),
@@ -167,7 +168,7 @@ fn collaboration_base_packet() -> BridgePacket {
             from: "model:drafter".to_owned(),
             to: vec!["human:reviewer".to_owned(), "model:judge".to_owned()],
             role: Symbol::new("implementer"),
-            parents: vec!["core/sha256-bridge-v1:root".to_owned()],
+            parents: vec!["core/sha256-bridge-v1:root#move=request".to_owned()],
             task: Symbol::new("T2"),
             output: Symbol::new("O2"),
             ceiling: Vec::new(),
@@ -205,7 +206,7 @@ fn patch_reply(parent: &BridgePacket, from: &str, replacement: Expr) -> BridgePa
             from: from.to_owned(),
             to: vec!["sim".to_owned()],
             role: Symbol::new("reviewer"),
-            parents: vec![parent_cid.clone()],
+            parents: parent_token(parent).into_iter().collect(),
             task: Symbol::new("P1"),
             output: Symbol::new("P1"),
             ceiling: Vec::new(),
@@ -229,7 +230,7 @@ fn vote_reply(parent: &BridgePacket, from: &str) -> BridgePacket {
             from: from.to_owned(),
             to: vec!["sim".to_owned()],
             role: Symbol::new("judge"),
-            parents: vec![parent.header.cid.clone().unwrap()],
+            parents: parent_token(parent).into_iter().collect(),
             task: Symbol::new("V1"),
             output: Symbol::new("V1"),
             ceiling: Vec::new(),

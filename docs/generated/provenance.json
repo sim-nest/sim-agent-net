@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-16T04:50:45+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "9d7d8fb0d147f3780c87061883da554c1443540a",
-  "repo": "sim-agent-net",
+  "git_commit": "9a4a0c0787e2a344d6f1453f0a16b050fecd24ad",
+  "repo": "sim-agent-net-phase-check",
   "schema": "sim.provenance.v1",
-  "source_commit": "9d7d8fb0d147f3780c87061883da554c1443540a",
+  "source_commit": "9a4a0c0787e2a344d6f1453f0a16b050fecd24ad",
   "source_remote": "https://github.com/sim-nest/sim-agent-net",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "aae75700bc5d818e",
+  "workspace_hash": "52f6edc39517bf8c",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 650,
+  "workspace_hash_input_count": 651,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-agent/Cargo.toml",
@@ -308,6 +308,7 @@
     "crates/sim-lib-bridge/src/loom_woven.rs",
     "crates/sim-lib-bridge/src/materialize.rs",
     "crates/sim-lib-bridge/src/model.rs",
+    "crates/sim-lib-bridge/src/parent.rs",
     "crates/sim-lib-bridge/src/receipt.rs",
     "crates/sim-lib-bridge/src/repair.rs",
     "crates/sim-lib-bridge/src/report.rs",

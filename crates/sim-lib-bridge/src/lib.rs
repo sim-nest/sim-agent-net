@@ -18,6 +18,7 @@ mod loom_validate;
 mod loom_woven;
 mod materialize;
 mod model;
+mod parent;
 mod receipt;
 mod repair;
 mod report;
