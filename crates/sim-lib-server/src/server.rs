@@ -138,7 +138,8 @@ impl ServerStatus {
 
 #[non_citizen(
     reason = "live server handle; reconstruct configuration via server/Address descriptor and start ops",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "server/Address"
 )]
 /// Live server handle: an address bound to an [`EvalSite`], its codec and threading
 /// configuration, lifecycle status, triggers, and optional [`ServerRuntime`].

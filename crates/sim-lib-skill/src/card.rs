@@ -166,7 +166,8 @@ impl Default for SkillPolicy {
 #[derive(Clone)]
 #[non_citizen(
     reason = "shape-bearing runtime skill card; serializable projection is skill/Card descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "skill/Card"
 )]
 pub struct SkillCard {
     /// Stable string identifier for the skill.

@@ -409,7 +409,8 @@ pub fn configure_routes_with_state(state: GatewayRouteState) -> GatewayRoutes {
 #[derive(Clone)]
 #[non_citizen(
     reason = "live OpenAI gateway route table handle; route requests use openai/GatewayRequest descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "openai/GatewayRequest"
 )]
 pub struct GatewayRoutesValue {
     routes: GatewayRoutes,

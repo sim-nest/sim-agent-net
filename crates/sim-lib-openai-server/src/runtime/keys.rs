@@ -33,7 +33,8 @@ const REDACTED_HEADER_VALUE: &str = "[redacted]";
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_citizen(
     reason = "gateway key object stores redacted credential policy; serializable projection is openai/GatewayKey descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "openai/GatewayKey"
 )]
 pub struct OpenAiGatewayKey {
     id: String,

@@ -45,7 +45,8 @@ impl Session {
 #[derive(Clone)]
 #[non_citizen(
     reason = "live server connection handle; reconstruct via server/Address descriptor and connect ops",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "server/Address"
 )]
 /// Live client handle to a server endpoint, evaluating expressions over a transport [`EvalSite`].
 pub struct Connection {

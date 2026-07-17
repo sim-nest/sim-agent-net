@@ -160,7 +160,8 @@ impl FrameEnvelope {
 
 #[sim_citizen_derive::non_citizen(
     reason = "server frame runtime shell; class-backed descriptor is server/Frame",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "server/Frame"
 )]
 /// A wire frame carrying a codec-encoded payload plus protocol metadata.
 #[derive(Clone, Debug, PartialEq, Eq)]

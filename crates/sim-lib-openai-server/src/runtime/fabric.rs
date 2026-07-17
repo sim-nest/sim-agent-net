@@ -22,7 +22,8 @@ use crate::{
 /// this surface rather than a transport-specific API.
 #[non_citizen(
     reason = "live OpenAI gateway fabric handle; reconstruct route data via openai/GatewayRequest and openai/Plan descriptors",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "openai/GatewayRequest"
 )]
 pub struct OpenAiGatewayFabric {
     state: GatewayRouteState,

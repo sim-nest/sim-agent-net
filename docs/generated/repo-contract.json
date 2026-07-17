@@ -123,6 +123,7 @@
   "non_citizen_exemptions": [
     {
       "crate": "sim-lib-agent",
+      "descriptor": "agent-runner/ModelRequest",
       "file": "crates/sim-lib-agent/src/agents/model/types.rs",
       "kind": "handle",
       "line": 75,
@@ -130,20 +131,23 @@
     },
     {
       "crate": "sim-lib-agent",
+      "descriptor": "topology/Package",
       "file": "crates/sim-lib-agent/src/agents/model/types.rs",
       "kind": "handle",
-      "line": 95,
+      "line": 96,
       "reason": "live agent fabric handle; reconstruct via topology/Package and agent-runner/ModelCard descriptors"
     },
     {
       "crate": "sim-lib-agent",
+      "descriptor": "stream/Packet",
       "file": "crates/sim-lib-agent/src/agents/model/types.rs",
       "kind": "handle",
-      "line": 130,
+      "line": 132,
       "reason": "live agent loopback stream handle; reconstruct via server/Frame and stream/Packet descriptors"
     },
     {
       "crate": "sim-lib-agent",
+      "descriptor": "agent-runner/ModelCard",
       "file": "crates/sim-lib-agent/src/components/model.rs",
       "kind": "marker",
       "line": 19,
@@ -151,6 +155,7 @@
     },
     {
       "crate": "sim-lib-cookbook",
+      "descriptor": "cookbook/Recipe",
       "file": "crates/sim-lib-cookbook/src/runtime.rs",
       "kind": "handle",
       "line": 30,
@@ -158,6 +163,7 @@
     },
     {
       "crate": "sim-lib-mcp",
+      "descriptor": "mcp/Request",
       "file": "crates/sim-lib-mcp/src/sampling.rs",
       "kind": "handle",
       "line": 231,
@@ -165,6 +171,7 @@
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/GatewayRequest",
       "file": "crates/sim-lib-openai-server/src/objects.rs",
       "kind": "marker",
       "line": 18,
@@ -172,34 +179,39 @@
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/GatewayResponse",
       "file": "crates/sim-lib-openai-server/src/objects.rs",
       "kind": "marker",
-      "line": 132,
+      "line": 133,
       "reason": "gateway response runtime shell; class-backed descriptor is openai/GatewayResponse"
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/GatewayRun",
       "file": "crates/sim-lib-openai-server/src/objects.rs",
       "kind": "marker",
-      "line": 236,
+      "line": 238,
       "reason": "gateway run runtime shell; class-backed descriptor is openai/GatewayRun"
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/GatewayEvent",
       "file": "crates/sim-lib-openai-server/src/objects.rs",
       "kind": "marker",
-      "line": 325,
+      "line": 328,
       "reason": "gateway event runtime shell; class-backed descriptor is openai/GatewayEvent"
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/GatewayResponse",
       "file": "crates/sim-lib-openai-server/src/objects.rs",
       "kind": "handle",
-      "line": 431,
+      "line": 435,
       "reason": "runtime response wrapper; serializable projection is openai/GatewayResponse descriptor"
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/GatewayRequest",
       "file": "crates/sim-lib-openai-server/src/runtime/fabric.rs",
       "kind": "handle",
       "line": 23,
@@ -207,6 +219,7 @@
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/GatewayKey",
       "file": "crates/sim-lib-openai-server/src/runtime/keys.rs",
       "kind": "handle",
       "line": 34,
@@ -214,6 +227,7 @@
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/GatewayRequest",
       "file": "crates/sim-lib-openai-server/src/server.rs",
       "kind": "handle",
       "line": 410,
@@ -221,6 +235,7 @@
     },
     {
       "crate": "sim-lib-openai-server",
+      "descriptor": "openai/TableStored",
       "file": "crates/sim-lib-openai-server/src/storage/table.rs",
       "kind": "marker",
       "line": 209,
@@ -228,6 +243,7 @@
     },
     {
       "crate": "sim-lib-server",
+      "descriptor": "server/Address",
       "file": "crates/sim-lib-server/src/connection.rs",
       "kind": "handle",
       "line": 46,
@@ -235,6 +251,7 @@
     },
     {
       "crate": "sim-lib-server",
+      "descriptor": "server/Frame",
       "file": "crates/sim-lib-server/src/coroutine.rs",
       "kind": "handle",
       "line": 68,
@@ -242,6 +259,7 @@
     },
     {
       "crate": "sim-lib-server",
+      "descriptor": "server/Frame",
       "file": "crates/sim-lib-server/src/frame/model.rs",
       "kind": "marker",
       "line": 161,
@@ -249,6 +267,7 @@
     },
     {
       "crate": "sim-lib-server",
+      "descriptor": "server/Address",
       "file": "crates/sim-lib-server/src/server.rs",
       "kind": "handle",
       "line": 139,
@@ -256,6 +275,7 @@
     },
     {
       "crate": "sim-lib-server",
+      "descriptor": "server/Address",
       "file": "crates/sim-lib-server/src/trigger.rs",
       "kind": "handle",
       "line": 61,
@@ -263,6 +283,7 @@
     },
     {
       "crate": "sim-lib-skill",
+      "descriptor": "skill/Card",
       "file": "crates/sim-lib-skill/src/card.rs",
       "kind": "handle",
       "line": 167,
@@ -270,6 +291,7 @@
     },
     {
       "crate": "sim-lib-skill",
+      "descriptor": "skill/Card",
       "file": "crates/sim-lib-skill/src/registry.rs",
       "kind": "handle",
       "line": 21,
@@ -277,6 +299,7 @@
     },
     {
       "crate": "sim-lib-skill",
+      "descriptor": "skill/Card",
       "file": "crates/sim-lib-skill/src/transport.rs",
       "kind": "handle",
       "line": 50,
@@ -1657,10 +1680,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-16T04:50:45+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "1b11ab0e631e78e90cebcc3edd5e42710587299d",
+    "git_commit": "9d7d8fb0d147f3780c87061883da554c1443540a",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "1b11ab0e631e78e90cebcc3edd5e42710587299d",
+    "source_commit": "9d7d8fb0d147f3780c87061883da554c1443540a",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1673,7 +1696,7 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "1ddf3a63dafc576f",
+    "workspace_hash": "aae75700bc5d818e",
     "workspace_hash_algorithm": "fnv1a64",
     "workspace_hash_input_count": 650,
     "workspace_hash_inputs": [

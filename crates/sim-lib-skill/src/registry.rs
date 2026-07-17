@@ -20,7 +20,8 @@ use crate::{SkillCallable, SkillCard, SkillTransport, SkillTransportValue};
 #[derive(Clone, Default)]
 #[non_citizen(
     reason = "live skill registry handle; cards use skill/Card descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "skill/Card"
 )]
 pub struct SkillRegistry {
     state: Arc<Mutex<SkillRegistryState>>,

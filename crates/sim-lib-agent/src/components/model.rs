@@ -18,7 +18,8 @@ use std::{
 
 #[sim_citizen_derive::non_citizen(
     reason = "agent component runtime shell; reconstruct from topology/Package and agent-runner/ModelCard descriptors",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "agent-runner/ModelCard"
 )]
 #[derive(Clone)]
 pub(crate) struct AgentComponent {

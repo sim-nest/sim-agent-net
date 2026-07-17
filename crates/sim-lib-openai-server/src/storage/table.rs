@@ -208,7 +208,8 @@ trait TableStored: Clone + Send + Sync + 'static {
 
 #[sim_citizen_derive::non_citizen(
     reason = "OpenAI table storage wrapper; class-backed descriptor is the wrapped openai/* value",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "openai/TableStored"
 )]
 #[derive(Clone)]
 struct StoredTableValue<T: TableStored>(T);

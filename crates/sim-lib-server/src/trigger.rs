@@ -60,7 +60,8 @@ enum StdinSource {
 
 #[non_citizen(
     reason = "live trigger handle; reconstruct source through server/Address descriptor and trigger ops",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "server/Address"
 )]
 /// Live handle to a running trigger that delivers source events into a server.
 pub struct TriggerHandle {
