@@ -11,9 +11,9 @@ use sim_lib_server::{
     stream_frame_to_expr,
 };
 use sim_lib_stream_core::{
-    BufferPolicy, MidiPacket, MidiPacketEvent, PcmPacket, StreamDirection, StreamEnvelope,
-    StreamItem, StreamMedia, StreamMetadata, StreamPacket, StreamValue, TransportProfile,
-    stream_remote_network_capability,
+    BufferPolicy, ClockDomain, MidiPacket, MidiPacketEvent, PcmPacket, StreamDirection,
+    StreamEnvelope, StreamItem, StreamMedia, StreamMetadata, StreamPacket, StreamValue,
+    TransportProfile, stream_remote_network_capability,
 };
 
 use crate::{
@@ -546,7 +546,7 @@ fn pcm_metadata(id: &str) -> StreamMetadata {
         Symbol::new(id),
         StreamMedia::Pcm,
         StreamDirection::Source,
-        Symbol::qualified("clock", "pcm"),
+        ClockDomain::Sample.symbol(),
         BufferPolicy::bounded(8).unwrap(),
     )
 }
@@ -556,7 +556,7 @@ fn data_metadata(id: &str) -> StreamMetadata {
         Symbol::new(id),
         StreamMedia::Data,
         StreamDirection::Source,
-        Symbol::qualified("clock", "data"),
+        ClockDomain::ServerFrame.symbol(),
         BufferPolicy::bounded(8).unwrap(),
     )
 }
