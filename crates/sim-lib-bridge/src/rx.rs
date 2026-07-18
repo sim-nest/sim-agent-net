@@ -24,6 +24,11 @@ pub fn effective_caps(cx: &Cx, packet: &BridgePacket) -> Result<CapabilitySet> {
 }
 
 /// Checks a BRIDGE packet against the local book and optional parent packet.
+///
+/// A packet checked as a reply must cite the parent content id, send from one
+/// of the parent's recipients, and address exactly the parent's sender. The
+/// same check also validates move legality, part shapes, warrant freshness,
+/// LOOM payloads, and the parent `Return` contract.
 pub fn rx_check(
     cx: &mut Cx,
     book: &BridgeBook,
@@ -140,6 +145,42 @@ fn check_header_linkage(
                 format!("{:?}", packet.header.parents),
             ));
         }
+        check_reply_actor_linkage(report, packet, parent);
+    }
+}
+
+fn check_reply_actor_linkage(
+    report: &mut BridgeReport,
+    packet: &BridgePacket,
+    parent: &BridgePacket,
+) {
+    if !parent
+        .header
+        .to
+        .iter()
+        .any(|actor| actor == &packet.header.from)
+    {
+        let expected = if parent.header.to.is_empty() {
+            "one parent header/to recipient".to_owned()
+        } else {
+            format!("{:?}", parent.header.to)
+        };
+        report.obligate(BridgeObligation::repair_packet(
+            "header/from",
+            "reply sender is not a parent recipient",
+            expected,
+            packet.header.from.clone(),
+        ));
+    }
+
+    let expected_to = vec![parent.header.from.clone()];
+    if packet.header.to != expected_to {
+        report.obligate(BridgeObligation::repair_packet(
+            "header/to",
+            "reply recipient does not mirror parent sender",
+            format!("{expected_to:?}"),
+            format!("{:?}", packet.header.to),
+        ));
     }
 }
 

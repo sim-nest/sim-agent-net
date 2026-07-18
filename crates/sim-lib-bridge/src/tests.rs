@@ -160,13 +160,25 @@ fn reply_packet(parent: &BridgePacket, output: Expr) -> BridgePacket {
     }
 }
 
+fn stamped_string_request() -> BridgePacket {
+    stamp_packet_cid(&request_packet(
+        Expr::Symbol(Symbol::qualified("core", "String")),
+        vec![Symbol::qualified("ai", "run")],
+    ))
+    .unwrap()
+}
+
 fn collaboration_base_packet() -> BridgePacket {
     BridgePacket {
         header: BridgeHeader {
             cid: None,
             move_kind: Symbol::new("reply"),
             from: "model:drafter".to_owned(),
-            to: vec!["human:reviewer".to_owned(), "model:judge".to_owned()],
+            to: vec![
+                "human:reviewer".to_owned(),
+                "model:judge".to_owned(),
+                "model:synthesizer".to_owned(),
+            ],
             role: Symbol::new("implementer"),
             parents: vec!["core/sha256-bridge-v1:root#move=request".to_owned()],
             task: Symbol::new("T2"),
@@ -204,7 +216,7 @@ fn patch_reply(parent: &BridgePacket, from: &str, replacement: Expr) -> BridgePa
             cid: None,
             move_kind: Symbol::new("patch"),
             from: from.to_owned(),
-            to: vec!["sim".to_owned()],
+            to: vec![parent.header.from.clone()],
             role: Symbol::new("reviewer"),
             parents: parent_token(parent).into_iter().collect(),
             task: Symbol::new("P1"),
@@ -228,7 +240,7 @@ fn vote_reply(parent: &BridgePacket, from: &str) -> BridgePacket {
             cid: None,
             move_kind: Symbol::new("vote"),
             from: from.to_owned(),
-            to: vec!["sim".to_owned()],
+            to: vec![parent.header.from.clone()],
             role: Symbol::new("judge"),
             parents: parent_token(parent).into_iter().collect(),
             task: Symbol::new("V1"),
@@ -269,6 +281,18 @@ fn text_content(text: String) -> Expr {
         entry("type", Expr::Symbol(Symbol::new("text"))),
         entry("text", Expr::String(text)),
     ])
+}
+
+fn assert_actor_linkage_rejection(report: &crate::BridgeReport, path: &str) {
+    assert!(!report.accepted());
+    assert!(
+        report
+            .obligations
+            .iter()
+            .any(|obligation| obligation.path == path),
+        "expected obligation at {path}, got {:?}",
+        report.obligations
+    );
 }
 
 fn eval_request(task: &str) -> EvalRequest {
@@ -342,6 +366,62 @@ fn reply_failing_parent_return_contract_rejects() {
             .iter()
             .any(|obligation| obligation.expected == "parent Return contract")
     );
+}
+
+#[test]
+fn reply_from_must_be_parent_recipient() {
+    let mut cx = cx();
+    let book = BridgeBook::standard();
+    let parent = stamped_string_request();
+    let mut reply = reply_packet(&parent, Expr::String("ok".to_owned()));
+    reply.header.from = "model:other".to_owned();
+    let reply = stamp_packet_cid(&reply).unwrap();
+    let report = rx_check(&mut cx, &book, &reply, Some(&parent)).unwrap();
+
+    assert_actor_linkage_rejection(&report, "header/from");
+}
+
+#[test]
+fn reply_to_must_be_parent_sender() {
+    let mut cx = cx();
+    let book = BridgeBook::standard();
+    let parent = stamped_string_request();
+    let mut reply = reply_packet(&parent, Expr::String("ok".to_owned()));
+    reply.header.to = vec!["sim:other".to_owned()];
+    let reply = stamp_packet_cid(&reply).unwrap();
+    let report = rx_check(&mut cx, &book, &reply, Some(&parent)).unwrap();
+
+    assert_actor_linkage_rejection(&report, "header/to");
+}
+
+#[test]
+fn swapped_reply_actors_reject_with_valid_parent_id() {
+    let mut cx = cx();
+    let book = BridgeBook::standard();
+    let parent = stamped_string_request();
+    let mut reply = reply_packet(&parent, Expr::String("ok".to_owned()));
+    reply.header.from = parent.header.from.clone();
+    reply.header.to = parent.header.to.clone();
+    let reply = stamp_packet_cid(&reply).unwrap();
+    let report = rx_check(&mut cx, &book, &reply, Some(&parent)).unwrap();
+
+    assert_actor_linkage_rejection(&report, "header/from");
+    assert_actor_linkage_rejection(&report, "header/to");
+}
+
+#[test]
+fn unrelated_reply_actors_reject_with_valid_parent_id() {
+    let mut cx = cx();
+    let book = BridgeBook::standard();
+    let parent = stamped_string_request();
+    let mut reply = reply_packet(&parent, Expr::String("ok".to_owned()));
+    reply.header.from = "human:reviewer".to_owned();
+    reply.header.to = vec!["tool:runner".to_owned()];
+    let reply = stamp_packet_cid(&reply).unwrap();
+    let report = rx_check(&mut cx, &book, &reply, Some(&parent)).unwrap();
+
+    assert_actor_linkage_rejection(&report, "header/from");
+    assert_actor_linkage_rejection(&report, "header/to");
 }
 
 #[test]
