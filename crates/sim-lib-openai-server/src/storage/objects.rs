@@ -24,6 +24,7 @@ pub struct StoredGatewayResponse {
     pub(crate) run_content_id: Option<ContentId>,
     pub(crate) event_content_ids: Vec<ContentId>,
     pub(crate) parent_response_id: Option<String>,
+    pub(crate) owner_key_id: Option<String>,
 }
 
 impl StoredGatewayResponse {
@@ -41,6 +42,7 @@ impl StoredGatewayResponse {
             run_content_id: None,
             event_content_ids: Vec::new(),
             parent_response_id: None,
+            owner_key_id: None,
         }
     }
 
@@ -57,6 +59,11 @@ impl StoredGatewayResponse {
     /// Returns the stored response value.
     pub fn response(&self) -> &GatewayResponse {
         &self.response
+    }
+
+    /// Returns the gateway key id that created this response, if any.
+    pub fn owner_key_id(&self) -> Option<&str> {
+        self.owner_key_id.as_deref()
     }
 }
 

@@ -2,10 +2,9 @@ use sim_kernel::{Args, Callable, CapabilitySet, Error};
 
 use crate::{
     GatewayRequest, GatewayResponseObjectStore, GatewayRouteState, GatewayStore,
-    OPENAI_GATEWAY_ADMIN_CAPABILITY, OPENAI_GATEWAY_PLAN_CAPABILITY, OpenAiGatewayFunction,
-    OpenAiKeyTable, RESPONSES_PATH, configure_routes, configure_routes_with_state,
-    install_openai_gateway_lib, key_add_symbol, key_list_symbol, openai_gateway_admin_capability,
-    openai_gateway_plan_capability,
+    OPENAI_GATEWAY_PLAN_CAPABILITY, OpenAiGatewayFunction, OpenAiKeyTable, RESPONSES_PATH,
+    configure_routes, configure_routes_with_state, install_openai_gateway_lib, key_add_symbol,
+    key_list_symbol, openai_gateway_admin_capability, openai_gateway_plan_capability,
 };
 
 #[test]
@@ -46,8 +45,15 @@ fn unknown_api_key_gets_anonymous_capabilities_and_fails_closed() {
 #[test]
 fn api_key_value_is_absent_from_stored_request_and_sim_trace() {
     let secret = "sk-redaction-secret";
+    let admin_secret = "sk-redaction-admin";
     let key_table = OpenAiKeyTable::new().unwrap();
     key_table.add_secret(secret, CapabilitySet::new()).unwrap();
+    key_table
+        .add_secret(
+            admin_secret,
+            CapabilitySet::new().grant(openai_gateway_admin_capability()),
+        )
+        .unwrap();
     let routes = configure_routes_with_state(GatewayRouteState::memory().with_keys(key_table));
 
     let stored = routes.handle(&authorized_responses_request(
@@ -58,10 +64,7 @@ fn api_key_value_is_absent_from_stored_request_and_sim_trace() {
     let sim = routes.handle(&GatewayRequest::new(
         "GET",
         format!("{RESPONSES_PATH}/{response_id}/sim"),
-        vec![(
-            "X-SIM-Capability".to_owned(),
-            OPENAI_GATEWAY_ADMIN_CAPABILITY.to_owned(),
-        )],
+        vec![("Authorization".to_owned(), format!("Bearer {admin_secret}"))],
         Vec::new(),
     ));
     let sim_body = std::str::from_utf8(sim.body()).unwrap();
@@ -105,7 +108,8 @@ fn key_admin_functions_are_installed_and_never_return_secret_values() {
         .unwrap();
     let key_expr = key.object().as_expr(&mut cx).unwrap();
     let key_text = format!("{key_expr:?}");
-    assert!(key_text.contains("key-hash"));
+    assert!(key_text.contains("fingerprint"));
+    assert!(!key_text.contains("key-hash"));
     assert!(!key_text.contains(secret));
 
     let listed = OpenAiGatewayFunction::key_list()

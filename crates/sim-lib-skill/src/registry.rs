@@ -6,6 +6,8 @@ use std::{
 use sim_citizen_derive::non_citizen;
 use sim_kernel::{Cx, Error, Object, ObjectCompat, Result, Symbol, Value};
 
+#[cfg(feature = "openai")]
+use crate::SkillRole;
 #[cfg(any(feature = "cache", feature = "cassette"))]
 use crate::record::SkillAuditEntry;
 use crate::{SkillCallable, SkillCard, SkillTransport, SkillTransportValue};
@@ -74,6 +76,20 @@ impl SkillRegistry {
         let callable = cx.factory().opaque(Arc::new(skill_callable))?;
         cx.registry_mut()
             .register_function_value(card.symbol.clone(), callable.clone())?;
+        for alias in &card.aliases {
+            if alias != &card.symbol {
+                cx.registry_mut()
+                    .register_function_value(alias.clone(), callable.clone())?;
+            }
+        }
+        #[cfg(feature = "openai")]
+        if card.roles.contains(&SkillRole::Tool) {
+            let alias = openai_tool_alias(&card.symbol);
+            if alias != card.symbol && !card.aliases.iter().any(|existing| existing == &alias) {
+                cx.registry_mut()
+                    .register_function_value(alias, callable.clone())?;
+            }
+        }
         crate::browse::publish_card_claims(cx, &card)?;
         self.state
             .lock()
@@ -114,7 +130,7 @@ impl SkillRegistry {
             .map_err(|_| Error::PoisonedLock("skill registry"))?
             .cards
             .values()
-            .find(|card| &card.symbol == symbol)
+            .find(|card| card_matches_symbol(card, symbol))
             .cloned())
     }
 
@@ -206,4 +222,40 @@ pub(crate) fn card_from_value(cx: &mut Cx, value: &Value) -> Result<SkillCard> {
     }
     let expr = value.object().as_expr(cx)?;
     SkillCard::from_expr(&expr)
+}
+
+fn card_matches_symbol(card: &SkillCard, symbol: &Symbol) -> bool {
+    &card.symbol == symbol || card.aliases.iter().any(|alias| alias == symbol) || {
+        #[cfg(feature = "openai")]
+        {
+            card.roles.contains(&SkillRole::Tool) && openai_tool_alias(&card.symbol) == *symbol
+        }
+        #[cfg(not(feature = "openai"))]
+        {
+            false
+        }
+    }
+}
+
+#[cfg(feature = "openai")]
+fn openai_tool_alias(symbol: &Symbol) -> Symbol {
+    let name = sim_lib_surface_card::external_name(
+        symbol,
+        sim_lib_surface_card::ExternalNamePolicy::OpenAiTool,
+    );
+    let name = if name.is_empty() {
+        "skill".to_owned()
+    } else {
+        name
+    };
+    openai_name_to_symbol(&name)
+}
+
+#[cfg(feature = "openai")]
+fn openai_name_to_symbol(name: &str) -> Symbol {
+    if let Some((namespace, local)) = name.split_once('_') {
+        Symbol::qualified(namespace.replace('_', "-"), local.replace('_', "-"))
+    } else {
+        Symbol::new(name.replace('_', "-"))
+    }
 }

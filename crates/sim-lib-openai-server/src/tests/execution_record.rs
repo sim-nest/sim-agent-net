@@ -16,16 +16,19 @@
 use std::path::PathBuf;
 
 use serde_json::{Value, json};
-use sim_kernel::ContentId;
+use sim_kernel::{CapabilitySet, ContentId};
 
 use crate::{
     AUDIO_TRANSCRIPTIONS_PATH, DeterministicGatewayClock, EMBEDDINGS_PATH, EmbeddingIdGenerators,
     GatewayEvent, GatewayRequest, GatewayResponse, GatewayResponseObjectStore, GatewayRouteState,
-    GatewayStore, MemoryGatewayStore, RESPONSES_PATH, ResponseIdGenerators, SIM_REPLAY_PATH,
-    TENSOR_F64_SMALL_EMBEDDING_MODEL, configure_routes_with_state, content_id_hex,
-    execute_embedding_request, execute_response_request, response_events, response_sim,
+    GatewayStore, MemoryGatewayStore, OpenAiKeyTable, RESPONSES_PATH, ResponseIdGenerators,
+    SIM_REPLAY_PATH, TENSOR_F64_SMALL_EMBEDDING_MODEL, configure_routes_with_state, content_id_hex,
+    execute_embedding_request, execute_response_request, openai_gateway_admin_capability,
+    response_events, response_sim,
     routes::{audio::execute_audio_transcription_request, run_record::RouteRunIdGenerators},
 };
+
+const GOLDEN_ADMIN_SECRET: &str = "sk-execution-record-admin";
 
 // --- Responses (`/v1/responses`): object-retrievable via put_response_object ---
 
@@ -83,9 +86,17 @@ fn responses_golden(store: bool) -> Value {
         value["events_view"] = response_body_json(&response_events(&gateway_store, &response_id));
         value["sim_view"] = response_body_json(&response_sim(&gateway_store, &response_id));
 
-        let state = GatewayRouteState::new(gateway_store);
+        let key_table = OpenAiKeyTable::new().unwrap();
+        key_table
+            .add_secret(
+                GOLDEN_ADMIN_SECRET,
+                CapabilitySet::new().grant(openai_gateway_admin_capability()),
+            )
+            .unwrap();
+        let state = GatewayRouteState::new(gateway_store).with_keys(key_table);
         let routes = configure_routes_with_state(state);
-        let replay = routes.handle(&json_request(
+        let replay = routes.handle(&authorized_json_request(
+            GOLDEN_ADMIN_SECRET,
             SIM_REPLAY_PATH,
             &json!({ "response_id": response_id }).to_string(),
         ));
@@ -247,6 +258,18 @@ fn json_request(path: &str, body: &str) -> GatewayRequest {
         "POST",
         path,
         vec![("Content-Type".to_owned(), "application/json".to_owned())],
+        body.as_bytes().to_vec(),
+    )
+}
+
+fn authorized_json_request(secret: &str, path: &str, body: &str) -> GatewayRequest {
+    GatewayRequest::new(
+        "POST",
+        path,
+        vec![
+            ("Content-Type".to_owned(), "application/json".to_owned()),
+            ("Authorization".to_owned(), format!("Bearer {secret}")),
+        ],
         body.as_bytes().to_vec(),
     )
 }

@@ -72,6 +72,11 @@ impl OpenAiGatewayKey {
         &self.key_hash
     }
 
+    /// Returns a short, non-verifier fingerprint for reports.
+    pub fn fingerprint(&self) -> String {
+        key_fingerprint(&self.key_hash)
+    }
+
     /// Returns the capability ceiling granted by this key.
     pub fn capabilities(&self) -> &CapabilitySet {
         &self.capabilities
@@ -87,7 +92,7 @@ impl OpenAiGatewayKey {
         Expr::Map(vec![
             field("object", Expr::String(OPENAI_GATEWAY_KEY_OBJECT.to_owned())),
             field("id", Expr::String(self.id.clone())),
-            field("key-hash", Expr::String(self.key_hash.clone())),
+            field("fingerprint", Expr::String(self.fingerprint())),
             field("capabilities", capabilities_expr(&self.capabilities)),
             field("default-policy", self.default_policy.clone()),
         ])
@@ -283,6 +288,11 @@ impl GrantOutcome for Result<()> {
 fn key_id(hash: &str) -> String {
     let prefix_len = hash.len().min(12);
     format!("key_{}", &hash[..prefix_len])
+}
+
+fn key_fingerprint(hash: &str) -> String {
+    let prefix_len = hash.len().min(8);
+    format!("sha256:{}...", &hash[..prefix_len])
 }
 
 fn key_default_policy_expr(capabilities: &CapabilitySet) -> Expr {

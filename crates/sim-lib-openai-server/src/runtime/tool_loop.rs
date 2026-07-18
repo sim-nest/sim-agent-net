@@ -41,7 +41,7 @@ pub fn run_tool_loop_with_cache(
     cache: &mut OpenAiPlanCache,
     initial: PlanEvalReport,
 ) -> Result<PlanEvalReport> {
-    let registry = OpenAiToolRegistry::from_request(request_object)?;
+    let registry = OpenAiToolRegistry::from_request(cx, request_object)?;
     if registry.is_empty() {
         return Ok(initial);
     }

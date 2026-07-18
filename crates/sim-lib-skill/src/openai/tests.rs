@@ -25,7 +25,9 @@ fn skill_openai_tool_descriptor_round_trips_through_openai_tool() {
     let tool = OpenAiTool::from_openai_descriptor(&descriptor).unwrap();
 
     assert_eq!(tool.openai_name(), "skill_math_add");
-    assert_eq!(tool.symbol(), &Symbol::qualified("skill", "math.add"));
+    assert_eq!(tool.symbol(), &Symbol::qualified("skill", "math-add"));
+    assert!(descriptor["function"].get("x-sim-symbol").is_none());
+    assert!(descriptor["function"].get("x-sim-capabilities").is_none());
     assert_eq!(
         descriptor["function"]["parameters"]["required"],
         json!(["arg0", "arg1"])
@@ -214,9 +216,8 @@ fn has_event(events: &[GatewayEvent], kind: &str) -> bool {
         .any(|event| event.kind().name.as_ref() == kind)
 }
 
-// Intentionally-divergent untagged Expr->JSON projection: this module's wire
-// form differs from sim_codec_json::project_expr_to_json (and from the sibling
-// forks), so it is kept local on purpose -- not a deletable fork. See OVERLAP_5.
+// This local projection matches the untagged descriptor shape used by these
+// tests, which differs from sim_codec_json::project_expr_to_json.
 fn expr_to_json(expr: &Expr) -> JsonValue {
     match expr {
         Expr::Nil => JsonValue::Null,

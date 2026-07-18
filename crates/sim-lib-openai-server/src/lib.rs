@@ -124,8 +124,9 @@ pub use routes::models::{
 };
 pub use routes::replay::{
     RESPONSE_EVENTS_ROUTE, RESPONSE_EVENTS_SUFFIX, RESPONSE_SIM_ROUTE, RESPONSE_SIM_SUFFIX,
-    SIM_EXTENSION_CAPABILITY, SIM_FORK_PATH, SIM_REPLAY_PATH, handle_response_events,
-    handle_response_sim, handle_sim_fork, handle_sim_replay, response_events, response_sim,
+    SIM_EXTENSION_CAPABILITY, SIM_FORK_PATH, SIM_INSPECTION_CAPABILITY, SIM_REPLAY_PATH,
+    handle_response_events, handle_response_sim, handle_sim_fork, handle_sim_replay,
+    response_events, response_sim,
 };
 pub use routes::responses::{
     RESPONSE_RETRIEVAL_PREFIX, RESPONSE_RETRIEVAL_ROUTE, RESPONSES_PATH, ResponseExecution,

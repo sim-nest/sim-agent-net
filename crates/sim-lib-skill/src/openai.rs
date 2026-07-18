@@ -59,7 +59,7 @@ pub fn skill_openai_tool_descriptor(cx: &mut Cx, card: &SkillCard) -> Result<Jso
         parameters,
         card.capabilities.clone(),
     )?;
-    let descriptor = tool.descriptor_json();
+    let descriptor = tool.request_descriptor_json();
     sim_lib_openai_server::OpenAiTool::from_openai_descriptor(&descriptor)?;
     Ok(descriptor)
 }

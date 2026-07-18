@@ -301,6 +301,13 @@ impl TableStored for StoredGatewayResponse {
                     .map(|id| Expr::String(id.clone()))
                     .unwrap_or(Expr::Nil),
             ),
+            field(
+                "owner-key-id",
+                self.owner_key_id
+                    .as_ref()
+                    .map(|id| Expr::String(id.clone()))
+                    .unwrap_or(Expr::Nil),
+            ),
         ])
     }
 }

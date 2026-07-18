@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use serde_json::{Map, Value, json};
-use sim_kernel::{CapabilitySet, ContentId, Cx, DefaultFactory, Expr, NoopEvalPolicy};
+use sim_kernel::{
+    CapabilityName, CapabilitySet, ContentId, Cx, DefaultFactory, Expr, NoopEvalPolicy,
+};
 use sim_lib_net_core::hex_encode;
 
 use crate::{
@@ -34,8 +36,22 @@ pub const SIM_REPLAY_PATH: &str = "/v1/sim/replay";
 pub const SIM_FORK_PATH: &str = "/v1/sim/fork";
 /// Capability id granting access to SIM extension routes.
 pub const SIM_EXTENSION_CAPABILITY: &str = "sim.extension";
+/// Capability id granting unredacted SIM response inspection.
+pub const SIM_INSPECTION_CAPABILITY: &str = "sim.extension.inspect";
 
 type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SimRouteAccess {
+    caller_key_id: Option<String>,
+    inspect: bool,
+}
+
+struct ForkExecutionContext<'a> {
+    targets: ResponseRuntimeTargets<'a>,
+    capabilities: &'a CapabilitySet,
+    access: &'a SimRouteAccess,
+}
 
 /// Handles `GET /v1/responses/{id}/events`, returning the stored event
 /// history for the response id in the path.
@@ -46,8 +62,12 @@ pub fn handle_response_events(
     let Some(response_id) = suffixed_response_id(request.path(), RESPONSE_EVENTS_SUFFIX) else {
         return OpenAiRouteError::not_found_kind("response", request.path()).into_response();
     };
+    let access = match sim_route_access(request, state) {
+        Ok(access) => access,
+        Err(error) => return error.into_response(),
+    };
     match state.store().lock() {
-        Ok(store) => response_events(&*store, response_id),
+        Ok(store) => response_events_with_access(&*store, response_id, &access),
         Err(err) => OpenAiRouteError::internal_message(format!("gateway store lock failed: {err}"))
             .into_response(),
     }
@@ -59,15 +79,12 @@ pub fn handle_response_sim(request: &GatewayRequest, state: &GatewayRouteState) 
     let Some(response_id) = suffixed_response_id(request.path(), RESPONSE_SIM_SUFFIX) else {
         return OpenAiRouteError::not_found_kind("response", request.path()).into_response();
     };
-    if !has_sim_access(request) {
-        return OpenAiRouteError::forbidden(
-            "response SIM inspection requires openai-gateway.admin or sim.extension",
-            "capability_denied",
-        )
-        .into_response();
-    }
+    let access = match sim_route_access(request, state) {
+        Ok(access) => access,
+        Err(error) => return error.into_response(),
+    };
     match state.store().lock() {
-        Ok(store) => response_sim(&*store, response_id),
+        Ok(store) => response_sim_with_access(&*store, response_id, &access),
         Err(err) => OpenAiRouteError::internal_message(format!("gateway store lock failed: {err}"))
             .into_response(),
     }
@@ -84,8 +101,12 @@ pub fn handle_sim_replay(request: &GatewayRequest, state: &GatewayRouteState) ->
         Ok(response_id) => response_id.to_owned(),
         Err(error) => return error.into_response(),
     };
+    let access = match sim_route_access(request, state) {
+        Ok(access) => access,
+        Err(error) => return error.into_response(),
+    };
     match state.store().lock() {
-        Ok(store) => replay_response(&*store, &response_id),
+        Ok(store) => replay_response_with_access(&*store, &response_id, &access),
         Err(err) => OpenAiRouteError::internal_message(format!("gateway store lock failed: {err}"))
             .into_response(),
     }
@@ -105,6 +126,10 @@ pub fn handle_sim_fork(request: &GatewayRequest, state: &GatewayRouteState) -> G
     let patch = match object.get("patch").and_then(Value::as_object) {
         Some(patch) => patch.clone(),
         None => return OpenAiRouteError::missing_required("patch").into_response(),
+    };
+    let access = match sim_route_access(request, state) {
+        Ok(access) => access,
+        Err(error) => return error.into_response(),
     };
     let mut clock = SystemGatewayClock;
     let seed = clock.now_ms().unwrap_or(1).saturating_add(1_000_000);
@@ -126,8 +151,11 @@ pub fn handle_sim_fork(request: &GatewayRequest, state: &GatewayRouteState) -> G
             &mut clock,
             &response_id,
             patch,
-            targets,
-            &capabilities,
+            ForkExecutionContext {
+                targets,
+                capabilities: &capabilities,
+                access: &access,
+            },
         )
         .unwrap_or_else(OpenAiRouteError::into_response),
         Err(err) => OpenAiRouteError::internal_message(format!("gateway store lock failed: {err}"))
@@ -145,10 +173,31 @@ where
         .map(|(record, events)| {
             GatewayResponse::json(
                 200,
-                event_history_json(&record, &events)
+                event_history_json(&record, &events, true)
                     .to_string()
                     .into_bytes(),
             )
+        })
+        .unwrap_or_else(OpenAiRouteError::into_response)
+}
+
+fn response_events_with_access<S>(
+    store: &S,
+    response_id: &str,
+    access: &SimRouteAccess,
+) -> GatewayResponse
+where
+    S: GatewayResponseObjectStore + GatewayStore,
+{
+    stored_events(store, response_id)
+        .and_then(|(record, events)| {
+            ensure_response_owner(&record, access)?;
+            Ok(GatewayResponse::json(
+                200,
+                event_history_json(&record, &events, access.inspect)
+                    .to_string()
+                    .into_bytes(),
+            ))
         })
         .unwrap_or_else(OpenAiRouteError::into_response)
 }
@@ -160,28 +209,50 @@ where
     S: GatewayResponseObjectStore + GatewayStore,
 {
     stored_events(store, response_id)
-        .and_then(|(record, events)| sim_json(store, &record, &events))
+        .and_then(|(record, events)| sim_json(store, &record, &events, true))
         .map(|value| GatewayResponse::json(200, value.to_string().into_bytes()))
         .unwrap_or_else(OpenAiRouteError::into_response)
 }
 
-fn replay_response<S>(store: &S, response_id: &str) -> GatewayResponse
+fn response_sim_with_access<S>(
+    store: &S,
+    response_id: &str,
+    access: &SimRouteAccess,
+) -> GatewayResponse
 where
     S: GatewayResponseObjectStore + GatewayStore,
 {
     stored_events(store, response_id)
-        .map(|(record, events)| {
-            GatewayResponse::json(
+        .and_then(|(record, events)| {
+            ensure_response_owner(&record, access)?;
+            sim_json(store, &record, &events, access.inspect)
+        })
+        .map(|value| GatewayResponse::json(200, value.to_string().into_bytes()))
+        .unwrap_or_else(OpenAiRouteError::into_response)
+}
+
+fn replay_response_with_access<S>(
+    store: &S,
+    response_id: &str,
+    access: &SimRouteAccess,
+) -> GatewayResponse
+where
+    S: GatewayResponseObjectStore + GatewayStore,
+{
+    stored_events(store, response_id)
+        .and_then(|(record, events)| {
+            ensure_response_owner(&record, access)?;
+            Ok(GatewayResponse::json(
                 200,
                 json!({
                     "object": "sim.replay",
                     "response_id": record.response_id(),
-                    "data": events_json(&record, &events),
-                    "stream": data_stream_json(&events),
+                    "data": events_json(&record, &events, access.inspect),
+                    "stream": data_stream_json(&events, access.inspect),
                 })
                 .to_string()
                 .into_bytes(),
-            )
+            ))
         })
         .unwrap_or_else(OpenAiRouteError::into_response)
 }
@@ -192,8 +263,7 @@ fn fork_response<S, C>(
     clock: &mut C,
     parent_response_id: &str,
     patch: Map<String, Value>,
-    targets: ResponseRuntimeTargets<'_>,
-    capabilities: &CapabilitySet,
+    context: ForkExecutionContext<'_>,
 ) -> RouteResult<GatewayResponse>
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
@@ -202,6 +272,7 @@ where
     let parent = store
         .response_object(parent_response_id)
         .ok_or_else(|| OpenAiRouteError::not_found(parent_response_id))?;
+    ensure_response_owner(&parent, context.access)?;
     let source_request_id = parent.request_content_id.clone().ok_or_else(|| {
         OpenAiRouteError::bad_request(
             "stored response has no request ledger for fork",
@@ -218,7 +289,8 @@ where
     })?;
     let forked_request = forked_request(&source_request, patch)?;
     let (mut cx, seat) = Cx::new_seated(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
-    grant_capability_set(&seat, &mut cx, capabilities).map_err(OpenAiRouteError::internal)?;
+    grant_capability_set(&seat, &mut cx, context.capabilities)
+        .map_err(OpenAiRouteError::internal)?;
     let mut cache = OpenAiPlanCache::new();
     let execution = execute_response_request_with_cache_runners_and_federation(
         &mut cx,
@@ -227,7 +299,7 @@ where
         ids,
         clock,
         &forked_request,
-        targets,
+        context.targets,
     );
     if !(200..300).contains(&execution.response().status()) {
         return Ok(execution.response().clone());
@@ -238,6 +310,7 @@ where
         .to_owned();
     if let Some(mut record) = store.response_object(&response_id) {
         record.parent_response_id = Some(parent_response_id.to_owned());
+        record.owner_key_id = context.access.caller_key_id.clone();
         store
             .put_response_object(record)
             .map_err(OpenAiRouteError::internal)?;
@@ -289,31 +362,42 @@ where
     Ok((record, events))
 }
 
-fn event_history_json(record: &StoredGatewayResponse, events: &[GatewayEvent]) -> Value {
+fn event_history_json(
+    record: &StoredGatewayResponse,
+    events: &[GatewayEvent],
+    inspect: bool,
+) -> Value {
     json!({
         "object": "list",
         "response_id": record.response_id(),
-        "data": events_json(record, events),
+        "data": events_json(record, events, inspect),
     })
 }
 
-fn events_json(record: &StoredGatewayResponse, events: &[GatewayEvent]) -> Vec<Value> {
+fn events_json(
+    record: &StoredGatewayResponse,
+    events: &[GatewayEvent],
+    inspect: bool,
+) -> Vec<Value> {
     record
         .event_content_ids
         .iter()
         .zip(events)
-        .map(|(content_id, event)| event_json(content_id, event))
+        .map(|(content_id, event)| event_json(content_id, event, inspect))
         .collect()
 }
 
-fn data_stream_json(events: &[GatewayEvent]) -> Vec<Value> {
+fn data_stream_json(events: &[GatewayEvent], inspect: bool) -> Vec<Value> {
+    if !inspect {
+        return Vec::new();
+    }
     gateway_event_data_packets(events)
         .iter()
         .map(|packet| expr_json(&packet.to_expr()))
         .collect()
 }
 
-fn event_json(content_id: &ContentId, event: &GatewayEvent) -> Value {
+fn event_json(content_id: &ContentId, event: &GatewayEvent, inspect: bool) -> Value {
     json!({
         "id": event.id(),
         "object": "response.event",
@@ -323,7 +407,7 @@ fn event_json(content_id: &ContentId, event: &GatewayEvent) -> Value {
         "sequence": event.sequence(),
         "created_at": event.created_at_ms(),
         "content_id": content_id_hex(content_id),
-        "payload": expr_json(event.payload()),
+        "payload": if inspect { expr_json(event.payload()) } else { redacted_json() },
     })
 }
 
@@ -331,6 +415,7 @@ fn sim_json<S>(
     store: &S,
     record: &StoredGatewayResponse,
     events: &[GatewayEvent],
+    inspect: bool,
 ) -> RouteResult<Value>
 where
     S: GatewayStore,
@@ -348,11 +433,45 @@ where
         "request_content_id": record.request_content_id.as_ref().map(content_id_hex),
         "run_content_id": record.run_content_id.as_ref().map(content_id_hex),
         "event_content_ids": record.event_content_ids.iter().map(content_id_hex).collect::<Vec<_>>(),
-        "request": request.as_ref().map(|request| expr_json(&request.to_expr())),
+        "request": request.as_ref().map(|request| request_json(request, inspect)),
         "run": run.as_ref().map(|run| expr_json(&run.to_expr())),
-        "events": events.iter().map(|event| expr_json(&event.to_expr())).collect::<Vec<_>>(),
+        "events": events.iter().map(|event| event_expr_json(event, inspect)).collect::<Vec<_>>(),
         "response": response_body_json(record.response())?,
     }))
+}
+
+fn request_json(request: &GatewayRequest, inspect: bool) -> Value {
+    if inspect {
+        return expr_json(&request.to_expr());
+    }
+    json!({
+        "object": "openai-gateway/request",
+        "id": request.id(),
+        "timestamp-ms": request.timestamp_ms(),
+        "method": request.method(),
+        "path": request.path(),
+        "headers": redacted_json(),
+        "body": redacted_json(),
+    })
+}
+
+fn event_expr_json(event: &GatewayEvent, inspect: bool) -> Value {
+    if inspect {
+        return expr_json(&event.to_expr());
+    }
+    json!({
+        "object": "openai-gateway/event",
+        "id": event.id(),
+        "run-id": event.run_id(),
+        "sequence": event.sequence(),
+        "event-kind": event.kind().name.as_ref(),
+        "created-at-ms": event.created_at_ms(),
+        "payload": redacted_json(),
+    })
+}
+
+fn redacted_json() -> Value {
+    Value::String("[redacted]".to_owned())
 }
 
 fn forked_request(
@@ -384,16 +503,52 @@ fn response_body_json(response: &GatewayResponse) -> RouteResult<Value> {
     })
 }
 
-fn has_sim_access(request: &GatewayRequest) -> bool {
-    request.headers().iter().any(|(name, value)| {
-        (name.eq_ignore_ascii_case("x-sim-capability")
-            || name.eq_ignore_ascii_case("x-sim-capabilities"))
-            && value.split([',', ' ']).any(is_sim_capability)
+fn sim_route_access(
+    request: &GatewayRequest,
+    state: &GatewayRouteState,
+) -> RouteResult<SimRouteAccess> {
+    let capabilities = state
+        .keys()
+        .effective_capabilities(request)
+        .map_err(OpenAiRouteError::internal)?;
+    let has_admin = has_capability(&capabilities, OPENAI_GATEWAY_ADMIN_CAPABILITY);
+    let has_extension = capabilities.iter().any(is_sim_capability);
+    if !has_admin && !has_extension {
+        return Err(OpenAiRouteError::forbidden(
+            "SIM response routes require openai-gateway.admin or sim.extension",
+            "capability_denied",
+        ));
+    }
+    let caller_key_id = state
+        .keys()
+        .key_for_request(request)
+        .map_err(OpenAiRouteError::internal)?
+        .map(|key| key.id().to_owned());
+    Ok(SimRouteAccess {
+        caller_key_id,
+        inspect: has_admin || has_capability(&capabilities, SIM_INSPECTION_CAPABILITY),
     })
 }
 
-fn is_sim_capability(capability: &str) -> bool {
-    let capability = capability.trim();
+fn ensure_response_owner(
+    record: &StoredGatewayResponse,
+    access: &SimRouteAccess,
+) -> RouteResult<()> {
+    if access.inspect || record.owner_key_id() == access.caller_key_id.as_deref() {
+        return Ok(());
+    }
+    Err(OpenAiRouteError::forbidden(
+        "stored response belongs to a different gateway key",
+        "capability_denied",
+    ))
+}
+
+fn has_capability(capabilities: &CapabilitySet, capability: &str) -> bool {
+    capabilities.contains(&CapabilityName::new(capability))
+}
+
+fn is_sim_capability(capability: &CapabilityName) -> bool {
+    let capability = capability.as_str();
     capability == OPENAI_GATEWAY_ADMIN_CAPABILITY
         || capability == SIM_EXTENSION_CAPABILITY
         || capability.starts_with("sim.extension.")

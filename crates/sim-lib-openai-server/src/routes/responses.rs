@@ -66,11 +66,45 @@ pub fn handle_responses(request: &GatewayRequest, state: &GatewayRouteState) -> 
                 )
                 .into_response();
             };
+            if let Err(error) = stamp_response_owner(state, &fabric, request) {
+                return error.into_response();
+            }
             response.response().clone()
         }
         Err(err) => OpenAiRouteError::internal_message(format!("gateway realize failed: {err}"))
             .into_response(),
     }
+}
+
+fn stamp_response_owner(
+    state: &GatewayRouteState,
+    fabric: &OpenAiGatewayFabric,
+    request: &GatewayRequest,
+) -> RouteResult<()> {
+    let owner_key_id = state
+        .keys()
+        .key_for_request(request)
+        .map_err(OpenAiRouteError::internal)?
+        .map(|key| key.id().to_owned());
+    let Some(execution) = fabric
+        .last_execution()
+        .map_err(OpenAiRouteError::internal)?
+    else {
+        return Ok(());
+    };
+    let Some(response_id) = execution.response_id() else {
+        return Ok(());
+    };
+    let mut store = state.store().lock().map_err(|err| {
+        OpenAiRouteError::internal_message(format!("gateway store lock failed: {err}"))
+    })?;
+    let Some(mut record) = store.response_object(response_id) else {
+        return Ok(());
+    };
+    record.owner_key_id = owner_key_id;
+    store
+        .put_response_object(record)
+        .map_err(OpenAiRouteError::internal)
 }
 
 /// Handles `GET /v1/responses/{id}`, returning the stored response for the id
