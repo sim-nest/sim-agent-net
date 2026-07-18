@@ -5,7 +5,8 @@ use super::options::{parse_component_options, string_option, symbol_option};
 use crate::agents::{ensure_task_id, first_codec, site_from_value, with_task_id};
 use crate::{Agent, AgentFabric, ComponentKind, installed_codecs};
 use sim_kernel::{
-    Args, Consistency, Cx, Error, EvalMode, EvalRequest, Expr, Result, Symbol, Value,
+    Args, CapabilityName, Consistency, Cx, Error, EvalMode, EvalRequest, Expr, Result, Symbol,
+    Value,
 };
 use sim_lib_agent_runner_core::{ModelBid, ModelCard, ModelRequest, ModelResponse, ModelRunner};
 use sim_lib_server::{
@@ -140,19 +141,13 @@ impl ModelRunner for AgentModelRunner {
     }
 
     fn infer(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
-        let expr = Expr::from(request);
-        let mut frame = server_frame_from_request(
-            cx,
-            &first_codec(self.site.codecs()),
-            model_eval_request(expr, self.timeout, true),
-        )?;
-        let task_id = ensure_task_id(&mut frame);
-        let reply = with_task_id(task_id.clone(), || self.site.answer(cx, frame))?;
-        let reply_expr = eval_reply_from_frame(cx, &reply)?
-            .value
-            .object()
-            .as_expr(cx)?;
-        Ok(self.normalize_reply(reply_expr, task_id))
+        self.infer_with_requirements(cx, request, Vec::new())
+    }
+
+    fn infer_request(&self, cx: &mut Cx, request: EvalRequest) -> Result<ModelResponse> {
+        let required_capabilities = request.required_capabilities;
+        let request = ModelRequest::try_from(request.expr)?;
+        self.infer_with_requirements(cx, request, required_capabilities)
     }
 
     fn bid(&self, _request: &ModelRequest) -> Result<ModelBid> {
@@ -167,6 +162,27 @@ impl ModelRunner for AgentModelRunner {
 }
 
 impl AgentModelRunner {
+    fn infer_with_requirements(
+        &self,
+        cx: &mut Cx,
+        request: ModelRequest,
+        required_capabilities: Vec<CapabilityName>,
+    ) -> Result<ModelResponse> {
+        let expr = Expr::from(request);
+        let mut frame = server_frame_from_request(
+            cx,
+            &first_codec(self.site.codecs()),
+            model_eval_request(expr, self.timeout, true, required_capabilities),
+        )?;
+        let task_id = ensure_task_id(&mut frame);
+        let reply = with_task_id(task_id.clone(), || self.site.answer(cx, frame))?;
+        let reply_expr = eval_reply_from_frame(cx, &reply)?
+            .value
+            .object()
+            .as_expr(cx)?;
+        Ok(self.normalize_reply(reply_expr, task_id))
+    }
+
     fn normalize_reply(&self, expr: Expr, task_id: String) -> ModelResponse {
         let mut response = ModelResponse::try_from(expr.clone()).unwrap_or_else(|_| {
             ModelResponse::new(
@@ -234,13 +250,48 @@ impl ModelRunner for DebateRunner {
     }
 
     fn infer(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
+        self.infer_with_requirements(cx, request, Vec::new())
+    }
+
+    fn infer_request(&self, cx: &mut Cx, request: EvalRequest) -> Result<ModelResponse> {
+        let required_capabilities = request.required_capabilities;
+        let request = ModelRequest::try_from(request.expr)?;
+        self.infer_with_requirements(cx, request, required_capabilities)
+    }
+
+    fn bid(&self, _request: &ModelRequest) -> Result<ModelBid> {
+        Ok(ModelBid {
+            available: true,
+            reason: None,
+            score: Some(0.0),
+            model: Some(self.model.clone()),
+            extra: Vec::new(),
+        })
+    }
+}
+
+impl DebateRunner {
+    fn infer_with_requirements(
+        &self,
+        cx: &mut Cx,
+        request: ModelRequest,
+        required_capabilities: Vec<CapabilityName>,
+    ) -> Result<ModelResponse> {
         let answers = self
             .runners
             .iter()
-            .map(|runner| realize_runner(cx, runner, &request, self.timeout))
+            .map(|runner| {
+                realize_runner(cx, runner, &request, self.timeout, &required_capabilities)
+            })
             .collect::<Result<Vec<_>>>()?;
         let judge_request = debate_judge_request(&request, &answers);
-        let mut response = realize_runner(cx, &self.judge, &judge_request, self.timeout)?;
+        let mut response = realize_runner(
+            cx,
+            &self.judge,
+            &judge_request,
+            self.timeout,
+            &required_capabilities,
+        )?;
         response.extra.push(key_expr(
             "debate-answers",
             Expr::List(answers.iter().cloned().map(Expr::from).collect()),
@@ -270,16 +321,6 @@ impl ModelRunner for DebateRunner {
         }
         Ok(response)
     }
-
-    fn bid(&self, _request: &ModelRequest) -> Result<ModelBid> {
-        Ok(ModelBid {
-            available: true,
-            reason: None,
-            score: Some(0.0),
-            model: Some(self.model.clone()),
-            extra: Vec::new(),
-        })
-    }
 }
 
 fn realize_runner(
@@ -287,6 +328,7 @@ fn realize_runner(
     runner: &Value,
     request: &ModelRequest,
     timeout: Option<Duration>,
+    required_capabilities: &[CapabilityName],
 ) -> Result<ModelResponse> {
     let fabric = runner
         .object()
@@ -294,7 +336,12 @@ fn realize_runner(
         .ok_or_else(|| Error::Eval("debate runner is not a realize target".to_owned()))?;
     let reply = fabric.realize(
         cx,
-        model_eval_request(Expr::from(request.clone()), timeout, false),
+        model_eval_request(
+            Expr::from(request.clone()),
+            timeout,
+            false,
+            required_capabilities.to_vec(),
+        ),
     )?;
     ModelResponse::try_from(reply.value.object().as_expr(cx)?)
 }
@@ -314,7 +361,12 @@ fn debate_judge_request(request: &ModelRequest, answers: &[ModelResponse]) -> Mo
     }
 }
 
-fn model_eval_request(expr: Expr, timeout: Option<Duration>, trace: bool) -> EvalRequest {
+fn model_eval_request(
+    expr: Expr,
+    timeout: Option<Duration>,
+    trace: bool,
+    required_capabilities: Vec<CapabilityName>,
+) -> EvalRequest {
     EvalRequest {
         expr,
         mode: EvalMode::Eval,
@@ -322,7 +374,7 @@ fn model_eval_request(expr: Expr, timeout: Option<Duration>, trace: bool) -> Eva
         answer_limit: None,
         stream_buffer: None,
         stream: false,
-        required_capabilities: Vec::new(),
+        required_capabilities,
         deadline: timeout,
         consistency: Consistency::LocalFirst,
         trace,

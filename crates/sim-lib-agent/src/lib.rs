@@ -73,6 +73,8 @@ pub const AI_RUNNER_SECRET_CAPABILITY: &str = "ai-runner-secret";
 pub const AI_RUNNER_CACHE_CAPABILITY: &str = "ai-runner-cache";
 /// Capability name granting an AI runner permission to emit raw request/response logs.
 pub const AI_RUNNER_RAW_LOG_CAPABILITY: &str = "ai-runner-raw-log";
+/// Capability name granting authority to register or replace model placements.
+pub const AI_RUNNER_PLACEMENT_CAPABILITY: &str = "ai-runner-placement";
 
 #[cfg(test)]
 pub(crate) use agents::component_name;

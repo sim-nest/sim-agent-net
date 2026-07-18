@@ -314,6 +314,19 @@ impl HttpRunner {
             && !request_privacy_no_raw(request)
     }
 
+    fn direct_capabilities(&self) -> Vec<CapabilityName> {
+        let mut capabilities = vec![CapabilityName::new(AI_RUNNER_CAPABILITY)];
+        if self.locality == Symbol::new("local") {
+            capabilities.push(CapabilityName::new(AI_RUNNER_LOCAL_CAPABILITY));
+        } else {
+            capabilities.push(CapabilityName::new(AI_RUNNER_NETWORK_CAPABILITY));
+        }
+        if self.api_key_env.is_some() {
+            capabilities.push(CapabilityName::new(AI_RUNNER_SECRET_CAPABILITY));
+        }
+        capabilities
+    }
+
     fn stream_decoder(&self, include_raw: bool) -> Result<HttpStreamDecoder> {
         let openai_codec = Symbol::qualified("codec", "openai");
         let anthropic_codec = Symbol::qualified("codec", "anthropic");
@@ -363,6 +376,10 @@ impl HttpRunner {
 
 const ANTHROPIC_VERSION: &str = "2023-06-01";
 const DEFAULT_ANTHROPIC_MAX_TOKENS: u64 = 1024;
+const AI_RUNNER_CAPABILITY: &str = "ai-runner";
+const AI_RUNNER_NETWORK_CAPABILITY: &str = "ai-runner-network";
+const AI_RUNNER_LOCAL_CAPABILITY: &str = "ai-runner-local";
+const AI_RUNNER_SECRET_CAPABILITY: &str = "ai-runner-secret";
 
 fn anthropic_headers(secret: &str) -> Vec<(String, String)> {
     vec![
@@ -498,6 +515,7 @@ impl HttpRunner {
             effect::effect_resume_op_key(),
             effect::effect_abort_op_key(),
         )
+        .with_requirements(self.direct_capabilities())
         .with_replay_key(Some(Ref::Symbol(Symbol::qualified(
             "agent",
             "http-runner-v1",

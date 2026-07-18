@@ -9,7 +9,7 @@ use super::market_execution_support::{
 };
 use super::market_policy::MarketPolicy;
 use crate::model_privacy::PrivacyPolicy;
-use sim_kernel::{Cx, Error, Expr, Result, Symbol, Value};
+use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, Symbol, Value};
 use sim_lib_agent_runner_core::{ModelRequest, ModelResponse};
 
 pub(crate) fn execute_market(
@@ -19,7 +19,22 @@ pub(crate) fn execute_market(
     request: ModelRequest,
     privacy: PrivacyPolicy,
 ) -> Result<ModelResponse> {
-    let mut executor = MarketExecutor { runners, policy };
+    execute_market_with_capabilities(cx, runners, policy, request, privacy, Vec::new())
+}
+
+pub(crate) fn execute_market_with_capabilities(
+    cx: &mut Cx,
+    runners: &[Value],
+    policy: MarketPolicy,
+    request: ModelRequest,
+    privacy: PrivacyPolicy,
+    required_capabilities: Vec<CapabilityName>,
+) -> Result<ModelResponse> {
+    let mut executor = MarketExecutor {
+        runners,
+        policy,
+        required_capabilities,
+    };
     let mut decision = MarketDecision::new(executor.policy.clone(), privacy);
     let mut response = match executor.execution_mode() {
         "race" => executor.execute_race(cx, &request, &mut decision)?,
@@ -39,6 +54,7 @@ pub(crate) fn execute_market(
 struct MarketExecutor<'a> {
     runners: &'a [Value],
     policy: MarketPolicy,
+    required_capabilities: Vec<CapabilityName>,
 }
 
 impl MarketExecutor<'_> {
@@ -254,6 +270,7 @@ impl MarketExecutor<'_> {
             &judge_runner,
             &judge_request,
             policy_deadline(&self.policy)?,
+            &self.required_capabilities,
         )?;
         response.extra.push(super::market_policy::key_expr(
             "debate-answers",
@@ -371,6 +388,7 @@ impl MarketExecutor<'_> {
             &candidate.runner,
             request,
             deadline_for(&self.policy, &candidate.card)?,
+            &self.required_capabilities,
         )?;
         decision.response(candidate.symbol(), phase, &response);
         if !response_should_escalate(&response) {
@@ -426,6 +444,7 @@ impl MarketExecutor<'_> {
             &verify_runner,
             &verification_request(request, response),
             policy_deadline(&self.policy)?,
+            &self.required_capabilities,
         ) {
             Ok(check) => {
                 decision.verified_by = Some(check.runner.clone());
@@ -460,6 +479,7 @@ impl MarketExecutor<'_> {
             &verify_runner,
             &verification_request(request, response),
             policy_deadline(&self.policy)?,
+            &self.required_capabilities,
         )?;
         decision.verified_by = Some(check.runner.clone());
         decision.response(verifier, "verify", &check);

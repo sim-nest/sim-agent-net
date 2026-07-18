@@ -1,5 +1,5 @@
 use super::support::{eval_cx, flatten_text, install_agent_lib, install_test_codec};
-use crate::components::cached_model_fabric_value;
+use crate::{AI_RUNNER_PLACEMENT_CAPABILITY, components::cached_model_fabric_value};
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{
     AbiVersion, Args, Callable, Consistency, EvalMode, EvalReply, EvalRequest, Export, Expr, Lib,
@@ -160,6 +160,7 @@ fn mock_http_runner(cx: &mut sim_kernel::Cx) -> Value {
 }
 
 fn place_runner(cx: &mut sim_kernel::Cx, key: &str, runner: Value) {
+    cx.grant_named(AI_RUNNER_PLACEMENT_CAPABILITY);
     cx.call_function(
         &Symbol::qualified("runner", "place"),
         Args::new(vec![cx.factory().string(key.to_owned()).unwrap(), runner]),

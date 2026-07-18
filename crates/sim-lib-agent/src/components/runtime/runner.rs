@@ -148,8 +148,7 @@ fn infer_runner_once_uncached(
             delay,
         } => fake_response_expr(component, model, script, *delay),
         RunnerBackend::External { runner } => {
-            let model_request = ModelRequest::try_from(request.expr.clone())?;
-            let response = runner.infer(cx, model_request)?;
+            let response = runner.infer_request(cx, request.clone())?;
             normalize_external_response(response)
         }
     }
@@ -215,8 +214,7 @@ fn infer_runner_once_stream_uncached(
             delay,
         } => fake_stream_response(component, model, script, *delay, events),
         RunnerBackend::External { runner } => {
-            let model_request = ModelRequest::try_from(request.expr.clone())?;
-            runner.infer_stream(cx, model_request, events)
+            runner.infer_stream_request(cx, request.clone(), events)
         }
     }
 }
