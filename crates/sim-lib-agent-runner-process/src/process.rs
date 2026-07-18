@@ -93,9 +93,10 @@ pub(super) fn capture_child_output(
 
     // Keep the raw io error so the join site can tell a benign EPIPE/WriteZero
     // (the child stopped reading early) from a real write failure.
-    let writer = thread::spawn(move || -> std::io::Result<()> {
+    let (writer_tx, writer_rx) = mpsc::channel();
+    let writer = thread::spawn(move || {
         let mut stdin_handle = stdin_handle;
-        stdin_handle.write_all(&stdin)
+        let _ = writer_tx.send(stdin_handle.write_all(&stdin));
     });
     let (tx, rx) = mpsc::channel();
     let reader = thread::spawn(move || {
@@ -134,6 +135,7 @@ pub(super) fn capture_child_output(
     let deadline = Instant::now() + timeout;
     let mut status: Option<std::process::ExitStatus> = None;
     let mut captured: Option<Result<Vec<u8>>> = None;
+    let mut writer_outcome: Option<std::io::Result<()>> = None;
     loop {
         if status.is_none() {
             let mut child = child
@@ -142,15 +144,20 @@ pub(super) fn capture_child_output(
             status = child.try_wait().map_err(io_error_to_host)?;
         }
         if captured.is_none() {
-            match rx.recv_timeout(Duration::from_millis(10)) {
+            match rx.try_recv() {
                 Ok(message) => captured = Some(message),
-                Err(mpsc::RecvTimeoutError::Timeout) => {}
-                Err(mpsc::RecvTimeoutError::Disconnected) => captured = Some(Ok(Vec::new())),
+                Err(mpsc::TryRecvError::Empty) => {}
+                Err(mpsc::TryRecvError::Disconnected) => captured = Some(Ok(Vec::new())),
             }
-        } else if status.is_none() {
-            thread::sleep(Duration::from_millis(10));
         }
-        if status.is_some() && captured.is_some() {
+        if writer_outcome.is_none() {
+            match writer_rx.try_recv() {
+                Ok(message) => writer_outcome = Some(message),
+                Err(mpsc::TryRecvError::Empty) => {}
+                Err(mpsc::TryRecvError::Disconnected) => writer_outcome = Some(Ok(())),
+            }
+        }
+        if status.is_some() && captured.is_some() && writer_outcome.is_some() {
             break;
         }
         if Instant::now() >= deadline {
@@ -166,16 +173,19 @@ pub(super) fn capture_child_output(
                 timeout.as_millis()
             )));
         }
+        thread::sleep(Duration::from_millis(10));
     }
 
     let status =
         status.ok_or_else(|| Error::HostError(format!("{label} status was not captured")))?;
     let bytes =
         captured.ok_or_else(|| Error::HostError(format!("{label} stdout reader failed")))??;
+    let writer_outcome =
+        writer_outcome.ok_or_else(|| Error::HostError(format!("{label} stdin writer failed")))?;
     reader
         .join()
         .map_err(|_| Error::HostError(format!("{label} stdout reader panicked")))?;
-    let writer_outcome = writer
+    writer
         .join()
         .map_err(|_| Error::HostError(format!("{label} stdin writer panicked")))?;
     if bytes.len() > max_output_bytes {
@@ -245,9 +255,10 @@ pub(super) fn stream_command_lines(
     // Return the raw io error so the join site can tell a benign EPIPE/WriteZero
     // (the child stopped reading stdin early -- e.g. a command that ignores its
     // input and exits) from a real write failure, matching capture_child_output.
-    let writer = thread::spawn(move || -> std::io::Result<()> {
+    let (writer_tx, writer_rx) = mpsc::channel();
+    let writer = thread::spawn(move || {
         let mut stdin_handle = stdin_handle;
-        stdin_handle.write_all(&stdin)
+        let _ = writer_tx.send(stdin_handle.write_all(&stdin));
     });
     let (tx, rx) = mpsc::channel();
     let reader = thread::spawn(move || {
@@ -273,7 +284,8 @@ pub(super) fn stream_command_lines(
     let mut bytes = Vec::new();
     let mut status = None;
     let mut reader_done = false;
-    while !reader_done || status.is_none() {
+    let mut writer_outcome = None;
+    while !reader_done || status.is_none() || writer_outcome.is_none() {
         match rx.recv_timeout(Duration::from_millis(10)) {
             Ok(Ok(line)) => {
                 if bytes.len().saturating_add(line.len()) > max_output_bytes {
@@ -300,6 +312,13 @@ pub(super) fn stream_command_lines(
                 reader_done = true;
             }
         }
+        if writer_outcome.is_none() {
+            match writer_rx.try_recv() {
+                Ok(message) => writer_outcome = Some(message),
+                Err(mpsc::TryRecvError::Empty) => {}
+                Err(mpsc::TryRecvError::Disconnected) => writer_outcome = Some(Ok(())),
+            }
+        }
         if status.is_none() {
             let mut child = child
                 .lock()
@@ -320,7 +339,9 @@ pub(super) fn stream_command_lines(
     reader
         .join()
         .map_err(|_| Error::HostError(format!("{label} stdout reader panicked")))?;
-    let writer_outcome = writer
+    let writer_outcome =
+        writer_outcome.ok_or_else(|| Error::HostError(format!("{label} stdin writer failed")))?;
+    writer
         .join()
         .map_err(|_| Error::HostError(format!("{label} stdin writer panicked")))?;
     let status =

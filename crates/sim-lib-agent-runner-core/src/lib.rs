@@ -31,7 +31,7 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 pub use card::{ModelBid, ModelCard, model_bid_class_symbol, model_card_class_symbol};
 pub use ceiling::effective_ceiling;
 pub use events::{ModelEvent, ModelEventSink, VecEventSink, model_request_kernel_event};
-pub use fence::{FENCE_DATA_RULE, InjectionFence};
+pub use fence::{FENCE_DATA_RULE, InjectionFence, fenced_data_text};
 pub use grammar::shape_to_grammar;
 pub use model::{
     ModelRequest, ModelResponse, ModelRunner, ModelUsage, model_request_class_symbol,

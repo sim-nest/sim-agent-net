@@ -14,7 +14,7 @@ use sim_kernel::{
     Cx, Datum, DatumStore, Diagnostic, Effect, Error, EvalRequest, Expr, Ref, RefResolver, Result,
     ShapeRef, Symbol, TemporaryRefResolver, core_any_ref, effect, value_from_ref,
 };
-use sim_lib_agent_runner_core::{ModelEvent, ModelEventSink, ModelResponse};
+use sim_lib_agent_runner_core::{ModelEvent, ModelEventSink, ModelResponse, fenced_data_text};
 use std::collections::BTreeSet;
 
 fn tool_call_effect_kind() -> Symbol {
@@ -242,7 +242,7 @@ fn run_tool_round(
         if let Some(sink) = events.as_deref_mut() {
             sink.emit(tool_result_event(component, &model, &call, &outcome))?;
         }
-        messages.push(tool_result_message(&call, &outcome));
+        messages.push(tool_result_message(&call, &outcome)?);
     }
     Ok(ToolRound::Continue(messages))
 }
@@ -378,33 +378,41 @@ impl ToolOutcome {
             error: true,
         }
     }
+
+    fn content_expr(&self) -> Expr {
+        self.expr
+            .clone()
+            .unwrap_or_else(|| Expr::String(self.text.clone()))
+    }
 }
 
-fn tool_result_message(call: &ToolCall, outcome: &ToolOutcome) -> Expr {
+fn tool_result_message(call: &ToolCall, outcome: &ToolOutcome) -> Result<Expr> {
     let mut message = vec![
         key_expr("role", Expr::Symbol(Symbol::new("tool"))),
         key_expr("name", Expr::Symbol(call.name.clone())),
         key_expr("tool-call-id", call.id.clone()),
         key_expr(
             "content",
-            Expr::List(vec![tool_result_content_part(outcome)]),
+            Expr::List(vec![tool_result_content_part(outcome)?]),
         ),
     ];
     if outcome.error {
         message.push(key_expr("error", Expr::Bool(true)));
     }
-    Expr::Map(message)
+    Ok(Expr::Map(message))
 }
 
-fn tool_result_content_part(outcome: &ToolOutcome) -> Expr {
+fn tool_result_content_part(outcome: &ToolOutcome) -> Result<Expr> {
+    let content_expr = outcome.content_expr();
+    let fenced_text = fenced_data_text("agent-tool-result", &outcome.text, &content_expr)?;
     let mut entries = vec![
         key_expr("type", Expr::Symbol(Symbol::new("text"))),
-        key_expr("text", Expr::String(outcome.text.clone())),
+        key_expr("text", Expr::String(fenced_text)),
     ];
     if let Some(expr) = &outcome.expr {
         entries.push(key_expr("expr", expr.clone()));
     }
-    Expr::Map(entries)
+    Ok(Expr::Map(entries))
 }
 
 fn tool_result_event(

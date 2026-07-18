@@ -295,6 +295,7 @@ fn post_json_with_tls_roots_impl(
     on_body_chunk: OptionalBodyChunkCallback<'_>,
 ) -> Result<HttpRunnerResponse> {
     let url = parse_url(request.runner_label, request.endpoint)?;
+    validate_request_headers(request.runner_label, &request.headers)?;
     let stream = TcpStream::connect((url.host.as_str(), url.port))
         .map_err(|err| host_error(request.runner_label, err, secret))?;
     stream
@@ -345,6 +346,55 @@ fn post_json_with_tls_roots_impl(
         )));
     }
     Ok(response)
+}
+
+fn validate_request_headers(runner_label: &str, headers: &[(String, String)]) -> Result<()> {
+    for (name, value) in headers {
+        if !valid_header_name(name) {
+            return Err(Error::Eval(format!(
+                "{runner_label} invalid http header name"
+            )));
+        }
+        if !valid_header_value(value) {
+            return Err(Error::Eval(format!(
+                "{runner_label} invalid http header value"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn valid_header_name(name: &str) -> bool {
+    !name.is_empty() && name.bytes().all(is_header_name_byte)
+}
+
+fn is_header_name_byte(byte: u8) -> bool {
+    matches!(
+        byte,
+        b'!' | b'#'
+            | b'$'
+            | b'%'
+            | b'&'
+            | b'\''
+            | b'*'
+            | b'+'
+            | b'-'
+            | b'.'
+            | b'^'
+            | b'_'
+            | b'`'
+            | b'|'
+            | b'~'
+            | b'0'..=b'9'
+            | b'A'..=b'Z'
+            | b'a'..=b'z'
+    )
+}
+
+fn valid_header_value(value: &str) -> bool {
+    value
+        .bytes()
+        .all(|byte| byte == b'\t' || (0x20..=0x7e).contains(&byte) || (0x80..=0xff).contains(&byte))
 }
 
 fn connect_stream(
@@ -401,6 +451,47 @@ fn tls_client_config(
         .with_root_certificates(roots)
         .with_no_client_auth();
     Ok(Arc::new(config))
+}
+
+#[cfg(test)]
+mod header_validation_tests {
+    use super::validate_request_headers;
+
+    #[test]
+    fn rejects_header_names_that_cannot_be_http_tokens() {
+        let err = validate_request_headers(
+            "runner/test",
+            &[("Authorization\r\nX-Injected".to_owned(), "ok".to_owned())],
+        )
+        .unwrap_err();
+
+        assert!(err.to_string().contains("invalid http header name"));
+    }
+
+    #[test]
+    fn rejects_header_values_that_can_escape_raw_header_lines() {
+        for value in ["ok\r\nX-Injected: yes", "ok\nbad", "ok\0bad"] {
+            let err = validate_request_headers(
+                "runner/test",
+                &[("Authorization".to_owned(), value.to_owned())],
+            )
+            .unwrap_err();
+
+            assert!(err.to_string().contains("invalid http header value"));
+        }
+    }
+
+    #[test]
+    fn accepts_rfc_token_names_and_visible_values() {
+        validate_request_headers(
+            "runner/test",
+            &[
+                ("content-type".to_owned(), "application/json".to_owned()),
+                ("X-Sim_Trace".to_owned(), "value\twith tab".to_owned()),
+            ],
+        )
+        .unwrap();
+    }
 }
 
 #[cfg(all(test, feature = "tls"))]

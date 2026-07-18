@@ -1,6 +1,6 @@
 use super::{HttpRunner, anthropic_headers};
 use crate::{ProviderAuth, ProviderConfig, provider_profiles};
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
+use sim_kernel::{CapabilityName, CapabilitySet, Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
 use sim_lib_agent_runner_core::{ModelRequest, ModelRunner};
 use std::{
     collections::HashMap,
@@ -123,15 +123,18 @@ fn direct_http_runner_allows_with_runner_network_and_secret_capabilities() {
         64 * 1024,
     );
     let mut cx = test_cx();
-    cx.grant_named("ai-runner");
-    cx.grant_named("ai-runner-network");
-    cx.grant_named("ai-runner-secret");
+    let capabilities = CapabilitySet::new()
+        .grant(CapabilityName::new("ai-runner"))
+        .grant(CapabilityName::new("ai-runner-network"))
+        .grant(CapabilityName::new("ai-runner-secret"));
 
-    let response = runner
-        .infer(
-            &mut cx,
-            ModelRequest::new(Expr::String("allowed direct".to_owned()), Vec::new()),
-        )
+    let response = cx
+        .with_capabilities(capabilities, |cx| {
+            runner.infer(
+                cx,
+                ModelRequest::new(Expr::String("allowed direct".to_owned()), Vec::new()),
+            )
+        })
         .unwrap();
     let request = server.join().unwrap();
 
