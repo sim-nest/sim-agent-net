@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-18T14:40:47+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "bfeeacf3a1aa9a97084ab796dae82ce888cfb7c9",
+  "git_commit": "f669e6dce69f1c3e34818dff101d2143434f9f21",
   "repo": "sim-agent-net",
   "schema": "sim.provenance.v1",
-  "source_commit": "bfeeacf3a1aa9a97084ab796dae82ce888cfb7c9",
+  "source_commit": "f669e6dce69f1c3e34818dff101d2143434f9f21",
   "source_remote": "https://github.com/sim-nest/sim-agent-net",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "2d3d04b42c9a6934",
+  "workspace_hash": "e6f6a77e40762d73",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 651,
+  "workspace_hash_input_count": 652,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-agent/Cargo.toml",
@@ -315,6 +315,7 @@
     "crates/sim-lib-bridge/src/runtime.rs",
     "crates/sim-lib-bridge/src/rx.rs",
     "crates/sim-lib-bridge/src/tests/ask.rs",
+    "crates/sim-lib-bridge/src/tests/collaboration.rs",
     "crates/sim-lib-bridge/src/tests/loom.rs",
     "crates/sim-lib-bridge/src/tests.rs",
     "crates/sim-lib-bridge/src/tx.rs",
