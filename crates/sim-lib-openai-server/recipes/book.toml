@@ -1,5 +1,5 @@
 book = "openai-gateway"
 title = "OpenAI Gateway"
-summary = "OpenAI-compatible gateway request descriptors and local replay."
+summary = "OpenAI-shaped gateway request descriptors and local replay."
 order = 347
 chapters = ["01-basics"]

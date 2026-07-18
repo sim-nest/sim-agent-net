@@ -3,6 +3,28 @@ use serde_json::Value;
 use crate::{GatewayRequest, GatewayResponse, THREADS_PATH, configure_routes};
 
 #[test]
+fn thread_creation_accepts_empty_body_as_empty_object() {
+    let routes = configure_routes();
+    let response = routes.handle(&GatewayRequest::new("POST", THREADS_PATH, vec![], vec![]));
+
+    assert_eq!(response.status(), 200);
+    let json = response_json(&response);
+    assert_eq!(json["object"], "thread");
+    assert_eq!(json["metadata"], serde_json::json!({}));
+}
+
+#[test]
+fn thread_creation_accepts_json_null_as_empty_object() {
+    let routes = configure_routes();
+    let response = routes.handle(&json_request(THREADS_PATH, "null"));
+
+    assert_eq!(response.status(), 200);
+    let json = response_json(&response);
+    assert_eq!(json["object"], "thread");
+    assert_eq!(json["metadata"], serde_json::json!({}));
+}
+
+#[test]
 fn thread_message_missing_role_uses_shared_missing_required_error() {
     let routes = configure_routes();
     let thread = response_json(&routes.handle(&json_request(THREADS_PATH, "{}")));

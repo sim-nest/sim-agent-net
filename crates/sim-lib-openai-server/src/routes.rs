@@ -1,6 +1,6 @@
 /// Admin inspection routes (runs, events, storage, health, cache, capabilities).
 pub mod admin;
-/// OpenAI audio endpoint handlers (transcription and speech surfaces).
+/// OpenAI-shaped audio fixture handlers (transcription and speech surfaces).
 pub mod audio;
 /// OpenAI batch endpoint handlers.
 pub mod batches;
@@ -13,11 +13,11 @@ pub mod errors;
 /// Shared gateway execution-record substrate (id generators, event log,
 /// request+run prologue, and the run outcome struct).
 pub(crate) mod execution_record;
-/// OpenAI files endpoint handlers.
+/// OpenAI-shaped JSON file fixture handlers.
 pub mod files;
 /// Health and readiness route handlers.
 pub mod health;
-/// OpenAI images endpoint handlers.
+/// OpenAI-shaped image fixture handlers.
 pub mod images;
 /// OpenAI `/v1/models` discovery endpoint and model catalog.
 pub mod models;
@@ -39,5 +39,5 @@ pub(crate) mod run_record;
 pub(crate) mod thread_context;
 /// OpenAI threads endpoint handlers.
 pub mod threads;
-/// OpenAI vector-stores endpoint handlers.
+/// OpenAI-shaped vector-store subset handlers.
 pub mod vector_stores;

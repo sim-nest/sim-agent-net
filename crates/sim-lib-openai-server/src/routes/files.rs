@@ -12,7 +12,7 @@ use crate::{
 
 use super::errors::OpenAiRouteError;
 
-/// Route path for file upload (`POST /v1/files`).
+/// Route path for JSON file fixture upload (`POST /v1/files`).
 pub const FILES_PATH: &str = "/v1/files";
 /// Path prefix preceding a file id on the retrieval route (`/v1/files/`).
 pub const FILE_RETRIEVAL_PREFIX: &str = "/v1/files/";
@@ -21,7 +21,7 @@ pub const FILE_RETRIEVAL_ROUTE: &str = "/v1/files/{id}";
 
 type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 
-/// Handles `POST /v1/files`, storing an uploaded file and returning its object.
+/// Handles `POST /v1/files`, storing JSON `content` bytes and returning a file object.
 pub fn handle_files(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
     let mut clock = SystemGatewayClock;
     let seed = clock.now_ms().unwrap_or(1);

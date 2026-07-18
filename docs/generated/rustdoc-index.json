@@ -69,7 +69,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-openai-server/Cargo.toml",
       "package": "sim-lib-openai-server",
-      "summary": "OpenAI-compatible gateway skeleton for SIM."
+      "summary": "OpenAI-shaped gateway routes for SIM."
     },
     {
       "crate_name": "sim_lib_server",

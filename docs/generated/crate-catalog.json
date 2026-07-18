@@ -124,7 +124,7 @@
       ]
     },
     {
-      "description": "OpenAI-compatible gateway skeleton for SIM.",
+      "description": "OpenAI-shaped gateway routes and fixture media surfaces for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-openai-server/Cargo.toml",
       "name": "sim-lib-openai-server",

@@ -1,13 +1,12 @@
-//! Golden snapshots pinning the gateway execution-record wire (OVERLAP9.03).
+//! Golden snapshots pinning the gateway execution-record wire.
 //!
-//! These snapshots freeze the observable output of the three parallel record
-//! engines -- `/v1/responses`, `/v1/embeddings`, and one run_record route (audio
-//! transcription) -- BEFORE the OVERLAP9.04 substrate collapse. They capture the
-//! stored request/run/event/response content-ids, the per-event id/kind/sequence
-//! /payload, the final wire payload, and (for the object-retrievable responses
-//! path) the `/events`, `/sim`, and replay renderings. OVERLAP9.04 must keep every
-//! one of these byte-identical: if a golden drifts, that part of the collapse is
-//! wrong.
+//! These snapshots freeze the observable output of `/v1/responses`,
+//! `/v1/embeddings`, and one run_record route (audio transcription). They
+//! capture the stored request/run/event/response content-ids, the per-event
+//! id/kind/sequence/payload, the final wire payload, and (for the
+//! object-retrievable responses path) the `/events`, `/sim`, and replay
+//! renderings. The shared execution-record substrate must keep every one of
+//! these byte-identical.
 //!
 //! There is no `insta` dependency in this crate, so the goldens are plain JSON
 //! files under `src/tests/goldens/`. Run the suite with `SIM_BLESS_GOLDENS=1` to
@@ -300,6 +299,6 @@ fn assert_golden(name: &str, value: &Value) {
     });
     assert_eq!(
         actual, expected,
-        "gateway execution-record golden {name} drifted -- OVERLAP9.04 must keep it byte-identical"
+        "gateway execution-record golden {name} drifted; the shared substrate must keep it byte-identical"
     );
 }

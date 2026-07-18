@@ -1,4 +1,4 @@
-//! Storage backends for the OpenAI-compatible gateway.
+//! Storage backends for the OpenAI-shaped gateway.
 //!
 //! The gateway persists request/run/event/response records plus the durable
 //! account state (files, batches, threads, vector stores) behind a set of

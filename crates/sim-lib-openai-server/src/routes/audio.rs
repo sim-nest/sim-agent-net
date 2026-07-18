@@ -25,7 +25,7 @@ pub const AUDIO_SPEECH_PATH: &str = "/v1/audio/speech";
 type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 
 /// Handles `POST /v1/audio/transcriptions`, returning a deterministic fixture
-/// transcript for the supplied audio input.
+/// transcript for the supplied JSON audio input.
 pub fn handle_audio_transcriptions(
     request: &GatewayRequest,
     state: &GatewayRouteState,
@@ -45,7 +45,7 @@ pub fn handle_audio_transcriptions(
 }
 
 /// Handles `POST /v1/audio/speech`, returning deterministic fixture audio bytes
-/// for the requested text input.
+/// for the requested JSON text input.
 pub fn handle_audio_speech(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
     let mut clock = SystemGatewayClock;
     let seed = clock.now_ms().unwrap_or(1);

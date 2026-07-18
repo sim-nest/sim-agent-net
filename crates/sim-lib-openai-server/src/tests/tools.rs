@@ -11,8 +11,8 @@ use sim_lib_agent_runner_core::FENCE_DATA_RULE;
 
 use crate::{
     DeterministicGatewayClock, GatewayEvent, GatewayRequest, GatewayStore, MemoryGatewayStore,
-    RESPONSES_PATH, ResponseIdGenerators, execute_response_request, install_openai_gateway_lib,
-    openai_gateway_tools_capability,
+    OpenAiTool, RESPONSES_PATH, ResponseIdGenerators, execute_response_request,
+    install_openai_gateway_lib, openai_gateway_tools_capability,
 };
 
 #[test]
@@ -231,6 +231,63 @@ fn invalid_tool_arguments_are_structured_tool_results() {
 }
 
 #[test]
+fn unsupported_tool_schema_keywords_are_rejected_at_descriptor_boundary() {
+    for (keyword, value) in unsupported_schema_keywords() {
+        let mut descriptors = echo_tool_descriptor();
+        descriptors[0]["function"]["parameters"]["properties"]["text"][keyword] = value;
+
+        let error = OpenAiTool::from_openai_descriptor(&descriptors[0]).unwrap_err();
+
+        assert!(
+            format!("{error}").contains(keyword),
+            "error should name unsupported keyword {keyword}: {error}"
+        );
+    }
+}
+
+#[test]
+fn object_schema_keywords_require_explicit_object_type() {
+    let mut descriptors = echo_tool_descriptor();
+    descriptors[0]["function"]["parameters"]
+        .as_object_mut()
+        .unwrap()
+        .remove("type");
+
+    let error = OpenAiTool::from_openai_descriptor(&descriptors[0]).unwrap_err();
+
+    assert!(
+        format!("{error}").contains("requires type object"),
+        "object-only keywords should require type object: {error}"
+    );
+}
+
+#[test]
+fn unsupported_tool_schema_request_is_rejected_before_tool_execution() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut cx = tool_cx();
+    register_echo_tool(&mut cx, calls.clone());
+    let mut store = MemoryGatewayStore::new();
+    let mut ids = ResponseIdGenerators::deterministic(1);
+    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut descriptors = echo_tool_descriptor();
+    descriptors[0]["function"]["parameters"]["properties"]["text"]["enum"] = json!(["allowed"]);
+    let request = tool_request("fixture/tool-call", "hello tool", descriptors);
+
+    let execution = execute_response_request(&mut cx, &mut store, &mut ids, &mut clock, &request);
+    let json = response_json(execution.response());
+
+    assert_eq!(execution.response().status(), 400);
+    assert_eq!(json["error"]["code"], "invalid_model");
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    assert!(
+        json["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("unsupported json schema keyword enum")
+    );
+}
+
+#[test]
 fn repeated_identical_tool_call_fails_closed() {
     let calls = Arc::new(AtomicUsize::new(0));
     let mut cx = tool_cx();
@@ -333,6 +390,27 @@ fn echo_tool_descriptor() -> Value {
             }
         }
     }])
+}
+
+fn unsupported_schema_keywords() -> Vec<(&'static str, Value)> {
+    vec![
+        ("enum", json!(["hello"])),
+        ("minimum", json!(1)),
+        ("maximum", json!(10)),
+        ("exclusiveMinimum", json!(1)),
+        ("multipleOf", json!(2)),
+        ("pattern", json!("^hello")),
+        ("minLength", json!(1)),
+        ("maxLength", json!(10)),
+        ("items", json!({"type": "string"})),
+        ("minItems", json!(1)),
+        ("maxItems", json!(3)),
+        ("additionalProperties", json!(false)),
+        ("oneOf", json!([{"type": "string"}])),
+        ("anyOf", json!([{"type": "string"}])),
+        ("allOf", json!([{"type": "string"}])),
+        ("not", json!({"type": "null"})),
+    ]
 }
 
 fn response_json(response: &crate::GatewayResponse) -> Value {

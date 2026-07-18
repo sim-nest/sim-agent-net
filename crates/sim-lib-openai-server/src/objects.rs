@@ -11,7 +11,7 @@ pub const GATEWAY_RUN_OBJECT: &str = "openai-gateway/run";
 /// Object-kind tag identifying a [`GatewayEvent`] in its `Expr` projection.
 pub const GATEWAY_EVENT_OBJECT: &str = "openai-gateway/event";
 
-/// Represents an inbound HTTP request to the OpenAI-compatible gateway.
+/// Represents an inbound HTTP request to the OpenAI-shaped gateway.
 ///
 /// Carries the request line (method and path), headers, and raw body, plus
 /// optional gateway-assigned metadata (an id and a receipt timestamp).

@@ -15,7 +15,7 @@ use crate::ops::{
 
 const OPENAI_GATEWAY_LIB_ID: &str = "openai-gateway";
 
-/// Loadable library that installs the OpenAI-compatible gateway surface.
+/// Loadable library that installs the OpenAI-shaped gateway surface.
 ///
 /// Implements [`Lib`]: its manifest declares the gateway's id, version, ABI,
 /// and exports, and its loader registers the OpenAI codec plus every

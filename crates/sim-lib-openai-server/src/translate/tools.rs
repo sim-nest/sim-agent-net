@@ -5,7 +5,7 @@ use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, Symbol};
 
 use super::tool_schema::{
     argument_order, arguments_json, canonical_json, default_parameters, expr_text,
-    expr_to_json_string, json_to_expr, json_to_value, validate_schema,
+    expr_to_json_string, json_to_expr, json_to_value, validate_schema, validate_supported_schema,
 };
 
 /// A single OpenAI function tool bound to a SIM callable.
@@ -82,7 +82,7 @@ impl OpenAiTool {
             .browse_result_shape(cx)?
             .map(|shape| shape.object().as_expr(cx))
             .transpose()?;
-        Ok(Self::new(
+        Self::new(
             openai_name,
             symbol,
             description,
@@ -90,7 +90,7 @@ impl OpenAiTool {
             capabilities,
             args_shape,
             result_shape,
-        ))
+        )
     }
 
     /// Parses an OpenAI tool descriptor JSON object into an [`OpenAiTool`].
@@ -130,7 +130,7 @@ impl OpenAiTool {
         reject_untrusted_authority_fields(object)?;
         reject_untrusted_authority_fields(function)?;
         let symbol = openai_name_to_symbol(&openai_name);
-        Ok(Self::new(
+        Self::new(
             openai_name,
             symbol,
             description,
@@ -138,7 +138,7 @@ impl OpenAiTool {
             Vec::new(),
             None,
             None,
-        ))
+        )
     }
 
     fn new(
@@ -149,9 +149,10 @@ impl OpenAiTool {
         capabilities: Vec<CapabilityName>,
         args_shape: Option<Expr>,
         result_shape: Option<Expr>,
-    ) -> Self {
+    ) -> Result<Self> {
+        validate_supported_schema(&parameters, "function.parameters").map_err(Error::Eval)?;
         let arg_order = argument_order(&parameters);
-        Self {
+        Ok(Self {
             openai_name: openai_name.into(),
             symbol,
             description: description.into(),
@@ -160,7 +161,7 @@ impl OpenAiTool {
             capabilities,
             args_shape,
             result_shape,
-        }
+        })
     }
 
     /// Returns the OpenAI-facing tool name.

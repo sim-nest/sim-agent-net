@@ -1,16 +1,19 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-//! OpenAI-compatible gateway skeleton for SIM.
+//! OpenAI-shaped gateway routes for SIM.
 //!
 //! This crate provides the OpenAI gateway health route, OpenAI JSON transcript
-//! codec, model discovery, gateway object helpers, and the first plan parsing
-//! and fixture atom execution surface through `POST /v1/responses` and
-//! `POST /v1/chat/completions`, embeddings through `POST /v1/embeddings`,
-//! audio, image, and vector-store fixtures, with SSE streaming projection,
+//! codec, model discovery, gateway object helpers, plan parsing and fixture atom
+//! execution through `POST /v1/responses` and `POST /v1/chat/completions`,
+//! embeddings through `POST /v1/embeddings`, SSE streaming projection,
 //! memory-backed response retrieval by id, and stored response replay/fork
-//! inspection routes. `GET /v1/models` advertises models from registered
-//! `ModelCard` records, so loadable local placement sites appear beside fixture
-//! and remote runner entries when installed.
+//! inspection routes. File, audio, image, and vector-store routes are SIM JSON
+//! fixture/subset surfaces: they use OpenAI-shaped paths and response objects,
+//! while request bodies use the explicit JSON fields handled by these route
+//! modules rather than multipart upload or provider media protocols. The model
+//! list route advertises models from registered `ModelCard` records, so
+//! loadable local placement sites appear beside fixture and remote runner
+//! entries when installed.
 
 /// Capability identifiers and constructors that gate gateway operations.
 pub mod capabilities;

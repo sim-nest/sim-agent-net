@@ -6,7 +6,7 @@ use sim_lib_agent_runner_core::ModelCard;
 
 use crate::server::{GatewayRequest, GatewayResponse, GatewayRouteState};
 
-/// Route path for the OpenAI-compatible `GET /v1/models` discovery endpoint.
+/// Route path for the OpenAI-shaped `GET /v1/models` discovery endpoint.
 pub const MODELS_PATH: &str = "/v1/models";
 
 const FIXTURE_ECHO_MODEL: &str = "fixture/echo";

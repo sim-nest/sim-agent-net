@@ -35,7 +35,7 @@ use super::{
     thread_context::normalize_response_request,
 };
 
-/// Route path for the OpenAI-compatible `POST /v1/responses` endpoint.
+/// Route path for the OpenAI-shaped `POST /v1/responses` endpoint.
 pub const RESPONSES_PATH: &str = "/v1/responses";
 /// Path prefix stripped to extract a response id from a retrieval request.
 pub const RESPONSE_RETRIEVAL_PREFIX: &str = "/v1/responses/";

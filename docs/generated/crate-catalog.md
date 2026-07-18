@@ -15,7 +15,7 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-cookbook` | `true` | `custom-build, lib` | Runtime cookbook: operations for SIM. |
 | `sim-lib-forge` | `true` | `custom-build, lib` | Compiled intent records and one-shot BRIDGE lifts for reusable packet programs. |
 | `sim-lib-mcp` | `true` | `custom-build, lib, test` | Library-only MCP surface projection for SIM. |
-| `sim-lib-openai-server` | `true` | `custom-build, lib` | OpenAI-compatible gateway skeleton for SIM. |
+| `sim-lib-openai-server` | `true` | `custom-build, lib` | OpenAI-shaped gateway routes and fixture media surfaces for SIM. |
 | `sim-lib-server` | `true` | `custom-build, lib` | SIM workspace package for sim lib server. |
 | `sim-lib-skill` | `true` | `custom-build, lib, test` | SIM workspace package for sim lib skill. |
 | `sim-lib-stream-fabric` | `true` | `bin, custom-build, lib, test` | Content-addressed distributed evaluation for remote stream realization. |

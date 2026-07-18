@@ -1,17 +1,17 @@
 # sim-lib-openai-server
 
-In one line: A gateway that lets tools built for OpenAI's API talk to SIM instead.
+In one line: A gateway that lets OpenAI-shaped clients reach SIM's model and agent surface.
 
 ## What it gives you
 
-Many programs already know how to speak to OpenAI's web interface. This crate lets SIM answer on that same interface, so those programs can point at SIM without being rewritten. It handles the familiar endpoints for chat and responses, for embeddings, and for audio, image, and vector-store requests, translating between OpenAI's message format and SIM's own. Answers can stream back as they are produced, past responses can be fetched again by their id, and a stored response can be replayed or branched for inspection. The model listing reports the models SIM actually has available, so local, fixture, and remote model entries all show up together when they are installed.
+Many programs already know the request and response shapes used by OpenAI-style model services. This crate gives SIM a gateway in that shape for chat, response, embedding, model listing, streaming, replay, and inspection flows. It also includes SIM fixture and subset routes for file records, audio transcription and speech, image references, and text-vector search, so tests and demos can exercise those object families without pretending to be a full media or multipart provider. Stored responses can be fetched again by id, replayed, or branched for inspection. The model listing reports the models SIM actually has available, so local, fixture, and remote model entries appear together when they are installed.
 
 ## Why you will be glad
 
-- Existing OpenAI-compatible apps and libraries can use SIM with little or no change.
-- One listing shows every model SIM can reach, so callers see local and remote options side by side.
-- Saved responses can be fetched, replayed, and branched, which makes reviewing and debugging far easier.
+- Clients that use the shipped OpenAI-shaped JSON flows can point at SIM without learning a separate gateway shape.
+- The media and vector routes are honest fixtures and subsets, so tests get deterministic behavior instead of hidden provider assumptions.
+- Saved responses can be fetched, replayed, and branched, which makes reviewing and debugging easier.
 
 ## Where it fits
 
-This crate is SIM's front door for the OpenAI-style world. It sits at the network edge, receives requests in that widely used shape, and hands them to SIM's agents and models through the runtime's own contracts. It lets SIM join an existing ecosystem of clients rather than asking every one of them to learn something new.
+This crate is SIM's network front door for OpenAI-shaped clients. It receives supported gateway requests, translates them into SIM's runtime contracts, and returns objects that those clients can consume. It connects familiar client tooling to SIM while keeping provider-specific behavior explicit.

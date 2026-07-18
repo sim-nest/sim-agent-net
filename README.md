@@ -23,7 +23,7 @@ walkthrough of every surface: see sim-say.
 `sim-agent-net` is a SIM constellation repository: the server, agent, and
 model-fabric substrate of the SIM runtime. It holds the library crates that
 turn networked services, autonomous agents, and language-model access into
-ordinary SIM runtime objects, plus the MCP and OpenAI-compatible gateway
+ordinary SIM runtime objects, plus the MCP and OpenAI-shaped gateway
 surfaces and the `sim-mcp-server` binary.
 
 SIM is an expandable Rust runtime built around a small protocol kernel
@@ -94,10 +94,10 @@ Skills, tools, and gateways:
 - `sim-lib-mcp` -- library-only MCP projection. Projects native browse Cards and
   optional `SkillCard` records into redacted `McpSurfaceCard` rows; routing,
   transport, and callable execution layer on top behind features.
-- `sim-lib-openai-server` -- an OpenAI-compatible gateway skeleton: health
-  route, OpenAI JSON transcript codec, model discovery, `POST /v1/responses`,
-  `POST /v1/chat/completions`, `POST /v1/embeddings`, fixtures, SSE streaming
-  projection, and stored-response replay/fork routes.
+- `sim-lib-openai-server` -- OpenAI-shaped gateway routes: health route, OpenAI
+  JSON transcript codec, model discovery, supported chat, response, and
+  embedding request flows, fixture/subset file, audio, image, and vector-store
+  routes, SSE streaming projection, and stored-response replay/fork routes.
 - `sim-lib-cookbook` -- runtime `cookbook:` operations over a shared recipe
   store; the recipe engine itself stays in the kernel-free `sim-cookbook`
   crate.
@@ -207,8 +207,8 @@ delegates the request through the same `ModelRunner` transcript contract.
 
 The same prompt graph can realize against fake, local, or remote placements by
 changing only the key. `model/sites` and `model/site-card` expose placement cards
-for browsing, and the OpenAI-compatible `GET /v1/models` route lists models from
-registered runner cards, including the loadable local model card when present.
+for browsing, and the OpenAI-shaped model-list route reports registered runner
+cards, including the loadable local model card when present.
 
 ### Model cache
 

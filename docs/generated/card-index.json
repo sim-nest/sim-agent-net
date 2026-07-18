@@ -65,7 +65,7 @@
       "id": "cookbook/openai-gateway",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-openai-server",
-      "summary": "OpenAI-compatible gateway request descriptors and local replay."
+      "summary": "OpenAI-shaped gateway request descriptors and local replay."
     },
     {
       "id": "cookbook/server",
