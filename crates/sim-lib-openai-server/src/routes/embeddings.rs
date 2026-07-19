@@ -330,9 +330,9 @@ fn embedding_event_expr(model: &EmbeddingModel, input_count: usize) -> Expr {
     ])
 }
 
-// Token counts are Expr::String by design here, CONSISTENT with the sibling
-// embeddings event fields (input-count, dimension). Do not 'fix' to numbers --
-// that would make this record internally inconsistent. See OVERLAP6.03e.
+// Token counts are Expr::String by design here, consistent with the sibling
+// embeddings event fields (input-count, dimension). Numeric token fields would
+// make this record internally inconsistent.
 fn usage_expr(usage: &EmbeddingUsage) -> Expr {
     Expr::Map(vec![
         field(

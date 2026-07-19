@@ -18,7 +18,7 @@ use crate::repair::{AskFailure, RepairPolicy};
 use crate::rx::{effective_caps, rx_check, shape_from_contract_expr};
 use crate::tx::{eval_request_for_checked_packet, prepare_packet};
 
-/// Default codec used to pack ASK call arguments and answers.
+/// Default codec for packing ASK call arguments and answers.
 pub fn ask_default_codec() -> Symbol {
     Symbol::qualified("codec", "json")
 }

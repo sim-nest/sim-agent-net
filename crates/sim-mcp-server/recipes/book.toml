@@ -1,0 +1,5 @@
+book = "mcp-server"
+title = "MCP Server"
+summary = "Stdio MCP bootloader descriptors."
+order = 410
+chapters = ["01-basics"]

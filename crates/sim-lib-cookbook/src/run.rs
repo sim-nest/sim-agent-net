@@ -75,8 +75,8 @@ pub fn run_recipe(cx: &mut Cx, card: &RecipeCard) -> Result<RecipeRun> {
 
 /// Run a recipe end to end, loading its `requires` from `catalog` first.
 ///
-/// Before decode+eval the runner asks `catalog` to resolve each `requires` entry
-/// and loads the returned lib into the eval `Cx`, idempotently. A require the
+/// To decode and eval, the runner asks `catalog` to resolve each `requires`
+/// entry and loads the returned lib into the eval `Cx`, idempotently. A require the
 /// catalog does not carry (and that is not already loaded) makes the recipe a
 /// descriptor: the run returns `Err(Error::Eval("descriptor: requires <x> not in
 /// catalog"))`. This is what turns runnability into a structural property of

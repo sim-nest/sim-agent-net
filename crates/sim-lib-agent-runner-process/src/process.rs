@@ -434,8 +434,8 @@ mod tests {
         // read-end before the writer drains the payload. A 1 MiB payload exceeds
         // the OS pipe buffer, so write_all is still blocked when the child exits,
         // making the resulting EPIPE deterministic. It is benign and must NOT
-        // fail the call (regression: the streaming path used to map+propagate it,
-        // which flaked under load while the non-streaming path tolerated it).
+        // fail the call; the streaming path has the same tolerance as the
+        // buffered path.
         let mut lines = Vec::new();
         let bytes = stream_command_lines(
             "printf 'one\\ntwo\\n'",
@@ -508,9 +508,9 @@ mod tests {
 
     #[test]
     fn streaming_max_output_with_grandchild_returns_not_hang() {
-        // The max-output branch also kills the child then used to join; a
-        // grandchild holding stdout would hang it. Emit past the cap while a
-        // grandchild keeps the pipe open and confirm a prompt bounded error.
+        // The max-output branch kills the child while a grandchild may keep
+        // stdout open. Emit past the cap while a grandchild keeps the pipe open
+        // and confirm a prompt bounded error.
         let start = Instant::now();
         let err = stream_command_lines(
             "(sleep 60 &); printf 'aaaaaaaaaa\\nbbbbbbbbbb\\n'; sleep 60",

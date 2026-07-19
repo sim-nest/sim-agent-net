@@ -37,13 +37,13 @@ pub struct LoadableLibEntry {
     pub id: String,
     /// Host resolver source key, such as `symbol:numbers/cas`.
     pub source: String,
-    /// Human title used for this library's cookbook book.
+    /// Human title for this library's cookbook book.
     pub title: String,
     /// Book display order.
     pub order: i64,
     /// Embedded recipes for this lib, when the host can expose them.
     pub recipes: Option<EmbeddedDir>,
-    /// Catalog instance used to resolve ordinary recipe `requires`.
+    /// Catalog instance that resolves ordinary recipe `requires`.
     pub catalog_lib: Box<dyn Lib + Send + Sync>,
     /// Factory used by lifecycle execution to create a fresh lib instance.
     pub factory: LibFactory,

@@ -7,7 +7,7 @@
 use sim_kernel::Symbol;
 use std::time::Duration;
 
-/// Maximum decoded provider response size used by default.
+/// Default maximum decoded provider response size.
 pub const DEFAULT_MAX_OUTPUT_BYTES: usize = 1024 * 1024;
 
 /// Authentication shape used by a provider profile.
@@ -65,7 +65,7 @@ pub struct ProviderProfile {
     pub provider: Symbol,
     /// Default runner symbol exposed by the agent library.
     pub runner_symbol: Symbol,
-    /// Runtime codec symbol used to encode/decode provider payloads.
+    /// Runtime codec symbol for encoding/decoding provider payloads.
     pub codec: Symbol,
     /// Default base endpoint. An empty value means the caller must supply one.
     pub default_endpoint: String,

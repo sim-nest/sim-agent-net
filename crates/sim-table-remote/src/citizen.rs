@@ -8,7 +8,7 @@ use sim_kernel::Symbol;
 pub struct RemoteDirDescriptor {
     /// Identifier of the remote site kind backing the directory.
     pub site_kind: String,
-    /// Codec used to encode and decode rows over the wire.
+    /// Codec for row encoding and decoding over the wire.
     #[citizen(with = "sim_table_core::citizen_fields::symbol")]
     pub codec: Symbol,
     /// Path segments locating the directory within the remote site.

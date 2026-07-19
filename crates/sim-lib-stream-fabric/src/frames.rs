@@ -30,7 +30,7 @@ pub struct StreamFrameLimits {
     pub max_inflight_frames: usize,
     /// Maximum stream duration, in milliseconds, before truncation.
     pub max_duration_ms: u64,
-    /// Maximum stream rate, in hertz, used to derive the effective frame limit.
+    /// Maximum stream rate, in hertz, for deriving the effective frame limit.
     pub max_rate_hz: u32,
 }
 

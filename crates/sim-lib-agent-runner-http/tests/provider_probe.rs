@@ -160,7 +160,7 @@ fn parse_ollama_tags_extracts_model_names() {
 }
 
 #[test]
-fn lemonade_candidates_try_legacy_and_api_bases_by_default() {
+fn lemonade_candidates_try_default_and_api_bases_by_default() {
     assert_eq!(
         lemonade_candidates(None),
         vec![

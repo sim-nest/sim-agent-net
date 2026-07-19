@@ -4,7 +4,7 @@ In one line: It keeps model-facing BRIDGE packets from leaving or entering SIM u
 
 ## What it gives you
 
-This crate is the runtime guard around BRIDGE packets. Before a packet is sent, it stamps a stable identity, proves the line form can be read back, checks that every byte belongs to the packet, and runs the same receive checks the other side will use. When an answer comes back, it reads the final model content as another BRIDGE packet and checks the move, parts, capabilities, and declared return contract before accepting it.
+This crate is the runtime guard around BRIDGE packets. On send, it stamps a stable identity, proves the line form can be read back, checks that every byte belongs to the packet, and runs the same receive checks the other side will use. When an answer comes back, it reads the final model content as another BRIDGE packet and checks the move, parts, capabilities, and declared return contract before accepting it.
 
 ## Why you will be glad
 

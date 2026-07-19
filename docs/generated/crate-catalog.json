@@ -137,7 +137,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for sim lib server.",
+      "description": "Location-transparent server, transport, and eval-fabric runtime for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-server/Cargo.toml",
       "name": "sim-lib-server",
@@ -150,7 +150,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for sim lib skill.",
+      "description": "Skill cards, policy records, browse metadata, and projections for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-skill/Cargo.toml",
       "name": "sim-lib-skill",
@@ -179,7 +179,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for sim mcp server.",
+      "description": "Stdio MCP server bootloader for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-mcp-server/Cargo.toml",
       "name": "sim-mcp-server",
@@ -191,7 +191,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for sim table remote.",
+      "description": "Remote directory adapter for SIM table operations over eval fabric.",
       "generated_readme": true,
       "manifest": "crates/sim-table-remote/Cargo.toml",
       "name": "sim-table-remote",
@@ -203,7 +203,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for xtask.",
+      "description": "Repository maintenance tasks for sim-agent-net.",
       "generated_readme": true,
       "manifest": "xtask/Cargo.toml",
       "name": "xtask",

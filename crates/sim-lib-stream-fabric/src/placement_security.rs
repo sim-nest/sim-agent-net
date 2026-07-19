@@ -68,7 +68,7 @@ pub struct PlacementResourceLimits {
     pub max_stream_frames: usize,
     /// Maximum stream duration, in milliseconds, before truncation.
     pub max_duration_ms: u64,
-    /// Maximum stream rate, in hertz, used to derive the effective frame limit.
+    /// Maximum stream rate, in hertz, for deriving the effective frame limit.
     pub max_rate_hz: u32,
     /// Maximum number of frames allowed in flight at once.
     pub max_inflight_work: usize,

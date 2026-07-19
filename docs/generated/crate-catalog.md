@@ -16,9 +16,9 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-forge` | `true` | `custom-build, lib` | Compiled intent records and one-shot BRIDGE lifts for reusable packet programs. |
 | `sim-lib-mcp` | `true` | `custom-build, lib, test` | Library-only MCP surface projection for SIM. |
 | `sim-lib-openai-server` | `true` | `custom-build, lib` | OpenAI-shaped gateway routes and fixture media surfaces for SIM. |
-| `sim-lib-server` | `true` | `custom-build, lib` | SIM workspace package for sim lib server. |
-| `sim-lib-skill` | `true` | `custom-build, lib, test` | SIM workspace package for sim lib skill. |
+| `sim-lib-server` | `true` | `custom-build, lib` | Location-transparent server, transport, and eval-fabric runtime for SIM. |
+| `sim-lib-skill` | `true` | `custom-build, lib, test` | Skill cards, policy records, browse metadata, and projections for SIM. |
 | `sim-lib-stream-fabric` | `true` | `bin, custom-build, lib, test` | Content-addressed distributed evaluation for remote stream realization. |
-| `sim-mcp-server` | `true` | `bin` | SIM workspace package for sim mcp server. |
-| `sim-table-remote` | `true` | `lib` | SIM workspace package for sim table remote. |
-| `xtask` | `false` | `bin` | SIM workspace package for xtask. |
+| `sim-mcp-server` | `true` | `bin` | Stdio MCP server bootloader for SIM. |
+| `sim-table-remote` | `true` | `lib` | Remote directory adapter for SIM table operations over eval fabric. |
+| `xtask` | `false` | `bin` | Repository maintenance tasks for sim-agent-net. |

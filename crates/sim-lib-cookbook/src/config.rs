@@ -42,11 +42,11 @@ pub struct LoadableLibConfig {
 
 /// Host-resolved loadable-lib material.
 pub struct ResolvedLoadable {
-    /// Human title used for this library's cookbook book.
+    /// Human title for this library's cookbook book.
     pub title: String,
     /// Embedded recipes for this lib, when the host can expose them.
     pub recipes: Option<EmbeddedDir>,
-    /// Factory used to build fresh lib instances.
+    /// Factory that builds fresh lib instances.
     pub factory: LibFactory,
 }
 

@@ -12,8 +12,8 @@ use super::tool_schema::{
 ///
 /// Holds the OpenAI-facing function name and JSON Schema `parameters`
 /// alongside the resolved SIM `symbol`, argument order, required
-/// capabilities, and optional argument/result shapes used to translate
-/// between OpenAI tool descriptors and SIM calls.
+/// capabilities, and optional argument/result shapes for translating between
+/// OpenAI tool descriptors and SIM calls.
 #[derive(Clone, Debug, PartialEq)]
 pub struct OpenAiTool {
     openai_name: String,

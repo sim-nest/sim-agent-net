@@ -183,7 +183,7 @@ pub fn models_response_for_catalog(catalog: &ModelCatalog) -> GatewayResponse {
     GatewayResponse::json(200, catalog.to_json().to_string().into_bytes())
 }
 
-/// Returns the `runner/cards` function symbol used to fetch model cards.
+/// Returns the `runner/cards` function symbol that fetches model cards.
 pub fn runner_cards_symbol() -> Symbol {
     Symbol::qualified("runner", "cards")
 }

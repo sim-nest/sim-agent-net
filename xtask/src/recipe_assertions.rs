@@ -2,10 +2,13 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::recipe_coverage::check_publishable_recipe_coverage;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct CheckSummary {
     pub(crate) checked_recipes: usize,
     pub(crate) agent30_recipes: usize,
+    pub(crate) publishable_packages: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -28,6 +31,12 @@ pub(crate) fn check_repo(root: &Path) -> Result<CheckSummary, String> {
 
     let mut summary = CheckSummary::default();
     let mut errors = Vec::new();
+    match check_publishable_recipe_coverage(root) {
+        Ok(publishable_packages) => {
+            summary.publishable_packages = publishable_packages;
+        }
+        Err(mut coverage_errors) => errors.append(&mut coverage_errors),
+    }
     for path in recipe_paths {
         match check_recipe(root, &path) {
             Ok(recipe_summary) => {
@@ -111,6 +120,7 @@ fn check_recipe(root: &Path, relative_path: &Path) -> Result<CheckSummary, Vec<S
         Ok(CheckSummary {
             checked_recipes: usize::from(checked),
             agent30_recipes: usize::from(agent30),
+            publishable_packages: 0,
         })
     } else {
         Err(errors)

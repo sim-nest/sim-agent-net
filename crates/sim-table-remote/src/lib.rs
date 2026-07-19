@@ -2,7 +2,7 @@
 //!
 //! This crate exposes a [`RemoteDir`] that projects a remote table site as a
 //! SIM table object, along with the [`RemoteDirDescriptor`] citizen record that
-//! describes it and the [`RemoteTableSite`] adapter used to back it.
+//! describes it and the [`RemoteTableSite`] adapter that backs it.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]

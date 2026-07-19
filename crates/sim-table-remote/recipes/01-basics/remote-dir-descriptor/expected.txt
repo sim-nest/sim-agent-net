@@ -1,0 +1,1 @@
+(table-remote remote-dir (site remote-table) (operations get set keys entries del mkdir) (fabric eval) (capability table/remote))

@@ -1,0 +1,17 @@
+id = "stdio-bootloader"
+title = "Stdio MCP bootloader"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["mcp", "server", "stdio", "bootloader", "sandbox-descriptor"]
+requires = ["mcp", "codec/lisp"]
+capabilities = ["mcp/serve"]
+assert_tags = ["mcp", "stdio", "bootloader", "sandbox-descriptor"]
+assert_capabilities = ["mcp/serve"]
+assert_setup_codec = "lisp"
+
+[[expect]]
+form = 0
+result = "(mcp-server stdio-bootloader (bootloader sim-run-core) (codec mcp) (transport stdio) (entrypoint cli/main/mcp) (constructs-cx false))"

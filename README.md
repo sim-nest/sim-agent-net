@@ -181,9 +181,9 @@ Installed runner surfaces:
 - `runner/anthropic` -- targets native Anthropic Messages APIs with the required
   version and secret headers.
 - `runner/openai-compatible` -- targets OpenAI-style HTTP or HTTPS
-  chat/completions APIs; HTTPS is enabled by the optional root feature
-  `agent-runner-http-tls`; streaming consumes SSE `data:` chunks and emits live
-  `model-event` deltas.
+  chat/completions APIs; HTTPS is enabled by the
+  `sim-lib-agent-runner-http/tls` feature; streaming consumes SSE `data:`
+  chunks and emits live `model-event` deltas.
 - `runner/ollama` -- targets native Ollama HTTP chat endpoints without a proxy;
   streaming consumes native NDJSON chunks and emits the same `model-event`
   schema.
@@ -282,10 +282,10 @@ ordinary transcript data. The selection path:
 
 `runner/agent` lets an agent surface participate in the same selection and
 invocation path as a direct model runner. A policy may route to a remote model,
-a local process model, or another agent; with the `skill-runner` feature, also
-to a model-role `SkillCard` projected through `skill/as-runner`. Cards and
-bidding compare these options uniformly, and debate/market flows can combine
-agent and direct model endpoints.
+a local process model, or another agent; with the `sim-lib-skill/runner`
+feature, also to a model-role `SkillCard` projected through `skill/as-runner`.
+Cards and bidding compare these options uniformly, and debate/market flows can
+combine agent and direct model endpoints.
 
 ### Helper surfaces
 
@@ -293,8 +293,8 @@ agent and direct model endpoints.
 - `runner/card` / `runner/cards` -- inspect one or enumerate registered runner
   cards.
 - `runner/health` -- summarize runner health state.
-- `skill/as-runner` -- with the `skill-runner` feature, project a model-role
-  `SkillCard` into the external runner contract.
+- `skill/as-runner` -- with the `sim-lib-skill/runner` feature, project a
+  model-role `SkillCard` into the external runner contract.
 
 ## Capabilities
 
@@ -310,7 +310,10 @@ These commands run from this repository and match the standalone validation gate
 
 ```bash
 cargo fmt --all --check && cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo doc --workspace --no-deps
+cargo clippy --workspace --all-features --all-targets -- -D warnings
+cargo test --workspace --all-features
 cargo run -p xtask -- simdoc --check
+cargo run -p xtask -- check-file-sizes
 ```
 
 The model-fabric validation profiles are scripted and environment-gated:

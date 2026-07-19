@@ -129,13 +129,13 @@ fn remote_stream_frames_require_remote_network_capability() {
 }
 
 #[test]
-fn legacy_packet_chunk_frames_still_decode() {
+fn compatibility_packet_chunk_frames_still_decode() {
     let mut cx = cx();
     let start = stream_frame_from_expr(
         &mut cx,
         lisp_codec(),
         FrameKind::StreamStart,
-        &midi_metadata("stream/legacy-packet").table_expr(),
+        &midi_metadata("stream/compat-packet").table_expr(),
         FrameEnvelope::default(),
     )
     .unwrap();

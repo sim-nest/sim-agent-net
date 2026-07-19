@@ -52,7 +52,7 @@ pub struct ProcessSkillSpec {
     pub description: String,
     /// Template for the command line to run for each call.
     pub command_template: String,
-    /// Protocol used to exchange data with the command.
+    /// Protocol for exchanging data with the command.
     pub protocol: ProcessSkillProtocol,
     /// Shape contract for the call arguments.
     pub input_shape: ShapeRef,
@@ -301,8 +301,8 @@ fn text_stdin(cx: &mut Cx, args: Value) -> Result<Vec<u8>> {
 }
 
 // Intentionally-divergent untagged Expr->JSON projection: this module's wire
-// form differs from sim_codec_json::project_expr_to_json (and from the sibling
-// forks), so it is kept local on purpose -- not a deletable fork. See OVERLAP_5.
+// form differs from sim_codec_json::project_expr_to_json and stays local because
+// process skill payloads need this untagged shape.
 fn expr_to_json(expr: &Expr) -> JsonValue {
     match expr {
         Expr::Nil => JsonValue::Null,

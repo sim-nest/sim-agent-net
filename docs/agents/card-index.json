@@ -239,6 +239,18 @@
     "crates/sim-lib-stream-fabric/recipes/01-basics/ledgered-relay/purpose.md",
     "crates/sim-lib-stream-fabric/recipes/01-basics/ledgered-relay/recipe.toml",
     "crates/sim-lib-stream-fabric/recipes/01-basics/ledgered-relay/setup.siml",
-    "crates/sim-lib-stream-fabric/recipes/book.toml"
+    "crates/sim-lib-stream-fabric/recipes/book.toml",
+    "crates/sim-mcp-server/recipes/01-basics/chapter.toml",
+    "crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/expected.txt",
+    "crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/purpose.md",
+    "crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/recipe.toml",
+    "crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/setup.siml",
+    "crates/sim-mcp-server/recipes/book.toml",
+    "crates/sim-table-remote/recipes/01-basics/chapter.toml",
+    "crates/sim-table-remote/recipes/01-basics/remote-dir-descriptor/expected.txt",
+    "crates/sim-table-remote/recipes/01-basics/remote-dir-descriptor/purpose.md",
+    "crates/sim-table-remote/recipes/01-basics/remote-dir-descriptor/recipe.toml",
+    "crates/sim-table-remote/recipes/01-basics/remote-dir-descriptor/setup.siml",
+    "crates/sim-table-remote/recipes/book.toml"
   ]
 }

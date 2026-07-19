@@ -1,5 +1,5 @@
 {
-  "card_count": 15,
+  "card_count": 17,
   "cards": [
     {
       "id": "browse/catalog",
@@ -62,6 +62,12 @@
       "summary": "MCP JSON-RPC descriptors and cassette replay."
     },
     {
+      "id": "cookbook/mcp-server",
+      "kind": "cookbook-recipe",
+      "owner": "sim-mcp-server",
+      "summary": "Stdio MCP bootloader descriptors."
+    },
+    {
       "id": "cookbook/openai-gateway",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-openai-server",
@@ -84,6 +90,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-stream-fabric",
       "summary": "Content-addressed distributed evaluation for remote stream realization."
+    },
+    {
+      "id": "cookbook/table-remote",
+      "kind": "cookbook-recipe",
+      "owner": "sim-table-remote",
+      "summary": "Remote table directory descriptors."
     },
     {
       "id": "registry/catalog",

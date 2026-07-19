@@ -1,0 +1,1 @@
+(mcp-server stdio-bootloader (bootloader sim-run-core) (codec mcp) (transport stdio) (entrypoint cli/main/mcp) (constructs-cx false))

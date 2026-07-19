@@ -76,7 +76,7 @@ impl ServerRuntime {
         &self.transport
     }
 
-    /// Returns the threading mode used to service connections.
+    /// Returns the threading mode that services connections.
     pub fn thread_mode(&self) -> &ThreadMode {
         &self.thread_mode
     }

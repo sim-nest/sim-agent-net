@@ -1,11 +1,50 @@
 //! Checked BRIDGE packet runtime for SIM model exchanges.
 //!
-//! `sim-lib-bridge` is the send and receive guard around the reversible
-//! BRIDGE packet codec. It keeps packet validation, capability ceilings,
-//! content-addressed request identity, model request construction, response
-//! decoding, and runtime exports in library space. The crate targets
+//! `sim-lib-bridge` is the send/receive guard around the reversible BRIDGE packet
+//! codec (`sim-codec-bridge`). It runs packets: validation, capability ceilings,
+//! content-addressed request identity, model-request construction, response
+//! decoding, the shared frontier engine, and the four profile helpers. It targets
 //! [`EvalFabric`](sim_kernel::EvalFabric) and the provider-neutral runner
 //! contracts; it does not own transports or model providers.
+//!
+//! # One checker, both directions
+//!
+//! There is exactly one receive checker (`rx_check`), and transmit runs it on its
+//! own output before anything leaves SIM -- so a peer never bounces a packet its
+//! author believed well-formed.
+//!
+//! ```text
+//! TX  `bridge_tx` / `run_bridge`:
+//!       canonicalize -> stamp cid -> assert_roundtrip -> render_model_face
+//!       -> assert_total_ownership -> rx_check (the self-check gate)
+//!       -> ModelRequest in EvalRequest.expr -> realize_final
+//! RX  `bridge_rx` / `bridge_rx_response`:
+//!       terminal_response_packet (LAST content item) -> decode -> rx_check:
+//!       move legality + from/to inversion + parent-`Return` reply legality
+//!       + per-part shape checks -> BridgeReport (accepted, obligations, repair menus)
+//! ```
+//!
+//! `effective_caps` resolves the header ceiling and every acting step runs under
+//! `diminish(current, ceiling)`. `verify_warrant` turns a stale-book packet into a
+//! `Fetch` obligation instead of a hard failure or a silent accept.
+//!
+//! # Profiles (helpers over the one packet)
+//!
+//! - **ASK** -- `ask_packet` / `run_ask` / `run_ask_with_policy`: a typed model
+//!   call whose arguments are fenced data and whose reply is validated against the
+//!   declared `Return` shape, with bounded `RepairPolicy` on an `AskFailure`.
+//! - **BRIEF** -- `bridge_brief` / `render_brief_sentences`: controlled
+//!   instruction frames rendered as fluent cited sentences.
+//! - **LOOM** -- `validate_weave` / `weave_row_by_row` over `frontier` /
+//!   `FrontierMenu`: model-authored program bodies, checked row by row against a
+//!   flat menu, with `LoomObligation`s carrying the valid replacement.
+//! - **COLLAB** -- `merge_bridge_replies` / `MergePolicy`: typed reviews, votes,
+//!   and patches merged by exact parent cid and target path;
+//!   `receipt_packet_for_report` serializes the report lens back onto the wire.
+//!
+//! `materialize_given` / `fetch_obligation` implement budgeted context with the
+//! `Fetch` affordance; `install_bridge_lib` / `BridgeLib` register the runtime
+//! verbs (`bridge/tx`, `bridge/rx`, `bridge/ask`, `bridge/brief`, ...).
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
