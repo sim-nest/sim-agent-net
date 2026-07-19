@@ -322,6 +322,7 @@ fn ordinary_recipe_still_runs_through_catalog() {
     let lisp = sim_codec_lisp::LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
     cx.grant(read_eval_capability());
+    cx.grant(sim_kernel::macro_expand_eval_capability());
     let mut store = RecipeStore::new();
     store.register_book(DEMO_RECIPES).unwrap();
     let card = store.card("demo/lib/01-basics/demo").unwrap();

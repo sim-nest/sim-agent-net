@@ -40,6 +40,11 @@ fn setup_cx() -> Cx {
     cx
 }
 
+fn grant_recipe_eval(cx: &mut Cx) {
+    cx.grant(read_eval_capability());
+    cx.grant(sim_kernel::macro_expand_eval_capability());
+}
+
 struct CapabilityProbeLib;
 
 struct CapabilityProbeCallable;
@@ -127,7 +132,7 @@ fn run_executes_and_checks_expectation() {
         .card("lisp/01-basics/quote")
         .cloned()
         .unwrap();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let run = run_recipe(&mut cx, &card).unwrap();
     assert!(run.ok, "expected pass, got {run:?}");
     assert_eq!(run.results, ["ok"]);
@@ -150,7 +155,7 @@ fn run_reports_failing_expectation() {
         .card("lisp/01-basics/quote")
         .cloned()
         .unwrap();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let run = run_recipe(&mut cx, &card).unwrap();
     assert!(!run.ok);
     assert!(!run.checks[0].pass);
@@ -160,7 +165,7 @@ fn run_reports_failing_expectation() {
 #[test]
 fn run_reports_descriptor_on_unresolved_require() {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let book: Vec<(&str, &[u8])> = vec![
         ("book.toml", b"book = \"lisp\"\ntitle = \"Lisp\"\n"),
         (
@@ -207,7 +212,7 @@ fn run_recipe_is_denied_without_read_eval() {
 #[test]
 fn run_recipe_denies_missing_declared_capability() {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let book: Vec<(&str, &[u8])> = vec![
         ("book.toml", b"book = \"lisp\"\ntitle = \"Lisp\"\n"),
         (
@@ -233,7 +238,7 @@ fn run_recipe_denies_missing_declared_capability() {
 fn run_recipe_diminishes_to_runner_capabilities() {
     let mut cx = setup_cx();
     cx.load_lib(&CapabilityProbeLib).unwrap();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let book: Vec<(&str, &[u8])> = vec![
         ("book.toml", b"book = \"lisp\"\ntitle = \"Lisp\"\n"),
         (
@@ -258,7 +263,7 @@ fn run_recipe_diminishes_to_runner_capabilities() {
 #[test]
 fn run_recipe_denies_shape_mismatch() {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let card = store_with(&lisp_book())
         .card("lisp/01-basics/quote")
         .cloned()
@@ -419,7 +424,7 @@ fn seeded_loadable_directory_loads_idempotently_and_unloads() {
 #[test]
 fn seeded_expectation_recipe_runs_green() {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let card = seeded_recipe_store()
         .unwrap()
         .card("codec/lisp/01-basics/quote-symbol")
@@ -462,7 +467,7 @@ fn add_book() -> Vec<(&'static str, &'static [u8])> {
 #[test]
 fn requires_driven_loading_computes() {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
     let catalog = SeededLibCatalog::standard();
     let run = run_recipe_with_catalog(&mut cx, &catalog, &card).unwrap();
@@ -477,7 +482,7 @@ fn requires_driven_loading_computes() {
 #[test]
 fn unresolved_require_is_descriptor() {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
     let err = run_recipe(&mut cx, &card).unwrap_err();
     match err {
@@ -497,7 +502,7 @@ fn unresolved_require_is_descriptor() {
 #[test]
 fn twice_run_determinism_holds() {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     let card = store_with(&add_book()).card("t/c/add").cloned().unwrap();
     let catalog = SeededLibCatalog::standard();
     let run = run_recipe_twice(&mut cx, &catalog, &card).unwrap();
@@ -573,7 +578,7 @@ fn codec_book(
 #[cfg(feature = "seed-recipes")]
 fn run_organ(setup: &str, requires: &str, expect: &str) -> RecipeRun {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     // The webui bootloader grants read-construct on the cookbook Cx (cli.rs), so
     // `#(numbers/Func ...)` reader constructs build a real value; mirror that here.
     cx.grant(read_construct_capability());
@@ -590,7 +595,7 @@ fn run_organ(setup: &str, requires: &str, expect: &str) -> RecipeRun {
 #[cfg(feature = "seed-recipes")]
 fn run_codec(codec: &str, setup: &str, requires: &str, expect: &str) -> RecipeRun {
     let mut cx = setup_cx();
-    cx.grant(read_eval_capability());
+    grant_recipe_eval(&mut cx);
     cx.grant(read_construct_capability());
     let book = codec_book("r", codec, setup, requires, expect);
     let refs: Vec<(&str, &[u8])> = book

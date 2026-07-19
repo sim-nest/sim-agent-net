@@ -17,7 +17,8 @@ use sim_codec::{
 use sim_cookbook::{CheckResult, RecipeCard, RecipeRun};
 use sim_kernel::{
     CapabilityName, CapabilitySet, Cx, EncodeOptions, Error, Expr, ReadPolicy, Result, Shape,
-    Symbol, TrustLevel, read_construct_capability, read_eval_capability,
+    Symbol, TrustLevel, macro_expand_eval_capability, read_construct_capability,
+    read_eval_capability,
 };
 use sim_lib_core::{ReadEvalBroker, ReadEvalRequest, ReadEvalSource, RequestOrigin};
 use sim_shape::AnyShape;
@@ -209,12 +210,13 @@ fn trusted_recipe_read_policy() -> ReadPolicy {
         trust: TrustLevel::TrustedSource,
         capabilities: CapabilitySet::new()
             .grant(read_construct_capability())
-            .grant(read_eval_capability()),
+            .grant(read_eval_capability())
+            .grant(macro_expand_eval_capability()),
     }
 }
 
 fn recipe_required_capabilities(card: &RecipeCard) -> Vec<CapabilityName> {
-    let mut capabilities = vec![read_eval_capability()];
+    let mut capabilities = vec![read_eval_capability(), macro_expand_eval_capability()];
     capabilities.extend(tagged_capabilities(card, "requires-capability:"));
     sort_dedup_capabilities(&mut capabilities);
     capabilities

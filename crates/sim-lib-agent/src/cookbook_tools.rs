@@ -15,7 +15,10 @@ pub(crate) fn install_cookbook_tools(cx: &mut Cx) -> Result<()> {
         cx,
         "run",
         "run a seeded cookbook recipe with expectation checks",
-        vec![sim_kernel::read_eval_capability()],
+        vec![
+            sim_kernel::read_eval_capability(),
+            sim_kernel::macro_expand_eval_capability(),
+        ],
     )?;
     install_tool(cx, Arc::new(run_tool))?;
     install_cookbook_card(cx)

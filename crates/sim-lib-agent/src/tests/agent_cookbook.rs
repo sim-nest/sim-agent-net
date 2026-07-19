@@ -1,5 +1,7 @@
 use super::support::{eval_cx, install_agent_lib, install_roundtrip_codecs};
-use sim_kernel::{Args, Error, Expr, Symbol, Value, read_eval_capability};
+use sim_kernel::{
+    Args, Error, Expr, Symbol, Value, macro_expand_eval_capability, read_eval_capability,
+};
 
 const SEEDED_LISP_RECIPE: &str = "codec/lisp/01-basics/quote-symbol";
 
@@ -33,6 +35,7 @@ fn agent_cookbook_card_can_search_and_run_seeded_recipe() {
     );
 
     cx.grant(read_eval_capability());
+    cx.grant(macro_expand_eval_capability());
     let run = call_tool(&mut cx, "run", SEEDED_LISP_RECIPE).unwrap();
     let run = expr(&mut cx, &run);
     assert_eq!(
