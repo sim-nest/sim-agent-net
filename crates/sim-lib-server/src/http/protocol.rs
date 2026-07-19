@@ -6,6 +6,8 @@ use crate::transport::MAX_TRANSPORT_FRAME_BYTES;
 
 use super::core::{HttpRequest, HttpResponse, header_value};
 
+const MAX_SSE_LINE_BYTES: usize = 64 * 1024;
+
 pub(crate) fn read_request<R: Read>(reader: &mut R) -> Result<Option<HttpRequest>> {
     let head = match read_http_head(reader)? {
         Some(head) => head,
@@ -83,22 +85,64 @@ pub(crate) fn write_response<W: Write>(writer: &mut W, res: &HttpResponse) -> Re
 // `(event, data)` tuple contract is preserved for the transport consumers.
 pub(crate) fn read_sse_event<R: BufRead>(reader: &mut R) -> Result<Option<(String, String)>> {
     let mut decoder = sim_lib_net_core::SseDecoder::new();
+    let mut data_bytes = 0usize;
     loop {
         let mut line = String::new();
-        let read = reader.read_line(&mut line).map_err(io_to_host)?;
-        if read == 0 {
-            // Peer closed: emit any record accumulated without a final blank line.
-            return Ok(decoder.flush().map(sse_event_tuple));
+        match sim_lib_net_core::read_capped_line(reader, &mut line, MAX_SSE_LINE_BYTES)
+            .map_err(io_to_host)?
+        {
+            sim_lib_net_core::CapOutcome::Eof => {
+                // Peer closed: emit any record accumulated without a final blank line.
+                return Ok(decoder.flush().map(sse_event_tuple));
+            }
+            sim_lib_net_core::CapOutcome::TooLarge => {
+                return Err(Error::HostError(format!(
+                    "sse line exceeds size limit of {MAX_SSE_LINE_BYTES} bytes"
+                )));
+            }
+            sim_lib_net_core::CapOutcome::Line => {}
         }
         let line = line.trim_end_matches(['\r', '\n']);
+        update_sse_data_bound(line, &mut data_bytes)?;
         if let Some(event) = decoder.push_line(line) {
             return Ok(Some(sse_event_tuple(event)));
+        }
+        if line.is_empty() {
+            data_bytes = 0;
         }
     }
 }
 
 fn sse_event_tuple(event: sim_lib_net_core::SseEvent) -> (String, String) {
     (event.event.unwrap_or_default(), event.data)
+}
+
+fn update_sse_data_bound(line: &str, data_bytes: &mut usize) -> Result<()> {
+    if line.is_empty() {
+        *data_bytes = 0;
+        return Ok(());
+    }
+    if line.starts_with(':') {
+        return Ok(());
+    }
+    let (field, value) = match line.split_once(':') {
+        Some((field, rest)) => (field, rest.strip_prefix(' ').unwrap_or(rest)),
+        None => (line, ""),
+    };
+    if field != "data" {
+        return Ok(());
+    }
+    let separator = usize::from(*data_bytes != 0);
+    let next = (*data_bytes)
+        .saturating_add(separator)
+        .saturating_add(value.len());
+    if next > MAX_SSE_LINE_BYTES {
+        return Err(Error::HostError(format!(
+            "sse event data exceeds size limit of {MAX_SSE_LINE_BYTES} bytes"
+        )));
+    }
+    *data_bytes = next;
+    Ok(())
 }
 
 fn read_http_head<R: Read>(reader: &mut R) -> Result<Option<Vec<u8>>> {

@@ -114,6 +114,27 @@ fn sse_eof_without_record_is_none() {
 }
 
 #[test]
+fn sse_rejects_oversize_line_before_decoding() {
+    let input = format!("data: {}\r\n\r\n", "x".repeat(64 * 1024));
+    let mut reader = Cursor::new(input.into_bytes());
+
+    let error = read_sse_event(&mut reader).unwrap_err();
+
+    assert!(format!("{error}").contains("sse line exceeds size limit"));
+}
+
+#[test]
+fn sse_rejects_oversize_multiline_data_event() {
+    let piece = "x".repeat(40 * 1024);
+    let input = format!("data: {piece}\r\ndata: {piece}\r\n\r\n");
+    let mut reader = Cursor::new(input.into_bytes());
+
+    let error = read_sse_event(&mut reader).unwrap_err();
+
+    assert!(format!("{error}").contains("sse event data exceeds size limit"));
+}
+
+#[test]
 fn websocket_accept_matches_reference() {
     let accept = websocket_accept_value("dGhlIHNhbXBsZSBub25jZQ==");
     assert_eq!(accept, "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=");
