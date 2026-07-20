@@ -5,6 +5,7 @@
 //! closed enum to `sim-kernel`.
 
 use sim_kernel::Symbol;
+use sim_shape::GrammarDialect;
 use std::time::Duration;
 
 /// Default maximum decoded provider response size.
@@ -87,6 +88,8 @@ pub struct ProviderProfile {
     pub default_tools: bool,
     /// Default response byte limit.
     pub default_max_output_bytes: usize,
+    /// Grammar dialects this provider can enforce directly.
+    pub grammar_dialects: Vec<GrammarDialect>,
 }
 
 impl ProviderProfile {
@@ -125,6 +128,7 @@ impl ProviderProfile {
 pub mod provider_profiles {
     use super::{DEFAULT_MAX_OUTPUT_BYTES, ProviderAuth, ProviderProfile};
     use sim_kernel::Symbol;
+    use sim_shape::GrammarDialect;
     use std::time::Duration;
 
     /// Returns every built-in provider profile.
@@ -157,6 +161,7 @@ pub mod provider_profiles {
             default_stream: false,
             default_tools: true,
             default_max_output_bytes: DEFAULT_MAX_OUTPUT_BYTES,
+            grammar_dialects: vec![GrammarDialect::JsonSchema],
         }
     }
 
@@ -179,6 +184,7 @@ pub mod provider_profiles {
             default_stream: false,
             default_tools: true,
             default_max_output_bytes: DEFAULT_MAX_OUTPUT_BYTES,
+            grammar_dialects: Vec::new(),
         }
     }
 
@@ -198,6 +204,7 @@ pub mod provider_profiles {
             default_stream: true,
             default_tools: false,
             default_max_output_bytes: DEFAULT_MAX_OUTPUT_BYTES,
+            grammar_dialects: vec![GrammarDialect::Gbnf],
         }
     }
 
@@ -219,6 +226,7 @@ pub mod provider_profiles {
             default_stream: false,
             default_tools: true,
             default_max_output_bytes: DEFAULT_MAX_OUTPUT_BYTES,
+            grammar_dialects: Vec::new(),
         }
     }
 
@@ -238,6 +246,7 @@ pub mod provider_profiles {
             default_stream: false,
             default_tools: true,
             default_max_output_bytes: DEFAULT_MAX_OUTPUT_BYTES,
+            grammar_dialects: Vec::new(),
         }
     }
 
@@ -259,6 +268,7 @@ pub mod provider_profiles {
             default_stream: false,
             default_tools: true,
             default_max_output_bytes: DEFAULT_MAX_OUTPUT_BYTES,
+            grammar_dialects: Vec::new(),
         }
     }
 }

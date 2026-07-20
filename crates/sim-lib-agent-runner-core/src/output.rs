@@ -1,5 +1,5 @@
 use sim_kernel::{Expr, Symbol};
-use sim_shape::Shape;
+use sim_shape::{GrammarDialect, GrammarGraph, Shape, shape_grammar_graph, shape_json_schema};
 
 use crate::grammar::shape_to_grammar;
 
@@ -9,6 +9,8 @@ pub const RETURN_CODEC_EXTRA: &str = "return-codec";
 pub const RETURN_SHAPE_EXTRA: &str = "return-shape";
 /// Model-request extension key for a best-effort output grammar.
 pub const OUTPUT_GRAMMAR_EXTRA: &str = "output-grammar";
+/// Model-request extension key for the concrete grammar dialect.
+pub const OUTPUT_GRAMMAR_DIALECT_EXTRA: &str = "output-grammar-dialect";
 /// Model-request extension key marking whether the grammar is required.
 pub const OUTPUT_GRAMMAR_REQUIRED_EXTRA: &str = "output-grammar-required";
 
@@ -21,6 +23,10 @@ pub struct OutputContract {
     pub shape_expr: Expr,
     /// Optional constrained-generation grammar derived from the shape.
     pub grammar: Option<String>,
+    /// Dialect used by [`Self::grammar`].
+    pub grammar_dialect: Option<GrammarDialect>,
+    /// Codec-neutral grammar source for provider-specific rendering.
+    pub grammar_graph: Option<GrammarGraph>,
     /// Whether a runner that accepts grammars must enforce the grammar.
     pub required: bool,
 }
@@ -28,17 +34,33 @@ pub struct OutputContract {
 impl OutputContract {
     /// Builds an output contract with an explicit grammar.
     pub fn new(codec: Symbol, shape_expr: Expr, grammar: Option<String>, required: bool) -> Self {
+        let grammar_dialect = grammar.as_ref().map(|_| GrammarDialect::JsonSchema);
         Self {
             codec,
             shape_expr,
             grammar,
+            grammar_dialect,
+            grammar_graph: None,
             required,
         }
     }
 
     /// Builds an output contract, deriving a grammar when the shape supports it.
     pub fn for_shape(codec: Symbol, shape_expr: Expr, shape: &dyn Shape, required: bool) -> Self {
-        Self::new(codec, shape_expr, shape_to_grammar(shape).ok(), required)
+        let grammar_graph = shape_grammar_graph(shape).ok();
+        let grammar = grammar_graph
+            .as_ref()
+            .and_then(|_| shape_json_schema(shape).ok())
+            .or_else(|| shape_to_grammar(shape).ok());
+        let grammar_dialect = grammar.as_ref().map(|_| GrammarDialect::JsonSchema);
+        Self {
+            codec,
+            shape_expr,
+            grammar,
+            grammar_dialect,
+            grammar_graph,
+            required,
+        }
     }
 
     /// Appends this contract to a [`ModelRequest`](crate::ModelRequest) `extra` map.
@@ -48,10 +70,35 @@ impl OutputContract {
         if let Some(grammar) = self.grammar {
             extra.push(entry(OUTPUT_GRAMMAR_EXTRA, Expr::String(grammar)));
         }
+        if let Some(dialect) = self.grammar_dialect {
+            extra.push(entry(
+                OUTPUT_GRAMMAR_DIALECT_EXTRA,
+                Expr::Symbol(grammar_dialect_symbol(dialect)),
+            ));
+        }
         extra.push(entry(
             OUTPUT_GRAMMAR_REQUIRED_EXTRA,
             Expr::Bool(self.required),
         ));
+    }
+}
+
+/// Returns the extension symbol used to name a grammar dialect.
+pub fn grammar_dialect_symbol(dialect: GrammarDialect) -> Symbol {
+    match dialect {
+        GrammarDialect::JsonSchema => Symbol::new("json-schema"),
+        GrammarDialect::Gbnf => Symbol::new("gbnf"),
+        GrammarDialect::SExpr => Symbol::new("sexpr"),
+    }
+}
+
+/// Parses a grammar dialect extension symbol.
+pub fn grammar_dialect_from_symbol(symbol: &Symbol) -> Option<GrammarDialect> {
+    match symbol.name.as_ref() {
+        "json-schema" if symbol.namespace.is_none() => Some(GrammarDialect::JsonSchema),
+        "gbnf" if symbol.namespace.is_none() => Some(GrammarDialect::Gbnf),
+        "sexpr" if symbol.namespace.is_none() => Some(GrammarDialect::SExpr),
+        _ => None,
     }
 }
 
@@ -62,8 +109,8 @@ fn entry(name: &str, value: Expr) -> (Expr, Expr) {
 #[cfg(test)]
 mod tests {
     use super::{
-        OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA, OutputContract, RETURN_CODEC_EXTRA,
-        RETURN_SHAPE_EXTRA,
+        OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
+        OutputContract, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA,
     };
     use sim_kernel::{
         Cx, Expr, MatchScore, Result, ShapeDoc, ShapeMatch, Symbol, Value, shape::Shape,
@@ -114,6 +161,10 @@ mod tests {
             Some(&Expr::String(r#"{"type":"string"}"#.to_owned()))
         );
         assert_eq!(
+            field(&extra, OUTPUT_GRAMMAR_DIALECT_EXTRA),
+            Some(&Expr::Symbol(Symbol::new("json-schema")))
+        );
+        assert_eq!(
             field(&extra, OUTPUT_GRAMMAR_REQUIRED_EXTRA),
             Some(&Expr::Bool(true))
         );
@@ -131,6 +182,7 @@ mod tests {
         contract.into_extra_entries(&mut extra);
 
         assert!(field(&extra, OUTPUT_GRAMMAR_EXTRA).is_none());
+        assert!(field(&extra, OUTPUT_GRAMMAR_DIALECT_EXTRA).is_none());
         assert_eq!(
             field(&extra, RETURN_SHAPE_EXTRA),
             Some(&Expr::Symbol(Symbol::qualified("bridge", "NamedRecord")))

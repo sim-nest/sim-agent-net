@@ -17,7 +17,10 @@ use sim_kernel::{
 };
 use sim_lib_agent_runner_core::{
     ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
+    OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA,
+    grammar_dialect_symbol,
 };
+use sim_shape::GrammarDialect;
 use std::time::Duration;
 
 /// HTTP-backed [`ModelRunner`] for OpenAI-compatible and Ollama endpoints.
@@ -37,6 +40,7 @@ pub struct HttpRunner {
     stream: bool,
     tools: bool,
     max_response_bytes: usize,
+    grammar_dialects: Vec<GrammarDialect>,
 }
 
 impl HttpRunner {
@@ -59,6 +63,7 @@ impl HttpRunner {
             stream: config.stream,
             tools: config.tools,
             max_response_bytes: config.max_output_bytes,
+            grammar_dialects: config.grammar_dialects,
         }
     }
 
@@ -93,6 +98,7 @@ impl HttpRunner {
             stream,
             tools,
             max_response_bytes,
+            grammar_dialects: Vec::new(),
         }
     }
 
@@ -124,6 +130,7 @@ impl HttpRunner {
             stream,
             tools,
             max_response_bytes,
+            grammar_dialects: vec![GrammarDialect::Gbnf],
         }
     }
 
@@ -192,6 +199,7 @@ impl HttpRunner {
         let ollama_codec = Symbol::qualified("codec", "ollama");
         let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
         let lemonade_codec = Symbol::qualified("codec", "lemonade");
+        let request = self.prepare_output_grammar(request);
         let request_expr: Expr = request.into();
         if self.codec == openai_codec {
             encode_openai_request(
@@ -372,6 +380,43 @@ impl HttpRunner {
             message.into(),
         ))
     }
+
+    fn prepare_output_grammar(&self, mut request: ModelRequest) -> ModelRequest {
+        let Some(dialect) = self.preferred_grammar_dialect() else {
+            strip_output_grammar(&mut request.extra);
+            return request;
+        };
+        if extra_field(&request.extra, RETURN_SHAPE_EXTRA).is_none()
+            && !explicit_output_grammar_matches(&request.extra, dialect)
+        {
+            strip_output_grammar(&mut request.extra);
+            return request;
+        }
+        let return_codec = extra_symbol(&request.extra, RETURN_CODEC_EXTRA);
+        if return_codec.as_ref() != Some(&Symbol::qualified("codec", "json")) {
+            strip_output_grammar(&mut request.extra);
+            return request;
+        }
+        if !explicit_output_grammar_matches(&request.extra, dialect) {
+            remove_extra(&mut request.extra, OUTPUT_GRAMMAR_EXTRA);
+        }
+        upsert_extra(
+            &mut request.extra,
+            OUTPUT_GRAMMAR_DIALECT_EXTRA,
+            Expr::Symbol(grammar_dialect_symbol(dialect)),
+        );
+        request
+    }
+
+    fn preferred_grammar_dialect(&self) -> Option<GrammarDialect> {
+        if self.grammar_dialects.contains(&GrammarDialect::JsonSchema) {
+            Some(GrammarDialect::JsonSchema)
+        } else if self.grammar_dialects.contains(&GrammarDialect::Gbnf) {
+            Some(GrammarDialect::Gbnf)
+        } else {
+            None
+        }
+    }
 }
 
 const ANTHROPIC_VERSION: &str = "2023-06-01";
@@ -422,14 +467,85 @@ fn is_field(expr: &Expr, name: &str) -> bool {
     )
 }
 
+fn extra_field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
+    entries.iter().find_map(|(key, value)| {
+        if is_field(key, name) {
+            Some(value)
+        } else {
+            None
+        }
+    })
+}
+
+fn extra_symbol(entries: &[(Expr, Expr)], name: &str) -> Option<Symbol> {
+    match extra_field(entries, name) {
+        Some(Expr::Symbol(symbol)) => Some(symbol.clone()),
+        _ => None,
+    }
+}
+
+fn upsert_extra(entries: &mut Vec<(Expr, Expr)>, name: &str, value: Expr) {
+    if let Some((_, existing)) = entries.iter_mut().find(|(key, _)| is_field(key, name)) {
+        *existing = value;
+        return;
+    }
+    entries.push((Expr::Symbol(Symbol::new(name)), value));
+}
+
+fn strip_output_grammar(entries: &mut Vec<(Expr, Expr)>) {
+    entries.retain(|(key, _)| {
+        !is_field(key, OUTPUT_GRAMMAR_EXTRA) && !is_field(key, OUTPUT_GRAMMAR_DIALECT_EXTRA)
+    });
+}
+
+fn remove_extra(entries: &mut Vec<(Expr, Expr)>, name: &str) {
+    entries.retain(|(key, _)| !is_field(key, name));
+}
+
+fn explicit_output_grammar_matches(entries: &[(Expr, Expr)], dialect: GrammarDialect) -> bool {
+    matches!(
+        extra_field(entries, OUTPUT_GRAMMAR_EXTRA),
+        Some(Expr::String(_))
+    ) && extra_field(entries, OUTPUT_GRAMMAR_DIALECT_EXTRA)
+        .and_then(|expr| match expr {
+            Expr::Symbol(symbol) => grammar_dialect_from_symbol_local(symbol),
+            _ => None,
+        })
+        .unwrap_or(GrammarDialect::JsonSchema)
+        == dialect
+}
+
+fn grammar_dialect_from_symbol_local(symbol: &Symbol) -> Option<GrammarDialect> {
+    match symbol.name.as_ref() {
+        "json-schema" if symbol.namespace.is_none() => Some(GrammarDialect::JsonSchema),
+        "gbnf" if symbol.namespace.is_none() => Some(GrammarDialect::Gbnf),
+        "sexpr" if symbol.namespace.is_none() => Some(GrammarDialect::SExpr),
+        _ => None,
+    }
+}
+
 impl ModelRunner for HttpRunner {
     fn card(&self) -> ModelCard {
-        ModelCard::new(
+        let mut card = ModelCard::new(
             self.runner.clone(),
             self.model.clone(),
             self.provider.clone(),
             self.locality.clone(),
-        )
+        );
+        if !self.grammar_dialects.is_empty() {
+            card.extra.push((
+                Expr::Symbol(Symbol::new("output-grammar-dialects")),
+                Expr::Vector(
+                    self.grammar_dialects
+                        .iter()
+                        .copied()
+                        .map(grammar_dialect_symbol)
+                        .map(Expr::Symbol)
+                        .collect(),
+                ),
+            ));
+        }
+        card
     }
 
     fn infer(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {

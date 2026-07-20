@@ -31,6 +31,8 @@ pub struct ProviderConfig {
     pub tools: bool,
     /// Maximum decoded provider response size.
     pub max_output_bytes: usize,
+    /// Grammar dialects this provider can enforce directly.
+    pub grammar_dialects: Vec<sim_shape::GrammarDialect>,
 }
 
 impl ProviderConfig {
@@ -57,6 +59,7 @@ impl ProviderConfig {
             profile.default_max_output_bytes,
         )?;
         let locality = locality_for_endpoint(&profile, &endpoint_parts);
+        let grammar_dialects = profile.grammar_dialects.clone();
         Ok(Self {
             profile,
             runner,
@@ -69,6 +72,7 @@ impl ProviderConfig {
             stream,
             tools,
             max_output_bytes,
+            grammar_dialects,
         })
     }
 }

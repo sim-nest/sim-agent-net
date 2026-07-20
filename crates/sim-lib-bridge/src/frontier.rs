@@ -12,6 +12,8 @@ pub struct FrontierMenu {
     pub slots: Vec<(String, Expr)>,
     /// Flat `OneOf` descriptor for legal next move heads.
     pub heads: Expr,
+    /// Shape object backing the legal next move heads.
+    pub head_shape: Arc<dyn Shape>,
     /// Grammar lowered from the same flat `OneOf`.
     pub grammar: String,
 }
@@ -39,6 +41,7 @@ pub fn frontier(_cx: &mut Cx, packet: &BridgePacket) -> Result<FrontierMenu> {
                 Expr::Vector(heads.into_iter().map(Expr::Symbol).collect()),
             ),
         ]),
+        head_shape: Arc::new(head_shape),
         grammar,
     })
 }

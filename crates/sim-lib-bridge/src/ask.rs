@@ -239,12 +239,63 @@ fn decode_terminal_answer(
             }));
         }
     };
+    if let Input::Text(text) = &input
+        && let Some(failure) = grammar_check_failure(cx, contract, text)?
+    {
+        return Ok(Err(failure));
+    }
     match decode_with_codec(cx, &contract.codec, input, ReadPolicy::default()) {
         Ok(answer) => Ok(Ok(answer)),
         Err(err) => Ok(Err(AskFailure::Decode {
             codec: contract.codec.clone(),
             message: err.to_string(),
         })),
+    }
+}
+
+fn grammar_check_failure(
+    cx: &mut Cx,
+    contract: &OutputContract,
+    text: &str,
+) -> Result<Option<AskFailure>> {
+    if contract.grammar.is_none()
+        && contract.grammar_dialect.is_none()
+        && contract.grammar_graph.is_none()
+    {
+        return Ok(None);
+    }
+    let Some(shape) = shape_from_contract_expr(&contract.shape_expr) else {
+        return Ok(Some(AskFailure::Shape {
+            expected: format!("{:?}", contract.shape_expr),
+            diagnostics: vec!["unsupported return Shape expression".to_owned()],
+        }));
+    };
+    let decoded = match decode_with_codec(
+        cx,
+        &contract.codec,
+        Input::Text(text.to_owned()),
+        ReadPolicy::default(),
+    ) {
+        Ok(decoded) => decoded,
+        Err(err) => {
+            return Ok(Some(AskFailure::Decode {
+                codec: contract.codec.clone(),
+                message: err.to_string(),
+            }));
+        }
+    };
+    let matched = shape.check_expr(cx, &decoded)?;
+    if matched.accepted {
+        Ok(None)
+    } else {
+        Ok(Some(AskFailure::Shape {
+            expected: format!("{:?}", contract.shape_expr),
+            diagnostics: matched
+                .diagnostics
+                .iter()
+                .map(|diagnostic| diagnostic.message.clone())
+                .collect(),
+        }))
     }
 }
 

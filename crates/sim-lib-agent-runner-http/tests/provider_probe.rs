@@ -350,6 +350,7 @@ fn config_for(profile: ProviderProfile, api_key_env: Option<&str>) -> ProviderCo
     let locality = profile.default_locality.clone();
     let stream = profile.default_stream;
     let tools = profile.default_tools;
+    let grammar_dialects = profile.grammar_dialects.clone();
     ProviderConfig {
         profile,
         runner,
@@ -362,6 +363,7 @@ fn config_for(profile: ProviderProfile, api_key_env: Option<&str>) -> ProviderCo
         stream,
         tools,
         max_output_bytes: 4096,
+        grammar_dialects,
     }
 }
 

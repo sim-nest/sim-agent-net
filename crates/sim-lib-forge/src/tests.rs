@@ -9,7 +9,8 @@ use sim_kernel::{
     ContentId, Cx, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol, testing::bare_cx as cx,
 };
 use sim_lib_agent_runner_core::{
-    ModelResponse, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
+    ModelResponse, OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA,
+    OUTPUT_GRAMMAR_REQUIRED_EXTRA,
 };
 use sim_value::{access::field, build::entry};
 
@@ -69,6 +70,21 @@ fn compiled_intent_keeps_content_ids_and_human_approval_separate() {
     assert_eq!(intent.status, IntentStatus::Verified);
     assert_ne!(intent.status, IntentStatus::Golden);
     assert!(intent.approval.is_none());
+}
+
+#[test]
+fn return_shape_graph_obligation_accepts_lowerable_requested_grammar() {
+    let packet = grammar_candidate_packet(Expr::Symbol(Symbol::new("String")));
+
+    crate::assert_return_shape_parses(&packet).unwrap();
+}
+
+#[test]
+fn return_shape_graph_obligation_rejects_unlowerable_requested_grammar() {
+    let packet = grammar_candidate_packet(Expr::Symbol(Symbol::qualified("core", "Bytes")));
+    let err = crate::assert_return_shape_parses(&packet).unwrap_err();
+
+    assert!(format!("{err:?}").contains("grammar obligation"));
 }
 
 struct ScriptedLiftFabric {
@@ -249,6 +265,15 @@ fn candidate_packet(return_shape: Expr) -> BridgePacket {
         ],
         warrant: None,
     }
+}
+
+fn grammar_candidate_packet(return_shape: Expr) -> BridgePacket {
+    let mut packet = candidate_packet(return_shape);
+    let Expr::Map(fields) = &mut packet.body[1].payload else {
+        unreachable!("candidate return payload is a map")
+    };
+    fields.push(entry("grammar", Expr::Bool(true)));
+    packet
 }
 
 fn task_frame_part() -> BridgePart {
@@ -542,5 +567,9 @@ fn typed_slot_never_offered_as_free_text() {
     );
     assert!(
         matches!(model_extra(second, OUTPUT_GRAMMAR_EXTRA), Some(Expr::String(grammar)) if grammar.contains("\"head\"") && grammar.contains("\"const\""))
+    );
+    assert_eq!(
+        model_extra(second, OUTPUT_GRAMMAR_DIALECT_EXTRA),
+        Some(&Expr::Symbol(Symbol::new("json-schema")))
     );
 }

@@ -4,7 +4,9 @@ use super::runner_tools::{run_stream_with_tool_loop, run_with_tool_loop};
 use crate::util::{shape_from_expr, shape_protocol, value_from_expr};
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{Cx, Diagnostic, Error, EvalRequest, Expr, Result, ShapeRef, Symbol};
-use sim_lib_agent_runner_core::{ModelEventSink, ModelResponse, shape_to_grammar};
+use sim_lib_agent_runner_core::{
+    ModelEventSink, ModelResponse, OUTPUT_GRAMMAR_DIALECT_EXTRA, shape_to_grammar,
+};
 
 #[derive(Clone)]
 pub(super) struct ShapeContract {
@@ -36,6 +38,11 @@ pub(super) fn prepare_shape_contract_request(
     request.expr = upsert_request_field(request.expr, "output-shape", shape_expr.clone())?;
     if let Ok(grammar) = shape_to_grammar(shape_protocol(&shape)?) {
         request.expr = upsert_request_field(request.expr, "output-grammar", Expr::String(grammar))?;
+        request.expr = upsert_request_field(
+            request.expr,
+            OUTPUT_GRAMMAR_DIALECT_EXTRA,
+            Expr::Symbol(Symbol::new("json-schema")),
+        )?;
     }
     if submit_shape {
         request.expr = upsert_request_field(request.expr, "submit-shape", Expr::Bool(true))?;

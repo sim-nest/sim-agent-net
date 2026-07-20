@@ -1,7 +1,10 @@
 use super::{HttpRunner, anthropic_headers};
 use crate::{ProviderAuth, ProviderConfig, provider_profiles};
 use sim_kernel::{CapabilityName, CapabilitySet, Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
-use sim_lib_agent_runner_core::{ModelRequest, ModelRunner};
+use sim_lib_agent_runner_core::{
+    ModelRequest, ModelRunner, OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA,
+    OUTPUT_GRAMMAR_REQUIRED_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA,
+};
 use std::{
     collections::HashMap,
     io::{ErrorKind, Read, Write},
@@ -26,6 +29,7 @@ fn new_provider_maps_config_onto_existing_runner_fields() {
         stream: true,
         tools: true,
         max_output_bytes: 8192,
+        grammar_dialects: profile.grammar_dialects.clone(),
     };
 
     let runner = HttpRunner::new_provider(config);
@@ -50,6 +54,7 @@ fn new_provider_maps_config_onto_existing_runner_fields() {
     assert!(runner.stream);
     assert!(runner.tools);
     assert_eq!(runner.max_response_bytes, 8192);
+    assert!(runner.grammar_dialects.is_empty());
     assert_eq!(profile.chat_path, "/messages");
 }
 
@@ -64,6 +69,81 @@ fn new_provider_card_uses_provider_and_locality() {
     assert_eq!(card.runner, Symbol::qualified("runner", "ollama"));
     assert_eq!(card.provider, Symbol::new("ollama"));
     assert_eq!(card.locality, Symbol::new("local"));
+    assert!(format!("{:?}", card.extra).contains("gbnf"));
+}
+
+#[test]
+fn openai_provider_selects_json_schema_output_dialect() {
+    let profile = provider_profiles::openai();
+    let runner = HttpRunner::new_provider(ProviderConfig {
+        profile: profile.clone(),
+        runner: profile.runner_symbol.clone(),
+        codec: profile.codec.clone(),
+        endpoint: "http://127.0.0.1:9/v1".to_owned(),
+        model: "gpt-test".to_owned(),
+        api_key_env: Some("CARGO_MANIFEST_DIR".to_owned()),
+        locality: Symbol::new("network"),
+        timeout: Duration::from_secs(1),
+        stream: false,
+        tools: false,
+        max_output_bytes: 64 * 1024,
+        grammar_dialects: profile.grammar_dialects,
+    });
+
+    let request = runner.prepare_output_grammar(shape_model_request());
+
+    assert_eq!(
+        extra(&request, OUTPUT_GRAMMAR_DIALECT_EXTRA),
+        Some(&Expr::Symbol(Symbol::new("json-schema")))
+    );
+    assert!(extra(&request, OUTPUT_GRAMMAR_EXTRA).is_none());
+}
+
+#[test]
+fn ollama_provider_selects_gbnf_output_dialect() {
+    let runner = HttpRunner::new_ollama(
+        Symbol::qualified("runner", "ollama"),
+        "qwen-test",
+        Symbol::new("local"),
+        "http://127.0.0.1:11434",
+        Symbol::qualified("codec", "ollama"),
+        Duration::from_secs(1),
+        false,
+        false,
+        64 * 1024,
+    );
+
+    let request = runner.prepare_output_grammar(shape_model_request());
+
+    assert_eq!(
+        extra(&request, OUTPUT_GRAMMAR_DIALECT_EXTRA),
+        Some(&Expr::Symbol(Symbol::new("gbnf")))
+    );
+    assert!(extra(&request, OUTPUT_GRAMMAR_EXTRA).is_none());
+}
+
+#[test]
+fn provider_without_grammar_support_strips_grammar_for_repair() {
+    let profile = provider_profiles::anthropic();
+    let runner = HttpRunner::new_provider(ProviderConfig {
+        profile: profile.clone(),
+        runner: profile.runner_symbol.clone(),
+        codec: profile.codec.clone(),
+        endpoint: "http://127.0.0.1:9/v1".to_owned(),
+        model: "claude-test".to_owned(),
+        api_key_env: Some("CARGO_MANIFEST_DIR".to_owned()),
+        locality: Symbol::new("network"),
+        timeout: Duration::from_secs(1),
+        stream: false,
+        tools: false,
+        max_output_bytes: 64 * 1024,
+        grammar_dialects: profile.grammar_dialects,
+    });
+
+    let request = runner.prepare_output_grammar(shape_model_request_with_stale_grammar());
+
+    assert!(extra(&request, OUTPUT_GRAMMAR_EXTRA).is_none());
+    assert!(extra(&request, OUTPUT_GRAMMAR_DIALECT_EXTRA).is_none());
 }
 
 #[test]
@@ -146,6 +226,46 @@ fn direct_http_runner_allows_with_runner_network_and_secret_capabilities() {
 
 fn test_cx() -> Cx {
     Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+}
+
+fn shape_model_request() -> ModelRequest {
+    let mut request = ModelRequest::new(Expr::String("shape please".to_owned()), Vec::new());
+    request.extra.push(entry(
+        RETURN_CODEC_EXTRA,
+        Expr::Symbol(Symbol::qualified("codec", "json")),
+    ));
+    request.extra.push(entry(
+        RETURN_SHAPE_EXTRA,
+        Expr::Symbol(Symbol::new("String")),
+    ));
+    request
+        .extra
+        .push(entry(OUTPUT_GRAMMAR_REQUIRED_EXTRA, Expr::Bool(true)));
+    request
+}
+
+fn shape_model_request_with_stale_grammar() -> ModelRequest {
+    let mut request = shape_model_request();
+    request.extra.push(entry(
+        OUTPUT_GRAMMAR_EXTRA,
+        Expr::String(r#"{"type":"stale"}"#.to_owned()),
+    ));
+    request.extra.push(entry(
+        OUTPUT_GRAMMAR_DIALECT_EXTRA,
+        Expr::Symbol(Symbol::new("json-schema")),
+    ));
+    request
+}
+
+fn entry(name: &str, value: Expr) -> (Expr, Expr) {
+    (Expr::Symbol(Symbol::new(name)), value)
+}
+
+fn extra<'a>(request: &'a ModelRequest, name: &str) -> Option<&'a Expr> {
+    request.extra.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if symbol.namespace.is_none() && symbol.name.as_ref() == name)
+            .then_some(value)
+    })
 }
 
 fn spawn_openai_mock(listener: TcpListener) -> JoinHandle<String> {

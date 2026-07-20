@@ -6,7 +6,8 @@ use sim_codec_bridge::{
 };
 use sim_kernel::{Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{
-    ModelRequest, ModelResponse, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
+    ModelRequest, ModelResponse, OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA,
+    OUTPUT_GRAMMAR_REQUIRED_EXTRA,
 };
 use sim_value::build::entry;
 
@@ -247,7 +248,11 @@ fn woven_mode_never_asks_unconstrained_row() {
         Some(&Expr::Bool(true))
     );
     assert!(
-        matches!(extra(&requests[0], OUTPUT_GRAMMAR_EXTRA), Some(Expr::String(grammar)) if grammar.contains("\"enum\""))
+        matches!(extra(&requests[0], OUTPUT_GRAMMAR_EXTRA), Some(Expr::String(grammar)) if grammar.contains("\"head\"") && grammar.contains("\"const\""))
+    );
+    assert_eq!(
+        extra(&requests[0], OUTPUT_GRAMMAR_DIALECT_EXTRA),
+        Some(&Expr::Symbol(Symbol::new("json-schema")))
     );
     assert_eq!(first_weave(&completed).rows[0].slot, "answer");
 }

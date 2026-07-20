@@ -8,13 +8,16 @@ use sim_kernel::{
     Symbol,
 };
 use sim_lib_agent_runner_core::{
-    ModelRequest, ModelResponse, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
-    RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA, terminal_model_content,
+    ModelRequest, ModelResponse, OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA,
+    OUTPUT_GRAMMAR_REQUIRED_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA, shape_to_grammar,
+    terminal_model_content,
 };
 use sim_lib_bridge::{
     BridgeObligation, BridgeReport, FrontierMenu, effective_caps, frontier, rx_check,
 };
+use sim_shape::{ExprKind, ExprKindShape, FieldShape, FieldSpec};
 use sim_value::{access::field, build::entry};
+use std::sync::Arc;
 
 use crate::frame_propose::propose_frame;
 use crate::lift::{compiled_intent, report_summary, validate_candidate};
@@ -276,9 +279,14 @@ fn frontier_part_request(
     model
         .extra
         .push(entry(RETURN_SHAPE_EXTRA, row_shape_expr(menu, expected)));
-    model
-        .extra
-        .push(entry(OUTPUT_GRAMMAR_EXTRA, Expr::String(row_grammar(menu))));
+    model.extra.push(entry(
+        OUTPUT_GRAMMAR_EXTRA,
+        Expr::String(row_grammar(menu)?),
+    ));
+    model.extra.push(entry(
+        OUTPUT_GRAMMAR_DIALECT_EXTRA,
+        Expr::Symbol(Symbol::new("json-schema")),
+    ));
     model
         .extra
         .push(entry(OUTPUT_GRAMMAR_REQUIRED_EXTRA, Expr::Bool(true)));
@@ -516,11 +524,15 @@ fn row_shape_expr(menu: &FrontierMenu, expected: &ExpectedPart) -> Expr {
     ])
 }
 
-fn row_grammar(menu: &FrontierMenu) -> String {
-    format!(
-        "{{\"type\":\"object\",\"required\":[\"head\",\"part\"],\"properties\":{{\"head\":{},\"part\":{{\"type\":\"object\",\"required\":[\"id\",\"kind\",\"payload\"]}}}}}}",
-        menu.grammar
-    )
+fn row_grammar(menu: &FrontierMenu) -> Result<String> {
+    let shape = FieldShape::anonymous(vec![
+        FieldSpec::required(Symbol::new("head"), menu.head_shape.clone()),
+        FieldSpec::required(
+            Symbol::new("part"),
+            Arc::new(ExprKindShape::new(ExprKind::Map)),
+        ),
+    ]);
+    shape_to_grammar(&shape)
 }
 
 fn slot_menu_expr(menu: &FrontierMenu) -> Expr {

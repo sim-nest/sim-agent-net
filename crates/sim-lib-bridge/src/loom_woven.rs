@@ -6,10 +6,13 @@ use sim_kernel::{
     Consistency, Cx, Error, EvalFabric, EvalMode, EvalReply, EvalRequest, Expr, Result, Symbol,
 };
 use sim_lib_agent_runner_core::{
-    ModelRequest, ModelResponse, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
-    RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA, terminal_model_content,
+    ModelRequest, ModelResponse, OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA,
+    OUTPUT_GRAMMAR_REQUIRED_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA, shape_to_grammar,
+    terminal_model_content,
 };
+use sim_shape::{ExprKind, ExprKindShape, FieldShape, FieldSpec};
 use sim_value::{access::field, build::entry};
+use std::sync::Arc;
 
 use crate::frontier::FrontierMenu;
 use crate::loom_validate::{next_frontier_menu, validate_weave};
@@ -168,7 +171,11 @@ fn woven_row_request(
         .push(entry(RETURN_SHAPE_EXTRA, row_shape_expr(&menu, &role_refs)));
     model.extra.push(entry(
         OUTPUT_GRAMMAR_EXTRA,
-        Expr::String(row_grammar(&menu, &role_refs)),
+        Expr::String(row_grammar(&menu)?),
+    ));
+    model.extra.push(entry(
+        OUTPUT_GRAMMAR_DIALECT_EXTRA,
+        Expr::Symbol(Symbol::new("json-schema")),
     ));
     model
         .extra
@@ -249,12 +256,19 @@ fn row_shape_expr(menu: &FrontierMenu, role_refs: &[String]) -> Expr {
     ])
 }
 
-fn row_grammar(menu: &FrontierMenu, role_refs: &[String]) -> String {
-    format!(
-        "{{\"type\":\"object\",\"required\":[\"slot\",\"head\",\"roles\"],\"properties\":{{\"slot\":{{\"type\":\"string\"}},\"head\":{},\"roles\":{{\"type\":\"object\",\"additionalProperties\":{{\"enum\":{}}}}}}}}}",
-        menu.grammar,
-        json_string_array(role_refs)
-    )
+fn row_grammar(menu: &FrontierMenu) -> Result<String> {
+    let shape = FieldShape::anonymous(vec![
+        FieldSpec::required(
+            Symbol::new("slot"),
+            Arc::new(ExprKindShape::new(ExprKind::String)),
+        ),
+        FieldSpec::required(Symbol::new("head"), menu.head_shape.clone()),
+        FieldSpec::required(
+            Symbol::new("roles"),
+            Arc::new(ExprKindShape::new(ExprKind::Map)),
+        ),
+    ]);
+    shape_to_grammar(&shape)
 }
 
 fn slot_menu_expr(menu: &FrontierMenu) -> Expr {
@@ -281,27 +295,4 @@ fn string_vector(items: &[String]) -> Expr {
 
 fn row_path(row_index: usize) -> Expr {
     Expr::String(format!("loom/rows/{row_index}"))
-}
-
-fn json_string_array(items: &[String]) -> String {
-    let values = items
-        .iter()
-        .map(|item| format!("\"{}\"", json_escape(item)))
-        .collect::<Vec<_>>();
-    format!("[{}]", values.join(","))
-}
-
-fn json_escape(text: &str) -> String {
-    let mut escaped = String::new();
-    for ch in text.chars() {
-        match ch {
-            '"' => escaped.push_str("\\\""),
-            '\\' => escaped.push_str("\\\\"),
-            '\n' => escaped.push_str("\\n"),
-            '\r' => escaped.push_str("\\r"),
-            '\t' => escaped.push_str("\\t"),
-            other => escaped.push(other),
-        }
-    }
-    escaped
 }

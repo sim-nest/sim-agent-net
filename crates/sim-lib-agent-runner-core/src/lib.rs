@@ -38,7 +38,8 @@ pub use model::{
     model_response_class_symbol, model_usage_class_symbol,
 };
 pub use output::{
-    OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA, OutputContract, RETURN_CODEC_EXTRA,
-    RETURN_SHAPE_EXTRA,
+    OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
+    OutputContract, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA, grammar_dialect_from_symbol,
+    grammar_dialect_symbol,
 };
 pub use terminal::terminal_model_content;
