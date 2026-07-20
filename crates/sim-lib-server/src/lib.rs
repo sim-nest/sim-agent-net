@@ -20,6 +20,7 @@ mod cookbook_web;
 mod cookbook_web_json;
 mod coroutine;
 mod cron;
+mod device_edge;
 mod dispatch;
 mod frame;
 mod helpers;
@@ -53,6 +54,7 @@ pub use codecio::{decode_frame_payload, encode_frame_payload};
 pub use connection::{Connection, Session};
 pub use cookbook_web::{CookbookWebResponse, CookbookWebState};
 pub use coroutine::{Coroutine, CoroutineStatus};
+pub use device_edge::{DeviceEdgeSession, LedgerRef, LinkKind};
 pub use frame::{
     FrameEnvelope, FrameKind, LifecycleCommand, ServerFrame, eval_reply_from_frame,
     eval_request_from_frame, server_frame_from_reply, server_frame_from_request,

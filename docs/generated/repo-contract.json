@@ -1728,10 +1728,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "11ae22db3d3e2c33cea0a550784282cbc7cf2645",
+    "git_commit": "02149da17de052985b6fe8701188533e54ffc7d9",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "11ae22db3d3e2c33cea0a550784282cbc7cf2645",
+    "source_commit": "02149da17de052985b6fe8701188533e54ffc7d9",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1744,9 +1744,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "b2341b571f7984a7",
+    "workspace_hash": "899306389a71fad9",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 663,
+    "workspace_hash_input_count": 664,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -2244,6 +2244,7 @@
       "crates/sim-lib-server/src/cookbook_web_json.rs",
       "crates/sim-lib-server/src/coroutine.rs",
       "crates/sim-lib-server/src/cron.rs",
+      "crates/sim-lib-server/src/device_edge.rs",
       "crates/sim-lib-server/src/dispatch.rs",
       "crates/sim-lib-server/src/frame/eval.rs",
       "crates/sim-lib-server/src/frame/model.rs",
