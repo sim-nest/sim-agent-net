@@ -7,6 +7,7 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | Package | Publish | Targets | Description |
 | --- | --- | --- | --- |
 | `sim-lib-agent-runner-core` | `true` | `custom-build, lib` | Provider-neutral runner contracts for SIM model fabrics. |
+| `sim-lib-agent-runner-core-recipe-output-contract-repair` | `false` | `bin` | Runnable output contract repair cookbook recipe. |
 | `sim-lib-agent-runner-http` | `true` | `custom-build, lib, test` | HTTP-backed model runners for SIM. |
 | `sim-lib-agent-runner-local` | `true` | `cdylib, custom-build, rlib, test` | Loadable local model runner for SIM. |
 | `sim-lib-agent-runner-process` | `true` | `custom-build, lib` | Local subprocess-backed model runners for SIM. |
