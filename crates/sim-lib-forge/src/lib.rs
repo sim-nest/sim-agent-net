@@ -67,6 +67,8 @@ mod contract_expr;
 mod contract_query;
 mod contracts;
 mod eval;
+mod eval_author;
+mod eval_author_corpus;
 mod frame_propose;
 mod intent;
 mod library;
@@ -85,6 +87,8 @@ mod verify;
 mod author_tests;
 #[cfg(test)]
 mod contract_tests;
+#[cfg(test)]
+mod eval_author_tests;
 #[cfg(test)]
 mod eval_tests;
 #[cfg(test)]
@@ -113,6 +117,10 @@ pub use contracts::{ContractCard, ContractDeck, ContractGap, assemble_contract_d
 pub use eval::{
     ArmMetrics, EvalArm, EvalCase, EvalCassette, EvalPlayback, EvalReport, run_eval,
     standard_eval_arms, standard_eval_corpus,
+};
+pub use eval_author::{
+    AuthorArm, AuthorArmMetrics, AuthorBenchReport, AuthorCase, run_author_bench,
+    standard_author_arms, standard_author_cases,
 };
 pub use frame_propose::{
     FrameSpecProposal, approve_frame_proposal, propose_frame, proposed_frame_part,
