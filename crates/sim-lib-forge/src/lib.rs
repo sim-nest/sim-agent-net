@@ -61,6 +61,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod author;
 mod contract_expr;
 mod contract_query;
 mod contracts;
@@ -75,9 +76,12 @@ mod packet_artifact;
 mod resolve;
 mod route;
 mod shape_infer;
+mod tokens;
 mod verb;
 mod verify;
 
+#[cfg(test)]
+mod author_tests;
 #[cfg(test)]
 mod contract_tests;
 #[cfg(test)]
@@ -95,6 +99,10 @@ mod verb_tests;
 #[cfg(test)]
 mod verify_tests;
 
+pub use author::{
+    AuthorTask, CONTRACT_PROJECTION_EXTRA, ContractProjection, ContractProjectionCaps,
+    OUTPUT_GRAMMAR_GRAPH_EXTRA, author_model_request, project_contracts,
+};
 pub use contract_expr::{contract_card_from_expr, contract_card_shape};
 pub use contract_query::{
     ContractDeckCache, ContractQueryReport, RankedContractCard, ShapeQuery, query_contract_deck,
@@ -119,6 +127,7 @@ pub use route::{
     run_intent_routed, run_intent_routed_report,
 };
 pub use shape_infer::assert_return_shape_parses;
+pub use tokens::{estimate_prompt_tokens, semantic_tokens};
 pub use verb::{ForgeLib, forge_entrypoint_symbol, forge_verb};
 pub use verify::{
     ProbeOracle, Verifier, VerifyCatalog, VerifyFailure, VerifyProbe, VerifyReport, verify_answer,

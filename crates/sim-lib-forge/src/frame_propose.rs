@@ -8,6 +8,8 @@ use sim_codec_bridge::{
 use sim_kernel::{ContentId, Cx, Datum, Error, Expr, Result, Symbol};
 use sim_value::build::entry;
 
+use crate::semantic_tokens;
+
 /// Candidate frame specification inferred from prose that has no registered frame.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FrameSpecProposal {
@@ -249,23 +251,6 @@ fn infer_kind(prose: &str) -> FrameKind {
     } else {
         FrameKind::Task
     }
-}
-
-fn semantic_tokens(prose: &str) -> Vec<String> {
-    prose
-        .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '-' && ch != '_' && ch != '/')
-        .filter_map(|raw| {
-            let token = raw.trim().to_ascii_lowercase();
-            (!token.is_empty() && !is_stop_word(&token)).then_some(token)
-        })
-        .collect()
-}
-
-fn is_stop_word(token: &str) -> bool {
-    matches!(
-        token,
-        "a" | "an" | "and" | "for" | "in" | "of" | "on" | "please" | "the" | "to" | "with"
-    )
 }
 
 fn frame_slug(kind: FrameKind, tokens: &[String]) -> String {
