@@ -62,6 +62,7 @@
 #![deny(missing_docs)]
 
 mod contract_expr;
+mod contract_query;
 mod contracts;
 mod eval;
 mod frame_propose;
@@ -95,6 +96,9 @@ mod verb_tests;
 mod verify_tests;
 
 pub use contract_expr::{contract_card_from_expr, contract_card_shape};
+pub use contract_query::{
+    ContractDeckCache, ContractQueryReport, RankedContractCard, ShapeQuery, query_contract_deck,
+};
 pub use contracts::{ContractCard, ContractDeck, ContractGap, assemble_contract_deck};
 pub use eval::{
     ArmMetrics, EvalArm, EvalCase, EvalCassette, EvalPlayback, EvalReport, run_eval,

@@ -144,7 +144,7 @@ pub fn assemble_contract_deck(cx: &mut Cx) -> Result<ContractDeck> {
     Ok(ContractDeck { cards, diagnostics })
 }
 
-fn export_value(cx: &Cx, export: &ExportRecord) -> Option<Value> {
+pub(crate) fn export_value(cx: &Cx, export: &ExportRecord) -> Option<Value> {
     let id = cx
         .registry()
         .export_symbols()
