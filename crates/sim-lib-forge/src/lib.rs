@@ -61,6 +61,8 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod contract_expr;
+mod contracts;
 mod eval;
 mod frame_propose;
 mod intent;
@@ -76,6 +78,8 @@ mod verb;
 mod verify;
 
 #[cfg(test)]
+mod contract_tests;
+#[cfg(test)]
 mod eval_tests;
 #[cfg(test)]
 mod frame_propose_tests;
@@ -90,6 +94,8 @@ mod verb_tests;
 #[cfg(test)]
 mod verify_tests;
 
+pub use contract_expr::{contract_card_from_expr, contract_card_shape};
+pub use contracts::{ContractCard, ContractDeck, ContractGap, assemble_contract_deck};
 pub use eval::{
     ArmMetrics, EvalArm, EvalCase, EvalCassette, EvalPlayback, EvalReport, run_eval,
     standard_eval_arms, standard_eval_corpus,
