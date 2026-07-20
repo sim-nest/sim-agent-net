@@ -16,6 +16,13 @@
       "summary": "Provider-neutral runner contracts for SIM model fabrics."
     },
     {
+      "crate_name": "sim-lib-agent-runner-core-recipe-output-contract-repair",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/Cargo.toml",
+      "package": "sim-lib-agent-runner-core-recipe-output-contract-repair",
+      "summary": "Runnable output contract repair cookbook recipe."
+    },
+    {
       "crate_name": "sim_lib_agent_runner_http",
       "group": "workspace",
       "manifest": "crates/sim-lib-agent-runner-http/Cargo.toml",

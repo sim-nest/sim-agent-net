@@ -78,6 +78,11 @@
       "package": "sim-lib-agent-runner-core"
     },
     {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-agent-runner-core-recipe-output-contract-repair"
+    },
+    {
       "features": [
         {
           "edges": [],

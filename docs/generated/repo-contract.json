@@ -115,6 +115,7 @@
     "workspace": [
       "sim-lib-agent",
       "sim-lib-agent-runner-core",
+      "sim-lib-agent-runner-core-recipe-output-contract-repair",
       "sim-lib-agent-runner-http",
       "sim-lib-agent-runner-local",
       "sim-lib-agent-runner-process",
@@ -318,7 +319,7 @@
       "reason": "live skill transport handle; transport metadata is carried by skill/Card descriptor"
     }
   ],
-  "package_count": 16,
+  "package_count": 17,
   "packages": [
     {
       "crate_name": "sim_lib_agent",
@@ -502,6 +503,41 @@
           ],
           "name": "build-script-build",
           "src": "crates/sim-lib-agent-runner-core/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim-lib-agent-runner-core-recipe-output-contract-repair",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-runner-core",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Runnable output contract repair cookbook recipe.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/Cargo.toml",
+      "name": "sim-lib-agent-runner-core-recipe-output-contract-repair",
+      "publish": "false",
+      "root": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair",
+      "rustdoc_summary": "Runnable output contract repair cookbook recipe.",
+      "target_kinds": [
+        "bin"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "bin"
+          ],
+          "name": "sim-lib-agent-runner-core-recipe-output-contract-repair",
+          "src": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/src/main.rs"
         }
       ]
     },
@@ -1692,10 +1728,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "7b12b8c189e3921ff37c70436df73ec5c7662022",
+    "git_commit": "6f4ced4e2308fd702f48d04b1389032656190fcd",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "7b12b8c189e3921ff37c70436df73ec5c7662022",
+    "source_commit": "6f4ced4e2308fd702f48d04b1389032656190fcd",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1708,9 +1744,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "bcd50372dc2831c3",
+    "workspace_hash": "82e38ddb93cd40d9",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 657,
+    "workspace_hash_input_count": 660,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -1921,6 +1957,9 @@
       "crates/sim-lib-agent-runner-core/Cargo.toml",
       "crates/sim-lib-agent-runner-core/build.rs",
       "crates/sim-lib-agent-runner-core/recipes/01-basics/fake-runner-descriptor/recipe.toml",
+      "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/Cargo.toml",
+      "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/recipe.toml",
+      "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/src/main.rs",
       "crates/sim-lib-agent-runner-core/recipes/book.toml",
       "crates/sim-lib-agent-runner-core/src/card.rs",
       "crates/sim-lib-agent-runner-core/src/ceiling.rs",
@@ -2663,7 +2702,7 @@
       "card_id": "cookbook/agent-runner-core",
       "group": "workspace",
       "package": "sim-lib-agent-runner-core",
-      "recipe_count": 1,
+      "recipe_count": 2,
       "recipes": [
         {
           "card_id": "agent-runner-core/01-basics/fake-runner-descriptor",
@@ -2672,6 +2711,14 @@
           "package": "sim-lib-agent-runner-core",
           "recipe_toml": "crates/sim-lib-agent-runner-core/recipes/01-basics/fake-runner-descriptor/recipe.toml",
           "title": "Fake runner descriptor"
+        },
+        {
+          "card_id": "agent-runner-core/01-basics/output-contract-repair",
+          "codec": "rust",
+          "id": "output-contract-repair",
+          "package": "sim-lib-agent-runner-core",
+          "recipe_toml": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/recipe.toml",
+          "title": "Output contract repair"
         }
       ],
       "summary": "Provider-neutral model runner contracts.",
