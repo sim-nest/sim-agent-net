@@ -81,10 +81,14 @@ pub(crate) use agents::component_name;
 pub use agents::{Agent, AgentFabric, AgentManifest, AgentRef, Budget, ComponentRef, TopologyRef};
 use agents::{agent_line_driver_factory, resolve_agent_address};
 pub use atelier::{
-    AgentMission, AtelierAction, GuardCapability, GuardDecision, GuardEvaluation, GuardRefusal,
-    RadarChunk, RadarError, RadarHint, RadarIndex, RadarQuery, RadarReport, RadarResult,
-    SelfHostingScenario, SourceSpan, cassette_content_hash, evaluate_guarded_action, guard_action,
-    retrieve_radar_hints, self_hosting_scenarios, validate_self_hosting_scenarios,
+    AgentMission, AtelierAction, AtelierBackend, CONTRACT_NATIVE_SCHEMA,
+    ContractNativeAtelierReport, ContractNativeDeckSummary, ContractNativeGrammarSummary,
+    ContractNativeGuardDenial, ContractNativeProjectionSummary, ContractNativeRouteAttempt,
+    GuardCapability, GuardDecision, GuardEvaluation, GuardRefusal, RadarChunk, RadarError,
+    RadarHint, RadarIndex, RadarQuery, RadarReport, RadarResult, SelfHostingScenario, SourceSpan,
+    cassette_content_hash, contract_native_guard_denials, deterministic_contract_native_report,
+    evaluate_guarded_action, guard_action, retrieve_radar_hints, self_hosting_scenarios,
+    validate_self_hosting_scenarios,
 };
 pub(crate) use capabilities::{
     edit_capability, exec_capability, find_capability, fs_read_capability, fs_write_capability,

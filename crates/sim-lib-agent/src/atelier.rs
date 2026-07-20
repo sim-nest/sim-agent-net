@@ -1,6 +1,7 @@
 //! Atelier agent-facing retrieval contracts.
 
 pub mod capsule;
+mod contract_native;
 pub mod guard;
 pub mod mission;
 pub mod mission_control;
@@ -15,6 +16,12 @@ pub use capsule::{
     CapsuleCommit, CapsuleFacet, CapsuleJob, CapsuleJobKind, CapsuleJobOutcome, CapsulePatch,
     CapsulePush, CapsuleReview, CapsuleScope, ChangeCapsule, GeneratedArtifact, JobSite,
     PinPlanEntry, PlacedJob, fake_change_capsule, review_change_capsule,
+};
+pub use contract_native::{
+    AtelierBackend, CONTRACT_NATIVE_SCHEMA, ContractNativeAtelierReport, ContractNativeDeckSummary,
+    ContractNativeGrammarSummary, ContractNativeGuardDenial, ContractNativeProjectionSummary,
+    ContractNativeRouteAttempt, contract_native_guard_denials,
+    deterministic_contract_native_report,
 };
 pub use guard::{
     AtelierAction, GuardCapability, GuardDecision, GuardEvaluation, GuardRefusal,
@@ -43,6 +50,9 @@ pub use tools::{
 
 #[cfg(test)]
 mod capsule_tests;
+
+#[cfg(test)]
+mod contract_native_tests;
 
 #[cfg(test)]
 mod guard_tests;
