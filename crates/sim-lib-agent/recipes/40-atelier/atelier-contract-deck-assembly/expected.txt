@@ -1,0 +1,1 @@
+(atelier-self-hosting (id atelier-contract-deck-assembly) (runner fake) (network denied) (live-model denied) (contract-deck (scope task-scoped) (cards 4) (complete 3) (partial 1) (shape contract-card) (example shape-synthesized) (gaps preserved)) (cassette-hash fnv1a64:f016c320c6277c50))

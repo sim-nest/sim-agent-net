@@ -5,7 +5,7 @@ use super::self_hosting::{
 #[test]
 fn self_hosting_scenarios_are_offline_and_hash_checked() {
     let scenarios = self_hosting_scenarios();
-    assert_eq!(scenarios.len(), 5);
+    assert_eq!(scenarios.len(), 9);
     assert!(validate_self_hosting_scenarios(&scenarios).is_empty());
     assert!(scenarios.iter().all(|scenario| !scenario.live_model));
     assert!(scenarios.iter().all(|scenario| !scenario.network));
@@ -27,6 +27,11 @@ fn self_hosting_scenarios_cover_atelier_surfaces() {
         "pin-plan",
         "human-gate",
         "replay-hash",
+        "contract-deck",
+        "shape-query",
+        "contract-native",
+        "cheap-first",
+        "escalation",
     ] {
         assert!(evidence.contains(&required), "missing {required}");
     }

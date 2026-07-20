@@ -38,12 +38,16 @@ const EXPECTED_CAPSTONE_RECIPE_IDS: [&str; 2] = [
     "a30-capstone-agent-society",
 ];
 
-const EXPECTED_ATELIER_RECIPE_IDS: [&str; 5] = [
+const EXPECTED_ATELIER_RECIPE_IDS: [&str; 9] = [
     "atelier-radar-standard-crate",
     "atelier-runtime-operation",
     "atelier-codec-roundtrip",
     "atelier-guideline-firewall",
     "atelier-change-capsule",
+    "atelier-contract-deck-assembly",
+    "atelier-shape-query-cache",
+    "atelier-contract-native-success",
+    "atelier-cheap-first-escalation",
 ];
 
 const EXPECTED_CHAPTER_TAGS: [&str; 12] = [

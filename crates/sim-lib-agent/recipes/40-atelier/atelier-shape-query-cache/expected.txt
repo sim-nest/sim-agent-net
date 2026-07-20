@@ -1,0 +1,1 @@
+(atelier-self-hosting (id atelier-shape-query-cache) (runner fake) (network denied) (live-model denied) (shape-query (args table-set) (result table-entries) (cache (misses 1) (hits 1) (generation stable)) (ranked 2) (capped 1)) (cassette-hash fnv1a64:ffca094bf5b5fb1e))

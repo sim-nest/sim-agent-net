@@ -1,0 +1,18 @@
+id = "atelier-cheap-first-escalation"
+title = "Cheap-first authoring escalation"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 9
+tags = ["atelier", "contract-native", "cheap-first", "escalation", "route-attempts", "offline", "deterministic", "sandbox-descriptor"]
+requires = ["agent", "forge", "route-policy", "contract-native", "fake-runner", "cassette-hash"]
+runner_mode = "fake"
+live_model = false
+network = false
+cassette_hash = "fnv1a64:509ae4bba20e5cfd"
+cassette_events = ["contract-native:route:cheap-downshift:malformed", "contract-native:route:cheap-downshift:diagnostic", "contract-native:route:escalation-downshift:accepted", "contract-native:route:attempts=2"]
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(atelier-self-hosting (id atelier-cheap-first-escalation) (runner fake) (network denied) (live-model denied) (route (policy cheap-first) (attempts 2) (cheap-downshift malformed) (diagnostic codec-or-shape) (escalation-downshift accepted) (checked-form accepted)) (cassette-hash fnv1a64:509ae4bba20e5cfd))"
