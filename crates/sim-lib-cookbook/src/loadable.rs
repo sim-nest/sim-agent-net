@@ -5,7 +5,7 @@ use std::sync::Arc;
 use sim_cookbook::{
     EmbeddedDir, RecipeCard, RecipeRun, RecipeSource, RecipeStore, recipes_from_embedded,
 };
-use sim_kernel::{Cx, Error, Lib, LibId, Result};
+use sim_kernel::{Cx, Error, Lib, LibId, Result, Symbol};
 
 use crate::catalog::LibCatalog;
 
@@ -80,12 +80,12 @@ impl LoadableLibList {
     /// Calling this for an already-loaded id is a successful no-op, so a stale
     /// load card cannot duplicate registry entries.
     pub fn load(&self, cx: &mut Cx, id: &str) -> Result<String> {
-        if Self::is_loaded(cx, id) {
-            return Ok(format!("already loaded {id}"));
-        }
         let entry = self
             .entry(id)
             .ok_or_else(|| Error::Eval(format!("unknown loadable lib `{id}`")))?;
+        if Self::loaded_entry_id(cx, entry).is_some() {
+            return Ok(format!("already loaded {id}"));
+        }
         let lib = (entry.factory)();
         cx.load_lib(lib.as_ref())?;
         Ok(format!("loaded {id}"))
@@ -96,23 +96,32 @@ impl LoadableLibList {
     /// If another loaded lib depends on this one, the kernel refusal is returned
     /// unchanged to the lifecycle runner, which reports it as `ok:false`.
     pub fn unload(&self, cx: &mut Cx, id: &str) -> Result<String> {
-        let loaded_id = Self::loaded_id(cx, id)
+        let loaded_id = self
+            .entry(id)
+            .and_then(|entry| Self::loaded_entry_id(cx, entry))
+            .or_else(|| Self::loaded_id(cx, id))
             .ok_or_else(|| Error::Eval(format!("lib `{id}` is not loaded")))?;
         cx.unload_lib(loaded_id)?;
         Ok(format!("unloaded {id}"))
     }
 
     fn loaded_id(cx: &Cx, id: &str) -> Option<LibId> {
-        let tail = id.rsplit('/').next().unwrap_or(id);
+        cx.registry()
+            .libs()
+            .iter()
+            .find(|loaded| lib_id_matches(&loaded.manifest.id, id))
+            .map(|loaded| loaded.id)
+    }
+
+    fn loaded_entry_id(cx: &Cx, entry: &LoadableLibEntry) -> Option<LibId> {
+        let manifest_id = entry.catalog_lib.manifest().id;
         cx.registry()
             .libs()
             .iter()
             .find(|loaded| {
-                let qualified = loaded.manifest.id.as_qualified_str();
-                qualified == id
-                    || qualified.replace('/', "-") == id
-                    || loaded.manifest.id.name.as_ref() == id
-                    || loaded.manifest.id.name.as_ref() == tail
+                loaded.manifest.id == manifest_id
+                    || lib_id_matches(&loaded.manifest.id, &entry.id)
+                    || lib_id_matches(&loaded.manifest.id, &manifest_id.as_qualified_str())
             })
             .map(|loaded| loaded.id)
     }
@@ -122,9 +131,22 @@ impl LibCatalog for LoadableLibList {
     fn resolve(&self, name: &str) -> Option<&dyn Lib> {
         self.entries
             .iter()
-            .find(|entry| entry.id == name || entry.id.rsplit('/').next() == Some(name))
+            .find(|entry| {
+                entry.id == name
+                    || entry.id.rsplit('/').next() == Some(name)
+                    || lib_id_matches(&entry.catalog_lib.manifest().id, name)
+            })
             .map(|entry| entry.catalog_lib.as_ref() as &dyn Lib)
     }
+}
+
+fn lib_id_matches(symbol: &Symbol, id: &str) -> bool {
+    let tail = id.rsplit('/').next().unwrap_or(id);
+    let qualified = symbol.as_qualified_str();
+    qualified == id
+        || qualified.replace('/', "-") == id
+        || symbol.name.as_ref() == id
+        || symbol.name.as_ref() == tail
 }
 
 /// Reads the lifecycle action encoded by a synthetic cookbook card.
@@ -203,7 +225,7 @@ fn lifecycle_run(recipe: &str, result: Result<String>) -> RecipeRun {
 pub fn projected_recipe_store(cx: &Cx, directory: &LoadableLibList) -> Result<RecipeStore> {
     let mut store = RecipeStore::new();
     for entry in directory.entries() {
-        if LoadableLibList::is_loaded(cx, &entry.id) {
+        if LoadableLibList::loaded_entry_id(cx, entry).is_some() {
             if let Some(recipes) = entry.recipes {
                 for mut card in recipes_from_embedded(recipes)
                     .map_err(|err| Error::Eval(format!("{} recipes: {err}", entry.id)))?
