@@ -90,10 +90,16 @@ pub struct AuthorTask {
     pub target_codec: Symbol,
     /// Shape query used to retrieve the projected contract cards.
     pub query: ShapeQuery,
+    /// Ranked contract cards available for the task projection.
+    pub contract_cards: Vec<RankedContractCard>,
+    /// Token and example limits used when projecting contract cards.
+    pub projection_caps: ContractProjectionCaps,
     /// Normalized expression naming or constructing the return Shape.
     pub return_shape_expr: Expr,
     /// Shape the model's returned form must satisfy and the grammar is derived from.
     pub return_shape: Arc<dyn Shape>,
+    /// Semantic verifier ids that must accept the realized form.
+    pub verifiers: Vec<Symbol>,
     /// Whether grammar-constrained output is mandatory.
     pub strict_grammar: bool,
 }
@@ -103,7 +109,15 @@ pub fn project_contracts(
     cards: &[RankedContractCard],
     caps: &ContractProjectionCaps,
 ) -> ContractProjection {
+    project_contracts_with_cards(cards, caps).0
+}
+
+pub(crate) fn project_contracts_with_cards(
+    cards: &[RankedContractCard],
+    caps: &ContractProjectionCaps,
+) -> (ContractProjection, Vec<RankedContractCard>) {
     let mut parts = Vec::new();
+    let mut projected_cards = Vec::new();
     let mut included = 0usize;
     let mut summary_only = 0usize;
     let mut dropped = 0usize;
@@ -127,11 +141,13 @@ pub fn project_contracts(
                     ranked.card.symbol
                 )));
                 parts.push(rendered);
+                projected_cards.push(ranked.clone());
                 included += 1;
                 summary_only += 1;
             }
             Some((_, rendered)) => {
                 parts.push(rendered);
+                projected_cards.push(ranked.clone());
                 included += 1;
             }
             None => {
@@ -145,14 +161,17 @@ pub fn project_contracts(
     }
 
     let text = parts.join("\n\n");
-    ContractProjection {
-        tokens: estimate_prompt_tokens(&text),
-        text,
-        included,
-        summary_only,
-        dropped,
-        diagnostics,
-    }
+    (
+        ContractProjection {
+            tokens: estimate_prompt_tokens(&text),
+            text,
+            included,
+            summary_only,
+            dropped,
+            diagnostics,
+        },
+        projected_cards,
+    )
 }
 
 /// Builds a grammar-bearing model request from a task and projected contracts.

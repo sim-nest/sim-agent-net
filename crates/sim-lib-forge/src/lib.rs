@@ -62,6 +62,7 @@
 #![deny(missing_docs)]
 
 mod author;
+mod author_loop;
 mod contract_expr;
 mod contract_query;
 mod contracts;
@@ -103,6 +104,7 @@ pub use author::{
     AuthorTask, CONTRACT_PROJECTION_EXTRA, ContractProjection, ContractProjectionCaps,
     OUTPUT_GRAMMAR_GRAPH_EXTRA, author_model_request, project_contracts,
 };
+pub use author_loop::{AuthorOutcome, authorized_capabilities, run_author_task};
 pub use contract_expr::{contract_card_from_expr, contract_card_shape};
 pub use contract_query::{
     ContractDeckCache, ContractQueryReport, RankedContractCard, ShapeQuery, query_contract_deck,
