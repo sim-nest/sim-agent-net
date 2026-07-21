@@ -1728,10 +1728,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "eab1ed2e7070893c208ea1ebf3a2fecb1a9a1003",
+    "git_commit": "2449d92b01cce95751e6236d33a83e5406ebd705",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "eab1ed2e7070893c208ea1ebf3a2fecb1a9a1003",
+    "source_commit": "2449d92b01cce95751e6236d33a83e5406ebd705",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1744,9 +1744,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "5058e6e6d3d26f97",
+    "workspace_hash": "8b394b08ecf65ec8",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 680,
+    "workspace_hash_input_count": 681,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -2427,6 +2427,7 @@
       "crates/sim-table-remote/src/remote_dir.rs",
       "crates/sim-table-remote/src/site.rs",
       "crates/sim-table-remote/src/tests.rs",
+      "features.toml",
       "xtask/Cargo.toml"
     ]
   },

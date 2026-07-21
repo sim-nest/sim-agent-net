@@ -1,0 +1,58 @@
+schema = "sim.features"
+
+[enforcement.route]
+major_entrypoints = "advisory"
+frameworks = "advisory"
+
+[[feature]]
+id = "feature/sim-agent-net/mcp-server"
+title = "MCP server surface"
+summary = "Serve MCP requests through the loaded sim-lib-mcp command and runtime libraries."
+owner = "crate/sim-lib-mcp"
+audiences = ["user", "code"]
+guidance = "Use this row when exposing SIM behavior over MCP."
+claims_anchors = [
+  "anchor/cli/mcp",
+  "anchor/crate/sim-lib-mcp",
+  "anchor/export/sim-lib-mcp/cli/main/mcp",
+  "anchor/runtime-lib/sim-lib-mcp/mcp-lib",
+  "anchor/runtime-lib/sim-lib-mcp/mcp-serve-lib",
+]
+claims_surfaces = [
+  "cli/mcp",
+]
+
+[[feature]]
+id = "feature/sim-agent-net/model-packet-workflow"
+title = "Model-facing packet workflow"
+summary = "Shape model exchanges as Bridge packets with agent and bridge runtime support."
+owner = "crate/sim-lib-agent"
+audiences = ["code", "framework"]
+guidance = "Use this row when connecting model work to Bridge packet records."
+claims_anchors = [
+  "anchor/crate/sim-lib-agent",
+  "anchor/crate/sim-lib-bridge",
+  "anchor/export/sim-lib-agent/agent/wire",
+  "anchor/export/sim-lib-bridge/bridge/packet",
+  "anchor/runtime-lib/sim-lib-agent/agent-lib",
+  "anchor/runtime-lib/sim-lib-bridge/bridge-lib",
+]
+claims_surfaces = [
+  "model/sim-lib-agent",
+]
+
+[[route]]
+id = "route/serve-over-mcp"
+task = "Serve over MCP"
+audiences = ["user", "code"]
+steps = [
+  { feature = "feature/sim-agent-net/mcp-server", why = "The MCP row owns the command surface and loaded server libraries." },
+]
+
+[[route]]
+id = "route/add-model-facing-packet-workflow"
+task = "Add a model-facing packet workflow"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/model-packet-workflow", why = "The workflow row ties agent model exchange to Bridge packet records." },
+]
