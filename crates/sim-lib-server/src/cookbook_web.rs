@@ -250,10 +250,9 @@ fn stale_lifecycle_id<'a>(
 ) -> Option<(LifecycleAction, &'a str)> {
     let (action, lib) = if let Some(lib) = id.strip_prefix("cookbook/load/") {
         (LifecycleAction::Load, lib)
-    } else if let Some(lib) = id.strip_suffix("/cookbook-lifecycle/unload") {
-        (LifecycleAction::Unload, lib)
     } else {
-        return None;
+        let lib = id.strip_suffix("/cookbook-lifecycle/unload")?;
+        (LifecycleAction::Unload, lib)
     };
     directory
         .entry(lib)
