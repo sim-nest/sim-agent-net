@@ -11,6 +11,7 @@ mod support;
 mod triggers;
 mod triggers_network;
 mod triggers_network_http;
+mod voice;
 mod wasm_lifecycle;
 
 pub(crate) use support::*;

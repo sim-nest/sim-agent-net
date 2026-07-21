@@ -43,6 +43,7 @@ mod site;
 mod stream_support;
 mod transport;
 mod trigger;
+mod voice;
 mod wasm;
 
 pub use address::ServerAddress;
@@ -89,6 +90,10 @@ pub use transport::{
     decode_transport_frame, encode_transport_frame, register_loopback_transport_endpoint,
 };
 pub use trigger::TriggerHandle;
+pub use voice::{
+    ASR_TRANSCRIPT_KIND, ASR_TRANSCRIPT_NAMESPACE, MIC_CAPTURE_KIND, MIC_CAPTURE_NAMESPACE,
+    ModeledAsrFabric, modeled_asr_site,
+};
 pub use wasm::register_wasm_region;
 
 use crate::isolation::IsolatedEvalSite;
