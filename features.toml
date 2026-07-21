@@ -1,7 +1,13 @@
 schema = "sim.features"
 
 [enforcement.audience]
+user = "strict"
 framework = "strict"
+code = "advisory"
+
+[enforcement.surface]
+cli = "strict"
+docs = "advisory"
 
 [enforcement.route]
 major_entrypoints = "advisory"
@@ -16,13 +22,16 @@ audiences = ["user", "code"]
 guidance = "Use this row when exposing SIM behavior over MCP."
 claims_anchors = [
   "anchor/cli/mcp",
+  "anchor/cli/sim-mcp-server",
   "anchor/crate/sim-lib-mcp",
+  "anchor/crate/sim-mcp-server",
   "anchor/export/sim-lib-mcp/cli/main/mcp",
   "anchor/runtime-lib/sim-lib-mcp/mcp-lib",
   "anchor/runtime-lib/sim-lib-mcp/mcp-serve-lib",
 ]
 claims_surfaces = [
   "cli/mcp",
+  "cli/sim-mcp-server",
 ]
 
 [[feature]]
@@ -64,6 +73,41 @@ claims_surfaces = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/fabric-fixture-cli"
+title = "Fabric fixture command surface"
+summary = "Replay content-addressed stream-fabric fixtures through the loadable fixture command."
+owner = "crate/sim-lib-stream-fabric"
+audiences = ["user", "code"]
+guidance = "Use this row when inspecting or replaying the content-addressed fleet fixture."
+claims_anchors = [
+  "anchor/cli/sim-fabric-cadr-fixture",
+  "anchor/cli/sim-lib-stream-fabric",
+  "anchor/export/sim-lib-stream-fabric/cli/main/sim-fabric-cadr-fixture",
+]
+claims_surfaces = [
+  "cli/sim-fabric-cadr-fixture",
+  "cli/sim-lib-stream-fabric",
+]
+supports = [
+  "feature/sim-agent-net/eval-fabric-sites",
+]
+
+[[feature]]
+id = "feature/sim-agent-net/output-contract-repair-cli"
+title = "Output contract repair command"
+summary = "Repair model output contracts with the checked runner-core fixture command."
+owner = "crate/sim-lib-agent-runner-core-recipe-output-contract-repair"
+audiences = ["user", "code"]
+guidance = "Use this row when an output-contract recipe needs an operational repair pass."
+claims_anchors = [
+  "anchor/cli/sim-lib-agent-runner-core-recipe-output-contract-repair",
+  "anchor/crate/sim-lib-agent-runner-core-recipe-output-contract-repair",
+]
+claims_surfaces = [
+  "cli/sim-lib-agent-runner-core-recipe-output-contract-repair",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/forge-intent"
 title = "Forge intent compiler"
 summary = "Compile high-level intent records into checked Forge output through the loadable Forge runtime library."
@@ -94,12 +138,30 @@ claims_surfaces = [
   "model/sim-lib-openai-server",
 ]
 
+[[feature]]
+id = "feature/sim-agent-net/generated-docs"
+title = "Repository documentation surface"
+summary = "Publish generated package, card, recipe, and index facts for agent, bridge, MCP, and fabric crates."
+owner = "crate/xtask"
+audiences = ["code"]
+guidance = "Use this row when checking the generated documentation and index lane for the agent network repo."
+claims_anchors = [
+  "anchor/cli/xtask",
+  "anchor/doc/generated/feature-map",
+  "anchor/doc/generated/sim-index-fragment",
+]
+claims_surfaces = [
+  "cli/xtask",
+  "docs/sim-agent-net/generated",
+]
+
 [[route]]
 id = "route/serve-over-mcp"
 task = "Serve over MCP"
 audiences = ["user", "code"]
 steps = [
   { feature = "feature/sim-agent-net/mcp-server", why = "The MCP row owns the command surface and loaded server libraries." },
+  { specimen = "recipe/sim-agent-net/crates/sim-mcp-server/01-basics/stdio-bootloader", why = "The stdio bootloader recipe shows the server entry point." },
 ]
 
 [[route]]
@@ -116,6 +178,25 @@ task = "Add an EvalFabric site"
 audiences = ["code", "framework"]
 steps = [
   { feature = "feature/sim-agent-net/eval-fabric-sites", why = "The EvalFabric row owns runner and fleet placement libraries." },
+]
+
+[[route]]
+id = "route/replay-content-addressed-fleet"
+task = "Replay a content-addressed fleet"
+audiences = ["user", "code"]
+steps = [
+  { feature = "feature/sim-agent-net/eval-fabric-sites", why = "The EvalFabric row owns the stream-fabric placement library." },
+  { feature = "feature/sim-agent-net/fabric-fixture-cli", why = "The fixture command row exposes replay from the CLI surface." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-stream-fabric/01-basics/content-addressed-fleet", why = "The content-addressed fleet recipe is the replay example." },
+]
+
+[[route]]
+id = "route/repair-output-contract"
+task = "Repair an output contract"
+audiences = ["user", "code"]
+steps = [
+  { feature = "feature/sim-agent-net/output-contract-repair-cli", why = "The repair command row owns the operational correction path." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-agent-runner-core/01-basics/output-contract-repair", why = "The repair recipe provides the worked contract fixture." },
 ]
 
 [[route]]
