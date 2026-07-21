@@ -1,6 +1,6 @@
 use crate::{
     EvalSite, MIC_CAPTURE_KIND, MIC_CAPTURE_NAMESPACE, ModeledAsrFabric, ServerAddress,
-    modeled_asr_site,
+    XR_MIC_CHUNK_KIND, XR_MIC_CHUNK_NAMESPACE, modeled_asr_site, modeled_glasses_asr_site,
 };
 use sim_kernel::{Consistency, EvalMode, EvalReply, Expr, Symbol};
 use sim_value::{access, build};
@@ -35,6 +35,55 @@ fn modeled_asr_site_exposes_eval_fabric_and_rejects_transcript_inputs() {
     let fabric = site.as_eval_fabric().expect("site exposes eval fabric");
 
     let mut entries = match mic_capture_expr() {
+        Expr::Map(entries) => entries,
+        _ => unreachable!(),
+    };
+    entries.push((build::sym("transcript"), build::text("bypass")));
+    let err = match fabric.realize(&mut cx, request(Expr::Map(entries))) {
+        Ok(_) => panic!("input transcript side channel should be rejected"),
+        Err(err) => err,
+    };
+
+    assert!(format!("{err}").contains("unexpected field transcript"));
+}
+
+#[test]
+fn modeled_asr_fabric_realizes_glasses_mic_chunk_ref_as_intent() {
+    let mut cx = cx();
+    let fabric = ModeledAsrFabric::new("fixture-asr");
+    let reply = fabric
+        .realize(&mut cx, request(xr_mic_chunk_expr()))
+        .expect("modeled ASR realizes xr mic chunk ref");
+    let expr = reply_expr(&mut cx, reply);
+
+    assert_eq!(
+        access::field(&expr, "kind"),
+        Some(&build::qsym("intent", "invoke"))
+    );
+    assert_eq!(access::field(&expr, "text"), None);
+    assert_eq!(
+        access::field(&expr, "op"),
+        Some(&Expr::Symbol(Symbol::qualified(
+            "glasses/voice",
+            "modeled-asr"
+        )))
+    );
+    let args = access::field(&expr, "args").expect("intent args");
+    assert!(!matches!(
+        args,
+        Expr::List(items) if items.iter().any(|item| matches!(item, Expr::String(_)))
+    ));
+}
+
+#[test]
+fn modeled_glasses_asr_site_exposes_eval_fabric_and_rejects_transcript_inputs() {
+    let mut cx = cx();
+    let site = modeled_glasses_asr_site(ServerAddress::Local, installed_codecs(), "halo-relay");
+    assert_eq!(site.site_kind(), "glasses-asr");
+    assert_eq!(site.address(), &ServerAddress::Local);
+    let fabric = site.as_eval_fabric().expect("site exposes eval fabric");
+
+    let mut entries = match xr_mic_chunk_expr() {
         Expr::Map(entries) => entries,
         _ => unreachable!(),
     };
@@ -82,6 +131,23 @@ fn mic_capture_expr() -> Expr {
         ("seq", build::uint(12)),
         ("sample-rate-hz", build::uint(16_000)),
         ("channels", build::uint(1)),
+    ])
+}
+
+fn xr_mic_chunk_expr() -> Expr {
+    build::map(vec![
+        (
+            "kind",
+            Expr::Symbol(Symbol::qualified(XR_MIC_CHUNK_NAMESPACE, XR_MIC_CHUNK_KIND)),
+        ),
+        (
+            "ref",
+            Expr::Symbol(Symbol::qualified("xr/chunk", "halo-12")),
+        ),
+        ("seq", build::uint(12)),
+        ("sample-rate-hz", build::uint(16_000)),
+        ("channels", build::uint(1)),
+        ("bytes", build::uint(4096)),
     ])
 }
 

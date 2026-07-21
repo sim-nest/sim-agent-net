@@ -95,7 +95,8 @@ pub use transport::{
 pub use trigger::TriggerHandle;
 pub use voice::{
     ASR_TRANSCRIPT_KIND, ASR_TRANSCRIPT_NAMESPACE, MIC_CAPTURE_KIND, MIC_CAPTURE_NAMESPACE,
-    ModeledAsrFabric, modeled_asr_site,
+    ModeledAsrFabric, XR_MIC_CHUNK_KIND, XR_MIC_CHUNK_NAMESPACE, modeled_asr_site,
+    modeled_glasses_asr_site,
 };
 pub use wasm::register_wasm_region;
 

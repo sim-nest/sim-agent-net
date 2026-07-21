@@ -1,8 +1,10 @@
-//! Modeled ASR eval site for watch microphone captures.
+//! Modeled ASR eval site for microphone captures and chunk references.
 //!
 //! The site consumes the raw `watch/mic-capture` expression emitted by the watch
-//! surface and returns an `asr/transcript` expression. It is an eval fabric, not
-//! a watch-local transcription shortcut.
+//! surface or an `xr/mic-chunk` reference emitted by glasses. Watch requests
+//! receive an `asr/transcript`; glasses requests receive an already-formed
+//! `intent/invoke`. Both routes are eval fabric calls, not device-local
+//! transcription shortcuts.
 
 use std::sync::Arc;
 
@@ -20,6 +22,12 @@ pub const MIC_CAPTURE_NAMESPACE: &str = "watch";
 /// Kind tag for watch microphone capture expressions.
 pub const MIC_CAPTURE_KIND: &str = "mic-capture";
 
+/// Namespace for glasses microphone chunk references.
+pub const XR_MIC_CHUNK_NAMESPACE: &str = "xr";
+
+/// Kind tag for glasses microphone chunk references.
+pub const XR_MIC_CHUNK_KIND: &str = "mic-chunk";
+
 /// Namespace for modeled ASR transcript expressions.
 pub const ASR_TRANSCRIPT_NAMESPACE: &str = "asr";
 
@@ -27,8 +35,9 @@ pub const ASR_TRANSCRIPT_NAMESPACE: &str = "asr";
 pub const ASR_TRANSCRIPT_KIND: &str = "transcript";
 
 const MODELED_ASR_SITE_KIND: &str = "watch-asr";
+const MODELED_GLASSES_ASR_SITE_KIND: &str = "glasses-asr";
 
-/// Deterministic ASR fabric for modeled watch microphone captures.
+/// Deterministic ASR fabric for modeled microphone inputs.
 #[derive(Clone, Debug)]
 pub struct ModeledAsrFabric {
     label: String,
@@ -59,21 +68,23 @@ impl EvalFabric for ModeledAsrFabric {
             cx.require(capability)?;
         }
 
-        let capture = MicCaptureView::from_expr(&request.expr)?;
-        Ok(EvalReply {
-            value: cx.factory().expr(transcript_expr(
+        let input = AsrInput::from_expr(&request.expr)?;
+        let trace = input.trace_symbol();
+        let output = match input {
+            AsrInput::Watch(capture) => transcript_expr(
                 &self.label,
                 capture.seq,
                 capture.frame_count,
                 capture.byte_count,
-            ))?,
+            ),
+            AsrInput::Glasses(chunk) => voice_intent_expr(&chunk),
+        };
+        Ok(EvalReply {
+            value: cx.factory().expr(output)?,
             diagnostics: cx.take_diagnostics(),
             trace: request
                 .trace
-                .then(|| {
-                    cx.factory()
-                        .symbol(Symbol::qualified("asr", "modeled-watch"))
-                })
+                .then(|| cx.factory().symbol(trace))
                 .transpose()?,
         })
     }
@@ -93,6 +104,56 @@ pub fn modeled_asr_site(
     )
 }
 
+/// Builds a modeled glasses ASR eval site over [`ModeledAsrFabric`].
+pub fn modeled_glasses_asr_site(
+    address: ServerAddress,
+    codecs: Vec<Symbol>,
+    label: impl Into<String>,
+) -> FabricEvalSite {
+    FabricEvalSite::new(
+        MODELED_GLASSES_ASR_SITE_KIND,
+        address,
+        codecs,
+        Arc::new(ModeledAsrFabric::new(label)),
+    )
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum AsrInput {
+    Watch(MicCaptureView),
+    Glasses(XrMicChunkView),
+}
+
+impl AsrInput {
+    fn from_expr(expr: &Expr) -> Result<Self> {
+        let Some(kind) = access::field_sym(expr, "kind") else {
+            return Err(Error::HostError(
+                "expected watch mic capture or xr mic chunk".to_owned(),
+            ));
+        };
+        if kind.namespace.as_deref() == Some(MIC_CAPTURE_NAMESPACE)
+            && kind.name.as_ref() == MIC_CAPTURE_KIND
+        {
+            return MicCaptureView::from_expr(expr).map(Self::Watch);
+        }
+        if kind.namespace.as_deref() == Some(XR_MIC_CHUNK_NAMESPACE)
+            && kind.name.as_ref() == XR_MIC_CHUNK_KIND
+        {
+            return XrMicChunkView::from_expr(expr).map(Self::Glasses);
+        }
+        Err(Error::HostError(
+            "expected watch mic capture or xr mic chunk".to_owned(),
+        ))
+    }
+
+    fn trace_symbol(&self) -> Symbol {
+        match self {
+            Self::Watch(_) => Symbol::qualified("asr", "modeled-watch"),
+            Self::Glasses(_) => Symbol::qualified("asr", "modeled-glasses"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct MicCaptureView {
     seq: u64,
@@ -102,7 +163,12 @@ struct MicCaptureView {
 
 impl MicCaptureView {
     fn from_expr(expr: &Expr) -> Result<Self> {
-        ensure_kind(expr, MIC_CAPTURE_KIND, "watch mic capture")?;
+        ensure_kind(
+            expr,
+            MIC_CAPTURE_NAMESPACE,
+            MIC_CAPTURE_KIND,
+            "watch mic capture",
+        )?;
         ensure_no_extra(
             expr,
             &["kind", "frames", "seq", "sample-rate-hz", "channels"],
@@ -134,8 +200,58 @@ impl MicCaptureView {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct XrMicChunkView {
+    ref_id: Symbol,
+    seq: u64,
+    byte_count: u64,
+}
+
+impl XrMicChunkView {
+    fn from_expr(expr: &Expr) -> Result<Self> {
+        ensure_kind(
+            expr,
+            XR_MIC_CHUNK_NAMESPACE,
+            XR_MIC_CHUNK_KIND,
+            "xr mic chunk",
+        )?;
+        ensure_no_extra(
+            expr,
+            &["kind", "ref", "seq", "sample-rate-hz", "channels", "bytes"],
+            "xr mic chunk",
+        )?;
+        let ref_id = match access::required(expr, "ref", "xr mic chunk")? {
+            Expr::Symbol(symbol) => symbol.clone(),
+            _ => {
+                return Err(Error::TypeMismatch {
+                    expected: "audio chunk reference symbol",
+                    found: "non-symbol",
+                });
+            }
+        };
+        let sample_rate_hz = uint_field(expr, "sample-rate-hz", "xr mic chunk")?;
+        let channels = uint_field(expr, "channels", "xr mic chunk")?;
+        let byte_count = uint_field(expr, "bytes", "xr mic chunk")?;
+        if sample_rate_hz == 0 || channels == 0 || byte_count == 0 {
+            return Err(Error::HostError(
+                "xr mic chunk requires nonzero audio metadata".to_owned(),
+            ));
+        }
+        Ok(Self {
+            ref_id,
+            seq: uint_field(expr, "seq", "xr mic chunk")?,
+            byte_count,
+        })
+    }
+}
+
 fn frame_byte_count(expr: &Expr) -> Result<usize> {
-    ensure_kind(expr, "audio-frame", "watch audio frame")?;
+    ensure_kind(
+        expr,
+        MIC_CAPTURE_NAMESPACE,
+        "audio-frame",
+        "watch audio frame",
+    )?;
     ensure_no_extra(expr, &["kind", "at-ms", "pcm"], "watch audio frame")?;
     match access::required(expr, "pcm", "watch audio frame")? {
         Expr::Bytes(bytes) => Ok(bytes.len()),
@@ -164,11 +280,35 @@ fn transcript_expr(label: &str, seq: u64, frame_count: usize, byte_count: usize)
     ])
 }
 
-fn ensure_kind(expr: &Expr, kind: &str, context: &str) -> Result<()> {
+fn voice_intent_expr(chunk: &XrMicChunkView) -> Expr {
+    build::map(vec![
+        ("kind", build::qsym("intent", "invoke")),
+        (
+            "origin",
+            build::map(vec![
+                ("operator", build::sym("agent")),
+                ("at-tick", build::uint(chunk.seq)),
+            ]),
+        ),
+        ("target", build::sym("focused")),
+        (
+            "op",
+            Expr::Symbol(Symbol::qualified("glasses/voice", "modeled-asr")),
+        ),
+        (
+            "args",
+            build::list(vec![
+                Expr::Symbol(chunk.ref_id.clone()),
+                build::map(vec![("bytes", build::uint(chunk.byte_count))]),
+            ]),
+        ),
+    ])
+}
+
+fn ensure_kind(expr: &Expr, namespace: &str, kind: &str, context: &str) -> Result<()> {
     match access::field_sym(expr, "kind") {
         Some(symbol)
-            if symbol.namespace.as_deref() == Some(MIC_CAPTURE_NAMESPACE)
-                && symbol.name.as_ref() == kind =>
+            if symbol.namespace.as_deref() == Some(namespace) && symbol.name.as_ref() == kind =>
         {
             Ok(())
         }
