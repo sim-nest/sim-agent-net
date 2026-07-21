@@ -1,5 +1,8 @@
 schema = "sim.features"
 
+[enforcement.audience]
+framework = "strict"
+
 [enforcement.route]
 major_entrypoints = "advisory"
 frameworks = "advisory"
@@ -23,8 +26,8 @@ claims_surfaces = [
 ]
 
 [[feature]]
-id = "feature/sim-agent-net/model-packet-workflow"
-title = "Model-facing packet workflow"
+id = "feature/sim-agent-net/bridge-model-exchange"
+title = "Bridge model exchange"
 summary = "Shape model exchanges as Bridge packets with agent and bridge runtime support."
 owner = "crate/sim-lib-agent"
 audiences = ["code", "framework"]
@@ -36,9 +39,59 @@ claims_anchors = [
   "anchor/export/sim-lib-bridge/bridge/packet",
   "anchor/runtime-lib/sim-lib-agent/agent-lib",
   "anchor/runtime-lib/sim-lib-bridge/bridge-lib",
+  "anchor/runtime-lib/sim-lib-cookbook/cookbook-lib",
 ]
 claims_surfaces = [
   "model/sim-lib-agent",
+]
+
+[[feature]]
+id = "feature/sim-agent-net/eval-fabric-sites"
+title = "Eval fabric sites"
+summary = "Place model and stream work through loadable runner, local model, and content-addressed fleet libraries."
+owner = "crate/sim-lib-agent-runner-local"
+audiences = ["code", "framework"]
+guidance = "Use this row when wiring a placement target, local model, or content-addressed fleet route."
+claims_anchors = [
+  "anchor/crate/sim-lib-agent-runner-local",
+  "anchor/crate/sim-lib-stream-fabric",
+  "anchor/runtime-lib/sim-lib-agent-runner-local/local-model-lib",
+  "anchor/runtime-lib/sim-lib-agent-runner-local/wasm-model-lib",
+  "anchor/runtime-lib/sim-lib-stream-fabric/cadr-fixture-lib",
+]
+claims_surfaces = [
+  "site/sim-lib-agent-runner-local",
+]
+
+[[feature]]
+id = "feature/sim-agent-net/forge-intent"
+title = "Forge intent compiler"
+summary = "Compile high-level intent records into checked Forge output through the loadable Forge runtime library."
+owner = "crate/sim-lib-forge"
+audiences = ["code", "framework"]
+guidance = "Use this row when turning agent intent into explicit runtime work."
+claims_anchors = [
+  "anchor/crate/sim-lib-forge",
+  "anchor/runtime-lib/sim-lib-forge/forge-lib",
+]
+
+[[feature]]
+id = "feature/sim-agent-net/agent-server-tools"
+title = "Agent server tools"
+summary = "Expose agent-facing server, skill, and OpenAI gateway libraries for model-connected hosts."
+owner = "crate/sim-lib-server"
+audiences = ["code", "framework"]
+guidance = "Use this row when connecting a model-serving host to reusable agent tools."
+claims_anchors = [
+  "anchor/crate/sim-lib-openai-server",
+  "anchor/crate/sim-lib-server",
+  "anchor/crate/sim-lib-skill",
+  "anchor/runtime-lib/sim-lib-openai-server/open-ai-gateway-lib",
+  "anchor/runtime-lib/sim-lib-server/server-lib",
+  "anchor/runtime-lib/sim-lib-skill/skill-lib",
+]
+claims_surfaces = [
+  "model/sim-lib-openai-server",
 ]
 
 [[route]]
@@ -54,5 +107,22 @@ id = "route/add-model-facing-packet-workflow"
 task = "Add a model-facing packet workflow"
 audiences = ["code", "framework"]
 steps = [
-  { feature = "feature/sim-agent-net/model-packet-workflow", why = "The workflow row ties agent model exchange to Bridge packet records." },
+  { feature = "feature/sim-agent-net/bridge-model-exchange", why = "The workflow row ties agent model exchange to Bridge packet records." },
+]
+
+[[route]]
+id = "route/add-eval-fabric-site"
+task = "Add an EvalFabric site"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/eval-fabric-sites", why = "The EvalFabric row owns runner and fleet placement libraries." },
+]
+
+[[route]]
+id = "route/compile-agent-intent"
+task = "Compile agent intent"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/forge-intent", why = "The Forge row owns checked intent compilation." },
+  { feature = "feature/sim-agent-net/agent-server-tools", why = "Server tool rows expose the host-facing model gateway." },
 ]

@@ -18,7 +18,10 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | Feature | Subject | Specimens | Summary |
 | --- | --- | ---: | --- |
 | `feature/sim-agent-net/mcp-server` | `crate/sim-lib-mcp` | 0 | Serve MCP requests through the loaded sim-lib-mcp command and runtime libraries. |
-| `feature/sim-agent-net/model-packet-workflow` | `crate/sim-lib-agent` | 0 | Shape model exchanges as Bridge packets with agent and bridge runtime support. |
+| `feature/sim-agent-net/bridge-model-exchange` | `crate/sim-lib-agent` | 0 | Shape model exchanges as Bridge packets with agent and bridge runtime support. |
+| `feature/sim-agent-net/eval-fabric-sites` | `crate/sim-lib-agent-runner-local` | 0 | Place model and stream work through loadable runner, local model, and content-addressed fleet libraries. |
+| `feature/sim-agent-net/forge-intent` | `crate/sim-lib-forge` | 0 | Compile high-level intent records into checked Forge output through the loadable Forge runtime library. |
+| `feature/sim-agent-net/agent-server-tools` | `crate/sim-lib-server` | 0 | Expose agent-facing server, skill, and OpenAI gateway libraries for model-connected hosts. |
 
 ## Surfaces
 
