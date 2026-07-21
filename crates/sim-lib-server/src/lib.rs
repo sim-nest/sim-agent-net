@@ -55,7 +55,10 @@ pub use codecio::{decode_frame_payload, encode_frame_payload};
 pub use connection::{Connection, Session};
 pub use cookbook_web::{CookbookWebResponse, CookbookWebState};
 pub use coroutine::{Coroutine, CoroutineStatus};
-pub use device_edge::{DeviceEdgeSession, LedgerRef, LinkKind};
+pub use device_edge::{
+    DeviceEdgeProfile, DeviceEdgeSession, LedgerRef, LinkKind, register_watch_edge_session,
+    watch_route_order,
+};
 pub use frame::{
     FrameEnvelope, FrameKind, LifecycleCommand, ServerFrame, eval_reply_from_frame,
     eval_request_from_frame, server_frame_from_reply, server_frame_from_request,
