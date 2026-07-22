@@ -10,6 +10,7 @@ fn agent_cookbook_card_can_search_and_run_seeded_recipe() {
     let mut cx = eval_cx();
     install_roundtrip_codecs(&mut cx);
     install_agent_lib(&mut cx).unwrap();
+    assert!(cx.registry().lib(&sim_lib_core::manifest_name()).is_some());
 
     let card = cx
         .resolve_value(&Symbol::qualified("agent", "cookbook"))

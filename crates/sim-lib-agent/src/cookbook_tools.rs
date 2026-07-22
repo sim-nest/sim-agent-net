@@ -8,6 +8,7 @@ use sim_shape::{AnyShape, ListShape, shape_value};
 use crate::{AGENT_LIB_ID, Tool, ToolSpec, install_tool};
 
 pub(crate) fn install_cookbook_tools(cx: &mut Cx) -> Result<()> {
+    install_core_surface(cx)?;
     sim_lib_cookbook::install_seeded_cookbook_lib(cx)?;
     let search_tool = cookbook_tool(cx, "search", "search seeded cookbook recipes", Vec::new())?;
     install_tool(cx, Arc::new(search_tool))?;
@@ -22,6 +23,17 @@ pub(crate) fn install_cookbook_tools(cx: &mut Cx) -> Result<()> {
     )?;
     install_tool(cx, Arc::new(run_tool))?;
     install_cookbook_card(cx)
+}
+
+fn install_core_surface(cx: &mut Cx) -> Result<()> {
+    let core = sim_lib_core::SurfacePackLib {
+        spec: sim_lib_core::SurfacePackSpec {
+            lib_id: sim_lib_core::manifest_name(),
+            values: Vec::new(),
+        },
+    };
+    sim_lib_core::install_once(cx, &core)?;
+    Ok(())
 }
 
 fn cookbook_tool(
