@@ -18,7 +18,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | Feature | Subject | Specimens | Summary |
 | --- | --- | ---: | --- |
 | `feature/sim-agent-net/mcp-server` | `crate/sim-lib-mcp` | 0 | Serve MCP requests through the loaded sim-lib-mcp command and runtime libraries. |
-| `feature/sim-agent-net/bridge-model-exchange` | `crate/sim-lib-agent` | 0 | Shape model exchanges as Bridge packets with agent and bridge runtime support. |
+| `feature/sim-agent-net/bridge-runtime` | `crate/sim-lib-agent` | 0 | Transmit, receive, check, and route symmetric human-model packets with agent and bridge runtime support. |
 | `feature/sim-agent-net/eval-fabric-sites` | `crate/sim-lib-agent-runner-local` | 0 | Place model and stream work through loadable runner, local model, and content-addressed fleet libraries. |
 | `feature/sim-agent-net/fabric-fixture-cli` | `crate/sim-lib-stream-fabric` | 0 | Replay content-addressed stream-fabric fixtures through the loadable fixture command. |
 | `feature/sim-agent-net/output-contract-repair-cli` | `crate/sim-lib-agent-runner-core-recipe-output-contract-repair` | 0 | Repair model output contracts with the checked runner-core fixture command. |

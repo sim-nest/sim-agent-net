@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | `sim-lib-agent` | `workspace` | Agent runtime surfaces for SIM: agents, tools, memory, patterns, fixtures, fairness facets, and model-fabric contract re-exports. |
 | `sim-lib-agent-runner-core` | `workspace` | Provider-neutral runner contracts for SIM model fabrics. |
+| `sim-lib-agent-runner-core-recipe-output-contract-repair` | `workspace` | Runnable output contract repair cookbook recipe. |
 | `sim-lib-agent-runner-http` | `workspace` | HTTP-backed model runners for SIM. |
 | `sim-lib-agent-runner-local` | `workspace` | Loadable local model runner for SIM. |
 | `sim-lib-agent-runner-process` | `workspace` | Local subprocess-backed model runners for SIM. |

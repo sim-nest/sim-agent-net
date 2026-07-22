@@ -6,6 +6,7 @@
 | --- | --- | ---: | ---: |
 | `sim-lib-agent` | `workspace` | 6 | 5 |
 | `sim-lib-agent-runner-core` | `workspace` | 0 | 0 |
+| `sim-lib-agent-runner-core-recipe-output-contract-repair` | `workspace` | 0 | 0 |
 | `sim-lib-agent-runner-http` | `workspace` | 2 | 0 |
 | `sim-lib-agent-runner-local` | `workspace` | 4 | 0 |
 | `sim-lib-agent-runner-process` | `workspace` | 0 | 0 |
