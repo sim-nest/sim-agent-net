@@ -12,6 +12,7 @@ use sim_kernel::{
 use sim_lib_agent_runner_core::FENCE_DATA_RULE;
 use sim_lib_server::{EvalSite, FrameKind, ServerFrame, StreamSink, eval_reply_from_frame};
 use sim_shape::{AnyShape, shape_value};
+use sim_value::access::field;
 use std::{
     any::Any,
     sync::{Arc, Mutex},
@@ -597,18 +598,6 @@ fn number_value(cx: &mut Cx, value: u32) -> Value {
     cx.factory()
         .number_literal(Symbol::qualified("numbers", "f64"), value.to_string())
         .unwrap()
-}
-
-fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| match key {
-        Expr::Symbol(symbol) if symbol.namespace.is_none() && symbol.name.as_ref() == name => {
-            Some(value)
-        }
-        _ => None,
-    })
 }
 
 fn key_expr(name: &str, value: Expr) -> (Expr, Expr) {

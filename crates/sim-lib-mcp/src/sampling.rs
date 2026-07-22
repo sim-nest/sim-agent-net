@@ -426,18 +426,5 @@ fn expr_text(expr: &Expr) -> String {
     }
 }
 
-fn optional_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(fields) = expr else {
-        return None;
-    };
-    fields.iter().find_map(|(key, value)| {
-        let key = match key {
-            Expr::Symbol(symbol) if symbol.namespace.is_none() => symbol.name.as_ref(),
-            Expr::String(text) => text.as_str(),
-            _ => return None,
-        };
-        (key == name).then_some(value)
-    })
-}
-
+use sim_value::access::field_any as optional_field;
 use sim_value::build::entry as field;

@@ -205,25 +205,41 @@ fn list_field<'a>(expr: &'a Expr, name: &str) -> Result<&'a [Expr]> {
     }
 }
 
-pub(crate) fn optional_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(fields) = expr else {
-        return None;
-    };
-    optional_field_from_fields(fields, name)
-}
-
-pub(crate) fn optional_field_from_fields<'a>(
-    fields: &'a [(Expr, Expr)],
-    name: &str,
-) -> Option<&'a Expr> {
-    fields.iter().find_map(|(key, value)| {
-        let key = match key {
-            Expr::Symbol(symbol) if symbol.namespace.is_none() => symbol.name.as_ref(),
-            Expr::String(text) => text.as_str(),
-            _ => return None,
-        };
-        (key == name).then_some(value)
-    })
-}
-
+pub(crate) use sim_value::access::{
+    entry_field_any as optional_field_from_fields, field_any as optional_field,
+};
 pub(crate) use sim_value::build::entry as field;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sim_kernel::Symbol;
+
+    #[test]
+    fn optional_fields_use_provider_key_policy() {
+        let map = Expr::Map(vec![
+            field("bare", Expr::String("bare".to_owned())),
+            (
+                Expr::String("string".to_owned()),
+                Expr::String("string".to_owned()),
+            ),
+            (
+                Expr::Symbol(Symbol::qualified("mcp", "qualified")),
+                Expr::String("qualified".to_owned()),
+            ),
+        ]);
+        let Expr::Map(entries) = &map else {
+            panic!("test map");
+        };
+
+        assert!(matches!(
+            optional_field(&map, "bare"),
+            Some(Expr::String(value)) if value == "bare"
+        ));
+        assert!(matches!(
+            optional_field_from_fields(entries, "string"),
+            Some(Expr::String(value)) if value == "string"
+        ));
+        assert_eq!(optional_field(&map, "qualified"), None);
+    }
+}

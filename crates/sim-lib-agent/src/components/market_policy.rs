@@ -238,3 +238,33 @@ fn number_expr(value: u64) -> Expr {
         canonical: value.to_string(),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn local_name_field_reader_keeps_symbol_namespace_policy() {
+        let map = Expr::Map(vec![
+            key_expr("bare", Expr::String("bare".to_owned())),
+            (
+                Expr::Symbol(Symbol::qualified("provider", "qualified")),
+                Expr::String("qualified".to_owned()),
+            ),
+            (
+                Expr::String("string".to_owned()),
+                Expr::String("string".to_owned()),
+            ),
+        ]);
+
+        assert!(matches!(
+            field(&map, "bare"),
+            Some(Expr::String(value)) if value == "bare"
+        ));
+        assert!(matches!(
+            field(&map, "qualified"),
+            Some(Expr::String(value)) if value == "qualified"
+        ));
+        assert_eq!(field(&map, "string"), None);
+    }
+}

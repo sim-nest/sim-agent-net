@@ -192,21 +192,8 @@ fn tools(result: &Expr) -> &[Expr] {
     tools
 }
 
-fn field_value<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(fields) = expr else {
-        return None;
-    };
-    fields.iter().find_map(|(key, value)| {
-        let key = match key {
-            Expr::Symbol(symbol) if symbol.namespace.is_none() => symbol.name.as_ref(),
-            Expr::String(text) => text.as_str(),
-            _ => return None,
-        };
-        (key == name).then_some(value)
-    })
-}
-
 use sim_kernel::testing::eager_cx as cx;
+use sim_value::access::field_any as field_value;
 
 fn any_shape(name: &str) -> ShapeRef {
     shape_value(

@@ -201,21 +201,21 @@ fn expect_error(envelope: McpEnvelope) -> McpErrorEnvelope {
 fn tool_names(result: &Expr) -> Vec<&str> {
     list_field(result, "tools")
         .iter()
-        .filter_map(|tool| string_field(tool, "name"))
+        .filter_map(|tool| string_value(tool, "name"))
         .collect()
 }
 
 fn resource_uris(result: &Expr) -> Vec<&str> {
     list_field(result, "resources")
         .iter()
-        .filter_map(|resource| string_field(resource, "uri"))
+        .filter_map(|resource| string_value(resource, "uri"))
         .collect()
 }
 
 fn prompt_names(result: &Expr) -> Vec<&str> {
     list_field(result, "prompts")
         .iter()
-        .filter_map(|prompt| string_field(prompt, "name"))
+        .filter_map(|prompt| string_value(prompt, "name"))
         .collect()
 }
 
@@ -244,26 +244,14 @@ fn single_content(result: &Expr) -> Option<&Expr> {
     }
 }
 
-fn string_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a str> {
+fn string_value<'a>(expr: &'a Expr, name: &str) -> Option<&'a str> {
     field_value(expr, name).and_then(|value| match value {
         Expr::String(text) => Some(text.as_str()),
         _ => None,
     })
 }
 
-fn field_value<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(fields) = expr else {
-        return None;
-    };
-    fields.iter().find_map(|(key, value)| {
-        let key = match key {
-            Expr::Symbol(symbol) if symbol.namespace.is_none() => symbol.name.as_ref(),
-            Expr::String(text) => text.as_str(),
-            _ => return None,
-        };
-        (key == name).then_some(value)
-    })
-}
+use sim_value::access::field_any as field_value;
 
 fn any_shape(name: &str) -> ShapeRef {
     shape_value(

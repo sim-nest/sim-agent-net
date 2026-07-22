@@ -5,6 +5,7 @@ use crate::Component;
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{Error, Expr, Symbol};
 use sim_lib_server::{EvalSite, FrameKind, ServerFrame, StreamSink, eval_reply_from_frame};
+use sim_value::access::field;
 use std::{
     io::{ErrorKind, Read, Write},
     net::TcpListener,
@@ -373,18 +374,6 @@ fn event_kinds(chunks: &[Expr]) -> Vec<Expr> {
         .iter()
         .map(|expr| field(expr, "event").unwrap().clone())
         .collect()
-}
-
-fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| match key {
-        Expr::Symbol(symbol) if symbol.namespace.is_none() && symbol.name.as_ref() == name => {
-            Some(value)
-        }
-        _ => None,
-    })
 }
 
 fn capabilities(expr: &Expr) -> Vec<String> {

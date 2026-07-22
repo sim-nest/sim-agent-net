@@ -1,6 +1,7 @@
 use crate::{AgentComponent, RunnerBackend};
 use sim_kernel::{Error, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{ModelCard, ModelRequest};
+use sim_value::access::{entry_field, field};
 use std::{
     collections::{BTreeMap, BTreeSet},
     hash::{Hash, Hasher},
@@ -127,7 +128,7 @@ impl PrivacyPolicy {
             }
             Expr::Map(entries) => {
                 for (key, value) in entries {
-                    let Some(name) = field_name(key) else {
+                    let Some(name) = key_name(key) else {
                         continue;
                     };
                     match name {
@@ -377,28 +378,11 @@ fn marker_is_true(expr: &Expr, name: &str) -> bool {
     matches!(field(expr, name), Some(Expr::Bool(true)))
 }
 
-fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entry_field(entries, name)
-}
-
-fn entry_field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
-    entries.iter().find_map(|(key, value)| {
-        if is_field(key, name) {
-            Some(value)
-        } else {
-            None
-        }
-    })
-}
-
 fn is_field(expr: &Expr, name: &str) -> bool {
-    matches!(field_name(expr), Some(found) if found == name)
+    matches!(key_name(expr), Some(found) if found == name)
 }
 
-fn field_name(expr: &Expr) -> Option<&str> {
+fn key_name(expr: &Expr) -> Option<&str> {
     match expr {
         Expr::Symbol(symbol) if symbol.namespace.is_none() => Some(symbol.name.as_ref()),
         _ => None,

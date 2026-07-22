@@ -263,14 +263,4 @@ pub(crate) fn response_usage_expr(response: &Expr) -> Expr {
         .unwrap_or(Expr::Nil)
 }
 
-fn response_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| match key {
-        Expr::Symbol(symbol) if symbol.namespace.is_none() && symbol.name.as_ref() == name => {
-            Some(value)
-        }
-        _ => None,
-    })
-}
+use sim_value::access::field as response_field;

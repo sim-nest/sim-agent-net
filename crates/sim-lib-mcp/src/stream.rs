@@ -144,10 +144,10 @@ fn cancellation_params(params: Expr) -> Result<(Expr, Option<String>)> {
     };
     let request_id = fields
         .iter()
-        .find_map(|(key, value)| (field_name(key)? == "requestId").then_some(value.clone()))
+        .find_map(|(key, value)| (key_name(key)? == "requestId").then_some(value.clone()))
         .ok_or_else(|| Error::Eval("MCP cancellation is missing requestId".to_owned()))?;
     let reason = fields.iter().find_map(|(key, value)| {
-        (field_name(key)? == "reason").then(|| match value {
+        (key_name(key)? == "reason").then(|| match value {
             Expr::String(reason) => Some(reason.clone()),
             Expr::Nil => None,
             other => Some(format!("{other:?}")),
@@ -167,7 +167,7 @@ fn packet_message(packet: &StreamPacket) -> String {
 
 use sim_value::access::field_any as map_field;
 
-fn field_name(expr: &Expr) -> Option<&str> {
+fn key_name(expr: &Expr) -> Option<&str> {
     match expr {
         Expr::Symbol(symbol) if symbol.namespace.is_none() => Some(symbol.name.as_ref()),
         Expr::String(value) => Some(value.as_str()),
@@ -182,4 +182,22 @@ fn ordinal_expr(ordinal: usize) -> Expr {
         domain: Symbol::qualified("numbers", "i64"),
         canonical: ordinal.to_string(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stream_key_names_accept_bare_symbol_or_string_only() {
+        let cases = [
+            (Expr::Symbol(Symbol::new("bare")), Some("bare")),
+            (Expr::String("string".to_owned()), Some("string")),
+            (Expr::Symbol(Symbol::qualified("mcp", "qualified")), None),
+        ];
+
+        for (expr, expected) in cases {
+            assert_eq!(key_name(&expr), expected);
+        }
+    }
 }

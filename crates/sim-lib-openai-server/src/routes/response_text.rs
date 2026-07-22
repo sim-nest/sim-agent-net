@@ -56,17 +56,7 @@ fn response_text_part(expr: &Expr) -> RouteResult<String> {
         .ok_or_else(|| OpenAiRouteError::internal_message("text content part missing text"))
 }
 
-fn response_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| match key {
-        Expr::Symbol(symbol) if symbol.namespace.is_none() && symbol.name.as_ref() == name => {
-            Some(value)
-        }
-        _ => None,
-    })
-}
+use sim_value::access::field as response_field;
 
 fn stream_text_chunks(text: &str) -> Vec<String> {
     text.split_whitespace()

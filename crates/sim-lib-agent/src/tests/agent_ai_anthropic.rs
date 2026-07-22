@@ -4,6 +4,7 @@ use super::support::{
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{Error, Expr, Symbol};
 use sim_lib_server::{EvalSite, FrameKind, ServerFrame, StreamSink, eval_reply_from_frame};
+use sim_value::access::field;
 use std::{
     io::{ErrorKind, Read, Write},
     net::{TcpListener, TcpStream},
@@ -44,8 +45,8 @@ fn native_anthropic_runner_posts_messages_with_required_headers() {
     validate_chat_transcript(&expr).unwrap();
     assert!(flatten_text(&expr).contains("anthropic ok"));
     let usage = field(&expr, "usage").unwrap();
-    assert_eq!(number_field(usage, "input-tokens"), Some("7"));
-    assert_eq!(number_field(usage, "output-tokens"), Some("2"));
+    assert_eq!(number_value(usage, "input-tokens"), Some("7"));
+    assert_eq!(number_value(usage, "output-tokens"), Some("2"));
     server.join().unwrap();
 }
 
@@ -410,19 +411,7 @@ fn event_kinds(chunks: &[Expr]) -> Vec<Expr> {
         .collect()
 }
 
-fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| match key {
-        Expr::Symbol(symbol) if symbol.namespace.is_none() && symbol.name.as_ref() == name => {
-            Some(value)
-        }
-        _ => None,
-    })
-}
-
-fn number_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a str> {
+fn number_value<'a>(expr: &'a Expr, name: &str) -> Option<&'a str> {
     match field(expr, name)? {
         Expr::Number(number) => Some(number.canonical.as_str()),
         _ => None,
