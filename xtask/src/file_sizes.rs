@@ -241,7 +241,7 @@ fn collect_rs_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
 fn should_skip_dir(path: &Path) -> bool {
     matches!(
         path.file_name().and_then(OsStr::to_str),
-        Some(".git" | "target" | ".meta-workspace")
+        Some(".git" | "target" | ".meta-workspace" | "sim-tooling")
     )
 }
 
@@ -308,7 +308,7 @@ enum FileSizeStatus {
 
 #[cfg(test)]
 mod tests {
-    use super::{FileSizeStatus, classify, limits_for};
+    use super::{FileSizeStatus, classify, limits_for, should_skip_dir};
     use std::path::Path;
 
     #[test]
@@ -334,5 +334,11 @@ mod tests {
             classify(Path::new("src/main.rs"), 251),
             FileSizeStatus::Hard { limit: 250 }
         );
+    }
+
+    #[test]
+    fn skips_ci_tooling_checkout() {
+        assert!(should_skip_dir(Path::new("sim-tooling")));
+        assert!(should_skip_dir(Path::new("nested/sim-tooling")));
     }
 }
