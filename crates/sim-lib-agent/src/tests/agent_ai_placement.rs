@@ -1,10 +1,11 @@
 use super::support::{
     eval_cx, flatten_text, install_agent_lib, install_test_codec, temp_memory_path,
 };
+use crate::AI_RUNNER_PLACEMENT_CAPABILITY;
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{
-    AbiVersion, Args, Callable, Consistency, EvalMode, EvalRequest, Export, Expr, Lib, LibManifest,
-    LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
+    AbiVersion, Args, Callable, Consistency, Error, EvalMode, EvalRequest, Export, Expr, Lib,
+    LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
 };
 use sim_value::access::field as map_field;
 use std::sync::Arc;
@@ -125,11 +126,26 @@ fn named_cassette_runner(
 }
 
 fn place_runner(cx: &mut sim_kernel::Cx, key: &str, runner: Value) {
+    cx.grant_named(AI_RUNNER_PLACEMENT_CAPABILITY);
     cx.call_function(
         &Symbol::qualified("runner", "place"),
         Args::new(vec![
             cx.factory().string(key.to_owned()).unwrap(),
             runner.clone(),
+        ]),
+    )
+    .unwrap();
+}
+
+fn replace_runner(cx: &mut sim_kernel::Cx, key: &str, runner: Value) {
+    cx.grant_named(AI_RUNNER_PLACEMENT_CAPABILITY);
+    cx.call_function(
+        &Symbol::qualified("runner", "place"),
+        Args::new(vec![
+            cx.factory().string(key.to_owned()).unwrap(),
+            runner.clone(),
+            cx.factory().symbol(Symbol::new(":replace")).unwrap(),
+            cx.factory().bool(true).unwrap(),
         ]),
     )
     .unwrap();
@@ -210,6 +226,110 @@ fn register_loaded_site(cx: &mut sim_kernel::Cx, symbol: Symbol, answer: &str) {
         }))
         .unwrap();
     cx.load_lib(&StubLoadedSiteLib { symbol, value }).unwrap();
+}
+
+#[test]
+fn runner_place_requires_placement_capability() {
+    let mut cx = eval_cx();
+    install_test_codec(&mut cx);
+    install_agent_lib(&mut cx).unwrap();
+
+    let runner = named_fake_runner(
+        &mut cx,
+        "placement-denied-runner",
+        "placement/denied",
+        "denied",
+    );
+    let denied = cx
+        .call_function(
+            &Symbol::qualified("runner", "place"),
+            Args::new(vec![
+                cx.factory()
+                    .string("model-site:placement-denied".to_owned())
+                    .unwrap(),
+                runner,
+            ]),
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        denied,
+        Error::CapabilityDenied { capability }
+            if capability == sim_kernel::CapabilityName::new(AI_RUNNER_PLACEMENT_CAPABILITY)
+    ));
+}
+
+#[test]
+fn runner_place_rejects_duplicate_without_replace() {
+    let mut cx = eval_cx();
+    install_test_codec(&mut cx);
+    install_agent_lib(&mut cx).unwrap();
+
+    let key = "model-site:placement-duplicate";
+    let first = named_fake_runner(
+        &mut cx,
+        "placement-duplicate-first",
+        "placement/duplicate-first",
+        "first",
+    );
+    let second = named_fake_runner(
+        &mut cx,
+        "placement-duplicate-second",
+        "placement/duplicate-second",
+        "second",
+    );
+    place_runner(&mut cx, key, first);
+
+    let denied = cx
+        .call_function(
+            &Symbol::qualified("runner", "place"),
+            Args::new(vec![cx.factory().string(key.to_owned()).unwrap(), second]),
+        )
+        .unwrap_err();
+
+    assert!(denied.to_string().contains("already registered"));
+}
+
+#[test]
+fn runner_place_explicit_replace_is_audited() {
+    let mut cx = eval_cx();
+    install_test_codec(&mut cx);
+    install_agent_lib(&mut cx).unwrap();
+
+    let key = "model-site:placement-replace";
+    let first = named_fake_runner(
+        &mut cx,
+        "placement-replace-first",
+        "placement/replace-first",
+        "first",
+    );
+    let second = named_fake_runner(
+        &mut cx,
+        "placement-replace-second",
+        "placement/replace-second",
+        "second",
+    );
+    place_runner(&mut cx, key, first);
+    let before = cx.effect_ledger().records().len();
+    replace_runner(&mut cx, key, second);
+    let after = cx.effect_ledger().records();
+
+    assert!(after.len() > before);
+    assert!(after.last().is_some_and(|record| record.result.is_some()));
+
+    let card = cx
+        .call_function(
+            &Symbol::qualified("model", "site-card"),
+            Args::new(vec![cx.factory().string(key.to_owned()).unwrap()]),
+        )
+        .unwrap()
+        .object()
+        .as_expr(&mut cx)
+        .unwrap();
+    assert_eq!(
+        card_string(&card, "model"),
+        Some("placement/replace-second")
+    );
 }
 
 #[test]

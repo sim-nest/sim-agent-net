@@ -2,10 +2,13 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::recipe_coverage::check_publishable_recipe_coverage;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct CheckSummary {
     pub(crate) checked_recipes: usize,
     pub(crate) agent30_recipes: usize,
+    pub(crate) publishable_packages: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -28,6 +31,12 @@ pub(crate) fn check_repo(root: &Path) -> Result<CheckSummary, String> {
 
     let mut summary = CheckSummary::default();
     let mut errors = Vec::new();
+    match check_publishable_recipe_coverage(root) {
+        Ok(publishable_packages) => {
+            summary.publishable_packages = publishable_packages;
+        }
+        Err(mut coverage_errors) => errors.append(&mut coverage_errors),
+    }
     for path in recipe_paths {
         match check_recipe(root, &path) {
             Ok(recipe_summary) => {
@@ -111,6 +120,7 @@ fn check_recipe(root: &Path, relative_path: &Path) -> Result<CheckSummary, Vec<S
         Ok(CheckSummary {
             checked_recipes: usize::from(checked),
             agent30_recipes: usize::from(agent30),
+            publishable_packages: 0,
         })
     } else {
         Err(errors)
@@ -127,6 +137,7 @@ fn check_assertions(
     let mut checked = false;
     let tags = optional_array(doc, "tags").unwrap_or_default();
     let capabilities = optional_array(doc, "capabilities").unwrap_or_default();
+    let allow_capabilities = optional_array(doc, "allow_capabilities").unwrap_or_default();
 
     if let Some(assert_tags) = optional_array(doc, "assert_tags") {
         checked = true;
@@ -145,6 +156,17 @@ fn check_assertions(
             if !capabilities.contains(&capability) {
                 errors.push(format!(
                     "{}: missing asserted capability `{capability}`",
+                    slash(recipe_path)
+                ));
+            }
+        }
+    }
+    if let Some(assert_allow_capabilities) = optional_array(doc, "assert_allow_capabilities") {
+        checked = true;
+        for capability in assert_allow_capabilities {
+            if !allow_capabilities.contains(&capability) {
+                errors.push(format!(
+                    "{}: missing asserted allowed capability `{capability}`",
                     slash(recipe_path)
                 ));
             }
@@ -298,6 +320,12 @@ fn check_agent30_metadata(
         )),
         Some(_) => {}
         None => errors.push(format!("{}: missing `capabilities`", slash(recipe_path))),
+    }
+    if matches!(optional_array(doc, "allow_capabilities"), Some(values) if values.is_empty()) {
+        errors.push(format!(
+            "{}: `allow_capabilities` must list at least one capability when present",
+            slash(recipe_path)
+        ));
     }
 }
 

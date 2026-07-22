@@ -66,7 +66,10 @@ fn https_post_json_supports_tls_and_chunked_bodies() {
             runner_label: "runner/openai-compatible",
             endpoint: &format!("https://localhost:{port}/v1"),
             path: "/chat/completions",
-            bearer_token: Some("secret-token"),
+            headers: vec![
+                ("content-type".to_owned(), "application/json".to_owned()),
+                ("Authorization".to_owned(), "Bearer secret-token".to_owned()),
+            ],
             timeout: Duration::from_secs(1),
             body: br#"{"hello":"world"}"#.to_vec(),
             max_response_bytes: 1024,

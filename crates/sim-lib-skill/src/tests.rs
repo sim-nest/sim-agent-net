@@ -4,14 +4,16 @@ use sim_kernel::{
     Args, ClaimPattern, Cx, DefaultFactory, EagerPolicy, Error, Expr, Ref, Symbol, Value,
 };
 use sim_shape::{AnyShape, ListShape, NumberValueShape, shape_value};
+use sim_value::build::entry;
 
 use crate::{
-    FixtureBehavior, FixtureSkillSpec, FixtureTransport, SkillCard, install_skill_lib,
-    skill_call_capability, skill_call_symbol, skill_card_symbol, skill_install_capability,
-    skill_install_symbol, skill_list_symbol, skill_specific_call_capability, skill_transport_value,
+    FixtureBehavior, FixtureSkillSpec, FixtureTransport, SkillCacheMode, SkillCard,
+    SkillCassetteMode, SkillPolicy, SkillPrivacyPolicy, install_skill_lib, skill_call_capability,
+    skill_call_symbol, skill_card_symbol, skill_install_capability, skill_install_symbol,
+    skill_list_symbol, skill_specific_call_capability, skill_transport_value,
 };
 #[cfg(all(feature = "cache", feature = "cassette"))]
-use crate::{SkillCacheMode, SkillCassetteMode, skill_audit_capability, skill_audit_symbol};
+use crate::{skill_audit_capability, skill_audit_symbol};
 
 #[test]
 fn skill_call_uses_fixture_transport_through_skill_callable() {
@@ -158,6 +160,83 @@ fn skill_card_expr_conversion_round_trips_public_descriptor() {
     let decoded = SkillCard::from_expr(&expr).unwrap();
 
     assert_eq!(decoded.to_expr(&mut cx).unwrap(), expr);
+}
+
+#[test]
+fn skill_card_absent_policy_defaults() {
+    let mut expr = skill_card_expr();
+    remove_expr_field(&mut expr, "policy");
+
+    let decoded = SkillCard::from_expr(&expr).unwrap();
+
+    assert_eq!(decoded.policy, SkillPolicy::default());
+}
+
+#[test]
+fn skill_card_malformed_policy_rejects_even_when_string_keyed() {
+    let mut expr = skill_card_expr();
+    remove_expr_field(&mut expr, "policy");
+    push_expr_field(
+        &mut expr,
+        Expr::String("policy".to_owned()),
+        Expr::String("not a policy map".to_owned()),
+    );
+
+    let err = skill_card_decode_err(&expr);
+
+    assert!(err.to_string().contains("SkillCard policy"));
+}
+
+#[test]
+fn skill_card_malformed_policy_value_rejects() {
+    let mut expr = skill_card_expr();
+    replace_expr_field(
+        &mut expr,
+        "policy",
+        Expr::Map(vec![entry("privacy", Expr::Bool(true))]),
+    );
+
+    let err = skill_card_decode_err(&expr);
+
+    assert!(err.to_string().contains("invalid policy value"));
+}
+
+#[test]
+fn skill_card_unknown_policy_key_rejects() {
+    let mut expr = skill_card_expr();
+    replace_expr_field(
+        &mut expr,
+        "policy",
+        Expr::Map(vec![
+            entry("privacy", Expr::Symbol(Symbol::new("no-raw"))),
+            entry("unknown", Expr::Bool(true)),
+        ]),
+    );
+
+    let err = skill_card_decode_err(&expr);
+
+    assert!(err.to_string().contains("unknown field unknown"));
+}
+
+#[test]
+fn skill_card_policy_subfields_default_independently() {
+    let mut expr = skill_card_expr();
+    replace_expr_field(
+        &mut expr,
+        "policy",
+        Expr::Map(vec![entry(
+            "cache",
+            Expr::Symbol(Symbol::new("read-through")),
+        )]),
+    );
+
+    let decoded = SkillCard::from_expr(&expr).unwrap();
+
+    assert_eq!(decoded.policy.privacy, SkillPrivacyPolicy::NoRaw);
+    assert_eq!(decoded.policy.cache, SkillCacheMode::ReadThrough);
+    assert_eq!(decoded.policy.cassette, SkillCassetteMode::Disabled);
+    assert!(!decoded.policy.idempotent);
+    assert_eq!(decoded.policy.semantic_key, None);
 }
 
 #[test]
@@ -337,6 +416,49 @@ fn skill_cx() -> Cx {
     let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
     install_skill_lib(&mut cx).unwrap();
     cx
+}
+
+fn skill_card_expr() -> Expr {
+    let mut cx = skill_cx();
+    sum_card("math.add").to_expr(&mut cx).unwrap()
+}
+
+fn remove_expr_field(expr: &mut Expr, name: &str) {
+    map_entries_mut(expr).retain(|(key, _)| !expr_key_is(key, name));
+}
+
+fn push_expr_field(expr: &mut Expr, key: Expr, value: Expr) {
+    map_entries_mut(expr).push((key, value));
+}
+
+fn replace_expr_field(expr: &mut Expr, name: &str, value: Expr) {
+    let entries = map_entries_mut(expr);
+    let Some((_, existing)) = entries.iter_mut().find(|(key, _)| expr_key_is(key, name)) else {
+        panic!("missing test field {name}");
+    };
+    *existing = value;
+}
+
+fn map_entries_mut(expr: &mut Expr) -> &mut Vec<(Expr, Expr)> {
+    let Expr::Map(entries) = expr else {
+        panic!("test card expression must be a map");
+    };
+    entries
+}
+
+fn expr_key_is(key: &Expr, name: &str) -> bool {
+    match key {
+        Expr::Symbol(symbol) if symbol.namespace.is_none() => symbol.name.as_ref() == name,
+        Expr::String(text) => text == name,
+        _ => false,
+    }
+}
+
+fn skill_card_decode_err(expr: &Expr) -> Error {
+    match SkillCard::from_expr(expr) {
+        Ok(_) => panic!("malformed SkillCard expression unexpectedly decoded"),
+        Err(err) => err,
+    }
 }
 
 #[cfg(all(feature = "cache", feature = "cassette"))]

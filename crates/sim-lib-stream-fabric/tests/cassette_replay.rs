@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+// conformance: fabric fixture replay resolves content-addressed stream rows.
+
 use sim_kernel::{
     CapabilityName, Consistency, Cx, Error, EvalFabric, EvalMode, EvalReply, EvalRequest, Expr,
     Result, Value, testing::bare_cx as cx,

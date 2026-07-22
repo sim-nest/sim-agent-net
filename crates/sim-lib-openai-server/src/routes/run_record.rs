@@ -14,7 +14,7 @@ use super::{
 
 /// The run_record engine (audio/images/vector_stores) shares the gateway
 /// execution-record substrate; its id generators and execution outcome are the
-/// shared types under route-local names (OVERLAP9.04).
+/// shared types under route-local names.
 pub(crate) use super::execution_record::{
     GatewayRunExecution as RouteRunExecution, GatewayRunIdGenerators as RouteRunIdGenerators,
 };

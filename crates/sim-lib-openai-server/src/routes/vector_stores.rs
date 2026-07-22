@@ -53,8 +53,8 @@ impl VectorStoreIdGenerators {
     }
 }
 
-/// Handles `POST /v1/vector_stores`, creating a vector store with deterministic
-/// embeddings for its items and returning the store object.
+/// Handles `POST /v1/vector_stores`, creating a SIM subset vector store with
+/// deterministic text embeddings for its JSON items and returning the store object.
 pub fn handle_vector_stores(
     request: &GatewayRequest,
     state: &GatewayRouteState,
@@ -74,7 +74,7 @@ pub fn handle_vector_stores(
 }
 
 /// Handles `POST /v1/vector_stores/{id}/search`, returning cosine-ranked search
-/// results for the query against the stored items.
+/// results for the query against the SIM subset store.
 pub fn handle_vector_store_search(
     request: &GatewayRequest,
     state: &GatewayRouteState,

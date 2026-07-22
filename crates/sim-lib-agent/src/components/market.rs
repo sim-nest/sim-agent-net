@@ -1,11 +1,11 @@
 use super::market_cards::{health_expr, runner_card, runner_name_expr};
-use super::market_execution::execute_market;
+use super::market_execution::{execute_market, execute_market_with_capabilities};
 use super::market_policy::{MarketPolicy, key_expr};
 use super::model::{AgentComponent, ComponentBackend, RunnerBackend, component_value};
 use super::options::parse_component_options;
 use crate::model_privacy::PrivacyPolicy;
 use crate::{ComponentKind, installed_codecs, value_from_expr};
-use sim_kernel::{Args, Cx, Error, Expr, Result, Symbol, Value};
+use sim_kernel::{Args, Cx, Error, EvalRequest, Expr, Result, Symbol, Value};
 use sim_lib_agent_runner_core::{ModelBid, ModelCard, ModelRequest, ModelResponse, ModelRunner};
 use sim_lib_server::ServerAddress;
 use std::{collections::HashMap, sync::Arc};
@@ -120,6 +120,21 @@ impl ModelRunner for MarketRunner {
         let privacy = PrivacyPolicy::from_model_request(&request)?;
         privacy.ensure_no_raw_refs(&request.clone().into())?;
         execute_market(cx, &self.runners, self.policy.clone(), request, privacy)
+    }
+
+    fn infer_request(&self, cx: &mut Cx, request: EvalRequest) -> Result<ModelResponse> {
+        let required_capabilities = request.required_capabilities;
+        let request = ModelRequest::try_from(request.expr)?;
+        let privacy = PrivacyPolicy::from_model_request(&request)?;
+        privacy.ensure_no_raw_refs(&request.clone().into())?;
+        execute_market_with_capabilities(
+            cx,
+            &self.runners,
+            self.policy.clone(),
+            request,
+            privacy,
+            required_capabilities,
+        )
     }
 
     fn bid(&self, _request: &ModelRequest) -> Result<ModelBid> {

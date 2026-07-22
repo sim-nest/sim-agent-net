@@ -11,6 +11,15 @@ use sim_lib_net_core::hex_encode;
 
 use crate::objects::GatewayRequest;
 
+macro_rules! grant_into_result {
+    ($grant:expr) => {{
+        #[allow(clippy::let_unit_value)]
+        let grant_result = $grant;
+        #[allow(clippy::unit_arg)]
+        grant_result.into_result()
+    }};
+}
+
 /// Object tag identifying a serialized [`OpenAiGatewayKey`] descriptor.
 pub const OPENAI_GATEWAY_KEY_OBJECT: &str = "openai-gateway/key";
 const REDACTED_HEADER_VALUE: &str = "[redacted]";
@@ -24,7 +33,8 @@ const REDACTED_HEADER_VALUE: &str = "[redacted]";
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_citizen(
     reason = "gateway key object stores redacted credential policy; serializable projection is openai/GatewayKey descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "openai/GatewayKey"
 )]
 pub struct OpenAiGatewayKey {
     id: String,
@@ -62,6 +72,11 @@ impl OpenAiGatewayKey {
         &self.key_hash
     }
 
+    /// Returns a short, non-verifier fingerprint for reports.
+    pub fn fingerprint(&self) -> String {
+        key_fingerprint(&self.key_hash)
+    }
+
     /// Returns the capability ceiling granted by this key.
     pub fn capabilities(&self) -> &CapabilitySet {
         &self.capabilities
@@ -77,7 +92,7 @@ impl OpenAiGatewayKey {
         Expr::Map(vec![
             field("object", Expr::String(OPENAI_GATEWAY_KEY_OBJECT.to_owned())),
             field("id", Expr::String(self.id.clone())),
-            field("key-hash", Expr::String(self.key_hash.clone())),
+            field("fingerprint", Expr::String(self.fingerprint())),
             field("capabilities", capabilities_expr(&self.capabilities)),
             field("default-policy", self.default_policy.clone()),
         ])
@@ -243,16 +258,41 @@ pub fn redacted_gateway_request(request: &GatewayRequest) -> GatewayRequest {
 
 /// Grants every capability in `capabilities` to `cx`, through the host-held
 /// `seat` minted when `cx` was constructed.
-pub fn grant_capability_set(seat: &GrantSeat, cx: &mut Cx, capabilities: &CapabilitySet) {
-    capabilities
-        .iter()
-        .cloned()
-        .for_each(|capability| seat.grant(cx, capability));
+pub fn grant_capability_set(
+    seat: &GrantSeat,
+    cx: &mut Cx,
+    capabilities: &CapabilitySet,
+) -> Result<()> {
+    for capability in capabilities.iter().cloned() {
+        grant_into_result!(seat.grant(cx, capability))?;
+    }
+    Ok(())
+}
+
+trait GrantOutcome {
+    fn into_result(self) -> Result<()>;
+}
+
+impl GrantOutcome for () {
+    fn into_result(self) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl GrantOutcome for Result<()> {
+    fn into_result(self) -> Result<()> {
+        self
+    }
 }
 
 fn key_id(hash: &str) -> String {
     let prefix_len = hash.len().min(12);
     format!("key_{}", &hash[..prefix_len])
+}
+
+fn key_fingerprint(hash: &str) -> String {
+    let prefix_len = hash.len().min(8);
+    format!("sha256:{}...", &hash[..prefix_len])
 }
 
 fn key_default_policy_expr(capabilities: &CapabilitySet) -> Expr {

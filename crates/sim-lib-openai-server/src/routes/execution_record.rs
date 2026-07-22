@@ -1,12 +1,8 @@
-//! Shared substrate for the gateway execution-record engines (OVERLAP9.04).
+//! Shared substrate for the gateway execution-record engines.
 //!
 //! The `/v1/responses`, `/v1/embeddings`, and run_record routes each drive the
 //! same content-addressed ledger: mint a request id, redact and record the
 //! request; open a run; append a sequence of events; store a final response.
-//! Before OVERLAP9.04 that machinery was forked three ways (three id-generator
-//! trios, three `EventLog`s, three `append_event` bodies, three request+run
-//! prologues, three outcome structs). This module owns the ONE copy behind the
-//! OVERLAP9.03 goldens.
 //!
 //! What stays route-local (and must, to keep the goldens byte-identical): the
 //! object-vs-bare response storage split (`put_response_object` for responses

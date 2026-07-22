@@ -68,7 +68,7 @@ pub enum ServerAddress {
     Telegram {
         /// Identifier of the target chat.
         chat_id: String,
-        /// Bot account used to send.
+        /// Bot account that sends messages.
         bot: String,
     },
     /// A Matrix room endpoint.

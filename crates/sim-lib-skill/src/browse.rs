@@ -353,7 +353,7 @@ fn skill_function_docs() -> Vec<SkillFunctionDoc> {
             SkillFunctionDoc {
                 kind: SkillFunctionKind::OpenAiTool,
                 summary: "projects one bound skill into an OpenAI tool descriptor",
-                detail: "skill/openai-tool accepts a skill id, symbol, or SkillCard value and returns an OpenAI function-tool descriptor whose x-sim-symbol points back to the bound SkillCallable.",
+                detail: "skill/openai-tool accepts a skill id, symbol, or SkillCard value and returns an OpenAI function-tool request descriptor whose name resolves through the server-owned skill callable registry.",
                 capabilities: &[],
                 example_expr: Expr::List(vec![
                     Expr::Symbol(skill_openai_tool_symbol()),
@@ -363,7 +363,7 @@ fn skill_function_docs() -> Vec<SkillFunctionDoc> {
             SkillFunctionDoc {
                 kind: SkillFunctionKind::OpenAiTools,
                 summary: "lists OpenAI tool descriptors for selected bound skills",
-                detail: "skill/openai-tools accepts zero or more skill ids, symbols, or SkillCard values, defaults to all tool-role skills, and returns descriptors accepted by the existing OpenAI tool registry.",
+                detail: "skill/openai-tools accepts zero or more skill ids, symbols, or SkillCard values, defaults to all tool-role skills, and returns OpenAI request descriptors accepted by the server-owned tool registry.",
                 capabilities: &[],
                 example_expr: Expr::List(vec![Expr::Symbol(skill_openai_tools_symbol())]),
             },

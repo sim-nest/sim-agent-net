@@ -1,6 +1,7 @@
 use super::support::{
     as_component, eval_cx, flatten_text, install_agent_lib, install_roundtrip_codecs, request_frame,
 };
+use crate::Component;
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{Error, Expr, Symbol};
 use sim_lib_server::{EvalSite, FrameKind, ServerFrame, StreamSink, eval_reply_from_frame};
@@ -287,6 +288,59 @@ fn a6_phase3_ollama_runner_streams_ndjson_events() {
     server.join().unwrap();
 }
 
+#[test]
+fn runner_ollama_uses_native_provider_profile() {
+    let mut cx = eval_cx();
+    install_roundtrip_codecs(&mut cx);
+    install_agent_lib(&mut cx).unwrap();
+
+    let runner = cx
+        .call_function(
+            &Symbol::qualified("runner", "ollama"),
+            sim_kernel::Args::new(Vec::new()),
+        )
+        .unwrap();
+    let reflected = as_component(&runner).reflect(&mut cx).unwrap();
+
+    assert_eq!(
+        field(&reflected, "backend"),
+        Some(&Expr::Symbol(Symbol::new("ollama")))
+    );
+    assert_eq!(
+        field(&reflected, "provider"),
+        Some(&Expr::Symbol(Symbol::new("ollama")))
+    );
+    assert_eq!(
+        field(&reflected, "codec"),
+        Some(&Expr::Symbol(Symbol::qualified("codec", "ollama")))
+    );
+    assert_eq!(
+        field(&reflected, "endpoint"),
+        Some(&Expr::String("http://127.0.0.1:11434".to_owned()))
+    );
+    assert_eq!(
+        field(&reflected, "locality"),
+        Some(&Expr::Symbol(Symbol::new("local")))
+    );
+    assert_eq!(
+        field(&reflected, "model"),
+        Some(&Expr::String("qwen3.5:4b".to_owned()))
+    );
+    assert_eq!(field(&reflected, "stream"), Some(&Expr::Bool(true)));
+    assert_eq!(field(&reflected, "tools"), Some(&Expr::Bool(false)));
+    assert!(capabilities(&reflected).contains(&"ai-runner".to_owned()));
+    assert!(capabilities(&reflected).contains(&"ai-runner-local".to_owned()));
+    assert!(!capabilities(&reflected).contains(&"ai-runner-secret".to_owned()));
+    assert_ne!(
+        field(&reflected, "backend"),
+        Some(&Expr::Symbol(Symbol::new("openai-compatible")))
+    );
+    assert_ne!(
+        field(&reflected, "codec"),
+        Some(&Expr::Symbol(Symbol::qualified("codec", "openai")))
+    );
+}
+
 #[derive(Default)]
 struct CollectSink {
     chunks: Vec<Expr>,
@@ -331,6 +385,19 @@ fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
         }
         _ => None,
     })
+}
+
+fn capabilities(expr: &Expr) -> Vec<String> {
+    match field(expr, "capabilities") {
+        Some(Expr::List(items)) => items
+            .iter()
+            .filter_map(|item| match item {
+                Expr::String(text) => Some(text.clone()),
+                _ => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
 }
 
 fn bind_loopback_listener() -> Option<TcpListener> {

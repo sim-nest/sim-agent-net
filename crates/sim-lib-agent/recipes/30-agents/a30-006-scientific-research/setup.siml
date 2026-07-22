@@ -1,1 +1,1 @@
-(quote (research-synthesis (id a30-006-scientific-research) (corpus synthetic-abstracts) (chunk (op doc/chunk-recursive) (ids r1-c1 r2-c1 r3-c1)) (retrieve (method rank-retrieve) (query battery-catalyst-stability) (top-k r2-c1 r3-c1)) (cluster (method rank-scatter) (groups (stability r2-c1 r3-c1) (cost r1-c1))) (novelty-filter keep-stability-drop-heat-claim) (synthesis catalyst-b-improves-stability-when-heat-managed) (provenance (cites r2-c1 r3-c1) (excluded r1-c1))))
+(agent/recipe-result "a30-006-scientific-research")

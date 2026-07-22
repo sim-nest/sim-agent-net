@@ -208,7 +208,8 @@ trait TableStored: Clone + Send + Sync + 'static {
 
 #[sim_citizen_derive::non_citizen(
     reason = "OpenAI table storage wrapper; class-backed descriptor is the wrapped openai/* value",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "openai/TableStored"
 )]
 #[derive(Clone)]
 struct StoredTableValue<T: TableStored>(T);
@@ -296,6 +297,13 @@ impl TableStored for StoredGatewayResponse {
             field(
                 "parent-response-id",
                 self.parent_response_id
+                    .as_ref()
+                    .map(|id| Expr::String(id.clone()))
+                    .unwrap_or(Expr::Nil),
+            ),
+            field(
+                "owner-key-id",
+                self.owner_key_id
                     .as_ref()
                     .map(|id| Expr::String(id.clone()))
                     .unwrap_or(Expr::Nil),

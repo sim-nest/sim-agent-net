@@ -15,7 +15,7 @@ use crate::ops::{
 
 const OPENAI_GATEWAY_LIB_ID: &str = "openai-gateway";
 
-/// Loadable library that installs the OpenAI-compatible gateway surface.
+/// Loadable library that installs the OpenAI-shaped gateway surface.
 ///
 /// Implements [`Lib`]: its manifest declares the gateway's id, version, ABI,
 /// and exports, and its loader registers the OpenAI codec plus every
@@ -36,7 +36,7 @@ impl Lib for OpenAiGatewayLib {
     }
 
     fn load(&self, cx: &mut sim_kernel::LoadCx, linker: &mut Linker<'_>) -> Result<()> {
-        install_openai_codec(linker)?;
+        install_openai_codec(cx, linker)?;
         for function in [
             OpenAiGatewayFunction::serve(),
             OpenAiGatewayFunction::health(),

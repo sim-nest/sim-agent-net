@@ -1,1 +1,1 @@
-(quote (atelier-self-hosting (id atelier-runtime-operation) (runner fake) (network denied) (live-model denied) (operation (name sample-op) (docs rustdoc-added) (codec-prism lisp-json-roundtrip) (generated-docs simdoc-check) (validation meta-check) (pin-plan sim-runtime)) (cassette-hash fnv1a64:8a3282f3c7ef34b2)))
+(agent/recipe-result "atelier-runtime-operation")

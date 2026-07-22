@@ -2,10 +2,4 @@ title = "Atelier Self Hosting"
 order = 40
 summary = "Deterministic self-hosting scenarios for the Atelier development loop."
 tags = ["atelier", "self-hosting", "deterministic", "offline"]
-recipe_ids = [
-  "atelier-radar-standard-crate",
-  "atelier-runtime-operation",
-  "atelier-codec-roundtrip",
-  "atelier-guideline-firewall",
-  "atelier-change-capsule",
-]
+recipe_ids = ["atelier-radar-standard-crate", "atelier-runtime-operation", "atelier-codec-roundtrip", "atelier-guideline-firewall", "atelier-change-capsule", "atelier-contract-deck-assembly", "atelier-shape-query-cache", "atelier-contract-native-success", "atelier-cheap-first-escalation"]

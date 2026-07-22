@@ -1,5 +1,124 @@
 {
-  "schema": "sim.rustdoc-index.v1",
-  "repo": "sim-agent-net",
-  "target_doc": "target/doc/"
+  "generator": "xtask repo-contract v1",
+  "packages": [
+    {
+      "crate_name": "sim_lib_agent",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent/Cargo.toml",
+      "package": "sim-lib-agent",
+      "summary": "Agent runtime surfaces for SIM: agents, tools, memory, patterns, fixtures, fairness facets, and model-fabric contract re-exports."
+    },
+    {
+      "crate_name": "sim_lib_agent_runner_core",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-runner-core/Cargo.toml",
+      "package": "sim-lib-agent-runner-core",
+      "summary": "Provider-neutral runner contracts for SIM model fabrics."
+    },
+    {
+      "crate_name": "sim-lib-agent-runner-core-recipe-output-contract-repair",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/Cargo.toml",
+      "package": "sim-lib-agent-runner-core-recipe-output-contract-repair",
+      "summary": "Runnable output contract repair cookbook recipe."
+    },
+    {
+      "crate_name": "sim_lib_agent_runner_http",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-runner-http/Cargo.toml",
+      "package": "sim-lib-agent-runner-http",
+      "summary": "HTTP-backed model runners for SIM."
+    },
+    {
+      "crate_name": "sim_lib_agent_runner_local",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-runner-local/Cargo.toml",
+      "package": "sim-lib-agent-runner-local",
+      "summary": "Loadable local model runner for SIM."
+    },
+    {
+      "crate_name": "sim_lib_agent_runner_process",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-runner-process/Cargo.toml",
+      "package": "sim-lib-agent-runner-process",
+      "summary": "Local subprocess-backed model runners for SIM."
+    },
+    {
+      "crate_name": "sim_lib_bridge",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-bridge/Cargo.toml",
+      "package": "sim-lib-bridge",
+      "summary": "Checked BRIDGE packet runtime for SIM model exchanges."
+    },
+    {
+      "crate_name": "sim_lib_cookbook",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-cookbook/Cargo.toml",
+      "package": "sim-lib-cookbook",
+      "summary": "Runtime cookbook: operations for SIM."
+    },
+    {
+      "crate_name": "sim_lib_forge",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-forge/Cargo.toml",
+      "package": "sim-lib-forge",
+      "summary": "Compiled intent records, BRIDGE lifts, and reusable packet-program lookup."
+    },
+    {
+      "crate_name": "sim_lib_mcp",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-mcp/Cargo.toml",
+      "package": "sim-lib-mcp",
+      "summary": "Library-only MCP surface projection for SIM."
+    },
+    {
+      "crate_name": "sim_lib_openai_server",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-openai-server/Cargo.toml",
+      "package": "sim-lib-openai-server",
+      "summary": "OpenAI-shaped gateway routes for SIM."
+    },
+    {
+      "crate_name": "sim_lib_server",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-server/Cargo.toml",
+      "package": "sim-lib-server",
+      "summary": "SIM's server library: a loadable lib that serves eval and agents over a transport. It exposes sites (local, coroutine, pipeline, loop, fabric), frame routing, REPL drivers, connections, and transports so callers can request evaluation, stream replies, and run agent loops across the runtime."
+    },
+    {
+      "crate_name": "sim_lib_skill",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-skill/Cargo.toml",
+      "package": "sim-lib-skill",
+      "summary": "Agent skills for the SIM runtime."
+    },
+    {
+      "crate_name": "sim_lib_stream_fabric",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-stream-fabric/Cargo.toml",
+      "package": "sim-lib-stream-fabric",
+      "summary": "Content-addressed distributed evaluation for remote stream realization."
+    },
+    {
+      "crate_name": "sim-mcp-server",
+      "group": "workspace",
+      "manifest": "crates/sim-mcp-server/Cargo.toml",
+      "package": "sim-mcp-server",
+      "summary": "The sim-mcp-server binary: a thin bootloader that serves MCP over stdio."
+    },
+    {
+      "crate_name": "sim_table_remote",
+      "group": "workspace",
+      "manifest": "crates/sim-table-remote/Cargo.toml",
+      "package": "sim-table-remote",
+      "summary": "Remote-backed SIM table directory."
+    },
+    {
+      "crate_name": "xtask",
+      "group": "workspace",
+      "manifest": "xtask/Cargo.toml",
+      "package": "xtask",
+      "summary": "Repository maintenance tasks for sim-agent-net."
+    }
+  ]
 }

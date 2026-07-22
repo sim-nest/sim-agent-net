@@ -1,0 +1,18 @@
+id = "atelier-contract-native-success"
+title = "Contract-native authoring success"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 8
+tags = ["atelier", "contract-native", "shapegrammar", "checked-form", "diminished-realize", "offline", "deterministic", "sandbox-descriptor"]
+requires = ["agent", "forge", "contract-native", "shapegrammar", "fake-runner", "cassette-hash"]
+runner_mode = "fake"
+live_model = false
+network = false
+cassette_hash = "fnv1a64:099488ea5fbe5b6a"
+cassette_events = ["contract-native:author:strict-grammar", "contract-native:decode:codec-lisp", "contract-native:shape-check:accepted", "contract-native:realize:diminished", "contract-native:cassette:accepted"]
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(atelier-self-hosting (id atelier-contract-native-success) (runner fake) (network denied) (live-model denied) (contract-native (backend contract-native) (grammar shapegrammar) (codec codec-lisp) (shape-check accepted) (realize diminished) (checked-form accepted) (cassette accepted)) (cassette-hash fnv1a64:099488ea5fbe5b6a))"

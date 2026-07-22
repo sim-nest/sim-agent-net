@@ -11,8 +11,6 @@ use crate::agents::{
 };
 #[cfg(feature = "runner-ollama")]
 use crate::components::runner_ollama_value;
-#[cfg(feature = "runner-http")]
-use crate::components::runner_openai_compatible_value;
 #[cfg(feature = "runner-process")]
 use crate::components::runner_process_value;
 use crate::components::{
@@ -26,6 +24,11 @@ use crate::components::{
     runner_market_value, runner_place_value, sandbox_capability_restricted_value,
     sandbox_subprocess_value, sandbox_wasm_value, voice_stt_value, voice_tts_value,
 };
+#[cfg(feature = "runner-http")]
+use crate::components::{
+    provider_probe_value, provider_profiles_value, runner_anthropic_value, runner_lemonade_value,
+    runner_lm_studio_value, runner_openai_compatible_value, runner_openai_value,
+};
 use crate::memory::{
     memory_append_value, memory_blackboard_value, memory_file_value, memory_persona_value,
     memory_recent_value, memory_restore_value, memory_scan_value, memory_search_value,
@@ -38,6 +41,8 @@ use sim_kernel::{
     Value,
 };
 use std::any::Any;
+
+use super::recipe_result::agent_recipe_result_value;
 #[derive(Clone, Copy)]
 pub(crate) enum AgentFnKind {
     Defun,
@@ -61,6 +66,7 @@ pub(crate) enum AgentFnKind {
     Trace,
     Wire,
     Pattern,
+    RecipeResult,
     MemoryWorking,
     MemoryFile,
     MemoryVector,
@@ -88,7 +94,19 @@ pub(crate) enum AgentFnKind {
     ModelSiteCard,
     ModelPolicy,
     #[cfg(feature = "runner-http")]
+    ProviderProfiles,
+    #[cfg(feature = "runner-http")]
+    ProviderProbe,
+    #[cfg(feature = "runner-http")]
     RunnerOpenAiCompatible,
+    #[cfg(feature = "runner-http")]
+    RunnerOpenAi,
+    #[cfg(feature = "runner-http")]
+    RunnerAnthropic,
+    #[cfg(feature = "runner-http")]
+    RunnerLmStudio,
+    #[cfg(feature = "runner-http")]
+    RunnerLemonade,
     #[cfg(feature = "runner-ollama")]
     RunnerOllama,
     #[cfg(feature = "runner-process")]
@@ -228,6 +246,7 @@ fn dispatch_value_call(kind: AgentFnKind, cx: &mut Cx, args: Args) -> Result<Val
         AgentFnKind::Trace => agent_trace_value(cx, args),
         AgentFnKind::Wire => agent_wire_value(cx, args),
         AgentFnKind::Pattern => agent_pattern_value(cx, args),
+        AgentFnKind::RecipeResult => agent_recipe_result_value(cx, args),
         AgentFnKind::MemoryWorking => memory_working_value(cx, args),
         AgentFnKind::MemoryFile => memory_file_value(cx, args),
         AgentFnKind::MemoryVector => memory_vector_value(cx, args),
@@ -255,7 +274,19 @@ fn dispatch_value_call(kind: AgentFnKind, cx: &mut Cx, args: Args) -> Result<Val
         AgentFnKind::ModelSiteCard => crate::components::model_site_card_value(cx, args),
         AgentFnKind::ModelPolicy => crate::components::model_policy_value(cx, args),
         #[cfg(feature = "runner-http")]
+        AgentFnKind::ProviderProfiles => provider_profiles_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::ProviderProbe => provider_probe_value(cx, args),
+        #[cfg(feature = "runner-http")]
         AgentFnKind::RunnerOpenAiCompatible => runner_openai_compatible_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::RunnerOpenAi => runner_openai_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::RunnerAnthropic => runner_anthropic_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::RunnerLmStudio => runner_lm_studio_value(cx, args),
+        #[cfg(feature = "runner-http")]
+        AgentFnKind::RunnerLemonade => runner_lemonade_value(cx, args),
         #[cfg(feature = "runner-ollama")]
         AgentFnKind::RunnerOllama => runner_ollama_value(cx, args),
         #[cfg(feature = "runner-process")]

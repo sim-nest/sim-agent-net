@@ -22,12 +22,15 @@ pub(crate) fn request_object(body: &[u8]) -> RouteResult<Map<String, Value>> {
 /// empty object. Used by routes (such as thread creation) that accept a request
 /// with no JSON body.
 pub(crate) fn request_object_or_empty(body: &[u8]) -> RouteResult<Map<String, Value>> {
+    if body.is_empty() {
+        return Ok(Map::new());
+    }
     let value = serde_json::from_slice::<Value>(body).map_err(|err| {
         OpenAiRouteError::invalid_json(format!("invalid JSON request body: {err}"))
     })?;
     match value {
         Value::Object(object) => Ok(object),
-        Value::Null if body.is_empty() => Ok(Map::new()),
+        Value::Null => Ok(Map::new()),
         _ => Err(OpenAiRouteError::bad_request(
             "request body must be a JSON object",
             None,

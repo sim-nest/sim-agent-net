@@ -1,1 +1,1 @@
-(quote (agent-runner-http cassette replay request POST /v1/chat/completions response fixture no-network))
+(runner/openai-compatible :name runner/http-cassette :endpoint "http://127.0.0.1:0/v1" :model "fixture-echo")

@@ -7,11 +7,11 @@ use std::{
 };
 
 use serde_json::Value;
-use sim_kernel::Symbol;
+use sim_kernel::{CapabilityName, CapabilitySet, Symbol};
 use sim_lib_agent_runner_http::HttpRunner;
 use sim_lib_openai_server::{
     GatewayRequest, GatewayResponse, GatewayRouteState, MODELS_PATH, MemoryGatewayStore,
-    OpenAiRunnerRegistry, RESPONSES_PATH, configure_routes_with_state,
+    OpenAiKeyTable, OpenAiRunnerRegistry, RESPONSES_PATH, configure_routes_with_state,
 };
 
 #[test]
@@ -117,7 +117,16 @@ fn route_state(endpoint: String) -> GatewayRouteState {
         64 * 1024,
     );
     let registry = OpenAiRunnerRegistry::new().with_runner("openai/gpt-4o-mini", Arc::new(runner));
-    GatewayRouteState::new(MemoryGatewayStore::new()).with_runners(registry)
+    GatewayRouteState::new(MemoryGatewayStore::new())
+        .with_runners(registry)
+        .with_keys(OpenAiKeyTable::with_anonymous(runner_capabilities()).unwrap())
+}
+
+fn runner_capabilities() -> CapabilitySet {
+    CapabilitySet::new()
+        .grant(CapabilityName::new("ai-runner"))
+        .grant(CapabilityName::new("ai-runner-network"))
+        .grant(CapabilityName::new("ai-runner-secret"))
 }
 
 fn spawn_openai_mock(listener: TcpListener) -> JoinHandle<String> {

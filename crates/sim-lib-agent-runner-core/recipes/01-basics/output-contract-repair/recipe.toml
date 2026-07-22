@@ -1,0 +1,13 @@
+id = "output-contract-repair"
+title = "Output contract repair"
+codec = "rust"
+setup = "src/main.rs"
+purpose = "README.md"
+expected = "expected.txt"
+order = 20
+tags = ["agent", "runner", "output-contract", "grammar", "repair", "fake", "rust"]
+requires = ["sim-lib-agent-runner-core", "sim-shape", "sim-kernel"]
+
+[[expect]]
+form = 0
+result = "graph metadata present: true\njson-schema provider: schema-runner\ngbnf provider: gbnf-runner\nrepair attempts: 2\naccepted output: Bool(true)"

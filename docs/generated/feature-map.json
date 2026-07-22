@@ -1,5 +1,497 @@
 {
-  "schema": "sim.feature-map.v1",
-  "repo": "sim-agent-net",
-  "packages": []
+  "generator": "xtask repo-contract v1",
+  "packages": [
+    {
+      "features": [
+        {
+          "edges": [
+            "sim-lib-server/server-net-http"
+          ],
+          "name": "agent-net",
+          "workspace_edges": [
+            {
+              "feature": "server-net-http",
+              "package": "sim-lib-server"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "dep:sim-lib-cookbook"
+          ],
+          "name": "cookbook",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-cookbook"
+            }
+          ]
+        },
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-agent-runner-http"
+          ],
+          "name": "runner-http",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-agent-runner-http"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "dep:sim-lib-agent-runner-http"
+          ],
+          "name": "runner-ollama",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-agent-runner-http"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "dep:sim-lib-agent-runner-process"
+          ],
+          "name": "runner-process",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-agent-runner-process"
+            }
+          ]
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-agent"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-agent-runner-core"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-agent-runner-core-recipe-output-contract-repair"
+    },
+    {
+      "features": [
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:rustls",
+            "dep:rustls-native-certs"
+          ],
+          "name": "tls",
+          "workspace_edges": []
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-agent-runner-http"
+    },
+    {
+      "features": [
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-codec-binary",
+            "dep:sim-macros"
+          ],
+          "name": "native-export",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "native-inference",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-wasm-abi"
+          ],
+          "name": "wasm-model",
+          "workspace_edges": []
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-agent-runner-local"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-agent-runner-process"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-bridge"
+    },
+    {
+      "features": [
+        {
+          "edges": [
+            "seed-recipes"
+          ],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-codec-algol",
+            "dep:sim-codec-json",
+            "dep:sim-codec-lisp",
+            "dep:sim-lib-lang-scheme",
+            "dep:sim-lib-midi-core",
+            "dep:sim-lib-agent-runner-core",
+            "dep:sim-lib-binding",
+            "dep:sim-lib-control",
+            "dep:sim-lib-dispatch",
+            "dep:sim-lib-pattern",
+            "dep:sim-lib-sequence",
+            "dep:sim-lib-numbers-rational",
+            "dep:sim-lib-numbers-cas",
+            "dep:sim-lib-numbers-func",
+            "dep:sim-lib-numbers-complex",
+            "dep:sim-lib-numbers-f64",
+            "dep:sim-lib-numbers-i64",
+            "dep:sim-lib-numbers-arith",
+            "dep:sim-lib-numbers-bigint",
+            "dep:sim-lib-numbers-bool",
+            "dep:sim-lib-numbers-tensor",
+            "dep:sim-lib-numbers-tensor-bcast",
+            "dep:sim-lib-numbers-tensor-cmplxf",
+            "dep:sim-lib-numbers-tensor-rat64",
+            "dep:sim-lib-discrete",
+            "dep:sim-lib-stream-core"
+          ],
+          "name": "seed-recipes",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-agent-runner-core"
+            }
+          ]
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-cookbook"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-forge"
+    },
+    {
+      "features": [
+        {
+          "edges": [],
+          "name": "cassette",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "skill"
+          ],
+          "name": "client",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "progress",
+            "dep:sim-lib-server",
+            "sim-lib-server/server-net-http"
+          ],
+          "name": "http",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-server"
+            },
+            {
+              "feature": "server-net-http",
+              "package": "sim-lib-server"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "stream"
+          ],
+          "name": "progress",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-agent-runner-core"
+          ],
+          "name": "sampling",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-agent-runner-core"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "stdio",
+            "dep:sim-run-core"
+          ],
+          "name": "serve",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-skill"
+          ],
+          "name": "skill",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-skill"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "dep:sim-codec"
+          ],
+          "name": "stdio",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-stream-core",
+            "dep:sim-lib-stream-fabric",
+            "dep:sim-lib-stream-combinators"
+          ],
+          "name": "stream",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-stream-fabric"
+            }
+          ]
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-mcp"
+    },
+    {
+      "features": [
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-server",
+            "sim-lib-server/server-net-http"
+          ],
+          "name": "http",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-server"
+            },
+            {
+              "feature": "server-net-http",
+              "package": "sim-lib-server"
+            }
+          ]
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-openai-server"
+    },
+    {
+      "features": [
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "server-net-http",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "trigger-cron",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "trigger-imap",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:serde_json"
+          ],
+          "name": "trigger-matrix",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "trigger-smtp",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:serde_json"
+          ],
+          "name": "trigger-telegram",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "trigger-webhook",
+          "workspace_edges": []
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-server"
+    },
+    {
+      "features": [
+        {
+          "edges": [
+            "dep:sim-lib-agent"
+          ],
+          "name": "agent",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-agent"
+            }
+          ]
+        },
+        {
+          "edges": [],
+          "name": "cache",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "cassette",
+          "workspace_edges": []
+        },
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:serde_json"
+          ],
+          "name": "http",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-codec-mcp"
+          ],
+          "name": "mcp",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:serde_json",
+            "dep:sim-lib-openai-server"
+          ],
+          "name": "openai",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-openai-server"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "dep:serde_json",
+            "dep:sim-lib-agent-runner-core",
+            "dep:sim-lib-agent-runner-process"
+          ],
+          "name": "process",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-agent-runner-core"
+            },
+            {
+              "feature": null,
+              "package": "sim-lib-agent-runner-process"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "dep:sim-lib-agent"
+          ],
+          "name": "runner",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-agent"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "mcp"
+          ],
+          "name": "serve",
+          "workspace_edges": []
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-skill"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-stream-fabric"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-mcp-server"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-table-remote"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "xtask"
+    }
+  ]
 }

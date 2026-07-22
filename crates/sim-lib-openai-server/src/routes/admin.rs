@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde_json::{Map, Number, Value};
-use sim_kernel::{ContentId, Expr, NumberLiteral, Symbol};
+use sim_kernel::{CapabilityName, ContentId, Expr, NumberLiteral, Symbol};
 use sim_lib_net_core::hex_encode;
 use sim_value::access::field_any;
 
@@ -79,7 +79,7 @@ impl AdminCounters {
 
 /// Handles the admin runs listing, returning every recorded run as JSON.
 pub fn handle_admin_runs(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
-    admin_json_response(request, || runs_expr(state))
+    admin_json_response(request, state, || runs_expr(state))
 }
 
 /// Handles admin retrieval of a single run by the id embedded in the path.
@@ -87,7 +87,7 @@ pub fn handle_admin_run_get(
     request: &GatewayRequest,
     state: &GatewayRouteState,
 ) -> GatewayResponse {
-    admin_json_response(request, || {
+    admin_json_response(request, state, || {
         let Some(run_id) = run_id_from_path(request.path()) else {
             return Err(OpenAiRouteError::not_found_kind("run", request.path()));
         };
@@ -97,7 +97,7 @@ pub fn handle_admin_run_get(
 
 /// Handles the admin events listing, returning every recorded event as JSON.
 pub fn handle_admin_events(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
-    admin_json_response(request, || events_expr(state))
+    admin_json_response(request, state, || events_expr(state))
 }
 
 /// Handles the admin storage-stats report (object counts and latencies).
@@ -105,7 +105,7 @@ pub fn handle_admin_storage_stats(
     request: &GatewayRequest,
     state: &GatewayRouteState,
 ) -> GatewayResponse {
-    admin_json_response(request, || storage_stats_expr(state))
+    admin_json_response(request, state, || storage_stats_expr(state))
 }
 
 /// Handles the admin model-health report over the registered runners.
@@ -113,7 +113,7 @@ pub fn handle_admin_model_health(
     request: &GatewayRequest,
     state: &GatewayRouteState,
 ) -> GatewayResponse {
-    admin_json_response(request, || model_health_expr(state))
+    admin_json_response(request, state, || model_health_expr(state))
 }
 
 /// Handles the admin plan-cache statistics report.
@@ -121,7 +121,7 @@ pub fn handle_admin_cache_stats(
     request: &GatewayRequest,
     state: &GatewayRouteState,
 ) -> GatewayResponse {
-    admin_json_response(request, || cache_stats_expr(state))
+    admin_json_response(request, state, || cache_stats_expr(state))
 }
 
 /// Handles the admin capability report (admin capability id, key count, and
@@ -130,7 +130,7 @@ pub fn handle_admin_capability_report(
     request: &GatewayRequest,
     state: &GatewayRouteState,
 ) -> GatewayResponse {
-    admin_json_response(request, || capability_report_expr(state))
+    admin_json_response(request, state, || capability_report_expr(state))
 }
 
 pub(crate) fn runs_expr(state: &GatewayRouteState) -> RouteResult<Expr> {
@@ -297,28 +297,31 @@ pub(crate) fn admin_expr_json(expr: &Expr) -> Value {
 
 fn admin_json_response(
     request: &GatewayRequest,
+    state: &GatewayRouteState,
     expr: impl FnOnce() -> RouteResult<Expr>,
 ) -> GatewayResponse {
-    if !has_admin_access(request) {
-        return OpenAiRouteError::forbidden(
-            "admin route requires openai-gateway.admin",
-            "capability_denied",
-        )
-        .into_response();
+    match has_admin_access(request, state) {
+        Ok(true) => {}
+        Ok(false) => {
+            return OpenAiRouteError::forbidden(
+                "admin route requires openai-gateway.admin",
+                "capability_denied",
+            )
+            .into_response();
+        }
+        Err(error) => return error.into_response(),
     }
     expr()
         .map(|expr| GatewayResponse::json(200, admin_expr_json(&expr).to_string().into_bytes()))
         .unwrap_or_else(OpenAiRouteError::into_response)
 }
 
-fn has_admin_access(request: &GatewayRequest) -> bool {
-    request.headers().iter().any(|(name, value)| {
-        (name.eq_ignore_ascii_case("x-sim-capability")
-            || name.eq_ignore_ascii_case("x-sim-capabilities"))
-            && value
-                .split([',', ' '])
-                .any(|capability| capability.trim() == OPENAI_GATEWAY_ADMIN_CAPABILITY)
-    })
+fn has_admin_access(request: &GatewayRequest, state: &GatewayRouteState) -> RouteResult<bool> {
+    let capabilities = state
+        .keys()
+        .effective_capabilities(request)
+        .map_err(OpenAiRouteError::internal)?;
+    Ok(capabilities.contains(&CapabilityName::new(OPENAI_GATEWAY_ADMIN_CAPABILITY)))
 }
 
 fn list_expr(object: &str, data: Vec<Expr>) -> Expr {

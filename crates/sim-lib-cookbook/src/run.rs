@@ -1,13 +1,14 @@
 //! The `cookbook:run` algorithm: decode a recipe's setup through its declared
 //! codec, evaluate it, encode the result, and check declared expectations.
 //!
-//! Per the design (Section 7) this is capability-gated: running a recipe is
-//! read-eval, so the runtime must hold the read-eval capability. Listing and
-//! showing recipes is not gated.
+//! Running a recipe is capability-gated read-eval, so the runtime must hold the
+//! read-eval capability. Listing and showing recipes is not gated.
 //!
 //! Each setup decodes to a single top-level form. The data model carries a
 //! `Vec` of results and expectations, and this runner fills it from that
 //! decoded form without changing the stored recipe shape.
+
+use std::sync::Arc;
 
 use sim_codec::{
     Input, decode_eval_expr_with_codec, decode_with_codec, encode_value_with_codec,
@@ -15,11 +16,14 @@ use sim_codec::{
 };
 use sim_cookbook::{CheckResult, RecipeCard, RecipeRun};
 use sim_kernel::{
-    CapabilitySet, Cx, EncodeOptions, Error, ReadPolicy, Result, Symbol, TrustLevel,
-    read_construct_capability, read_eval_capability,
+    CapabilityName, CapabilitySet, Cx, EncodeOptions, Error, Expr, ReadPolicy, Result, Shape,
+    Symbol, TrustLevel, macro_expand_eval_capability, read_construct_capability,
+    read_eval_capability,
 };
+use sim_lib_core::{ReadEvalBroker, ReadEvalRequest, ReadEvalSource, RequestOrigin};
+use sim_shape::AnyShape;
 
-use crate::catalog::{EmptyCatalog, LibCatalog, load_requires};
+use crate::catalog::{CookbookCapabilityProfile, EmptyCatalog, LibCatalog, load_requires};
 
 /// Error unless the runtime holds the read-eval capability.
 pub fn require_eval_capability(cx: &Cx) -> Result<()> {
@@ -72,8 +76,8 @@ pub fn run_recipe(cx: &mut Cx, card: &RecipeCard) -> Result<RecipeRun> {
 
 /// Run a recipe end to end, loading its `requires` from `catalog` first.
 ///
-/// Before decode+eval the runner asks `catalog` to resolve each `requires` entry
-/// and loads the returned lib into the eval `Cx`, idempotently. A require the
+/// To decode and eval, the runner asks `catalog` to resolve each `requires`
+/// entry and loads the returned lib into the eval `Cx`, idempotently. A require the
 /// catalog does not carry (and that is not already loaded) makes the recipe a
 /// descriptor: the run returns `Err(Error::Eval("descriptor: requires <x> not in
 /// catalog"))`. This is what turns runnability into a structural property of
@@ -82,6 +86,15 @@ pub fn run_recipe_with_catalog(
     cx: &mut Cx,
     catalog: &dyn LibCatalog,
     card: &RecipeCard,
+) -> Result<RecipeRun> {
+    run_recipe_with_catalog_shape(cx, catalog, card, recipe_result_shape())
+}
+
+fn run_recipe_with_catalog_shape(
+    cx: &mut Cx,
+    catalog: &dyn LibCatalog,
+    card: &RecipeCard,
+    expected_shape: Arc<dyn Shape>,
 ) -> Result<RecipeRun> {
     require_eval_capability(cx)?;
 
@@ -97,16 +110,6 @@ pub fn run_recipe_with_catalog(
     let codec = Symbol::qualified("codec", card.codec.as_str());
     let source = String::from_utf8(card.setup.clone())
         .map_err(|e| Error::Eval(format!("recipe {} setup is not UTF-8: {e}", card.id)))?;
-    // Recipes are trusted embedded content; grant the read the capabilities their setup
-    // needs -- read-construct so `#(Class ...)` builds a real domain value (complex,
-    // tensor, rational, CAS), and read-eval for eval-position reader forms.
-    // `ReadPolicy::default()` grants neither, which is why domain recipes could only quote.
-    let read_policy = ReadPolicy {
-        trust: TrustLevel::TrustedSource,
-        capabilities: CapabilitySet::new()
-            .grant(read_construct_capability())
-            .grant(read_eval_capability()),
-    };
     // Decode to an evaluable expression without a Term/Datum round-trip. The
     // shared lowerer turns Algol-style operator nodes into calls while keeping
     // Lisp special-form list containers structurally intact.
@@ -114,10 +117,17 @@ pub fn run_recipe_with_catalog(
         cx,
         &codec,
         Input::Text(source),
-        read_policy,
+        trusted_recipe_read_policy(),
     )?);
 
-    let (results, eval_ok) = match cx.eval_expr(expr) {
+    let request = recipe_read_eval_request(
+        card,
+        codec.clone(),
+        ReadEvalSource::Expr(expr),
+        expected_shape,
+    );
+    let broker = ReadEvalBroker::new();
+    let (results, eval_ok) = match broker.admit(cx, request) {
         Ok(value) => {
             // Encode the computed value back with the recipe's own codec so a
             // round-tripping surface (lisp, json, algol) reports on its own
@@ -132,6 +142,7 @@ pub fn run_recipe_with_catalog(
                 })?;
             (vec![encoded.into_text()?], true)
         }
+        Err(err) if is_hard_broker_error(&err) => return Err(err),
         Err(_) => (Vec::new(), false),
     };
 
@@ -158,6 +169,95 @@ pub fn run_recipe_with_catalog(
         ok: eval_ok && all_pass,
         checks,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn run_recipe_with_catalog_for_shape_test(
+    cx: &mut Cx,
+    catalog: &dyn LibCatalog,
+    card: &RecipeCard,
+    expected_shape: Arc<dyn Shape>,
+) -> Result<RecipeRun> {
+    run_recipe_with_catalog_shape(cx, catalog, card, expected_shape)
+}
+
+fn recipe_read_eval_request(
+    card: &RecipeCard,
+    codec: Symbol,
+    source: ReadEvalSource,
+    expected_shape: Arc<dyn Shape>,
+) -> ReadEvalRequest {
+    ReadEvalRequest {
+        origin: RequestOrigin::with_detail(
+            Symbol::qualified("cookbook", "recipe"),
+            Expr::String(card.id.clone()),
+        ),
+        codec,
+        source,
+        read_policy: trusted_recipe_read_policy(),
+        requires: recipe_required_capabilities(card),
+        allow: recipe_allowed_capabilities(card),
+        expected_shape,
+    }
+}
+
+fn recipe_result_shape() -> Arc<dyn Shape> {
+    Arc::new(AnyShape)
+}
+
+fn trusted_recipe_read_policy() -> ReadPolicy {
+    ReadPolicy {
+        trust: TrustLevel::TrustedSource,
+        capabilities: CapabilitySet::new()
+            .grant(read_construct_capability())
+            .grant(read_eval_capability())
+            .grant(macro_expand_eval_capability()),
+    }
+}
+
+fn recipe_required_capabilities(card: &RecipeCard) -> Vec<CapabilityName> {
+    let mut capabilities = vec![read_eval_capability(), macro_expand_eval_capability()];
+    capabilities.extend(tagged_capabilities(card, "requires-capability:"));
+    sort_dedup_capabilities(&mut capabilities);
+    capabilities
+}
+
+fn recipe_allowed_capabilities(card: &RecipeCard) -> CapabilitySet {
+    let mut capabilities = tagged_capabilities(card, "allow-capability:");
+    if capabilities.is_empty() {
+        capabilities = CookbookCapabilityProfile::granted();
+    }
+    capabilities.extend(recipe_required_capabilities(card));
+    capabilities.push(read_construct_capability());
+    sort_dedup_capabilities(&mut capabilities);
+    capabilities
+        .into_iter()
+        .fold(CapabilitySet::new(), CapabilitySet::grant)
+}
+
+fn tagged_capabilities(card: &RecipeCard, prefix: &str) -> Vec<CapabilityName> {
+    card.tags
+        .iter()
+        .filter_map(|tag| {
+            let name = tag.strip_prefix(prefix)?;
+            (!name.is_empty()).then(|| CapabilityName::new(name.to_owned()))
+        })
+        .collect()
+}
+
+fn sort_dedup_capabilities(capabilities: &mut Vec<CapabilityName>) {
+    capabilities.sort();
+    capabilities.dedup();
+}
+
+fn is_hard_broker_error(err: &Error) -> bool {
+    matches!(
+        err,
+        Error::CapabilityDenied { .. }
+            | Error::TrustDenied { .. }
+            | Error::WrongShape { .. }
+            | Error::CodecError { .. }
+    )
 }
 
 /// Run a Category C recipe twice under the same (catalog + Cx) and confirm the

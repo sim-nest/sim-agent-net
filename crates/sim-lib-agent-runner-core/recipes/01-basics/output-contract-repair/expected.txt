@@ -1,0 +1,5 @@
+graph metadata present: true
+json-schema provider: schema-runner
+gbnf provider: gbnf-runner
+repair attempts: 2
+accepted output: Bool(true)

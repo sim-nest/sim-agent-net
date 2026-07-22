@@ -23,7 +23,8 @@ use super::sources::spawn_stdin_reader;
 use super::sources::{remove_test_stdin_sender, test_stdin_sender, test_stdin_senders};
 use super::{
     NEXT_TRIGGER_ID, StdinSource, TriggerConfig, TriggerDecoder, TriggerHandle, TriggerState,
-    delivery_timeout, io_error_to_host, source_capability, trigger_read_policy,
+    delivery_timeout, io_error_to_host, require_source_capability, source_capability,
+    trigger_read_policy,
 };
 
 impl TriggerHandle {
@@ -354,9 +355,7 @@ impl TriggerHandle {
     }
 
     fn inject_event(&self, cx: &mut Cx, raw: &[u8]) -> Result<()> {
-        if let Some(capability) = source_capability(&self.source) {
-            cx.require(&capability)?;
-        }
+        require_source_capability(cx, &self.source)?;
         let expr = self.decode_event(cx, raw)?;
         let source = self.source.kind_symbol();
         let when_ms = SystemTime::now()

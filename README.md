@@ -23,7 +23,7 @@ walkthrough of every surface: see sim-say.
 `sim-agent-net` is a SIM constellation repository: the server, agent, and
 model-fabric substrate of the SIM runtime. It holds the library crates that
 turn networked services, autonomous agents, and language-model access into
-ordinary SIM runtime objects, plus the MCP and OpenAI-compatible gateway
+ordinary SIM runtime objects, plus the MCP and OpenAI-shaped gateway
 surfaces and the `sim-mcp-server` binary.
 
 SIM is an expandable Rust runtime built around a small protocol kernel
@@ -94,10 +94,10 @@ Skills, tools, and gateways:
 - `sim-lib-mcp` -- library-only MCP projection. Projects native browse Cards and
   optional `SkillCard` records into redacted `McpSurfaceCard` rows; routing,
   transport, and callable execution layer on top behind features.
-- `sim-lib-openai-server` -- an OpenAI-compatible gateway skeleton: health
-  route, OpenAI JSON transcript codec, model discovery, `POST /v1/responses`,
-  `POST /v1/chat/completions`, `POST /v1/embeddings`, fixtures, SSE streaming
-  projection, and stored-response replay/fork routes.
+- `sim-lib-openai-server` -- OpenAI-shaped gateway routes: health route, OpenAI
+  JSON transcript codec, model discovery, supported chat, response, and
+  embedding request flows, fixture/subset file, audio, image, and vector-store
+  routes, SSE streaming projection, and stored-response replay/fork routes.
 - `sim-lib-cookbook` -- runtime `cookbook:` operations over a shared recipe
   store; the recipe engine itself stays in the kernel-free `sim-cookbook`
   crate.
@@ -155,10 +155,15 @@ response, and event shapes:
 
 - `codec:chat` -- installed runtime codec for normalized chat-style transcript
   values (the engine lives in the `sim-codec-chat` crate).
-- `codec:openai` -- provider projection used by the HTTP runner for
+- `codec:openai` -- provider projection used by native OpenAI and
   OpenAI-compatible request/response envelopes.
+- `codec:anthropic` -- provider projection for Anthropic Messages request,
+  response, and SSE event envelopes.
 - `codec:ollama` -- provider projection used by the HTTP runner for Ollama
   `/api/chat` and NDJSON stream helpers.
+- `codec:lm-studio` and `codec:lemonade` -- provider projections for local
+  OpenAI-compatible servers that keep their native provider identity in the
+  transcript.
 
 ### Runners
 
@@ -171,13 +176,19 @@ Installed runner surfaces:
 - `runner/process` -- shells out to external adapters under capability checks;
   line-text streaming reads stdout lines while the subprocess runs and emits
   incremental delta events.
+- `runner/openai` -- targets native OpenAI chat/completions APIs with the
+  provider's default endpoint, model, auth, tool-use, and streaming profile.
+- `runner/anthropic` -- targets native Anthropic Messages APIs with the required
+  version and secret headers.
 - `runner/openai-compatible` -- targets OpenAI-style HTTP or HTTPS
-  chat/completions APIs; HTTPS is enabled by the optional root feature
-  `agent-runner-http-tls`; streaming consumes SSE `data:` chunks and emits live
-  `model-event` deltas.
+  chat/completions APIs; HTTPS is enabled by the
+  `sim-lib-agent-runner-http/tls` feature; streaming consumes SSE `data:`
+  chunks and emits live `model-event` deltas.
 - `runner/ollama` -- targets native Ollama HTTP chat endpoints without a proxy;
   streaming consumes native NDJSON chunks and emits the same `model-event`
   schema.
+- `runner/lm-studio` and `runner/lemonade` -- target local OpenAI-compatible
+  servers with loopback defaults and provider-specific transcript identity.
 - `runner/market` -- selects among candidate runners using cards and bids.
 - `runner/agent` -- exposes an agent as a model endpoint.
 - `runner/debate` -- coordinates multiple model passes into a debate result.
@@ -196,8 +207,8 @@ delegates the request through the same `ModelRunner` transcript contract.
 
 The same prompt graph can realize against fake, local, or remote placements by
 changing only the key. `model/sites` and `model/site-card` expose placement cards
-for browsing, and the OpenAI-compatible `GET /v1/models` route lists models from
-registered runner cards, including the loadable local model card when present.
+for browsing, and the OpenAI-shaped model-list route reports registered runner
+cards, including the loadable local model card when present.
 
 ### Model cache
 
@@ -271,10 +282,10 @@ ordinary transcript data. The selection path:
 
 `runner/agent` lets an agent surface participate in the same selection and
 invocation path as a direct model runner. A policy may route to a remote model,
-a local process model, or another agent; with the `skill-runner` feature, also
-to a model-role `SkillCard` projected through `skill/as-runner`. Cards and
-bidding compare these options uniformly, and debate/market flows can combine
-agent and direct model endpoints.
+a local process model, or another agent; with the `sim-lib-skill/runner`
+feature, also to a model-role `SkillCard` projected through `skill/as-runner`.
+Cards and bidding compare these options uniformly, and debate/market flows can
+combine agent and direct model endpoints.
 
 ### Helper surfaces
 
@@ -282,8 +293,8 @@ agent and direct model endpoints.
 - `runner/card` / `runner/cards` -- inspect one or enumerate registered runner
   cards.
 - `runner/health` -- summarize runner health state.
-- `skill/as-runner` -- with the `skill-runner` feature, project a model-role
-  `SkillCard` into the external runner contract.
+- `skill/as-runner` -- with the `sim-lib-skill/runner` feature, project a
+  model-role `SkillCard` into the external runner contract.
 
 ## Capabilities
 
@@ -295,47 +306,63 @@ rather than hidden in side channels.
 
 ## Validation profiles
 
-These commands run in the constellation workspace; only `sim-kernel` builds from a lone clone today (see `DEVELOPING.md` in `sim-sdk`). A single-repo build lands with the first crates.io publish.
+These commands run from this repository and match the standalone validation gate:
 
 ```bash
-cargo fmt --check && cargo test --workspace && cargo clippy --workspace -- -D warnings && cargo doc --workspace --no-deps
+cargo fmt --all --check && cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo doc --workspace --no-deps
+cargo clippy --workspace --all-features --all-targets -- -D warnings
+cargo test --workspace --all-features
 cargo run -p xtask -- simdoc --check
+cargo run -p xtask -- check-file-sizes
 ```
 
 The model-fabric validation profiles are scripted and environment-gated:
 
-- **CI profile** (`./scripts/validate.sh`, `make ai-sanity`, `make
-  ai-sanity-ci`) stays network-free and uses mock, fake, codec, and
-  loopback-free runner coverage only. It requires no model daemon, network,
-  local-runner, or secret capability.
-- **Local smoke** (`make ai-sanity-local`) probes the documented Ollama target
-  matrix plus an optional loopback OpenAI-compatible endpoint and skips
-  unavailable targets cleanly. It corresponds to granting `ai-runner`,
-  `ai-runner-network`, and `ai-runner-local`; raw provider JSON stays off by
-  default.
-- **Hosted smoke** (`make ai-sanity-hosted`) calls an explicitly configured
-  OpenAI-compatible HTTPS endpoint and checks that the secret value is not
-  echoed in failure output. It corresponds to granting `ai-runner`,
-  `ai-runner-network`, and `ai-runner-secret` with the `agent-runner-http-tls`
-  feature enabled.
+- **CI profile** (`make ai-sanity`, `make ai-sanity-ci`, or
+  `./scripts/ai-sanity.sh providers-ci`) stays network-free and uses mock
+  provider tests for OpenAI, Anthropic, Ollama, LM Studio, Lemonade, and the
+  OpenAI-compatible fallback. It requires no model daemon, network, local-runner,
+  or secret capability and ends with
+  `ai-sanity providers-ci: mock provider matrix ok`.
+- **Local smoke** (`make ai-sanity-local` or
+  `./scripts/ai-sanity.sh providers-local`) probes loopback Ollama, LM Studio,
+  and Lemonade model-list endpoints. Unavailable providers are reported as
+  skipped; available providers report `status=ok`, a model count, and
+  `redacted=true`.
+- **Hosted smoke** (`make ai-sanity-hosted` or
+  `./scripts/ai-sanity.sh providers-hosted`) probes OpenAI and Anthropic only
+  when their secret environment variables are present. Missing secrets are
+  reported as skipped, for example
+  `ai-sanity providers-hosted: anthropic skipped missing ANTHROPIC_API_KEY`.
 
-The default local runner target matrix:
+The default profile matrix:
 
-| Target      | Model variable                    | Endpoint variable                    |
-| ----------- | --------------------------------- | ------------------------------------ |
-| `local-a`   | `AI_SANITY_LOCAL_A_MODEL`         | `AI_SANITY_LOCAL_A_ENDPOINT`         |
-| `local-b`   | `AI_SANITY_LOCAL_B_MODEL`         | `AI_SANITY_LOCAL_B_ENDPOINT`         |
-| `local-c`   | `AI_SANITY_LOCAL_C_MODEL`         | `AI_SANITY_LOCAL_C_ENDPOINT`         |
-| `reserved`  | `AI_SANITY_RESERVED_MODEL`        | `AI_SANITY_RESERVED_ENDPOINT`        |
+| Provider | Profile command | Endpoint variable | Model variable | Secret variable |
+| --- | --- | --- | --- | --- |
+| `openai` | hosted | `AI_SANITY_OPENAI_ENDPOINT` | `AI_SANITY_OPENAI_MODEL` | `OPENAI_API_KEY` or `AI_SANITY_OPENAI_API_KEY_ENV` |
+| `anthropic` | hosted | `AI_SANITY_ANTHROPIC_ENDPOINT` | `AI_SANITY_ANTHROPIC_MODEL` | `ANTHROPIC_API_KEY` or `AI_SANITY_ANTHROPIC_API_KEY_ENV` |
+| `ollama` | local | `AI_SANITY_OLLAMA_ENDPOINT` | `AI_SANITY_OLLAMA_MODEL` | none |
+| `lm-studio` | local | `AI_SANITY_LM_STUDIO_ENDPOINT` | `AI_SANITY_LM_STUDIO_MODEL` | `LM_STUDIO_API_KEY` through `AI_SANITY_LM_STUDIO_API_KEY_ENV` when the server requires one |
+| `lemonade` | local | `AI_SANITY_LEMONADE_ENDPOINT` | `AI_SANITY_LEMONADE_MODEL` | none |
 
-Operators override these with `AI_SANITY_TARGETS`,
-`AI_SANITY_LOCAL_A_ENDPOINT`, `AI_SANITY_LOCAL_B_ENDPOINT`,
-`AI_SANITY_LOCAL_C_ENDPOINT`, `AI_SANITY_RESERVED_ENDPOINT`, and the matching
-`*_MODEL` variables. Optional local OpenAI-compatible smoke uses
-`AI_SANITY_LOCAL_OPENAI_ENDPOINT`, `AI_SANITY_LOCAL_OPENAI_MODEL`, and
-`AI_SANITY_LOCAL_OPENAI_API_KEY_ENV`. Hosted smoke uses
-`AI_SANITY_HOSTED_ENDPOINT`, `AI_SANITY_HOSTED_MODEL`, and
-`AI_SANITY_HOSTED_API_KEY_ENV` (default `PROVIDER_API_KEY`).
+CONFIG_3 maps an `ai.providers.<name>` table onto `ProviderConfig` as inert
+data. The provider name selects the open profile, while `endpoint`, `model`,
+`api-key-env`, `timeout`, `stream`, `tools`, and `max-output-bytes` override the
+profile defaults. A `probe` table is host policy data for validation profiles;
+it does not make config decode perform network I/O.
+
+```text
+{ai {providers
+  {openai {endpoint "https://api.openai.com/v1"
+           model "gpt-5-mini"
+           api-key-env "OPENAI_API_KEY"}}}}
+; Inert provider config. No eval unless a separate #(config/eval ...) node is
+; host-enabled and broker-admitted.
+```
+
+Explicit eval nodes are optional, host-opted-in, and admitted through
+`ReadEvalBroker`. Ordinary provider config maps to `ProviderConfig` as inert
+data.
 
 ## Documentation lanes
 

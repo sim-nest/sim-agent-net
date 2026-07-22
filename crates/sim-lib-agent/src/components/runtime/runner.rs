@@ -32,7 +32,7 @@ pub(in crate::components) fn answer_runner(
         )));
     }
     for capability in &component.capabilities {
-        cx.require(capability)?;
+        crate::require_component_capability(cx, capability)?;
     }
     let consistency = frame.envelope.consistency;
     let msg_id = frame.msg_id;
@@ -70,7 +70,7 @@ pub(in crate::components) fn stream_runner(
         )));
     }
     for capability in &component.capabilities {
-        cx.require(capability)?;
+        crate::require_component_capability(cx, capability)?;
     }
     let request = eval_request_from_frame(cx, &frame)?;
     if let Some((site, routed_frame)) =
@@ -148,8 +148,7 @@ fn infer_runner_once_uncached(
             delay,
         } => fake_response_expr(component, model, script, *delay),
         RunnerBackend::External { runner } => {
-            let model_request = ModelRequest::try_from(request.expr.clone())?;
-            let response = runner.infer(cx, model_request)?;
+            let response = runner.infer_request(cx, request.clone())?;
             normalize_external_response(response)
         }
     }
@@ -215,8 +214,7 @@ fn infer_runner_once_stream_uncached(
             delay,
         } => fake_stream_response(component, model, script, *delay, events),
         RunnerBackend::External { runner } => {
-            let model_request = ModelRequest::try_from(request.expr.clone())?;
-            runner.infer_stream(cx, model_request, events)
+            runner.infer_stream_request(cx, request.clone(), events)
         }
     }
 }

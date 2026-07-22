@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+// conformance: EvalFabric site registration exposes modeled local placement.
+
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{
     Args, Consistency, Cx, DefaultFactory, EagerPolicy, EvalMode, EvalRequest, Export, Expr, Lib,

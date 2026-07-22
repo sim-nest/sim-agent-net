@@ -1,7 +1,7 @@
 use crate::{ModelBid, ModelCard, ModelEvent, ModelEventSink};
 use sim_citizen::CitizenField;
 use sim_citizen_derive::Citizen;
-use sim_kernel::{Cx, Expr, Result, Symbol};
+use sim_kernel::{Cx, EvalRequest, Expr, Result, Symbol};
 
 /// Executable contract for a model backend or model-like runtime surface.
 pub trait ModelRunner: Send + Sync {
@@ -10,6 +10,14 @@ pub trait ModelRunner: Send + Sync {
 
     /// Executes one non-streaming inference request.
     fn infer(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse>;
+
+    /// Executes one non-streaming inference request with its full eval envelope.
+    ///
+    /// Implementations that need the caller's capability ceiling can override
+    /// this method. The default keeps existing model-only runners compatible.
+    fn infer_request(&self, cx: &mut Cx, request: EvalRequest) -> Result<ModelResponse> {
+        self.infer(cx, ModelRequest::try_from(request.expr)?)
+    }
 
     /// Executes one streaming inference request.
     ///
@@ -24,6 +32,19 @@ pub trait ModelRunner: Send + Sync {
         let response = self.infer(cx, request)?;
         sink.emit(ModelEvent::final_of(&response))?;
         Ok(response)
+    }
+
+    /// Executes one streaming inference request with its full eval envelope.
+    ///
+    /// The default preserves existing streaming behavior after decoding the
+    /// model request from the envelope.
+    fn infer_stream_request(
+        &self,
+        cx: &mut Cx,
+        request: EvalRequest,
+        sink: &mut dyn ModelEventSink,
+    ) -> Result<ModelResponse> {
+        self.infer_stream(cx, ModelRequest::try_from(request.expr)?, sink)
     }
 
     /// Returns an availability and score hint for market-style routing.

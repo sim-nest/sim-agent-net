@@ -6,8 +6,8 @@ use super::super::{
     },
 };
 use crate::{
-    ComponentKind, FILE_READ_CAPABILITY, NETWORK_CAPABILITY, SANDBOX_CAPABILITY,
-    SANDBOX_SUBPROCESS_CAPABILITY, SANDBOX_WASM_CAPABILITY, util::installed_codecs,
+    ComponentKind, SANDBOX_CAPABILITY, SANDBOX_SUBPROCESS_CAPABILITY, SANDBOX_WASM_CAPABILITY,
+    fs_read_capability, net_http_capability, util::installed_codecs,
 };
 use sim_kernel::{Args, CapabilityName, Cx, Expr, Result, Symbol, Value};
 use sim_lib_server::{ServerAddress, parse_duration};
@@ -43,7 +43,7 @@ pub(crate) fn retriever_web_value(cx: &mut Cx, args: Args) -> Result<Value> {
         AgentComponent {
             symbol: Symbol::qualified("retriever", "web"),
             kind: ComponentKind::Retriever,
-            capabilities: vec![CapabilityName::new(NETWORK_CAPABILITY)],
+            capabilities: vec![net_http_capability()],
             address: ServerAddress::Local,
             codecs: installed_codecs(cx),
             spec: vec![(Symbol::new("endpoint"), Expr::String(endpoint.clone()))],
@@ -60,7 +60,7 @@ pub(crate) fn retriever_file_value(cx: &mut Cx, args: Args) -> Result<Value> {
         AgentComponent {
             symbol: Symbol::qualified("retriever", "file"),
             kind: ComponentKind::Retriever,
-            capabilities: vec![CapabilityName::new(FILE_READ_CAPABILITY)],
+            capabilities: vec![fs_read_capability()],
             address: ServerAddress::Local,
             codecs: installed_codecs(cx),
             spec: vec![(
@@ -85,7 +85,7 @@ pub(crate) fn retriever_db_value(cx: &mut Cx, args: Args) -> Result<Value> {
         AgentComponent {
             symbol: Symbol::qualified("retriever", "db"),
             kind: ComponentKind::Retriever,
-            capabilities: vec![CapabilityName::new(FILE_READ_CAPABILITY)],
+            capabilities: vec![fs_read_capability()],
             address: ServerAddress::Local,
             codecs: installed_codecs(cx),
             spec: vec![(

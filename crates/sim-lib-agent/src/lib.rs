@@ -15,11 +15,13 @@
 
 mod agents;
 pub mod atelier;
+mod capabilities;
 mod cli;
 mod components;
 mod config_probe;
 #[cfg(feature = "cookbook")]
 mod cookbook_tools;
+mod core_tools;
 mod embed;
 mod fairness;
 mod functions;
@@ -54,9 +56,6 @@ const SANDBOX_CAPABILITY: &str = "sandbox";
 const SANDBOX_SUBPROCESS_CAPABILITY: &str = "sandbox-subprocess";
 const SANDBOX_WASM_CAPABILITY: &str = "sandbox-wasm";
 const VOICE_CAPABILITY: &str = "voice";
-const FILE_READ_CAPABILITY: &str = "file-read";
-const FILE_WRITE_CAPABILITY: &str = "file-write";
-const NETWORK_CAPABILITY: &str = "network";
 const AGENT_SPAWN_CAPABILITY: &str = "agent-spawn";
 const AGENT_REPLACE_CAPABILITY: &str = "agent-replace";
 const AGENT_REFLECT_CAPABILITY: &str = "agent-reflect";
@@ -74,16 +73,27 @@ pub const AI_RUNNER_SECRET_CAPABILITY: &str = "ai-runner-secret";
 pub const AI_RUNNER_CACHE_CAPABILITY: &str = "ai-runner-cache";
 /// Capability name granting an AI runner permission to emit raw request/response logs.
 pub const AI_RUNNER_RAW_LOG_CAPABILITY: &str = "ai-runner-raw-log";
+/// Capability name granting authority to register or replace model placements.
+pub const AI_RUNNER_PLACEMENT_CAPABILITY: &str = "ai-runner-placement";
 
 #[cfg(test)]
 pub(crate) use agents::component_name;
 pub use agents::{Agent, AgentFabric, AgentManifest, AgentRef, Budget, ComponentRef, TopologyRef};
 use agents::{agent_line_driver_factory, resolve_agent_address};
 pub use atelier::{
-    AgentMission, AtelierAction, GuardCapability, GuardDecision, GuardEvaluation, GuardRefusal,
-    RadarChunk, RadarError, RadarHint, RadarIndex, RadarQuery, RadarReport, RadarResult,
-    SelfHostingScenario, SourceSpan, cassette_content_hash, evaluate_guarded_action, guard_action,
-    retrieve_radar_hints, self_hosting_scenarios, validate_self_hosting_scenarios,
+    AgentMission, AtelierAction, AtelierBackend, CONTRACT_NATIVE_SCHEMA,
+    ContractNativeAtelierReport, ContractNativeDeckSummary, ContractNativeGrammarSummary,
+    ContractNativeGuardDenial, ContractNativeProjectionSummary, ContractNativeRouteAttempt,
+    GuardCapability, GuardDecision, GuardEvaluation, GuardRefusal, RadarChunk, RadarError,
+    RadarHint, RadarIndex, RadarQuery, RadarReport, RadarResult, SelfHostingScenario, SourceSpan,
+    cassette_content_hash, contract_native_guard_denials, deterministic_contract_native_report,
+    evaluate_guarded_action, guard_action, retrieve_radar_hints, self_hosting_scenarios,
+    validate_self_hosting_scenarios,
+};
+pub(crate) use capabilities::{
+    edit_capability, exec_capability, find_capability, fs_read_capability, fs_write_capability,
+    net_http_capability, require_component_capability, require_fs_read_capability,
+    require_fs_write_capability, require_net_http_capability,
 };
 use cli::{agent_cli_exports, register_agent_cli};
 pub use components::RunnerBackend;
@@ -161,6 +171,7 @@ pub fn install_agent_lib(cx: &mut Cx) -> Result<()> {
     register_address_resolver(Symbol::new("agent"), resolve_agent_address)?;
     register_line_driver(Symbol::new("agent"), agent_line_driver_factory)?;
     sim_lib_core::install_once(cx, &AgentLib)?;
+    core_tools::install_core_tools(cx)?;
     #[cfg(feature = "cookbook")]
     cookbook_tools::install_cookbook_tools(cx)?;
     Ok(())

@@ -183,7 +183,7 @@ impl McpExportFacet {
     }
 }
 
-/// Returns the facet name used to mark MCP exports on native cards.
+/// Returns the facet name that marks MCP exports on native cards.
 pub fn mcp_export_facet_name() -> Symbol {
     Symbol::new("mcp-export")
 }

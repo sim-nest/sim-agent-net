@@ -1,0 +1,8 @@
+id = "loom-valid"
+title = "LOOM validated weave"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 40
+tags = ["bridge", "loom", "weave", "descriptor", "sandbox-descriptor"]
+requires = ["core", "codec/lisp"]

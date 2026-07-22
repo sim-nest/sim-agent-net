@@ -1,0 +1,1 @@
+(atelier-self-hosting (id atelier-contract-native-success) (runner fake) (network denied) (live-model denied) (contract-native (backend contract-native) (grammar shapegrammar) (codec codec-lisp) (shape-check accepted) (realize diminished) (checked-form accepted) (cassette accepted)) (cassette-hash fnv1a64:099488ea5fbe5b6a))

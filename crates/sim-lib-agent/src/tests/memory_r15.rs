@@ -2,8 +2,7 @@ use super::support::{
     eval_cx, install_agent_lib, install_roundtrip_codecs, install_test_codec, temp_memory_path,
 };
 use crate::{
-    AgentLib, Component, FILE_WRITE_CAPABILITY, MemoryBackend, MemoryKind, PersonaMemory,
-    VectorMemory, WorkingMemory,
+    AgentLib, Component, MemoryBackend, MemoryKind, PersonaMemory, VectorMemory, WorkingMemory,
 };
 use sim_codec::{Input, decode_with_codec, encode_with_codec};
 use sim_kernel::{EncodeOptions, Expr, Lib, ReadPolicy, Symbol};
@@ -47,7 +46,7 @@ fn vector_memory_ranks_by_cosine_and_persists_messages() {
         ]
     );
 
-    cx.grant_named(FILE_WRITE_CAPABILITY);
+    cx.grant_named("file-write");
     let path = temp_memory_path("vector");
     let durable = VectorMemory::open(
         Some(path.clone()),
@@ -131,7 +130,7 @@ fn persona_memory_holds_state_and_notes() {
                 )])
     }));
 
-    cx.grant_named(FILE_WRITE_CAPABILITY);
+    cx.grant_named("file-write");
     let path = temp_memory_path("persona");
     let durable = PersonaMemory::open(
         Some(path.clone()),

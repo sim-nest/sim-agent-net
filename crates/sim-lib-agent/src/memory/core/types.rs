@@ -14,7 +14,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{Component, ComponentKind, FILE_WRITE_CAPABILITY};
+use crate::{Component, ComponentKind, fs_write_capability, require_fs_write_capability};
 
 use super::super::store::{
     append_memory_log, load_memory_log, memory_entries_append, memory_entries_recent,
@@ -139,7 +139,7 @@ impl FileMemory {
         let entries = load_memory_log(&path)?;
         Ok(Self {
             symbol: Symbol::qualified("memory", "file"),
-            capabilities: vec![CapabilityName::new(FILE_WRITE_CAPABILITY)],
+            capabilities: vec![fs_write_capability()],
             address: ServerAddress::Local,
             codecs,
             path,
@@ -360,7 +360,7 @@ impl MemoryBackend for WorkingMemory {
 
 impl MemoryBackend for FileMemory {
     fn append(&self, cx: &mut Cx, msg: Value) -> Result<()> {
-        cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+        require_fs_write_capability(cx)?;
         let expr = value_to_snapshot_expr(cx, msg)?;
         memory_entries_append(&self.entries, expr.clone())?;
         append_memory_log(&self.path, &expr)
@@ -379,7 +379,7 @@ impl MemoryBackend for FileMemory {
     }
 
     fn restore(&self, cx: &mut Cx, snap: Expr) -> Result<()> {
-        cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+        require_fs_write_capability(cx)?;
         let entries = snapshot_entries(snap)?;
         rewrite_memory_log(&self.path, &entries)?;
         replace_memory_entries(&self.entries, entries)

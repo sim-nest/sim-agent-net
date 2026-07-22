@@ -9,7 +9,9 @@ use std::{
 
 pub(super) fn shell_child(command: &str) -> std::process::Command {
     let mut child = std::process::Command::new("/bin/sh");
-    child.arg("-lc").arg(command);
+    // Do not use a login shell: model- or tool-provided commands must not
+    // source host profile state before running.
+    child.arg("-c").arg(command);
     child
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -34,9 +36,10 @@ pub(super) fn capture_child_output(
         .ok_or_else(|| Error::HostError(format!("{label} stdin was not captured")))?;
     let child = Arc::new(Mutex::new(child));
 
-    let writer = thread::spawn(move || -> Result<()> {
+    let (writer_tx, writer_rx) = mpsc::channel();
+    let writer = thread::spawn(move || {
         let mut stdin_handle = stdin_handle;
-        stdin_handle.write_all(&stdin).map_err(io_error_to_host)
+        let _ = writer_tx.send(stdin_handle.write_all(&stdin));
     });
     let (tx, rx) = mpsc::channel();
     let reader = thread::spawn(move || {
@@ -69,14 +72,32 @@ pub(super) fn capture_child_output(
     });
 
     let deadline = Instant::now() + max_time;
-    let status = loop {
-        {
+    let mut status = None;
+    let mut captured = None;
+    let mut writer_outcome = None;
+    loop {
+        if status.is_none() {
             let mut child = child
                 .lock()
                 .map_err(|_| Error::HostError(format!("{label} mutex poisoned")))?;
-            if let Some(status) = child.try_wait().map_err(io_error_to_host)? {
-                break status;
+            status = child.try_wait().map_err(io_error_to_host)?;
+        }
+        if captured.is_none() {
+            match rx.try_recv() {
+                Ok(message) => captured = Some(message),
+                Err(mpsc::TryRecvError::Empty) => {}
+                Err(mpsc::TryRecvError::Disconnected) => captured = Some(Ok(Vec::new())),
             }
+        }
+        if writer_outcome.is_none() {
+            match writer_rx.try_recv() {
+                Ok(message) => writer_outcome = Some(message),
+                Err(mpsc::TryRecvError::Empty) => {}
+                Err(mpsc::TryRecvError::Disconnected) => writer_outcome = Some(Ok(())),
+            }
+        }
+        if status.is_some() && captured.is_some() && writer_outcome.is_some() {
+            break;
         }
         if Instant::now() >= deadline {
             let mut child = child
@@ -84,25 +105,28 @@ pub(super) fn capture_child_output(
                 .map_err(|_| Error::HostError(format!("{label} mutex poisoned")))?;
             let _ = child.kill();
             let _ = child.wait();
-            let _ = reader.join();
-            let _ = writer.join();
+            // Do not join helper threads on deadline: a grandchild can keep a
+            // pipe open after the shell exits or is killed.
             return Err(Error::Eval(format!(
                 "{label} timed out after {}ms",
                 max_time.as_millis()
             )));
         }
         thread::sleep(Duration::from_millis(10));
-    };
+    }
 
-    let bytes = rx
-        .recv()
-        .map_err(|_| Error::HostError(format!("{label} stdout reader failed")))??;
+    let status =
+        status.ok_or_else(|| Error::HostError(format!("{label} status was not captured")))?;
+    let bytes =
+        captured.ok_or_else(|| Error::HostError(format!("{label} stdout reader failed")))??;
+    let writer_outcome =
+        writer_outcome.ok_or_else(|| Error::HostError(format!("{label} stdin writer failed")))?;
     reader
         .join()
         .map_err(|_| Error::HostError(format!("{label} stdout reader panicked")))?;
     writer
         .join()
-        .map_err(|_| Error::HostError(format!("{label} stdin writer panicked")))??;
+        .map_err(|_| Error::HostError(format!("{label} stdin writer panicked")))?;
     if !status.success() {
         return Err(Error::Eval(format!(
             "{label} exited with status {}",
@@ -112,9 +136,39 @@ pub(super) fn capture_child_output(
                 .unwrap_or_else(|| "signal".to_owned())
         )));
     }
+    if let Err(err) = writer_outcome
+        && !is_benign_stdin_pipe_error(&err)
+    {
+        return Err(io_error_to_host(err));
+    }
     Ok(bytes.into_iter().take(max_output_bytes).collect())
+}
+
+fn is_benign_stdin_pipe_error(err: &std::io::Error) -> bool {
+    matches!(
+        err.kind(),
+        std::io::ErrorKind::BrokenPipe | std::io::ErrorKind::WriteZero
+    )
 }
 
 pub(super) fn io_error_to_host(err: std::io::Error) -> Error {
     Error::host_io(err)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{capture_child_output, shell_child};
+    use sim_kernel::Error;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn backgrounded_grandchild_stdout_is_bounded_by_timeout() {
+        let start = Instant::now();
+        let child = shell_child("sleep 0.01; (sleep 60 &)").spawn().unwrap();
+        let err = capture_child_output(child, Vec::new(), "test", Duration::from_millis(300), 4096)
+            .expect_err("grandchild-held stdout must not hang");
+
+        assert!(matches!(err, Error::Eval(message) if message.contains("timed out")));
+        assert!(start.elapsed() < Duration::from_secs(5));
+    }
 }

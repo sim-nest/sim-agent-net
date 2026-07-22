@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 14,
+  "package_count": 17,
   "packages": [
     {
       "description": "Provider-neutral runner contracts for SIM model fabrics.",
@@ -13,6 +13,18 @@
       "target_kinds": [
         "custom-build",
         "lib"
+      ]
+    },
+    {
+      "description": "Runnable output contract repair cookbook recipe.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/Cargo.toml",
+      "name": "sim-lib-agent-runner-core-recipe-output-contract-repair",
+      "publish": "false",
+      "readme": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair/README.md",
+      "root": "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair",
+      "target_kinds": [
+        "bin"
       ]
     },
     {
@@ -71,6 +83,19 @@
       ]
     },
     {
+      "description": "Checked BRIDGE packet runtime for SIM model exchanges.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-bridge/Cargo.toml",
+      "name": "sim-lib-bridge",
+      "publish": "true",
+      "readme": "crates/sim-lib-bridge/README.md",
+      "root": "crates/sim-lib-bridge",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
       "description": "Runtime cookbook: operations for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-cookbook/Cargo.toml",
@@ -78,6 +103,19 @@
       "publish": "true",
       "readme": "crates/sim-lib-cookbook/README.md",
       "root": "crates/sim-lib-cookbook",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Compiled intent records and one-shot BRIDGE lifts for reusable packet programs.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-forge/Cargo.toml",
+      "name": "sim-lib-forge",
+      "publish": "true",
+      "readme": "crates/sim-lib-forge/README.md",
+      "root": "crates/sim-lib-forge",
       "target_kinds": [
         "custom-build",
         "lib"
@@ -98,7 +136,7 @@
       ]
     },
     {
-      "description": "OpenAI-compatible gateway skeleton for SIM.",
+      "description": "OpenAI-shaped gateway routes and fixture media surfaces for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-openai-server/Cargo.toml",
       "name": "sim-lib-openai-server",
@@ -111,7 +149,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for sim lib server.",
+      "description": "Location-transparent server, transport, and eval-fabric runtime for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-server/Cargo.toml",
       "name": "sim-lib-server",
@@ -124,7 +162,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for sim lib skill.",
+      "description": "Skill cards, policy records, browse metadata, and projections for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-skill/Cargo.toml",
       "name": "sim-lib-skill",
@@ -153,7 +191,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for sim mcp server.",
+      "description": "Stdio MCP server bootloader for SIM.",
       "generated_readme": true,
       "manifest": "crates/sim-mcp-server/Cargo.toml",
       "name": "sim-mcp-server",
@@ -165,7 +203,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for sim table remote.",
+      "description": "Remote directory adapter for SIM table operations over eval fabric.",
       "generated_readme": true,
       "manifest": "crates/sim-table-remote/Cargo.toml",
       "name": "sim-table-remote",
@@ -177,7 +215,7 @@
       ]
     },
     {
-      "description": "SIM workspace package for xtask.",
+      "description": "Repository maintenance tasks for sim-agent-net.",
       "generated_readme": true,
       "manifest": "xtask/Cargo.toml",
       "name": "xtask",

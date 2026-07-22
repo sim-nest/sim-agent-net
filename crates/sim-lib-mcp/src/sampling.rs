@@ -230,7 +230,8 @@ impl ModelRunner for McpSamplingRunner {
 
 #[non_citizen(
     reason = "live MCP sampling host bridge; requests and responses use mcp/Request and mcp/Response descriptors",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "mcp/Request"
 )]
 /// Runtime object wrapper exposing an [`McpSamplingRunner`] as a SIM value.
 pub struct McpSamplingRunnerValue {

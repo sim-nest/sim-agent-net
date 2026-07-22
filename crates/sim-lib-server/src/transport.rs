@@ -45,7 +45,6 @@ use framing::{
 pub(crate) const MAX_TRANSPORT_FRAME_BYTES: usize = 8 * 1024 * 1024;
 pub(crate) const SERVER_CONNECTION_IO_TIMEOUT_MS: u64 = 250;
 pub(crate) const DEFAULT_MAX_INFLIGHT_FRAMES: usize = 8;
-pub(crate) const NETWORK_CAPABILITY: &str = "network";
 pub(crate) const WEBHOOK_SERVE_CAPABILITY: &str = "webhook-serve";
 #[cfg(feature = "server-net-http")]
 pub(crate) const HTTP_TRANSPORT_PATH: &str = "/sim/frame";
@@ -172,11 +171,9 @@ pub fn shutdown_server_transport(server: &Server) -> Result<()> {
 
 pub fn require_start_capabilities(cx: &Cx, address: &ServerAddress) -> Result<()> {
     match address {
-        ServerAddress::Tcp { .. } | ServerAddress::Unix { .. } => {
-            cx.require(&CapabilityName::new(NETWORK_CAPABILITY))
-        }
+        ServerAddress::Tcp { .. } | ServerAddress::Unix { .. } => require_network_capability(cx),
         ServerAddress::Http { .. } | ServerAddress::Sse { .. } | ServerAddress::Ws { .. } => {
-            cx.require(&CapabilityName::new(NETWORK_CAPABILITY))?;
+            require_network_capability(cx)?;
             cx.require(&CapabilityName::new(WEBHOOK_SERVE_CAPABILITY))
         }
         _ => Ok(()),
@@ -189,8 +186,38 @@ pub fn require_connect_capabilities(cx: &Cx, address: &ServerAddress) -> Result<
         | ServerAddress::Unix { .. }
         | ServerAddress::Http { .. }
         | ServerAddress::Sse { .. }
-        | ServerAddress::Ws { .. } => cx.require(&CapabilityName::new(NETWORK_CAPABILITY)),
+        | ServerAddress::Ws { .. } => require_network_capability(cx),
         _ => Ok(()),
+    }
+}
+
+fn require_network_capability(cx: &Cx) -> Result<()> {
+    require_with_aliases(cx, net_http_capability(), net_http_aliases())
+}
+
+fn net_http_capability() -> CapabilityName {
+    CapabilityName::new("net/http")
+}
+
+fn net_http_aliases() -> &'static [&'static str] {
+    &["net.http", "net-connect", "network"]
+}
+
+fn require_with_aliases(
+    cx: &Cx,
+    canonical: CapabilityName,
+    aliases: &'static [&'static str],
+) -> Result<()> {
+    if cx.capabilities().contains(&canonical)
+        || aliases
+            .iter()
+            .any(|alias| cx.capabilities().contains(&CapabilityName::new(*alias)))
+    {
+        Ok(())
+    } else {
+        Err(Error::CapabilityDenied {
+            capability: canonical,
+        })
     }
 }
 

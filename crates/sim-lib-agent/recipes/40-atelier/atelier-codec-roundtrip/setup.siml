@@ -1,1 +1,1 @@
-(quote (atelier-self-hosting (id atelier-codec-roundtrip) (runner fake) (network denied) (live-model denied) (codec-prism (fixture tiny-expr) (codecs lisp json algol) (semantic-id stable) (diagnostics none)) (cassette-hash fnv1a64:32be093d6f32315a)))
+(agent/recipe-result "atelier-codec-roundtrip")

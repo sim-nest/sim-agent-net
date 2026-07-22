@@ -1,7 +1,7 @@
 use super::support::{DummyComponent, eval_cx};
 use crate::{
     AGENT_LIB_ID, AgentLib, AgentRole, Component, ComponentKind, install_agent_lib,
-    stamp_envelope_role, stamp_frame_role,
+    net_http_capability, stamp_envelope_role, stamp_frame_role,
 };
 use sim_kernel::{Args, Cx, Expr, Lib, Symbol, Value};
 use sim_lib_server::{FrameEnvelope, FrameKind, ServerFrame};
@@ -38,10 +38,7 @@ fn component_contract_exposes_kind_name_capabilities_and_reflection() {
     let component = DummyComponent::new();
     assert_eq!(component.kind(), ComponentKind::Tool);
     assert_eq!(component.name(), &Symbol::qualified("test", "component"));
-    assert_eq!(
-        component.capabilities(),
-        [sim_kernel::CapabilityName::new("network")]
-    );
+    assert_eq!(component.capabilities(), [net_http_capability()]);
     assert_eq!(
         component.reflect(&mut cx).unwrap(),
         Expr::Symbol(Symbol::qualified("test", "component"))

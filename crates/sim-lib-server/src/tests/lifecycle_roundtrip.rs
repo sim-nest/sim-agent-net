@@ -1,5 +1,7 @@
 use super::*;
 
+// conformance: agent server tools complete a lifecycle round trip.
+
 #[test]
 fn all_shared_example_reuses_the_callers_env() {
     let mut cx = cx();

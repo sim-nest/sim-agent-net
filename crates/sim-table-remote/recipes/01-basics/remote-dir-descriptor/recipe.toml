@@ -1,0 +1,17 @@
+id = "remote-dir-descriptor"
+title = "Remote directory descriptor"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["table", "remote", "dir", "fabric", "sandbox-descriptor"]
+requires = ["table", "server", "codec/lisp"]
+capabilities = ["table/remote", "eval/remote"]
+assert_tags = ["table", "remote", "dir", "sandbox-descriptor"]
+assert_capabilities = ["table/remote", "eval/remote"]
+assert_setup_codec = "lisp"
+
+[[expect]]
+form = 0
+result = "(table-remote remote-dir (site remote-table) (operations get set keys entries del mkdir) (fabric eval) (capability table/remote))"

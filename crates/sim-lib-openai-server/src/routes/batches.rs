@@ -225,7 +225,7 @@ where
     C: GatewayClock,
 {
     let (mut cx, seat) = Cx::new_seated(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
-    grant_capability_set(&seat, &mut cx, capabilities);
+    grant_capability_set(&seat, &mut cx, capabilities).map_err(OpenAiRouteError::internal)?;
     let mut cache = OpenAiPlanCache::new();
     let mut result = BatchRunResult {
         output_records: Vec::new(),

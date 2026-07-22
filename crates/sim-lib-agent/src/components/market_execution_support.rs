@@ -1,6 +1,6 @@
 use super::market_cards::{card_context_tokens, card_cost, card_is_healthy, card_supports};
 use super::market_policy::{MarketPolicy, key_expr};
-use sim_kernel::{Consistency, Cx, Error, EvalMode, EvalRequest, Expr, Result};
+use sim_kernel::{CapabilityName, Consistency, Cx, Error, EvalMode, EvalRequest, Expr, Result};
 use sim_lib_agent_runner_core::{ModelBid, ModelCard, ModelRequest, ModelResponse};
 use std::time::Duration;
 
@@ -9,6 +9,7 @@ pub(super) fn realize_runner(
     runner: &sim_kernel::Value,
     request: &ModelRequest,
     deadline: Option<Duration>,
+    required_capabilities: &[CapabilityName],
 ) -> Result<ModelResponse> {
     let fabric = runner
         .object()
@@ -19,7 +20,7 @@ pub(super) fn realize_runner(
         EvalRequest {
             expr: request.clone().into(),
             result_shape: None,
-            required_capabilities: Vec::new(),
+            required_capabilities: required_capabilities.to_vec(),
             deadline,
             consistency: Consistency::LocalFirst,
             mode: EvalMode::Eval,

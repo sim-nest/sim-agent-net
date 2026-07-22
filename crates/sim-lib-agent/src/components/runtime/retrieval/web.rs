@@ -1,6 +1,6 @@
 use super::query::decode_query;
-use crate::NETWORK_CAPABILITY;
-use sim_kernel::{CapabilityName, Cx, Error, Expr, Result};
+use crate::require_net_http_capability;
+use sim_kernel::{Cx, Error, Expr, Result};
 #[cfg(feature = "agent-net")]
 use sim_kernel::{NumberLiteral, Symbol};
 #[cfg(feature = "agent-net")]
@@ -12,7 +12,7 @@ const DEFAULT_WEB_TIMEOUT_MS: u64 = 250;
 const MAX_WEB_BODY_BYTES: usize = 16 * 1024;
 
 pub(super) fn web_result_expr(cx: &Cx, endpoint: &str, expr: Expr) -> Result<Expr> {
-    cx.require(&CapabilityName::new(NETWORK_CAPABILITY))?;
+    require_net_http_capability(cx)?;
     let (query_expr, _limit) = decode_query(expr)?;
     let query = query_text(&query_expr)?;
     let url = resolve_url(endpoint, &query);

@@ -25,7 +25,7 @@ pub struct OpenAiFederation {
 }
 
 /// A single remote gateway: its `gateway/`-prefixed address, default model, and
-/// the eval fabric used to reach it.
+/// the eval fabric that reaches it.
 #[derive(Clone)]
 pub struct OpenAiFederatedGateway {
     address: String,
@@ -191,8 +191,8 @@ fn budget_json(entries: &[(String, Expr)]) -> Map<String, JsonValue> {
 }
 
 // Intentionally-divergent untagged Expr->JSON projection: this module's wire
-// form differs from sim_codec_json::project_expr_to_json (and from the sibling
-// forks), so it is kept local on purpose -- not a deletable fork. See OVERLAP_5.
+// form differs from sim_codec_json::project_expr_to_json and stays local because
+// merging it into the shared JSON projection would change gateway wire data.
 fn expr_to_json(expr: &Expr) -> JsonValue {
     match expr {
         Expr::Nil => JsonValue::Null,

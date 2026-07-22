@@ -137,8 +137,8 @@ pub struct SkillPolicy {
     /// Whether repeated calls with the same arguments yield the same result,
     /// which is what makes caching sound.
     pub idempotent: bool,
-    /// Optional explicit key used to derive the cache/cassette identity for a
-    /// call instead of the default argument-derived key.
+    /// Optional explicit key for deriving the cache/cassette identity for a call
+    /// instead of the default argument-derived key.
     pub semantic_key: Option<String>,
 }
 
@@ -159,14 +159,15 @@ impl Default for SkillPolicy {
 /// A card carries the skill's identity and symbol, its input and output shape
 /// contracts, the roles it plays, the capabilities required to call it, its
 /// [`SkillPolicy`], and the transport coordinates (id, kind, and operation)
-/// used to dispatch a call. It is a shape-bearing runtime handle; its
+/// that dispatch a call. It is a shape-bearing runtime handle; its
 /// serializable projection is the [`SkillCardDescriptor`] (`skill/Card`).
 ///
 /// [`SkillCardDescriptor`]: crate::SkillCardDescriptor
 #[derive(Clone)]
 #[non_citizen(
     reason = "shape-bearing runtime skill card; serializable projection is skill/Card descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "skill/Card"
 )]
 pub struct SkillCard {
     /// Stable string identifier for the skill.

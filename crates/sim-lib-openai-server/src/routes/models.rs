@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
 
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use sim_kernel::{Args, Cx, Error, Expr, Result, Symbol, Value as SimValue};
 use sim_lib_agent_runner_core::ModelCard;
 
 use crate::server::{GatewayRequest, GatewayResponse, GatewayRouteState};
 
-/// Route path for the OpenAI-compatible `GET /v1/models` discovery endpoint.
+/// Route path for the OpenAI-shaped `GET /v1/models` discovery endpoint.
 pub const MODELS_PATH: &str = "/v1/models";
 
 const FIXTURE_ECHO_MODEL: &str = "fixture/echo";
@@ -14,10 +14,11 @@ const SIM_BROWSE_PLAN_MODEL: &str = "sim/browse/plan";
 
 /// Represents a single entry in the model catalog, mapped to the OpenAI
 /// `model` object shape (`id` plus `owned_by`).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct OpenAiModel {
     id: String,
     owned_by: String,
+    metadata: Map<String, Value>,
 }
 
 impl OpenAiModel {
@@ -26,6 +27,7 @@ impl OpenAiModel {
         Self {
             id: id.into(),
             owned_by: owned_by.into(),
+            metadata: Map::new(),
         }
     }
 
@@ -42,7 +44,20 @@ impl OpenAiModel {
     /// Builds a model entry from a runner [`ModelCard`], taking the card's
     /// model id and provider.
     pub fn from_model_card(card: ModelCard) -> Self {
-        Self::new(card.model, card.provider.to_string())
+        let mut metadata = Map::new();
+        metadata.insert("runner".to_owned(), Value::String(card.runner.to_string()));
+        metadata.insert(
+            "locality".to_owned(),
+            Value::String(card.locality.to_string()),
+        );
+        for (key, value) in card.extra {
+            metadata.insert(metadata_key(&key), metadata_value(&value));
+        }
+        Self {
+            id: card.model,
+            owned_by: card.provider.to_string(),
+            metadata,
+        }
     }
 
     /// Returns the model id.
@@ -51,18 +66,21 @@ impl OpenAiModel {
     }
 
     fn to_json(&self) -> Value {
-        json!({
-            "id": self.id,
-            "object": "model",
-            "created": 0,
-            "owned_by": self.owned_by,
-        })
+        let mut object = Map::new();
+        object.insert("id".to_owned(), Value::String(self.id.clone()));
+        object.insert("object".to_owned(), Value::String("model".to_owned()));
+        object.insert("created".to_owned(), json!(0));
+        object.insert("owned_by".to_owned(), Value::String(self.owned_by.clone()));
+        if !self.metadata.is_empty() {
+            object.insert("metadata".to_owned(), Value::Object(self.metadata.clone()));
+        }
+        Value::Object(object)
     }
 }
 
 /// Represents the deduplicated set of models advertised by `/v1/models`,
 /// always including the built-in fixture and `sim/browse/plan` entries.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModelCatalog {
     models: Vec<OpenAiModel>,
 }
@@ -165,7 +183,7 @@ pub fn models_response_for_catalog(catalog: &ModelCatalog) -> GatewayResponse {
     GatewayResponse::json(200, catalog.to_json().to_string().into_bytes())
 }
 
-/// Returns the `runner/cards` function symbol used to fetch model cards.
+/// Returns the `runner/cards` function symbol that fetches model cards.
 pub fn runner_cards_symbol() -> Symbol {
     Symbol::qualified("runner", "cards")
 }
@@ -174,4 +192,57 @@ fn push_unique(models: &mut Vec<OpenAiModel>, seen: &mut BTreeSet<String>, model
     if seen.insert(model.id.clone()) {
         models.push(model);
     }
+}
+
+fn metadata_key(expr: &Expr) -> String {
+    match expr {
+        Expr::Symbol(symbol) | Expr::Local(symbol) if symbol.namespace.is_none() => {
+            normalize_metadata_key(symbol.name.as_ref())
+        }
+        Expr::Symbol(symbol) | Expr::Local(symbol) => normalize_metadata_key(&symbol.to_string()),
+        Expr::String(value) => normalize_metadata_key(value),
+        other => normalize_metadata_key(&format!("{other:?}")),
+    }
+}
+
+fn normalize_metadata_key(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '_' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+fn metadata_value(expr: &Expr) -> Value {
+    match expr {
+        Expr::Nil => Value::Null,
+        Expr::Bool(value) => Value::Bool(*value),
+        Expr::Number(value) => number_json(&value.canonical),
+        Expr::Symbol(symbol) | Expr::Local(symbol) if symbol.namespace.is_none() => {
+            Value::String(symbol.name.as_ref().to_owned())
+        }
+        Expr::Symbol(symbol) | Expr::Local(symbol) => Value::String(symbol.to_string()),
+        Expr::String(value) => Value::String(value.clone()),
+        Expr::Bytes(bytes) => Value::Array(bytes.iter().map(|byte| json!(byte)).collect()),
+        Expr::List(values) | Expr::Vector(values) | Expr::Set(values) | Expr::Block(values) => {
+            Value::Array(values.iter().map(metadata_value).collect())
+        }
+        Expr::Map(entries) => {
+            let mut object = Map::new();
+            for (key, value) in entries {
+                object.insert(metadata_key(key), metadata_value(value));
+            }
+            Value::Object(object)
+        }
+        other => Value::String(format!("{other:?}")),
+    }
+}
+
+fn number_json(canonical: &str) -> Value {
+    serde_json::from_str(canonical).unwrap_or_else(|_| Value::String(canonical.to_owned()))
 }

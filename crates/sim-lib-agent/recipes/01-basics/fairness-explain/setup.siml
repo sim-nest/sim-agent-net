@@ -1,4 +1,1 @@
-(quote (fairness-explain
-  (summary (reference-rate 0.8) (comparison-rate 0.6) (four-fifths-ratio 0.75) (passes false))
-  (counterfactual (source source) (match alpha) (change score 0.2))
-  (attribution (events 3) (effects 1) (runner offline))))
+(judge/rubric)

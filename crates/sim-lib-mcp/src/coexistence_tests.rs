@@ -42,7 +42,12 @@ fn skill_callable_is_shared_by_direct_agent_openai_and_mcp_paths() {
     let descriptor = openai_descriptor(&mut cx, &card);
     let openai_tool = OpenAiTool::from_openai_descriptor(&descriptor).unwrap();
     assert_eq!(openai_tool.openai_name(), OPENAI_TOOL_NAME);
-    assert_eq!(openai_tool.symbol(), &symbol);
+    assert_eq!(
+        openai_tool.symbol(),
+        &Symbol::qualified("skill", "math-add")
+    );
+    assert!(descriptor["function"].get("x-sim-symbol").is_none());
+    assert!(descriptor["function"].get("x-sim-capabilities").is_none());
     let openai = execute_openai_response(&mut cx, descriptor, json!({"arg0": 2, "arg1": 3}));
     assert_eq!(openai.response().status(), 200);
     assert!(

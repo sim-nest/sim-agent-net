@@ -1,0 +1,8 @@
+id = "openai-config-probe-use"
+title = "OpenAI config, probe, and use"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 20
+tags = ["agent", "runner", "http", "provider", "openai", "sandbox-descriptor"]
+requires = ["agent", "agent-runner-http", "codec/lisp"]

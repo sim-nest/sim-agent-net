@@ -1,0 +1,1 @@
+(runner/ollama :model "llama3.2")

@@ -2,20 +2,20 @@ use super::super::{
     model::{AgentComponent, ComponentBackend, RunnerBackend, component_value},
     options::{parse_component_options, path_option, string_option, symbol_option},
 };
-#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+#[cfg(feature = "runner-http")]
 use crate::AI_RUNNER_CAPABILITY;
-#[cfg(feature = "runner-ollama")]
-use crate::AI_RUNNER_LOCAL_CAPABILITY;
-#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+#[cfg(feature = "runner-http")]
 use crate::AI_RUNNER_NETWORK_CAPABILITY;
 #[cfg(feature = "runner-http")]
 use crate::AI_RUNNER_SECRET_CAPABILITY;
 use crate::{ComponentKind, memory::load_memory_log, util::installed_codecs};
-#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+#[cfg(feature = "runner-http")]
 use sim_kernel::CapabilityName;
 use sim_kernel::{Args, Cx, Error, Expr, Result, Symbol, Value};
-#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+#[cfg(feature = "runner-http")]
 use sim_lib_agent_runner_http::HttpRunner;
+#[cfg(feature = "runner-ollama")]
+use sim_lib_agent_runner_http::{ProviderConfig, provider_profiles};
 use sim_lib_server::{ServerAddress, parse_duration};
 use std::{
     collections::VecDeque,
@@ -215,79 +215,9 @@ pub(crate) fn runner_openai_compatible_value(cx: &mut Cx, args: Args) -> Result<
 
 #[cfg(feature = "runner-ollama")]
 pub(crate) fn runner_ollama_value(cx: &mut Cx, args: Args) -> Result<Value> {
-    let options = parse_component_options(cx, args, "runner/ollama")?;
-    let symbol = symbol_option(cx, &options, "name", Symbol::qualified("runner", "ollama"))?;
-    let model = string_option(cx, &options, "model", "qwen3.5:4b")?;
-    let endpoint = string_option(cx, &options, "endpoint", "http://127.0.0.1:11434")?;
-    let codec = symbol_option(cx, &options, "codec", Symbol::qualified("codec", "ollama"))?;
-    let timeout = timeout_with_default(cx, &options, Duration::from_secs(120))?;
-    let stream = bool_option(
-        cx,
-        &options,
-        "stream",
-        "runner/ollama :stream expects a boolean",
-        true,
-    )?;
-    let tools = bool_option(
-        cx,
-        &options,
-        "tools",
-        "runner/ollama :tools expects a boolean",
-        false,
-    )?;
-    let max_output_bytes = max_output_bytes_option(cx, &options, "runner/ollama")?;
-    let mut capabilities = vec![
-        CapabilityName::new(AI_RUNNER_CAPABILITY),
-        CapabilityName::new(AI_RUNNER_NETWORK_CAPABILITY),
-    ];
-    let locality = if endpoint_is_loopback(&endpoint) {
-        capabilities.push(CapabilityName::new(AI_RUNNER_LOCAL_CAPABILITY));
-        Symbol::new("local")
-    } else {
-        Symbol::new("network")
-    };
-    component_value(
-        cx,
-        AgentComponent {
-            symbol: symbol.clone(),
-            kind: ComponentKind::Runner,
-            capabilities,
-            address: ServerAddress::Local,
-            codecs: installed_codecs(cx),
-            spec: vec![
-                (Symbol::new("backend"), Expr::Symbol(Symbol::new("ollama"))),
-                (Symbol::new("model"), Expr::String(model.clone())),
-                (Symbol::new("endpoint"), Expr::String(endpoint.clone())),
-                (Symbol::new("codec"), Expr::Symbol(codec.clone())),
-                (
-                    Symbol::new("timeout"),
-                    Expr::String(format!("{}ms", timeout.as_millis())),
-                ),
-                (Symbol::new("stream"), Expr::Bool(stream)),
-                (Symbol::new("tools"), Expr::Bool(tools)),
-                (
-                    Symbol::new("max-output-bytes"),
-                    Expr::Number(sim_kernel::NumberLiteral {
-                        domain: Symbol::qualified("numbers", "f64"),
-                        canonical: max_output_bytes.to_string(),
-                    }),
-                ),
-            ],
-            backend: ComponentBackend::Runner(RunnerBackend::External {
-                runner: Arc::new(HttpRunner::new_ollama(
-                    symbol,
-                    model,
-                    locality,
-                    endpoint,
-                    codec,
-                    timeout,
-                    stream,
-                    tools,
-                    max_output_bytes,
-                )),
-            }),
-        },
-    )
+    let options = super::ai_provider_runner::provider_runner_options(cx, args, "runner/ollama")?;
+    let config = ProviderConfig::from_options(provider_profiles::ollama(), cx, &options)?;
+    super::ai_provider_runner::provider_runner_value(cx, config)
 }
 
 fn script_option(
@@ -379,7 +309,7 @@ fn delay_option(
     }
 }
 
-#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+#[cfg(feature = "runner-http")]
 fn timeout_with_default(
     cx: &mut Cx,
     options: &std::collections::HashMap<String, Value>,
@@ -391,7 +321,7 @@ fn timeout_with_default(
     }
 }
 
-#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+#[cfg(feature = "runner-http")]
 fn bool_option(
     cx: &mut Cx,
     options: &std::collections::HashMap<String, Value>,
@@ -408,23 +338,7 @@ fn bool_option(
     }
 }
 
-#[cfg(feature = "runner-ollama")]
-fn endpoint_is_loopback(endpoint: &str) -> bool {
-    let Some((_, rest)) = endpoint.split_once("://") else {
-        return false;
-    };
-    let host_port = rest.split('/').next().unwrap_or(rest);
-    let host = host_port
-        .strip_prefix('[')
-        .and_then(|value| value.strip_suffix(']'))
-        .unwrap_or(host_port)
-        .rsplit_once(':')
-        .map(|(value, _)| value)
-        .unwrap_or(host_port);
-    matches!(host, "127.0.0.1" | "localhost" | "::1")
-}
-
-#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+#[cfg(feature = "runner-http")]
 fn max_output_bytes_option(
     cx: &mut Cx,
     options: &std::collections::HashMap<String, Value>,

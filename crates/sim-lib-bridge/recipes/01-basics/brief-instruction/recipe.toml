@@ -1,0 +1,8 @@
+id = "brief-instruction"
+title = "BRIEF instruction packet"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 20
+tags = ["bridge", "brief", "model", "descriptor", "sandbox-descriptor"]
+requires = ["core", "codec/lisp"]

@@ -20,6 +20,7 @@ mod cookbook_web;
 mod cookbook_web_json;
 mod coroutine;
 mod cron;
+mod device_edge;
 mod dispatch;
 mod frame;
 mod helpers;
@@ -42,6 +43,7 @@ mod site;
 mod stream_support;
 mod transport;
 mod trigger;
+mod voice;
 mod wasm;
 
 pub use address::ServerAddress;
@@ -53,6 +55,10 @@ pub use codecio::{decode_frame_payload, encode_frame_payload};
 pub use connection::{Connection, Session};
 pub use cookbook_web::{CookbookWebResponse, CookbookWebState};
 pub use coroutine::{Coroutine, CoroutineStatus};
+pub use device_edge::{
+    DeviceEdgeProfile, DeviceEdgeSession, LedgerRef, LinkKind, register_watch_edge_session,
+    watch_route_order,
+};
 pub use frame::{
     FrameEnvelope, FrameKind, LifecycleCommand, ServerFrame, eval_reply_from_frame,
     eval_request_from_frame, server_frame_from_reply, server_frame_from_request,
@@ -87,6 +93,11 @@ pub use transport::{
     decode_transport_frame, encode_transport_frame, register_loopback_transport_endpoint,
 };
 pub use trigger::TriggerHandle;
+pub use voice::{
+    ASR_TRANSCRIPT_KIND, ASR_TRANSCRIPT_NAMESPACE, MIC_CAPTURE_KIND, MIC_CAPTURE_NAMESPACE,
+    ModeledAsrFabric, XR_MIC_CHUNK_KIND, XR_MIC_CHUNK_NAMESPACE, modeled_asr_site,
+    modeled_glasses_asr_site,
+};
 pub use wasm::register_wasm_region;
 
 use crate::isolation::IsolatedEvalSite;

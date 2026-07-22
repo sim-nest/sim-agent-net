@@ -1,5 +1,5 @@
 book = "agent-runner-http"
 title = "Agent Runner HTTP"
-summary = "HTTP runner request descriptors and cassette replay."
+summary = "HTTP runner provider profiles, probes, and cassette replay."
 order = 341
 chapters = ["01-basics"]

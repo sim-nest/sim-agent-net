@@ -4,12 +4,14 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use sim_codec_lisp::LispCodecLib;
 use sim_codec_mcp::{McpCodecLib, McpEnvelope, McpRequest, McpResponse};
 use sim_kernel::{
     AbiVersion, Args, Callable, CapabilityName, Cx, DefaultFactory, EagerPolicy, Error, Export,
     Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, ShapeRef, Stream,
-    Symbol, Value, Version,
+    Symbol, Value, Version, read_eval_capability,
 };
+use sim_lib_server::{FrameEnvelope, FrameKind, ServerFrame};
 use sim_lib_stream_core::StreamPacket;
 use sim_shape::{AnyShape, shape_value};
 
@@ -116,6 +118,24 @@ fn websocket_frames_round_trip_through_server_codec_and_router() {
     assert_eq!(replies.len(), 1);
     let reply = adapter.envelope_from_frame(&mut cx, &replies[0]).unwrap();
     assert!(matches!(reply, McpEnvelope::Response(McpResponse { .. })));
+}
+
+#[test]
+fn http_frame_payload_rejects_lisp_read_eval() {
+    let mut cx = cx_with_lisp();
+    let session = McpSession::new("http-read-eval", McpProfile::all())
+        .with_granted_capability(mcp_http_capability());
+    let mut adapter = McpHttpAdapter::new(session);
+    let frame = ServerFrame::new(
+        Symbol::qualified("codec", "lisp"),
+        FrameKind::Request,
+        FrameEnvelope::default(),
+        b"#. 1".to_vec(),
+    );
+
+    let err = adapter.handle_http_frame(&mut cx, frame).unwrap_err();
+
+    assert_read_eval_denied(err);
 }
 
 #[test]
@@ -390,6 +410,20 @@ fn cx() -> Cx {
     let codec = McpCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&codec).unwrap();
     cx
+}
+
+fn cx_with_lisp() -> Cx {
+    let mut cx = cx();
+    let codec = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
+    cx.load_lib(&codec).unwrap();
+    cx
+}
+
+fn assert_read_eval_denied(error: Error) {
+    assert!(
+        matches!(error, Error::CapabilityDenied { ref capability } if capability == &read_eval_capability()),
+        "expected read-eval denial, got {error:?}",
+    );
 }
 
 use sim_value::build::entry as field;

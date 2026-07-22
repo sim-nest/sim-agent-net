@@ -3,10 +3,10 @@ use super::types::{
     BlackboardMemory, FileMemory, PersonaMemory, VectorMemory, WorkingMemory,
     resolve_memory_backend,
 };
-use sim_kernel::{Args, CapabilityName, Cx, Error, Result, Value};
+use sim_kernel::{Args, Cx, Error, Result, Value};
 use std::sync::Arc;
 
-use crate::{FILE_WRITE_CAPABILITY, parse_component_options, path_option};
+use crate::{parse_component_options, path_option, require_fs_write_capability};
 
 pub(crate) fn memory_working_value(cx: &mut Cx, args: Args) -> Result<Value> {
     if !args.values().is_empty() {
@@ -24,7 +24,7 @@ pub(crate) fn memory_file_value(cx: &mut Cx, args: Args) -> Result<Value> {
             "memory/file expects exactly one path argument".to_owned(),
         ));
     };
-    cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+    require_fs_write_capability(cx)?;
     let path = crate::string_from_value(cx, path.clone(), "memory/file expects a string path")?;
     cx.factory().opaque(Arc::new(FileMemory::open(
         path,
@@ -56,7 +56,7 @@ pub(crate) fn memory_vector_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let options = parse_component_options(cx, args, "memory/vector")?;
     let path = path_option(cx, &options, "path")?;
     if path.is_some() {
-        cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+        require_fs_write_capability(cx)?;
     }
     cx.factory().opaque(Arc::new(VectorMemory::open(
         path,
@@ -68,7 +68,7 @@ pub(crate) fn memory_persona_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let options = parse_component_options(cx, args, "memory/persona")?;
     let path = path_option(cx, &options, "path")?;
     if path.is_some() {
-        cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+        require_fs_write_capability(cx)?;
     }
     cx.factory().opaque(Arc::new(PersonaMemory::open(
         path,

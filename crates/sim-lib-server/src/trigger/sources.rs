@@ -29,7 +29,6 @@ pub(crate) trait TriggerSource: Send + Sync {
     fn as_any(&self) -> &dyn std::any::Any;
 }
 
-const FILE_READ_CAPABILITY: &str = "file-read";
 const CRON_SCHEDULE_CAPABILITY: &str = "cron-schedule";
 const WEBHOOK_SERVE_CAPABILITY: &str = "webhook-serve";
 const MAIL_READ_CAPABILITY: &str = "mail-read";
@@ -50,7 +49,7 @@ pub(crate) fn loopback_smtp_messages() -> &'static Mutex<BTreeMap<String, Vec<Ve
 pub(crate) fn source_capability(source: &ServerAddress) -> Option<CapabilityName> {
     match source {
         ServerAddress::Stdin => None,
-        ServerAddress::FileTail { .. } => Some(CapabilityName::new(FILE_READ_CAPABILITY)),
+        ServerAddress::FileTail { .. } => Some(fs_read_capability()),
         ServerAddress::Cron { .. } => Some(CapabilityName::new(CRON_SCHEDULE_CAPABILITY)),
         ServerAddress::Webhook { .. } => Some(CapabilityName::new(WEBHOOK_SERVE_CAPABILITY)),
         ServerAddress::Imap { .. } => Some(CapabilityName::new(MAIL_READ_CAPABILITY)),
@@ -58,6 +57,44 @@ pub(crate) fn source_capability(source: &ServerAddress) -> Option<CapabilityName
         ServerAddress::Telegram { .. } => Some(CapabilityName::new(TELEGRAM_BOT_CAPABILITY)),
         ServerAddress::Matrix { .. } => Some(CapabilityName::new(MATRIX_BOT_CAPABILITY)),
         _ => None,
+    }
+}
+
+pub(crate) fn require_source_capability(cx: &Cx, source: &ServerAddress) -> Result<()> {
+    match source {
+        ServerAddress::FileTail { .. } => {
+            require_with_aliases(cx, fs_read_capability(), fs_read_aliases())
+        }
+        _ => match source_capability(source) {
+            Some(capability) => cx.require(&capability),
+            None => Ok(()),
+        },
+    }
+}
+
+fn fs_read_capability() -> CapabilityName {
+    CapabilityName::new("fs/read")
+}
+
+fn fs_read_aliases() -> &'static [&'static str] {
+    &["table.fs.read", "stream.file.read", "file-read"]
+}
+
+fn require_with_aliases(
+    cx: &Cx,
+    canonical: CapabilityName,
+    aliases: &'static [&'static str],
+) -> Result<()> {
+    if cx.capabilities().contains(&canonical)
+        || aliases
+            .iter()
+            .any(|alias| cx.capabilities().contains(&CapabilityName::new(*alias)))
+    {
+        Ok(())
+    } else {
+        Err(Error::CapabilityDenied {
+            capability: canonical,
+        })
     }
 }
 

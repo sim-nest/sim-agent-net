@@ -1,13 +1,12 @@
-//! Golden snapshots pinning the gateway execution-record wire (OVERLAP9.03).
+//! Golden snapshots pinning the gateway execution-record wire.
 //!
-//! These snapshots freeze the observable output of the three parallel record
-//! engines -- `/v1/responses`, `/v1/embeddings`, and one run_record route (audio
-//! transcription) -- BEFORE the OVERLAP9.04 substrate collapse. They capture the
-//! stored request/run/event/response content-ids, the per-event id/kind/sequence
-//! /payload, the final wire payload, and (for the object-retrievable responses
-//! path) the `/events`, `/sim`, and replay renderings. OVERLAP9.04 must keep every
-//! one of these byte-identical: if a golden drifts, that part of the collapse is
-//! wrong.
+//! These snapshots freeze the observable output of `/v1/responses`,
+//! `/v1/embeddings`, and one run_record route (audio transcription). They
+//! capture the stored request/run/event/response content-ids, the per-event
+//! id/kind/sequence/payload, the final wire payload, and (for the
+//! object-retrievable responses path) the `/events`, `/sim`, and replay
+//! renderings. The shared execution-record substrate must keep every one of
+//! these byte-identical.
 //!
 //! There is no `insta` dependency in this crate, so the goldens are plain JSON
 //! files under `src/tests/goldens/`. Run the suite with `SIM_BLESS_GOLDENS=1` to
@@ -16,16 +15,19 @@
 use std::path::PathBuf;
 
 use serde_json::{Value, json};
-use sim_kernel::ContentId;
+use sim_kernel::{CapabilitySet, ContentId};
 
 use crate::{
     AUDIO_TRANSCRIPTIONS_PATH, DeterministicGatewayClock, EMBEDDINGS_PATH, EmbeddingIdGenerators,
     GatewayEvent, GatewayRequest, GatewayResponse, GatewayResponseObjectStore, GatewayRouteState,
-    GatewayStore, MemoryGatewayStore, RESPONSES_PATH, ResponseIdGenerators, SIM_REPLAY_PATH,
-    TENSOR_F64_SMALL_EMBEDDING_MODEL, configure_routes_with_state, content_id_hex,
-    execute_embedding_request, execute_response_request, response_events, response_sim,
+    GatewayStore, MemoryGatewayStore, OpenAiKeyTable, RESPONSES_PATH, ResponseIdGenerators,
+    SIM_REPLAY_PATH, TENSOR_F64_SMALL_EMBEDDING_MODEL, configure_routes_with_state, content_id_hex,
+    execute_embedding_request, execute_response_request, openai_gateway_admin_capability,
+    response_events, response_sim,
     routes::{audio::execute_audio_transcription_request, run_record::RouteRunIdGenerators},
 };
+
+const GOLDEN_ADMIN_SECRET: &str = "sk-execution-record-admin";
 
 // --- Responses (`/v1/responses`): object-retrievable via put_response_object ---
 
@@ -83,9 +85,17 @@ fn responses_golden(store: bool) -> Value {
         value["events_view"] = response_body_json(&response_events(&gateway_store, &response_id));
         value["sim_view"] = response_body_json(&response_sim(&gateway_store, &response_id));
 
-        let state = GatewayRouteState::new(gateway_store);
+        let key_table = OpenAiKeyTable::new().unwrap();
+        key_table
+            .add_secret(
+                GOLDEN_ADMIN_SECRET,
+                CapabilitySet::new().grant(openai_gateway_admin_capability()),
+            )
+            .unwrap();
+        let state = GatewayRouteState::new(gateway_store).with_keys(key_table);
         let routes = configure_routes_with_state(state);
-        let replay = routes.handle(&json_request(
+        let replay = routes.handle(&authorized_json_request(
+            GOLDEN_ADMIN_SECRET,
             SIM_REPLAY_PATH,
             &json!({ "response_id": response_id }).to_string(),
         ));
@@ -251,6 +261,18 @@ fn json_request(path: &str, body: &str) -> GatewayRequest {
     )
 }
 
+fn authorized_json_request(secret: &str, path: &str, body: &str) -> GatewayRequest {
+    GatewayRequest::new(
+        "POST",
+        path,
+        vec![
+            ("Content-Type".to_owned(), "application/json".to_owned()),
+            ("Authorization".to_owned(), format!("Bearer {secret}")),
+        ],
+        body.as_bytes().to_vec(),
+    )
+}
+
 // --- golden file harness ----------------------------------------------------
 
 fn golden_path(name: &str) -> PathBuf {
@@ -277,6 +299,6 @@ fn assert_golden(name: &str, value: &Value) {
     });
     assert_eq!(
         actual, expected,
-        "gateway execution-record golden {name} drifted -- OVERLAP9.04 must keep it byte-identical"
+        "gateway execution-record golden {name} drifted; the shared substrate must keep it byte-identical"
     );
 }

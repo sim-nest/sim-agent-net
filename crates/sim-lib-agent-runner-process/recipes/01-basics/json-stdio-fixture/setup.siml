@@ -1,1 +1,1 @@
-(quote (agent-runner-process json-stdio fixture request response no-spawn))
+(runner/process :command "sim-json-stdio-fixture" :protocol json-stdio :model "fixture-json-stdio")

@@ -1,0 +1,8 @@
+id = "lemonade-config-probe-use"
+title = "Lemonade config, probe, and use"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 60
+tags = ["agent", "runner", "http", "provider", "lemonade", "sandbox-descriptor"]
+requires = ["agent", "agent-runner-http", "codec/lisp"]

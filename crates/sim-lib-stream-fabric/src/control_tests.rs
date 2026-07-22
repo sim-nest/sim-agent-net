@@ -3,10 +3,10 @@ use std::sync::Arc;
 use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, Symbol};
 use sim_lib_server::FrameEnvelope;
 use sim_lib_stream_core::{
-    BufferPolicy, StreamDirection, StreamEnvelope, StreamFaultKind, StreamFaultSpec, StreamItem,
-    StreamMedia, StreamMetadata, StreamPacket, TransportProfile, stream_cancel_capability,
-    stream_open_capability, stream_push_capability, stream_read_capability,
-    stream_remote_network_capability, stream_stats_capability,
+    BufferPolicy, ClockDomain, StreamDirection, StreamEnvelope, StreamFaultKind, StreamFaultSpec,
+    StreamItem, StreamMedia, StreamMetadata, StreamPacket, TransportProfile,
+    stream_cancel_capability, stream_open_capability, stream_push_capability,
+    stream_read_capability, stream_remote_network_capability, stream_stats_capability,
 };
 
 use crate::{
@@ -155,7 +155,7 @@ fn data_metadata(id: &str) -> StreamMetadata {
         Symbol::new(id),
         StreamMedia::Data,
         StreamDirection::Source,
-        Symbol::qualified("clock", "data"),
+        ClockDomain::ServerFrame.symbol(),
         BufferPolicy::bounded(8).unwrap(),
     )
 }

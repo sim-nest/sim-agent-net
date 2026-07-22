@@ -4,6 +4,9 @@ resolver = "3"
 members = [
   "crates/sim-lib-agent",
   "crates/sim-lib-agent-runner-core",
+  "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair",
+  "crates/sim-lib-bridge",
+  "crates/sim-lib-forge",
   "crates/sim-lib-agent-runner-http",
   "crates/sim-lib-agent-runner-local",
   "crates/sim-lib-agent-runner-process",

@@ -5,8 +5,7 @@ use super::{
     websocket_accept_value,
 };
 
-// OVERLAP9.01: pin the host/port/path resolution for every transport call site
-// after routing `parse_url` through `sim_lib_net_core`. Covers http/https/ws
+// Pins host/port/path resolution for every transport call site: http/https/ws
 // bind + connect, portless authority (ws -> :80), and trailing-slash paths.
 #[test]
 fn parse_url_matrix_matches_transport_call_sites() {
@@ -77,8 +76,7 @@ fn base64_round_trips() {
     assert_eq!(base64_decode(&encoded).unwrap(), b"hello");
 }
 
-// OVERLAP9.02: a single-`data:` event is the common case and is unchanged by the
-// fold migration.
+// A single-`data:` event is the common SSE case and keeps its payload exactly.
 #[test]
 fn sse_single_data_event_is_unchanged() {
     let input = "event: chunk\r\ndata: payload\r\n\r\n";
@@ -87,9 +85,8 @@ fn sse_single_data_event_is_unchanged() {
     assert_eq!(event, ("chunk".to_owned(), "payload".to_owned()));
 }
 
-// OVERLAP9.02 DECISION: multiple `data:` lines of one record now fold with `\n`
-// (the SSE-spec behavior of `sim_lib_net_core::SseDecoder`). Before this
-// migration the server kept only the LAST `data:` line (would have been "two").
+// Multiple `data:` lines in one record fold with `\n`, matching the SSE
+// behavior of `sim_lib_net_core::SseDecoder`.
 #[test]
 fn sse_folds_multiple_data_lines() {
     let input = "event: message\r\ndata: one\r\ndata: two\r\n\r\n";
@@ -98,9 +95,9 @@ fn sse_folds_multiple_data_lines() {
     assert_eq!(event, ("message".to_owned(), "one\ntwo".to_owned()));
 }
 
-// OVERLAP9.02: the transport's own wire form (an "end" event with empty data,
-// exactly as `SseStreamSink::write_event` emits it) round-trips through the
-// net-core decoder.
+// The transport's own wire form (an "end" event with empty data, exactly as
+// `SseStreamSink::write_event` emits it) round-trips through the net-core
+// decoder.
 #[test]
 fn sse_round_trips_transport_end_event() {
     let input = "event: end\r\ndata: \r\n\r\n";
@@ -114,6 +111,27 @@ fn sse_round_trips_transport_end_event() {
 fn sse_eof_without_record_is_none() {
     let mut reader = Cursor::new(b"".as_slice());
     assert!(read_sse_event(&mut reader).unwrap().is_none());
+}
+
+#[test]
+fn sse_rejects_oversize_line_before_decoding() {
+    let input = format!("data: {}\r\n\r\n", "x".repeat(64 * 1024));
+    let mut reader = Cursor::new(input.into_bytes());
+
+    let error = read_sse_event(&mut reader).unwrap_err();
+
+    assert!(format!("{error}").contains("sse line exceeds size limit"));
+}
+
+#[test]
+fn sse_rejects_oversize_multiline_data_event() {
+    let piece = "x".repeat(40 * 1024);
+    let input = format!("data: {piece}\r\ndata: {piece}\r\n\r\n");
+    let mut reader = Cursor::new(input.into_bytes());
+
+    let error = read_sse_event(&mut reader).unwrap_err();
+
+    assert!(format!("{error}").contains("sse event data exceeds size limit"));
 }
 
 #[test]

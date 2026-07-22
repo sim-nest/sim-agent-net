@@ -1,11 +1,13 @@
-use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, Symbol, Value};
+use sim_kernel::{Cx, Error, Expr, Result, Symbol, Value};
 use std::{
     cmp::Ordering,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
 
-use crate::{FILE_WRITE_CAPABILITY, PersonaMemory, VectorMemory, cosine, embed};
+use crate::{
+    PersonaMemory, VectorMemory, cosine, embed, fs_write_capability, require_fs_write_capability,
+};
 
 use super::super::store::{
     append_memory_log, flatten_expr_text, load_memory_log, rewrite_memory_log, snapshot_entries,
@@ -54,7 +56,7 @@ impl VectorMemory {
             symbol: Symbol::qualified("memory", "vector"),
             capabilities: path
                 .as_ref()
-                .map(|_| vec![CapabilityName::new(FILE_WRITE_CAPABILITY)])
+                .map(|_| vec![fs_write_capability()])
                 .unwrap_or_default(),
             address: sim_lib_server::ServerAddress::Local,
             codecs,
@@ -86,7 +88,7 @@ impl PersonaMemory {
             symbol: Symbol::qualified("memory", "persona"),
             capabilities: path
                 .as_ref()
-                .map(|_| vec![CapabilityName::new(FILE_WRITE_CAPABILITY)])
+                .map(|_| vec![fs_write_capability()])
                 .unwrap_or_default(),
             address: sim_lib_server::ServerAddress::Local,
             codecs,
@@ -159,7 +161,7 @@ fn persona_state_from_snapshot(snapshot: Expr) -> Result<PersonaState> {
 impl MemoryBackend for VectorMemory {
     fn append(&self, cx: &mut Cx, msg: Value) -> Result<()> {
         if self.path.is_some() {
-            cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+            require_fs_write_capability(cx)?;
         }
         let expr = value_to_snapshot_expr(cx, msg)?;
         let entry = VectorEntry::from_expr(expr.clone());
@@ -217,7 +219,7 @@ impl MemoryBackend for VectorMemory {
 
     fn restore(&self, cx: &mut Cx, snap: Expr) -> Result<()> {
         if self.path.is_some() {
-            cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+            require_fs_write_capability(cx)?;
         }
         let entries = snapshot_entries(snap)?
             .into_iter()
@@ -238,7 +240,7 @@ impl MemoryBackend for VectorMemory {
 impl MemoryBackend for PersonaMemory {
     fn append(&self, cx: &mut Cx, msg: Value) -> Result<()> {
         if self.path.is_some() {
-            cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+            require_fs_write_capability(cx)?;
         }
         let note = value_to_snapshot_expr(cx, msg)?;
         let mut state = lock_persona_state(&self.state)?;
@@ -288,7 +290,7 @@ impl MemoryBackend for PersonaMemory {
 
     fn restore(&self, cx: &mut Cx, snap: Expr) -> Result<()> {
         if self.path.is_some() {
-            cx.require(&CapabilityName::new(FILE_WRITE_CAPABILITY))?;
+            require_fs_write_capability(cx)?;
         }
         let state = persona_state_from_snapshot(snap)?;
         if let Some(path) = &self.path {

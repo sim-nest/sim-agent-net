@@ -18,9 +18,9 @@ pub enum ReplOutput {
 
 /// Configuration for a single [`run_repl`] invocation.
 pub struct ReplOptions {
-    /// Connection used to evaluate each line.
+    /// Connection that evaluates each line.
     pub connection: Connection,
-    /// Codec used to decode input and encode rendered results.
+    /// Codec for decoding input and encoding rendered results.
     pub codec: Symbol,
     /// Prompt string shown before each interactive read.
     pub prompt: String,

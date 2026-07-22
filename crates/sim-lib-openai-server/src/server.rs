@@ -303,9 +303,9 @@ pub fn configure_routes() -> GatewayRoutes {
 
 /// Returns the full gateway route table sharing the supplied `state`.
 ///
-/// Registers every OpenAI-compatible endpoint (chat, responses, embeddings,
-/// files, batches, audio, images, vector stores, threads) plus the SIM replay
-/// and admin routes.
+/// Registers the OpenAI-shaped route table: chat, responses, embeddings, file
+/// fixture, batch, audio fixture, image fixture, vector-store subset, thread,
+/// SIM replay, and admin routes.
 pub fn configure_routes_with_state(state: GatewayRouteState) -> GatewayRoutes {
     GatewayRoutes::with_state(
         vec![
@@ -409,7 +409,8 @@ pub fn configure_routes_with_state(state: GatewayRouteState) -> GatewayRoutes {
 #[derive(Clone)]
 #[non_citizen(
     reason = "live OpenAI gateway route table handle; route requests use openai/GatewayRequest descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "openai/GatewayRequest"
 )]
 pub struct GatewayRoutesValue {
     routes: GatewayRoutes,

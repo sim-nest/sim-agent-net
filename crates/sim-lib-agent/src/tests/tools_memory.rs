@@ -2,7 +2,7 @@ use super::support::{
     eval_cx, install_agent_lib, install_test_codec, register_sum_tool, temp_memory_path,
 };
 use crate::tools::tool_export_kind;
-use crate::{AGENT_LIB_ID, FILE_WRITE_CAPABILITY, FileMemory, MemoryBackend, WorkingMemory};
+use crate::{AGENT_LIB_ID, FileMemory, MemoryBackend, WorkingMemory, fs_write_capability};
 use sim_kernel::{Error, Expr, Symbol};
 use sim_lib_server::EvalSite;
 
@@ -255,10 +255,10 @@ fn file_memory_surface_requires_file_write_capability() {
     assert!(matches!(
         denied,
         Error::CapabilityDenied { capability }
-            if capability == sim_kernel::CapabilityName::new(FILE_WRITE_CAPABILITY)
+            if capability == fs_write_capability()
     ));
 
-    cx.grant_named(FILE_WRITE_CAPABILITY);
+    cx.grant_named("file-write");
     let memory = cx
         .call_function(
             &Symbol::qualified("memory", "file"),
@@ -280,7 +280,7 @@ fn file_memory_persists_and_blackboard_shares_state() {
     let path = temp_memory_path("episodic");
     let memory = FileMemory::open(&path, vec![Symbol::qualified("codec", "binary")]).unwrap();
     let persisted = cx.factory().string("persisted".to_owned()).unwrap();
-    cx.grant_named(FILE_WRITE_CAPABILITY);
+    cx.grant_named("file-write");
     memory.append(&mut cx, persisted).unwrap();
     let reopened = FileMemory::open(&path, vec![Symbol::qualified("codec", "binary")]).unwrap();
     assert_eq!(

@@ -60,17 +60,18 @@ fn exports_to_expr(exports: &[Export]) -> Vec<Expr> {
         .iter()
         .map(|export| {
             let (kind, symbol) = match export {
-                Export::Class { symbol, .. } => ("class", symbol),
-                Export::Function { symbol, .. } => ("function", symbol),
-                Export::Macro { symbol, .. } => ("macro", symbol),
-                Export::Shape { symbol, .. } => ("shape", symbol),
-                Export::Codec { symbol, .. } => ("codec", symbol),
-                Export::NumberDomain { symbol, .. } => ("number-domain", symbol),
-                Export::Value { symbol } => ("value", symbol),
-                Export::Site { symbol, .. } => ("site", symbol),
+                Export::Class { symbol, .. } => ("class".to_owned(), symbol),
+                Export::Function { symbol, .. } => ("function".to_owned(), symbol),
+                Export::Macro { symbol, .. } => ("macro".to_owned(), symbol),
+                Export::Shape { symbol, .. } => ("shape".to_owned(), symbol),
+                Export::Codec { symbol, .. } => ("codec".to_owned(), symbol),
+                Export::NumberDomain { symbol, .. } => ("number-domain".to_owned(), symbol),
+                Export::Value { symbol } => ("value".to_owned(), symbol),
+                Export::Site { symbol, .. } => ("site".to_owned(), symbol),
+                Export::Open { kind, symbol } => (kind.symbol().as_qualified_str(), symbol),
             };
             Expr::Map(vec![
-                symbol_entry("kind", Expr::String(kind.to_owned())),
+                symbol_entry("kind", Expr::String(kind)),
                 symbol_entry("symbol", Expr::Symbol(symbol.clone())),
             ])
         })
@@ -90,4 +91,53 @@ fn number_expr(value: impl ToString) -> Expr {
 
 fn lib_target_name(target: &LibTarget) -> String {
     target.to_symbol().as_qualified_str()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::kernel::{AbiVersion, ExportKind, Version};
+
+    #[test]
+    fn manifest_encoder_preserves_open_export_kind() {
+        let manifest = LibManifest {
+            id: Symbol::new("example"),
+            version: Version("0.1.0".to_owned()),
+            abi: AbiVersion { major: 1, minor: 0 },
+            target: LibTarget::Native,
+            requires: Vec::new(),
+            capabilities: Vec::new(),
+            exports: vec![Export::Open {
+                kind: ExportKind::new(Symbol::qualified("loader", "asset")),
+                symbol: Symbol::qualified("example", "asset"),
+            }],
+        };
+
+        let Expr::Map(entries) = manifest_to_expr(&manifest) else {
+            panic!("manifest should encode as a map");
+        };
+        let exports = entries
+            .iter()
+            .find_map(|(key, value)| match (key, value) {
+                (Expr::Symbol(symbol), Expr::List(exports))
+                    if symbol.name.as_ref() == "exports" =>
+                {
+                    Some(exports)
+                }
+                _ => None,
+            })
+            .expect("exports entry");
+        let [Expr::Map(export)] = exports.as_slice() else {
+            panic!("manifest should encode one export map");
+        };
+
+        assert!(export.contains(&(
+            Expr::Symbol(Symbol::new("kind")),
+            Expr::String("loader/asset".to_owned()),
+        )));
+        assert!(export.contains(&(
+            Expr::Symbol(Symbol::new("symbol")),
+            Expr::Symbol(Symbol::qualified("example", "asset")),
+        )));
+    }
 }

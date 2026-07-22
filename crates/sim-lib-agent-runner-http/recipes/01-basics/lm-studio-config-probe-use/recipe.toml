@@ -1,0 +1,8 @@
+id = "lm-studio-config-probe-use"
+title = "LM Studio config, probe, and use"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 50
+tags = ["agent", "runner", "http", "provider", "lm-studio", "sandbox-descriptor"]
+requires = ["agent", "agent-runner-http", "codec/lisp"]

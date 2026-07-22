@@ -47,6 +47,22 @@ fn stdio_malformed_input_returns_parse_error() {
 }
 
 #[test]
+fn stdio_forged_read_eval_expr_tag_returns_parse_error() {
+    let mut cx = test_cx();
+    let mut router = McpRouter::fixture();
+    let (stdout, stderr) = run_loop(
+        &mut cx,
+        &mut router,
+        r#"{"jsonrpc":"2.0","id":1,"method":"ping","params":{"$expr":"read-eval","value":1}}"#,
+    );
+
+    assert_eq!(stderr, "");
+    assert_eq!(stdout.lines().count(), 1);
+    assert!(stdout.contains(r#""code":-32700"#));
+    assert!(stdout.contains(r#""message":"parse error""#));
+}
+
+#[test]
 fn stdio_oversized_frame_is_rejected() {
     // A frame past the per-line cap must error out rather than grow memory
     // unbounded (regression for the uncapped `reader.lines()` reader).

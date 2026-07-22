@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use serde_json::{Map, Value};
 use sim_kernel::{Args, Cx, Error, Expr, Result, Symbol};
-use sim_lib_agent_runner_core::ModelResponse;
+use sim_lib_agent_runner_core::{ModelResponse, fenced_data_text};
 
 use crate::{
     capabilities::openai_gateway_tools_capability,
@@ -41,7 +41,7 @@ pub fn run_tool_loop_with_cache(
     cache: &mut OpenAiPlanCache,
     initial: PlanEvalReport,
 ) -> Result<PlanEvalReport> {
-    let registry = OpenAiToolRegistry::from_request(request_object)?;
+    let registry = OpenAiToolRegistry::from_request(cx, request_object)?;
     if registry.is_empty() {
         return Ok(initial);
     }
@@ -109,7 +109,7 @@ pub fn run_tool_loop_with_registry(
                 kind: Symbol::new("tool-result"),
                 payload: result.to_expr(),
             });
-            append_tool_result(&mut current_request, &result);
+            append_tool_result(&mut current_request, &result)?;
         }
 
         let next = eval_plan_report_with_cache(cx, plan, &current_request, cache)?;
@@ -198,11 +198,11 @@ fn tool_calls(response: &ModelResponse) -> Result<Vec<OpenAiToolCall>> {
         .collect()
 }
 
-fn append_tool_result(request: &mut Expr, result: &OpenAiToolResult) {
+fn append_tool_result(request: &mut Expr, result: &OpenAiToolResult) -> Result<()> {
     let Expr::Map(entries) = request else {
-        return;
+        return Ok(());
     };
-    let message = tool_result_message(result);
+    let message = tool_result_message(result)?;
     if let Some((_, Expr::List(messages))) = entries.iter_mut().find(|(key, _)| {
         matches!(
             key,
@@ -217,20 +217,23 @@ fn append_tool_result(request: &mut Expr, result: &OpenAiToolResult) {
             Expr::List(vec![message]),
         ));
     }
+    Ok(())
 }
 
-fn tool_result_message(result: &OpenAiToolResult) -> Expr {
-    Expr::Map(vec![
+fn tool_result_message(result: &OpenAiToolResult) -> Result<Expr> {
+    let result_expr = result.to_expr();
+    let text = fenced_data_text("openai-tool-result", &result.message_text(), &result_expr)?;
+    Ok(Expr::Map(vec![
         field("role", Expr::Symbol(Symbol::new("tool"))),
         field("tool-call-id", Expr::String(result.call_id.clone())),
         field(
             "content",
             Expr::List(vec![Expr::Map(vec![
                 field("type", Expr::Symbol(Symbol::new("text"))),
-                field("text", Expr::String(result.message_text())),
+                field("text", Expr::String(text)),
             ])]),
         ),
-    ])
+    ]))
 }
 
 use sim_value::build::entry as field;

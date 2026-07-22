@@ -1,5 +1,7 @@
 #![cfg(feature = "skill")]
 
+// conformance: MCP server surface boots and serves through the command entry point.
+
 use std::sync::Arc;
 
 use sim_codec_mcp::{CAPABILITY_DENIED, McpEnvelope, McpErrorEnvelope, McpRequest, McpResponse};

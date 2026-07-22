@@ -18,12 +18,12 @@ use super::{
 
 /// The embeddings engine shares the gateway execution-record substrate; its id
 /// generators and execution outcome are the shared types under route-local
-/// names (OVERLAP9.04).
+/// names.
 pub use super::execution_record::{
     GatewayRunExecution as EmbeddingExecution, GatewayRunIdGenerators as EmbeddingIdGenerators,
 };
 
-/// Route path for the OpenAI-compatible `POST /v1/embeddings` endpoint.
+/// Route path for the OpenAI-shaped `POST /v1/embeddings` endpoint.
 pub const EMBEDDINGS_PATH: &str = "/v1/embeddings";
 /// Model id of the built-in small fixed-dimension f64 embedding backend.
 pub const TENSOR_F64_SMALL_EMBEDDING_MODEL: &str = "sim/embed/tensor-f64-small";
@@ -330,9 +330,9 @@ fn embedding_event_expr(model: &EmbeddingModel, input_count: usize) -> Expr {
     ])
 }
 
-// Token counts are Expr::String by design here, CONSISTENT with the sibling
-// embeddings event fields (input-count, dimension). Do not 'fix' to numbers --
-// that would make this record internally inconsistent. See OVERLAP6.03e.
+// Token counts are Expr::String by design here, consistent with the sibling
+// embeddings event fields (input-count, dimension). Numeric token fields would
+// make this record internally inconsistent.
 fn usage_expr(usage: &EmbeddingUsage) -> Expr {
     Expr::Map(vec![
         field(

@@ -11,13 +11,14 @@ pub const GATEWAY_RUN_OBJECT: &str = "openai-gateway/run";
 /// Object-kind tag identifying a [`GatewayEvent`] in its `Expr` projection.
 pub const GATEWAY_EVENT_OBJECT: &str = "openai-gateway/event";
 
-/// Represents an inbound HTTP request to the OpenAI-compatible gateway.
+/// Represents an inbound HTTP request to the OpenAI-shaped gateway.
 ///
 /// Carries the request line (method and path), headers, and raw body, plus
 /// optional gateway-assigned metadata (an id and a receipt timestamp).
 #[non_citizen(
     reason = "gateway request runtime shell; class-backed descriptor is openai/GatewayRequest",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "openai/GatewayRequest"
 )]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GatewayRequest {
@@ -131,7 +132,8 @@ impl ObjectCompat for GatewayRequest {
 /// [`GatewayResponse::sse`] preset the `Content-Type` header.
 #[non_citizen(
     reason = "gateway response runtime shell; class-backed descriptor is openai/GatewayResponse",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "openai/GatewayResponse"
 )]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GatewayResponse {
@@ -235,7 +237,8 @@ impl ObjectCompat for GatewayResponse {
 /// when it was created.
 #[non_citizen(
     reason = "gateway run runtime shell; class-backed descriptor is openai/GatewayRun",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "openai/GatewayRun"
 )]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GatewayRun {
@@ -324,7 +327,8 @@ impl ObjectCompat for GatewayRun {
 /// and a creation timestamp.
 #[non_citizen(
     reason = "gateway event runtime shell; class-backed descriptor is openai/GatewayEvent",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "openai/GatewayEvent"
 )]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GatewayEvent {
@@ -430,7 +434,8 @@ impl ObjectCompat for GatewayEvent {
 #[derive(Clone)]
 #[non_citizen(
     reason = "runtime response wrapper; serializable projection is openai/GatewayResponse descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "openai/GatewayResponse"
 )]
 pub struct GatewayResponseValue {
     response: GatewayResponse,

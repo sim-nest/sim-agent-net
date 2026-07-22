@@ -1,0 +1,8 @@
+id = "forge-cli"
+title = "Forge command flow"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 30
+tags = ["forge", "bridge", "cli", "review", "replay", "network-free"]
+requires = ["forge", "bridge", "codec/lisp"]

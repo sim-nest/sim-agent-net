@@ -7,7 +7,7 @@ use sim_kernel::{
 use sim_value::kind::expr_kind;
 
 use crate::{
-    capabilities::{openai_gateway_admin_capability, openai_gateway_serve_capabilities},
+    capabilities::{openai_gateway_admin_capability, require_openai_gateway_serve_capabilities},
     ops_admin::{call_admin_state_expr, call_run_get},
     plan::{check_plan, eval_plan, explain_plan, parse_plan, plan_combinators_expr},
     routes::{
@@ -359,7 +359,7 @@ pub fn capability_report_symbol() -> Symbol {
 }
 
 fn call_serve(cx: &mut Cx) -> Result<Value> {
-    cx.require_all(&openai_gateway_serve_capabilities())?;
+    require_openai_gateway_serve_capabilities(cx)?;
     cx.factory()
         .opaque(Arc::new(GatewayRoutesValue::new(configure_routes())))
 }

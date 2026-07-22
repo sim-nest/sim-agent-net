@@ -1,0 +1,8 @@
+id = "eval-harness"
+title = "Eval harness"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 20
+tags = ["forge", "bridge", "eval", "cassette", "network-free"]
+requires = ["forge", "bridge", "codec/lisp"]

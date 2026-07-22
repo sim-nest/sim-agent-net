@@ -14,13 +14,25 @@ pub struct BackendDescriptor {
     pub fixture: bool,
 }
 
+impl BackendDescriptor {
+    /// Returns `true` when this atom should dispatch through a registered runner.
+    pub fn is_runner_backed(&self) -> bool {
+        !self.fixture && self.head != "gateway"
+    }
+
+    /// Returns `true` when this atom should dispatch through gateway federation.
+    pub fn is_gateway(&self) -> bool {
+        self.head == "gateway"
+    }
+}
+
 /// Resolves an atom address into a [`BackendDescriptor`], erroring when the
 /// backend head is unknown.
 pub fn resolve_atom_address(address: &str) -> Result<BackendDescriptor> {
     let Some((head, _)) = address.split_once('/') else {
         return Err(model_not_found(address));
     };
-    if !KNOWN_HEADS.contains(&head) {
+    if !KNOWN_PROVIDER_PREFIXES.contains(&head) {
         return Err(model_not_found(address));
     }
     Ok(BackendDescriptor {
@@ -35,6 +47,22 @@ fn model_not_found(address: &str) -> Error {
     Error::Eval(format!("model_not_found: {address}"))
 }
 
-const KNOWN_HEADS: &[&str] = &[
-    "openai", "ollama", "process", "runner", "agent", "skill", "sim", "fixture", "gateway",
+const KNOWN_PROVIDER_PREFIXES: &[&str] = &[
+    "openai",
+    "anthropic",
+    "ollama",
+    "lm-studio",
+    "lemonade",
+    "process",
+    "runner",
+    "agent",
+    "skill",
+    "sim",
+    "fixture",
+    "gateway",
 ];
+
+/// Returns the open set of accepted gateway plan address prefixes.
+pub fn provider_prefixes() -> &'static [&'static str] {
+    KNOWN_PROVIDER_PREFIXES
+}

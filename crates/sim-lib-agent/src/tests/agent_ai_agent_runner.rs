@@ -1,9 +1,19 @@
 use super::support::{
     as_component, eval_cx, flatten_text, install_agent_lib, install_test_codec, request_frame,
 };
+use crate::{
+    AgentComponent, ComponentBackend, ComponentKind, RunnerBackend, components::component_value,
+    util::installed_codecs,
+};
 use sim_codec_chat::validate_chat_transcript;
-use sim_kernel::{Consistency, EvalMode, EvalRequest, Expr, Symbol, Value};
-use sim_lib_server::{EvalSite, eval_reply_from_frame};
+use sim_kernel::{
+    CapabilityName, Consistency, Error, EvalMode, EvalRequest, Expr, Result, Symbol, Value,
+};
+use sim_lib_agent_runner_core::{ModelCard, ModelRequest, ModelResponse, ModelRunner};
+use sim_lib_server::{EvalSite, ServerAddress, eval_reply_from_frame};
+use std::sync::Arc;
+
+const NESTED_CAPABILITY: &str = "agent-runner-nested-ceiling";
 
 fn model_request(task: &str) -> Expr {
     Expr::Map(vec![
@@ -47,28 +57,32 @@ fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
     })
 }
 
+fn realize_with_capabilities(
+    cx: &mut sim_kernel::Cx,
+    fabric: &Value,
+    task: &str,
+    required_capabilities: Vec<CapabilityName>,
+) -> Result<Expr> {
+    let reply = fabric.object().as_eval_fabric().unwrap().realize(
+        cx,
+        EvalRequest {
+            expr: model_request(task),
+            result_shape: None,
+            required_capabilities,
+            deadline: None,
+            consistency: Consistency::default(),
+            mode: EvalMode::default(),
+            answer_limit: None,
+            stream_buffer: None,
+            stream: false,
+            trace: false,
+        },
+    )?;
+    reply.value.object().as_expr(cx)
+}
+
 fn realize(cx: &mut sim_kernel::Cx, fabric: &Value, task: &str) -> Expr {
-    let reply = fabric
-        .object()
-        .as_eval_fabric()
-        .unwrap()
-        .realize(
-            cx,
-            EvalRequest {
-                expr: model_request(task),
-                result_shape: None,
-                required_capabilities: Vec::new(),
-                deadline: None,
-                consistency: Consistency::default(),
-                mode: EvalMode::default(),
-                answer_limit: None,
-                stream_buffer: None,
-                stream: false,
-                trace: false,
-            },
-        )
-        .unwrap();
-    reply.value.object().as_expr(cx).unwrap()
+    realize_with_capabilities(cx, fabric, task, Vec::new()).unwrap()
 }
 
 fn fake_runner(cx: &mut sim_kernel::Cx, name: &str, cost: f64, script: Expr) -> Value {
@@ -120,6 +134,98 @@ fn market(cx: &mut sim_kernel::Cx, runners: Vec<Value>) -> Value {
         ]),
     )
     .unwrap()
+}
+
+#[derive(Clone)]
+struct RequiredCapabilityRunner {
+    symbol: Symbol,
+    model: String,
+    required: CapabilityName,
+}
+
+impl ModelRunner for RequiredCapabilityRunner {
+    fn card(&self) -> ModelCard {
+        ModelCard::new(
+            self.symbol.clone(),
+            self.model.clone(),
+            Symbol::new("fixture"),
+            Symbol::new("local"),
+        )
+    }
+
+    fn infer(&self, cx: &mut sim_kernel::Cx, request: ModelRequest) -> Result<ModelResponse> {
+        self.response(cx, request)
+    }
+
+    fn infer_request(
+        &self,
+        cx: &mut sim_kernel::Cx,
+        request: EvalRequest,
+    ) -> Result<ModelResponse> {
+        if request
+            .required_capabilities
+            .iter()
+            .any(|capability| capability == &self.required)
+        {
+            cx.require(&self.required)?;
+        }
+        self.response(cx, ModelRequest::try_from(request.expr)?)
+    }
+}
+
+impl RequiredCapabilityRunner {
+    fn response(&self, _cx: &mut sim_kernel::Cx, request: ModelRequest) -> Result<ModelResponse> {
+        Ok(ModelResponse::new(
+            self.symbol.clone(),
+            self.model.clone(),
+            vec![Expr::Map(vec![
+                (
+                    Expr::Symbol(Symbol::new("type")),
+                    Expr::Symbol(Symbol::new("text")),
+                ),
+                (
+                    Expr::Symbol(Symbol::new("text")),
+                    Expr::String(format!("capability propagated {:?}", request.task)),
+                ),
+            ])],
+            Symbol::new("stop"),
+        ))
+    }
+}
+
+fn required_capability_runner(cx: &mut sim_kernel::Cx, name: &str) -> Value {
+    let symbol = Symbol::new(name);
+    component_value(
+        cx,
+        AgentComponent {
+            symbol: symbol.clone(),
+            kind: ComponentKind::Runner,
+            capabilities: Vec::new(),
+            address: ServerAddress::Local,
+            codecs: installed_codecs(cx),
+            spec: Vec::new(),
+            backend: ComponentBackend::Runner(RunnerBackend::External {
+                runner: Arc::new(RequiredCapabilityRunner {
+                    symbol,
+                    model: format!("{name}/model"),
+                    required: CapabilityName::new(NESTED_CAPABILITY),
+                }),
+            }),
+        },
+    )
+    .unwrap()
+}
+
+fn assert_nested_denied(error: Error) {
+    assert!(matches!(
+        error,
+        Error::CapabilityDenied { capability }
+            if capability == CapabilityName::new(NESTED_CAPABILITY)
+    ));
+}
+
+fn nested_capabilities() -> Vec<CapabilityName> {
+    vec![CapabilityName::new(NESTED_CAPABILITY)]
 }
 
 fn started_identity_agent(cx: &mut sim_kernel::Cx) -> Value {
@@ -318,4 +424,104 @@ fn a5_phase11_three_runner_debate_produces_judged_answer() {
         field(&expr, "debate-answers"),
         Some(Expr::List(items)) if items.len() == 3
     ));
+}
+
+#[test]
+fn runner_agent_preserves_required_capability_ceiling() {
+    let mut cx = eval_cx();
+    install_test_codec(&mut cx);
+    install_agent_lib(&mut cx).unwrap();
+
+    let target = required_capability_runner(&mut cx, "ceiling-agent-target");
+    let runner = agent_runner(&mut cx, target, 0.01);
+
+    let denied = realize_with_capabilities(
+        &mut cx,
+        &runner,
+        "agent ceiling denied",
+        nested_capabilities(),
+    )
+    .unwrap_err();
+    assert_nested_denied(denied);
+
+    cx.grant_named(NESTED_CAPABILITY);
+    let allowed = realize_with_capabilities(
+        &mut cx,
+        &runner,
+        "agent ceiling allowed",
+        nested_capabilities(),
+    )
+    .unwrap();
+    assert!(flatten_text(&allowed).contains("capability propagated"));
+}
+
+#[test]
+fn runner_debate_preserves_required_capability_ceiling() {
+    let mut cx = eval_cx();
+    install_test_codec(&mut cx);
+    install_agent_lib(&mut cx).unwrap();
+
+    let candidate = required_capability_runner(&mut cx, "ceiling-debate-candidate");
+    let judge = required_capability_runner(&mut cx, "ceiling-debate-judge");
+    let debate = cx
+        .call_function(
+            &Symbol::qualified("runner", "debate"),
+            sim_kernel::Args::new(vec![
+                cx.factory().symbol(Symbol::new(":name")).unwrap(),
+                cx.factory().symbol(Symbol::new("ceiling-debate")).unwrap(),
+                cx.factory().symbol(Symbol::new(":runners")).unwrap(),
+                cx.factory().list(vec![candidate]).unwrap(),
+                cx.factory().symbol(Symbol::new(":judge")).unwrap(),
+                judge,
+            ]),
+        )
+        .unwrap();
+
+    let denied = realize_with_capabilities(
+        &mut cx,
+        &debate,
+        "debate ceiling denied",
+        nested_capabilities(),
+    )
+    .unwrap_err();
+    assert_nested_denied(denied);
+
+    cx.grant_named(NESTED_CAPABILITY);
+    let allowed = realize_with_capabilities(
+        &mut cx,
+        &debate,
+        "debate ceiling allowed",
+        nested_capabilities(),
+    )
+    .unwrap();
+    assert!(flatten_text(&allowed).contains("capability propagated"));
+}
+
+#[test]
+fn runner_market_preserves_required_capability_ceiling() {
+    let mut cx = eval_cx();
+    install_test_codec(&mut cx);
+    install_agent_lib(&mut cx).unwrap();
+
+    let runner = required_capability_runner(&mut cx, "ceiling-market-candidate");
+    let market = market(&mut cx, vec![runner]);
+
+    let denied = realize_with_capabilities(
+        &mut cx,
+        &market,
+        "market ceiling denied",
+        nested_capabilities(),
+    )
+    .unwrap_err();
+    assert_nested_denied(denied);
+
+    cx.grant_named(NESTED_CAPABILITY);
+    let allowed = realize_with_capabilities(
+        &mut cx,
+        &market,
+        "market ceiling allowed",
+        nested_capabilities(),
+    )
+    .unwrap();
+    assert!(flatten_text(&allowed).contains("capability propagated"));
 }

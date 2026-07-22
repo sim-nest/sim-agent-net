@@ -1,16 +1,19 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-//! OpenAI-compatible gateway skeleton for SIM.
+//! OpenAI-shaped gateway routes for SIM.
 //!
 //! This crate provides the OpenAI gateway health route, OpenAI JSON transcript
-//! codec, model discovery, gateway object helpers, and the first plan parsing
-//! and fixture atom execution surface through `POST /v1/responses` and
-//! `POST /v1/chat/completions`, embeddings through `POST /v1/embeddings`,
-//! audio, image, and vector-store fixtures, with SSE streaming projection,
+//! codec, model discovery, gateway object helpers, plan parsing and fixture atom
+//! execution through `POST /v1/responses` and `POST /v1/chat/completions`,
+//! embeddings through `POST /v1/embeddings`, SSE streaming projection,
 //! memory-backed response retrieval by id, and stored response replay/fork
-//! inspection routes. `GET /v1/models` advertises models from registered
-//! `ModelCard` records, so loadable local placement sites appear beside fixture
-//! and remote runner entries when installed.
+//! inspection routes. File, audio, image, and vector-store routes are SIM JSON
+//! fixture/subset surfaces: they use OpenAI-shaped paths and response objects,
+//! while request bodies use the explicit JSON fields handled by these route
+//! modules rather than multipart upload or provider media protocols. The model
+//! list route advertises models from registered `ModelCard` records, so
+//! loadable local placement sites appear beside fixture and remote runner
+//! entries when installed.
 
 /// Capability identifiers and constructors that gate gateway operations.
 pub mod capabilities;
@@ -54,7 +57,8 @@ pub use capabilities::{
     network_capability, openai_gateway_admin_capability, openai_gateway_federate_capability,
     openai_gateway_plan_capability, openai_gateway_plan_remote_capability,
     openai_gateway_serve_capabilities, openai_gateway_serve_capability,
-    openai_gateway_tools_capability, webhook_serve_capability,
+    openai_gateway_tools_capability, require_openai_gateway_serve_capabilities,
+    webhook_serve_capability,
 };
 pub use clock::{DeterministicGatewayClock, GatewayClock, SystemGatewayClock};
 pub use codec_openai::{
@@ -88,7 +92,7 @@ pub use plan::{
     check_plan_with_limits, eval_plan, eval_plan_report, eval_plan_report_with_cache,
     eval_plan_report_with_cache_and_runners, eval_plan_report_with_cache_runners_and_federation,
     eval_plan_report_with_federation, explain_plan, parse_plan, plan_combinators,
-    plan_combinators_expr, plan_symbol, resolve_atom_address,
+    plan_combinators_expr, plan_symbol, provider_prefixes, resolve_atom_address,
 };
 pub use routes::admin::{
     ADMIN_CACHE_STATS_PATH, ADMIN_CAPABILITY_REPORT_PATH, ADMIN_EVENTS_PATH,
@@ -123,8 +127,9 @@ pub use routes::models::{
 };
 pub use routes::replay::{
     RESPONSE_EVENTS_ROUTE, RESPONSE_EVENTS_SUFFIX, RESPONSE_SIM_ROUTE, RESPONSE_SIM_SUFFIX,
-    SIM_EXTENSION_CAPABILITY, SIM_FORK_PATH, SIM_REPLAY_PATH, handle_response_events,
-    handle_response_sim, handle_sim_fork, handle_sim_replay, response_events, response_sim,
+    SIM_EXTENSION_CAPABILITY, SIM_FORK_PATH, SIM_INSPECTION_CAPABILITY, SIM_REPLAY_PATH,
+    handle_response_events, handle_response_sim, handle_sim_fork, handle_sim_replay,
+    response_events, response_sim,
 };
 pub use routes::responses::{
     RESPONSE_RETRIEVAL_PREFIX, RESPONSE_RETRIEVAL_ROUTE, RESPONSES_PATH, ResponseExecution,

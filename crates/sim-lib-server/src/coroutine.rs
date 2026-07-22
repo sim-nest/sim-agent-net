@@ -67,7 +67,8 @@ struct CoroutineInner {
 #[derive(Clone)]
 #[non_citizen(
     reason = "live coroutine handle; inspect through server/Frame descriptor and coroutine ops",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "server/Frame"
 )]
 /// Live, resumable coroutine bound to a server address and handler value.
 ///

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use sim_cookbook::{EmbeddedDir, RecipeStore};
+use sim_cookbook::{EmbeddedDir, RecipeStore, ordered_cards};
 use sim_kernel::{
     AbiVersion, Args, Callable, ClassRef, Cx, Dependency, Export, LibManifest, LibTarget, Linker,
     LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version, library::Lib,
@@ -126,6 +126,18 @@ fn directory() -> LoadableLibList {
     }])
 }
 
+fn alias_directory() -> LoadableLibList {
+    LoadableLibList::new(vec![LoadableLibEntry {
+        id: "demo-loadable".to_owned(),
+        source: "symbol:demo/lib".to_owned(),
+        title: "Demo Loadable".to_owned(),
+        order: 11,
+        recipes: Some(DEMO_RECIPES),
+        catalog_lib: fixture_lib(),
+        factory: Arc::new(fixture_lib),
+    }])
+}
+
 #[test]
 fn resolves_requires_by_full_id_and_tail() {
     let directory = directory();
@@ -148,7 +160,17 @@ fn loaded_check_accepts_entry_tail_alias() {
 
     assert!(LoadableLibList::is_loaded(&cx, "organ/binding"));
     assert!(LoadableLibList::is_loaded(&cx, "binding"));
+    assert!(LoadableLibList::is_loaded(&cx, "sim-binding"));
     assert!(!LoadableLibList::is_loaded(&cx, "organ/control"));
+}
+
+#[test]
+fn resolves_requires_by_entry_manifest_id() {
+    let directory = alias_directory();
+
+    assert!(directory.resolve("demo-loadable").is_some());
+    assert!(directory.resolve("demo/lib").is_some());
+    assert!(directory.resolve("lib").is_some());
 }
 
 #[test]
@@ -202,6 +224,58 @@ fn projected_store_contains_loaded_recipes_and_unload_card() {
     assert_eq!(unload.order, i64::MAX);
     assert_eq!(unload.chapter_order, i64::MAX);
     assert!(unload.tags.contains(&"cookbook-action:unload".to_owned()));
+    let ids: Vec<&str> = ordered_cards(&store)
+        .into_iter()
+        .map(|card| card.id.as_str())
+        .collect();
+    assert_eq!(
+        ids,
+        [
+            "demo/lib/01-basics/demo",
+            "demo/lib/cookbook-lifecycle/unload"
+        ]
+    );
+}
+
+#[test]
+fn projected_store_uses_manifest_id_for_loaded_alias_entry() {
+    let mut cx = core_cx();
+    let lib = fixture_lib();
+    cx.load_lib(lib.as_ref()).unwrap();
+
+    let store = projected_recipe_store(&cx, &alias_directory()).unwrap();
+
+    assert!(store.card("cookbook/load/demo-loadable").is_none());
+    assert!(store.card("demo-loadable/01-basics/demo").is_some());
+    assert!(
+        store
+            .card("demo-loadable/cookbook-lifecycle/unload")
+            .is_some()
+    );
+}
+
+#[test]
+fn load_and_unload_use_manifest_id_for_alias_entry() {
+    let mut cx = core_cx();
+    let directory = alias_directory();
+    let lib = fixture_lib();
+    cx.load_lib(lib.as_ref()).unwrap();
+
+    let load = directory.load(&mut cx, "demo-loadable").unwrap();
+    let matching = cx
+        .registry()
+        .libs()
+        .iter()
+        .filter(|loaded| loaded.manifest.id == Symbol::qualified("demo", "lib"))
+        .count();
+
+    assert_eq!(load, "already loaded demo-loadable");
+    assert_eq!(matching, 1);
+
+    let unload = directory.unload(&mut cx, "demo-loadable").unwrap();
+
+    assert_eq!(unload, "unloaded demo-loadable");
+    assert!(!LoadableLibList::is_loaded(&cx, "demo/lib"));
 }
 
 #[test]
@@ -310,6 +384,7 @@ fn ordinary_recipe_still_runs_through_catalog() {
     let lisp = sim_codec_lisp::LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
     cx.grant(read_eval_capability());
+    cx.grant(sim_kernel::macro_expand_eval_capability());
     let mut store = RecipeStore::new();
     store.register_book(DEMO_RECIPES).unwrap();
     let card = store.card("demo/lib/01-basics/demo").unwrap();

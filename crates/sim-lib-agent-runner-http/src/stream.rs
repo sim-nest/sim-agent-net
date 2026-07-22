@@ -1,18 +1,30 @@
 use serde_json::Value;
+mod anthropic;
+#[cfg(test)]
+mod tests;
+
+use anthropic::AnthropicStreamDecoder;
 use sim_codec_chat::{number_field, text_part};
 use sim_codec_json::{JsonProjectionMode, json_number_to_u64, project_json_to_expr};
 use sim_kernel::{Error, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{ModelEvent, ModelEventSink, ModelResponse, ModelUsage};
 use sim_lib_net_core::{LineDecoder, SseEvent};
 
+const MAX_STREAM_LINE_BYTES: usize = 64 * 1024;
+
 pub(crate) enum HttpStreamDecoder {
     OpenAi(OpenAiStreamDecoder),
+    Anthropic(AnthropicStreamDecoder),
     Ollama(OllamaStreamDecoder),
 }
 
 impl HttpStreamDecoder {
     pub(crate) fn openai(runner: Symbol, model: String, include_raw: bool) -> Self {
         Self::OpenAi(OpenAiStreamDecoder::new(runner, model, include_raw))
+    }
+
+    pub(crate) fn anthropic(runner: Symbol, model: String, include_raw: bool) -> Self {
+        Self::Anthropic(AnthropicStreamDecoder::new(runner, model, include_raw))
     }
 
     pub(crate) fn ollama(runner: Symbol, model: String, include_raw: bool) -> Self {
@@ -22,6 +34,7 @@ impl HttpStreamDecoder {
     pub(crate) fn start_event(&self) -> ModelEvent {
         match self {
             Self::OpenAi(decoder) => decoder.start_event(),
+            Self::Anthropic(decoder) => decoder.start_event(),
             Self::Ollama(decoder) => decoder.start_event(),
         }
     }
@@ -29,6 +42,7 @@ impl HttpStreamDecoder {
     pub(crate) fn feed(&mut self, bytes: &[u8], sink: &mut dyn ModelEventSink) -> Result<()> {
         match self {
             Self::OpenAi(decoder) => decoder.feed(bytes, sink),
+            Self::Anthropic(decoder) => decoder.feed(bytes, sink),
             Self::Ollama(decoder) => decoder.feed(bytes, sink),
         }
     }
@@ -36,6 +50,7 @@ impl HttpStreamDecoder {
     pub(crate) fn has_stream_output(&self) -> bool {
         match self {
             Self::OpenAi(decoder) => decoder.has_stream_output(),
+            Self::Anthropic(decoder) => decoder.has_stream_output(),
             Self::Ollama(decoder) => decoder.has_stream_output(),
         }
     }
@@ -43,6 +58,7 @@ impl HttpStreamDecoder {
     pub(crate) fn finish(self, sink: &mut dyn ModelEventSink) -> Result<ModelResponse> {
         match self {
             Self::OpenAi(decoder) => decoder.finish(sink),
+            Self::Anthropic(decoder) => decoder.finish(sink),
             Self::Ollama(decoder) => decoder.finish(sink),
         }
     }
@@ -86,7 +102,7 @@ impl OpenAiStreamDecoder {
     }
 
     fn feed(&mut self, bytes: &[u8], sink: &mut dyn ModelEventSink) -> Result<()> {
-        for line in self.lines.push(bytes) {
+        for line in push_bounded_lines(&mut self.lines, bytes, "openai")? {
             self.consume_line(&line, sink)?;
         }
         Ok(())
@@ -155,7 +171,7 @@ impl OpenAiStreamDecoder {
     }
 
     fn finish(mut self, sink: &mut dyn ModelEventSink) -> Result<ModelResponse> {
-        if let Some(line) = self.lines.flush() {
+        if let Some(line) = flush_bounded_line(&mut self.lines, "openai")? {
             self.consume_line(&line, sink)?;
         }
         let mut response = ModelResponse::new(
@@ -213,7 +229,7 @@ impl OllamaStreamDecoder {
     }
 
     fn feed(&mut self, bytes: &[u8], sink: &mut dyn ModelEventSink) -> Result<()> {
-        for line in self.lines.push(bytes) {
+        for line in push_bounded_lines(&mut self.lines, bytes, "ollama")? {
             self.consume_line(&line, sink)?;
         }
         Ok(())
@@ -266,7 +282,7 @@ impl OllamaStreamDecoder {
     }
 
     fn finish(mut self, sink: &mut dyn ModelEventSink) -> Result<ModelResponse> {
-        if let Some(line) = self.lines.flush() {
+        if let Some(line) = flush_bounded_line(&mut self.lines, "ollama")? {
             self.consume_line(&line, sink)?;
         }
         let mut response = ModelResponse::new(
@@ -377,70 +393,39 @@ fn ollama_usage(value: &Value) -> Option<ModelUsage> {
     Some(usage)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn push_bounded_lines(
+    lines: &mut LineDecoder,
+    bytes: &[u8],
+    provider: &str,
+) -> Result<Vec<Vec<u8>>> {
+    check_line_append(lines.buffered_len(), bytes, provider)?;
+    Ok(lines.push(bytes))
+}
 
-    #[derive(Default)]
-    struct CollectEvents {
-        events: Vec<ModelEvent>,
-    }
+fn flush_bounded_line(lines: &mut LineDecoder, provider: &str) -> Result<Option<Vec<u8>>> {
+    check_line_len(lines.buffered_len(), provider)?;
+    Ok(lines.flush())
+}
 
-    impl ModelEventSink for CollectEvents {
-        fn emit(&mut self, event: ModelEvent) -> Result<()> {
-            self.events.push(event);
-            Ok(())
+fn check_line_append(buffered_len: usize, bytes: &[u8], provider: &str) -> Result<()> {
+    check_line_len(buffered_len, provider)?;
+    let mut line_len = buffered_len;
+    for byte in bytes {
+        if *byte == b'\n' {
+            line_len = 0;
+        } else {
+            line_len = line_len.saturating_add(1);
+            check_line_len(line_len, provider)?;
         }
     }
+    Ok(())
+}
 
-    #[test]
-    fn openai_finish_emits_unterminated_delta_to_sink() {
-        let mut decoder =
-            HttpStreamDecoder::openai(Symbol::new("http-openai"), "gpt-test".to_owned(), true);
-        let mut sink = CollectEvents::default();
-        decoder
-            .feed(
-                br#"data: {"choices":[{"index":0,"delta":{"content":"tail"},"finish_reason":null}]}"#,
-                &mut sink,
-            )
-            .unwrap();
-        assert!(sink.events.is_empty());
-        assert!(decoder.has_stream_output());
-
-        let response = decoder.finish(&mut sink).unwrap();
-
-        assert_eq!(sink.events.len(), 1);
-        assert_eq!(sink.events[0].event, Symbol::new("delta"));
-        assert_eq!(
-            sink.events[0].extra,
-            vec![(
-                Expr::Symbol(Symbol::new("text")),
-                Expr::String("tail".to_owned()),
-            )]
-        );
-        assert!(format!("{:?}", response.content).contains("tail"));
-        assert_eq!(response.extra.len(), 1);
+fn check_line_len(line_len: usize, provider: &str) -> Result<()> {
+    if line_len > MAX_STREAM_LINE_BYTES {
+        return Err(Error::Eval(format!(
+            "{provider} stream line exceeded size limit of {MAX_STREAM_LINE_BYTES} bytes"
+        )));
     }
-
-    #[test]
-    fn ollama_finish_emits_unterminated_delta_to_sink() {
-        let mut decoder =
-            HttpStreamDecoder::ollama(Symbol::new("http-ollama"), "qwen-test".to_owned(), false);
-        let mut sink = CollectEvents::default();
-        decoder
-            .feed(
-                br#"{"model":"qwen-test","message":{"role":"assistant","content":"tail"},"done":false}"#,
-                &mut sink,
-            )
-            .unwrap();
-        assert!(sink.events.is_empty());
-        assert!(decoder.has_stream_output());
-
-        let response = decoder.finish(&mut sink).unwrap();
-
-        assert_eq!(sink.events.len(), 1);
-        assert_eq!(sink.events[0].event, Symbol::new("delta"));
-        assert!(format!("{:?}", sink.events[0].extra).contains("tail"));
-        assert!(format!("{:?}", response.content).contains("tail"));
-    }
+    Ok(())
 }

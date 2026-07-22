@@ -1,0 +1,5 @@
+book = "table-remote"
+title = "Table Remote"
+summary = "Remote table directory descriptors."
+order = 420
+chapters = ["01-basics"]

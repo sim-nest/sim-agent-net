@@ -1,0 +1,1 @@
+(atelier-self-hosting (id atelier-cheap-first-escalation) (runner fake) (network denied) (live-model denied) (route (policy cheap-first) (attempts 2) (cheap-downshift malformed) (diagnostic codec-or-shape) (escalation-downshift accepted) (checked-form accepted)) (cassette-hash fnv1a64:509ae4bba20e5cfd))

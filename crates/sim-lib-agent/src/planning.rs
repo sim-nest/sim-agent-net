@@ -331,8 +331,7 @@ fn text_part(entries: &[(Expr, Expr)]) -> Option<String> {
 
 // These readers match a field name namespace-agnostically via the shared
 // `sim_value::access` `_any` substrate (bare-symbol OR string key). `string_field`
-// keeps the original String|Symbol value coercion behind thin Option adapters, so
-// the call sites above are unchanged (OVERLAP9.05).
+// keeps String|Symbol value coercion behind thin Option adapters.
 fn string_field(entries: &[(Expr, Expr)], field: &str) -> Option<String> {
     entry_required_str_any(entries, field, "string")
         .ok()
@@ -401,8 +400,7 @@ mod field_reader_tests {
 
     // The readers deliberately match a field name namespace-agnostically via the
     // shared `entry_required_*_any` substrate: a bare-symbol key OR a string key
-    // resolves. This pins that intended flexible matching before/through the
-    // OVERLAP9.05 migration.
+    // resolves.
     #[test]
     fn readers_match_bare_symbol_and_string_keys() {
         let bare = [entry(

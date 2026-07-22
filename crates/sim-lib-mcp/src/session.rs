@@ -19,7 +19,7 @@ pub(crate) enum McpBoundaryLimit {
 /// Mutable per-connection MCP session state.
 ///
 /// Tracks the handshake, the visibility profile, granted capabilities, and the
-/// in-flight request bookkeeping used to enforce deadline, rate, and
+/// in-flight request bookkeeping that enforces deadline, rate, and
 /// concurrency boundaries.
 #[derive(Clone)]
 pub struct McpSession {

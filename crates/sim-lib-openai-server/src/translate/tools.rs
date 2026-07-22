@@ -5,15 +5,15 @@ use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, Symbol};
 
 use super::tool_schema::{
     argument_order, arguments_json, canonical_json, default_parameters, expr_text,
-    expr_to_json_string, json_to_expr, json_to_value, validate_schema,
+    expr_to_json_string, json_to_expr, json_to_value, validate_schema, validate_supported_schema,
 };
 
 /// A single OpenAI function tool bound to a SIM callable.
 ///
 /// Holds the OpenAI-facing function name and JSON Schema `parameters`
 /// alongside the resolved SIM `symbol`, argument order, required
-/// capabilities, and optional argument/result shapes used to translate
-/// between OpenAI tool descriptors and SIM calls.
+/// capabilities, and optional argument/result shapes for translating between
+/// OpenAI tool descriptors and SIM calls.
 #[derive(Clone, Debug, PartialEq)]
 pub struct OpenAiTool {
     openai_name: String,
@@ -82,7 +82,7 @@ impl OpenAiTool {
             .browse_result_shape(cx)?
             .map(|shape| shape.object().as_expr(cx))
             .transpose()?;
-        Ok(Self::new(
+        Self::new(
             openai_name,
             symbol,
             description,
@@ -90,14 +90,15 @@ impl OpenAiTool {
             capabilities,
             args_shape,
             result_shape,
-        ))
+        )
     }
 
     /// Parses an OpenAI tool descriptor JSON object into an [`OpenAiTool`].
     ///
-    /// Requires the descriptor `type` to be `function`, derives the SIM
-    /// symbol from an `x-sim-symbol` hint or from the function name, and reads
-    /// optional `x-sim-capabilities`.
+    /// Requires the descriptor `type` to be `function` and derives the SIM
+    /// symbol from the function name. Inbound request JSON cannot set trusted
+    /// SIM symbols or required capabilities; those come from the server-owned
+    /// runtime registry.
     pub fn from_openai_descriptor(value: &Value) -> Result<Self> {
         let object = value
             .as_object()
@@ -126,25 +127,18 @@ impl OpenAiTool {
             .get("parameters")
             .cloned()
             .unwrap_or_else(default_parameters);
-        let symbol = function
-            .get("x-sim-symbol")
-            .or_else(|| object.get("x-sim-symbol"))
-            .and_then(Value::as_str)
-            .map(symbol_from_text)
-            .transpose()?
-            .unwrap_or_else(|| openai_name_to_symbol(&openai_name));
-        let capabilities = capabilities_from(function)
-            .or_else(|| capabilities_from(object))
-            .unwrap_or_default();
-        Ok(Self::new(
+        reject_untrusted_authority_fields(object)?;
+        reject_untrusted_authority_fields(function)?;
+        let symbol = openai_name_to_symbol(&openai_name);
+        Self::new(
             openai_name,
             symbol,
             description,
             parameters,
-            capabilities,
+            Vec::new(),
             None,
             None,
-        ))
+        )
     }
 
     fn new(
@@ -155,9 +149,10 @@ impl OpenAiTool {
         capabilities: Vec<CapabilityName>,
         args_shape: Option<Expr>,
         result_shape: Option<Expr>,
-    ) -> Self {
+    ) -> Result<Self> {
+        validate_supported_schema(&parameters, "function.parameters").map_err(Error::Eval)?;
         let arg_order = argument_order(&parameters);
-        Self {
+        Ok(Self {
             openai_name: openai_name.into(),
             symbol,
             description: description.into(),
@@ -166,7 +161,7 @@ impl OpenAiTool {
             capabilities,
             args_shape,
             result_shape,
-        }
+        })
     }
 
     /// Returns the OpenAI-facing tool name.
@@ -243,6 +238,26 @@ impl OpenAiTool {
         Value::Object(descriptor)
     }
 
+    /// Renders this tool as an OpenAI request descriptor without SIM authority
+    /// extension fields.
+    ///
+    /// Use this form when a descriptor may cross an untrusted request boundary:
+    /// the gateway resolves the SIM symbol and required capabilities from its
+    /// server-owned registry rather than from `x-sim-*` request fields.
+    pub fn request_descriptor_json(&self) -> Value {
+        let mut function = Map::new();
+        function.insert("name".to_owned(), Value::String(self.openai_name.clone()));
+        function.insert(
+            "description".to_owned(),
+            Value::String(self.description.clone()),
+        );
+        function.insert("parameters".to_owned(), self.parameters.clone());
+        let mut descriptor = Map::new();
+        descriptor.insert("type".to_owned(), Value::String("function".to_owned()));
+        descriptor.insert("function".to_owned(), Value::Object(function));
+        Value::Object(descriptor)
+    }
+
     /// Renders this tool as a SIM expression map.
     pub fn to_expr(&self) -> Expr {
         Expr::Map(vec![
@@ -272,7 +287,7 @@ impl OpenAiTool {
 impl OpenAiToolRegistry {
     /// Builds a registry from the `tools` array of an OpenAI request object;
     /// a missing or null `tools` field yields an empty registry.
-    pub fn from_request(object: &Map<String, Value>) -> Result<Self> {
+    pub fn from_request(cx: &mut Cx, object: &Map<String, Value>) -> Result<Self> {
         let Some(tools) = object.get("tools") else {
             return Ok(Self::default());
         };
@@ -284,7 +299,9 @@ impl OpenAiToolRegistry {
             .ok_or_else(|| Error::Eval("openai tools field must be an array".to_owned()))?;
         let mut registry = Self::default();
         for tool in tools {
-            registry.insert(OpenAiTool::from_openai_descriptor(tool)?)?;
+            let tool = OpenAiTool::from_openai_descriptor(tool)?;
+            ensure_server_registered_tool(cx, &tool)?;
+            registry.insert(tool)?;
         }
         Ok(registry)
     }
@@ -478,15 +495,27 @@ fn string_member<'a>(object: &'a Map<String, Value>, name: &str) -> Result<&'a s
         .ok_or_else(|| Error::Eval(format!("openai tool missing string {name}")))
 }
 
-fn capabilities_from(object: &Map<String, Value>) -> Option<Vec<CapabilityName>> {
-    let values = object.get("x-sim-capabilities")?.as_array()?;
-    Some(
-        values
-            .iter()
-            .filter_map(Value::as_str)
-            .map(|value| CapabilityName::new(value.to_owned()))
-            .collect(),
-    )
+fn ensure_server_registered_tool(cx: &mut Cx, tool: &OpenAiTool) -> Result<()> {
+    let function = cx.resolve_function(tool.symbol())?;
+    if function.object().as_callable().is_some() {
+        Ok(())
+    } else {
+        Err(Error::TypeMismatch {
+            expected: "callable",
+            found: "non-callable",
+        })
+    }
+}
+
+fn reject_untrusted_authority_fields(object: &Map<String, Value>) -> Result<()> {
+    for field in ["x-sim-symbol", "x-sim-capabilities"] {
+        if object.contains_key(field) {
+            return Err(Error::Eval(format!(
+                "untrusted OpenAI tool descriptor cannot set {field}"
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn required_string_field(entries: &[(Expr, Expr)], name: &str) -> Result<String> {

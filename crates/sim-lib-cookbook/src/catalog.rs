@@ -10,13 +10,22 @@
 //!   on this trait, never on a concrete domain lib.
 //! - [`CookbookCapabilityProfile`]: the deterministic capability set the cookbook
 //!   seats its eval `Cx` with. It GRANTS pure/offline/deterministic effects and
-//!   DENIES live-net, live-hardware, process-spawn, wall-clock, fs-write, and
+//!   DENIES live-net, live-hardware, process-spawn, wall-clock, fs/write, and
 //!   unseeded entropy. An op that requests a denied capability fails closed (the
 //!   capability is simply never granted), which is what makes a Category D recipe
 //!   a descriptor BY CONSTRUCTION.
 
 use sim_cookbook::RecipeCard;
 use sim_kernel::{CapabilityName, Cx, GrantSeat, Lib, Result, Symbol};
+
+macro_rules! grant_into_result {
+    ($grant:expr) => {{
+        #[allow(clippy::let_unit_value)]
+        let grant_result = $grant;
+        #[allow(clippy::unit_arg)]
+        grant_result.into_result()
+    }};
+}
 
 /// A resolver from a recipe `requires` name to a loadable library.
 ///
@@ -37,7 +46,7 @@ pub trait LibCatalog {
 
 /// The empty catalog: resolves nothing.
 ///
-/// Callers on the legacy path pre-load every required lib into the `Cx`
+/// Callers on the compatibility path pre-load every required lib into the `Cx`
 /// themselves; the runner then finds each require already present and loads
 /// nothing. [`crate::run_recipe`] uses this so its behavior is unchanged.
 pub struct EmptyCatalog;
@@ -117,23 +126,27 @@ fn load_lib_with_deps(
 
 /// The deterministic capability profile the cookbook seats its eval `Cx` with.
 ///
-/// GRANTS the pure/offline/deterministic effects a recipe may legitimately need
-/// and DENIES (by omission) every live/effectful capability. A recipe requesting
-/// a denied capability fails closed: it is a Category D descriptor whose purpose
-/// is the denial. The profile is data, not a closed enum -- the granted and
-/// denied vocabularies are named capability strings the kernel interns.
+/// GRANTS the pure/offline/deterministic effects a recipe may legitimately need,
+/// including eval-time macro expansion for recipes that load macro-capable
+/// libraries. It DENIES (by omission) every live/effectful capability. A recipe
+/// requesting a denied capability fails closed: it is a Category D descriptor
+/// whose purpose is the denial. The profile is data, not a closed enum -- the
+/// granted and denied vocabularies are named capability strings the kernel
+/// interns.
 #[derive(Clone, Debug, Default)]
 pub struct CookbookCapabilityProfile;
 
 impl CookbookCapabilityProfile {
-    /// The capabilities this profile GRANTS: read-construct, read-eval, and the
-    /// pure/offline/deterministic effect vocabulary (compute, codec round-trip,
-    /// offline render with no device, deterministic cassette replay, and a
-    /// deterministic model fixture).
+    /// The capabilities this profile GRANTS: read-construct, read-eval,
+    /// eval-time macro expansion, and the pure/offline/deterministic effect
+    /// vocabulary (compute, codec round-trip, offline render with no device,
+    /// deterministic cassette replay, and a deterministic model fixture).
     pub fn granted() -> Vec<CapabilityName> {
         [
             "read-construct",
             "read-eval",
+            "macro.expand",
+            "macro.expand.eval",
             "compute",
             "codec-encode",
             "codec-decode",
@@ -151,17 +164,17 @@ impl CookbookCapabilityProfile {
     /// entropy. These are the Category D boundary; a recipe requesting one fails
     /// closed and its purpose becomes the denial.
     pub fn denied() -> Vec<CapabilityName> {
-        [
-            "net-connect",
-            "device-open",
-            "process-spawn",
-            "clock-now",
-            "fs-write",
-            "rng-unseeded",
+        vec![
+            CapabilityName::new("net/http"),
+            CapabilityName::new("net-connect"),
+            CapabilityName::new("device-open"),
+            CapabilityName::new("exec"),
+            CapabilityName::new("process-spawn"),
+            CapabilityName::new("clock-now"),
+            CapabilityName::new("fs/write"),
+            CapabilityName::new("fs-write"),
+            CapabilityName::new("rng-unseeded"),
         ]
-        .into_iter()
-        .map(CapabilityName::new)
-        .collect()
     }
 
     /// Whether this profile grants `capability`.
@@ -182,8 +195,24 @@ impl CookbookCapabilityProfile {
     /// first call.
     pub fn seat(seat: &GrantSeat, cx: &mut Cx) -> Result<()> {
         for capability in Self::granted() {
-            seat.grant(cx, capability);
+            grant_into_result!(seat.grant(cx, capability))?;
         }
         Ok(())
+    }
+}
+
+trait GrantOutcome {
+    fn into_result(self) -> Result<()>;
+}
+
+impl GrantOutcome for () {
+    fn into_result(self) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl GrantOutcome for Result<()> {
+    fn into_result(self) -> Result<()> {
+        self
     }
 }

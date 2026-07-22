@@ -5,6 +5,10 @@ use sim_kernel::{
 };
 use sim_lib_agent_runner_core::{ModelEventSink, ModelResponse};
 
+fn model_infer_effect_kind() -> Symbol {
+    Symbol::qualified("effect", "model-infer")
+}
+
 pub(super) fn resolve_model_infer_effect<F>(
     cx: &mut Cx,
     request: &EvalRequest,
@@ -70,7 +74,7 @@ fn model_infer_effect_for_expr(
         None => core_any_ref(),
     };
     Effect::new(
-        effect::effect_model_infer_kind(),
+        model_infer_effect_kind(),
         Ref::Symbol(Symbol::qualified("agent", "model-infer")),
         input,
         result_shape,

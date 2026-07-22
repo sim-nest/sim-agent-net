@@ -44,6 +44,10 @@ pub(super) static AGENT_FUNCTIONS: LazyLock<Vec<(Symbol, AgentFnKind)>> = LazyLo
         (Symbol::qualified("agent", "wire"), AgentFnKind::Wire),
         (Symbol::qualified("agent", "pattern"), AgentFnKind::Pattern),
         (
+            Symbol::qualified("agent", "recipe-result"),
+            AgentFnKind::RecipeResult,
+        ),
+        (
             Symbol::qualified("memory", "working"),
             AgentFnKind::MemoryWorking,
         ),
@@ -126,8 +130,38 @@ pub(super) static AGENT_FUNCTIONS: LazyLock<Vec<(Symbol, AgentFnKind)>> = LazyLo
         (Symbol::new("model-policy"), AgentFnKind::ModelPolicy),
         #[cfg(feature = "runner-http")]
         (
+            Symbol::qualified("provider", "profiles"),
+            AgentFnKind::ProviderProfiles,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("provider", "probe"),
+            AgentFnKind::ProviderProbe,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
             Symbol::qualified("runner", "openai-compatible"),
             AgentFnKind::RunnerOpenAiCompatible,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("runner", "openai"),
+            AgentFnKind::RunnerOpenAi,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("runner", "anthropic"),
+            AgentFnKind::RunnerAnthropic,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("runner", "lm-studio"),
+            AgentFnKind::RunnerLmStudio,
+        ),
+        #[cfg(feature = "runner-http")]
+        (
+            Symbol::qualified("runner", "lemonade"),
+            AgentFnKind::RunnerLemonade,
         ),
         #[cfg(feature = "runner-ollama")]
         (

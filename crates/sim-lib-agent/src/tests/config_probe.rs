@@ -3,7 +3,10 @@ use sim_kernel::{Args, Expr, Symbol};
 use sim_lib_agent_runner_core::ModelCard;
 
 use super::support::{eval_cx, install_agent_lib, install_test_codec};
-use crate::{AgentModelConfigProbe, AgentModelProviderPresence, model_defaults_config_lib_symbol};
+use crate::{
+    AI_RUNNER_PLACEMENT_CAPABILITY, AgentModelConfigProbe, AgentModelProviderPresence,
+    model_defaults_config_lib_symbol,
+};
 
 #[test]
 fn config_probe_modeled_emits_fixture_defaults_without_environment() {
@@ -211,6 +214,7 @@ fn config_probe_defaults_can_drive_model_placement() {
         &Expr::String("sim/configured-local".to_owned())
     );
 
+    cx.grant_named(AI_RUNNER_PLACEMENT_CAPABILITY);
     let placed = cx
         .call_function(
             &Symbol::qualified("runner", "place"),

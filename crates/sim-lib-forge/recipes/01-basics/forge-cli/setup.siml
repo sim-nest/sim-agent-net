@@ -1,0 +1,14 @@
+(forge/cli-flow
+  (lift "summarize the contract and flag risks")
+  (review surface://forge/summarize-contract
+    (must-see inferred-return-shape data-degrade))
+  (promote summarize-contract)
+  (run summarize-contract input.json)
+  (run summarize-contract input.json)
+  (show summarize-contract
+    (verifiers return-shape data-degrade))
+  (evidence
+    (artifact-cache-hit true)
+    (replay-hits 1)
+    (compiler-calls 0)
+    (execution-calls 0)))

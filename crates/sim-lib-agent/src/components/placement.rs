@@ -1,10 +1,14 @@
 use super::loaded_site::LoadedSite;
 use super::model::{AgentComponent, ComponentBackend};
 use super::placement_cards::{ModelSiteCard, model_sites_expr};
-use crate::util::{installed_codecs, stringish_from_value, value_from_expr};
+use crate::{
+    AI_RUNNER_PLACEMENT_CAPABILITY,
+    util::{installed_codecs, stringish_from_value, value_from_expr},
+};
 use sim_kernel::{
-    Args, CORE_LOCAL_EVAL_FABRIC_CLASS_ID, ClassRef, Cx, Error, EvalFabric, EvalReply, EvalRequest,
-    Expr, Object, ObjectCompat, Result, Symbol, Value,
+    Args, CORE_LOCAL_EVAL_FABRIC_CLASS_ID, CapabilityName, ClassRef, Cx, Datum, DatumStore, Effect,
+    Error, EvalFabric, EvalReply, EvalRequest, Expr, Object, ObjectCompat, Ref, Result, Symbol,
+    Value, core_any_ref, effect,
 };
 use sim_lib_server::{EvalSite, ServerFrame, eval_reply_from_frame, server_frame_from_request};
 use sim_lib_stream_fabric::{ContentKey, EffectLedgerCassette, EvalCassette, LedgeredRelayFabric};
@@ -46,7 +50,7 @@ static MODEL_CATALOG: LazyLock<Mutex<ModelCatalog>> =
     LazyLock::new(|| Mutex::new(ModelCatalog::default()));
 
 pub(crate) fn runner_place_value(cx: &mut Cx, args: Args) -> Result<Value> {
-    let (key, runner) = parse_runner_place_args(cx, args)?;
+    let (key, runner, replace) = parse_runner_place_args(cx, args)?;
     let component = runner
         .object()
         .downcast_ref::<AgentComponent>()
@@ -59,7 +63,7 @@ pub(crate) fn runner_place_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let key = ModelSiteKey::new(key)?;
     let card = ModelSiteCard::from_runner(&key, component)?;
     let site: Arc<dyn EvalSite> = Arc::new(component.clone());
-    let card = register_model_site(key, site, card)?;
+    let card = register_model_site(cx, key, site, card, replace)?;
     card_value(cx, &card)
 }
 
@@ -125,31 +129,111 @@ pub(crate) fn cached_model_fabric_value(
         .opaque(Arc::new(ModelCachedFabric::new(target, cassette)))
 }
 
-fn parse_runner_place_args(cx: &mut Cx, args: Args) -> Result<(String, Value)> {
+fn parse_runner_place_args(cx: &mut Cx, args: Args) -> Result<(String, Value, bool)> {
     match args.into_vec().as_slice() {
         [key, runner] => Ok((
             stringish_from_value(cx, key.clone(), "runner/place expects a model site key")?,
             runner.clone(),
+            false,
         )),
+        [key, runner, option, value] if is_replace_option(cx, option)? => Ok((
+            stringish_from_value(cx, key.clone(), "runner/place expects a model site key")?,
+            runner.clone(),
+            boolish_from_value(cx, value.clone(), "runner/place :replace expects a boolean")?,
+        )),
+        [_, _, option, _] => Err(Error::Eval(format!(
+            "runner/place unsupported option {:?}",
+            option.object().as_expr(cx)?
+        ))),
         _ => Err(Error::Eval(
             "runner/place expects a model site key and runner".to_owned(),
         )),
     }
 }
 
+fn is_replace_option(cx: &mut Cx, value: &Value) -> Result<bool> {
+    match value.object().as_expr(cx)? {
+        Expr::Symbol(symbol) if symbol.namespace.is_none() => {
+            Ok(matches!(symbol.name.as_ref(), ":replace" | "replace"))
+        }
+        Expr::String(text) => Ok(matches!(text.as_str(), ":replace" | "replace")),
+        _ => Ok(false),
+    }
+}
+
+fn boolish_from_value(cx: &mut Cx, value: Value, context: &'static str) -> Result<bool> {
+    match value.object().as_expr(cx)? {
+        Expr::Bool(value) => Ok(value),
+        _ => Err(Error::Eval(context.to_owned())),
+    }
+}
+
 fn register_model_site(
+    cx: &mut Cx,
     key: ModelSiteKey,
     site: Arc<dyn EvalSite>,
     card: ModelSiteCard,
+    replace: bool,
 ) -> Result<ModelSiteCard> {
-    catalog()?.sites.insert(
-        key,
-        ModelSiteEntry {
-            card: card.clone(),
-            site,
-        },
-    );
+    let effect = model_placement_effect(cx, &key, &card, replace)?;
+    let result_card = card.clone();
+    let stored_key = key.clone();
+    let stored_card = card.clone();
+    effect::resolve_effect(cx, effect, move |cx, _effect| {
+        let result = Ref::Content(
+            cx.datum_store_mut()
+                .intern(Datum::try_from(result_card.to_expr())?)?,
+        );
+        let mut catalog = catalog()?;
+        if !replace && catalog.sites.contains_key(&stored_key) {
+            return Err(Error::Eval(format!(
+                "model site key {} is already registered",
+                stored_key.as_str()
+            )));
+        }
+        catalog.sites.insert(
+            stored_key,
+            ModelSiteEntry {
+                card: stored_card,
+                site,
+            },
+        );
+        Ok(result)
+    })?;
     Ok(card)
+}
+
+fn model_placement_effect(
+    cx: &mut Cx,
+    key: &ModelSiteKey,
+    card: &ModelSiteCard,
+    replace: bool,
+) -> Result<Effect> {
+    let input = Ref::Content(cx.datum_store_mut().intern(Datum::Node {
+        tag: Symbol::qualified("agent", "ModelPlacementInput"),
+        fields: vec![
+            (Symbol::new("key"), Datum::String(key.as_str().to_owned())),
+            (Symbol::new("card"), Datum::try_from(card.to_expr())?),
+            (Symbol::new("replace"), Datum::Bool(replace)),
+        ],
+    })?);
+    Effect::new(
+        model_placement_effect_kind(),
+        Ref::Symbol(placement_key_symbol(key.as_str())),
+        input,
+        core_any_ref(),
+        effect::effect_resume_op_key(),
+        effect::effect_abort_op_key(),
+    )
+    .requiring(CapabilityName::new(AI_RUNNER_PLACEMENT_CAPABILITY))
+    .with_replay_key(Some(Ref::Symbol(Symbol::qualified(
+        "agent",
+        "model-placement-v1",
+    ))))
+}
+
+fn model_placement_effect_kind() -> Symbol {
+    Symbol::qualified("effect", "model-placement")
 }
 
 fn model_site_cards(cx: &Cx) -> Result<Vec<ModelSiteCard>> {

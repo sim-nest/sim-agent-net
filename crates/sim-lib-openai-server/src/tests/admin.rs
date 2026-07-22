@@ -1,18 +1,20 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use sim_kernel::{Args, Callable, Error};
+use sim_kernel::{Args, Callable, CapabilitySet, Error};
 
 use crate::routes::admin::admin_expr_json;
 use crate::{
     ADMIN_CACHE_STATS_PATH, ADMIN_CAPABILITY_REPORT_PATH, ADMIN_EVENTS_PATH,
     ADMIN_MODEL_HEALTH_PATH, ADMIN_RUN_RETRIEVAL_PREFIX, ADMIN_RUNS_PATH, ADMIN_STORAGE_STATS_PATH,
-    GatewayRequest, GatewayResponse, GatewayRoutesValue, HEALTH_PATH,
-    OPENAI_GATEWAY_ADMIN_CAPABILITY, OpenAiGatewayFunction, RESPONSES_PATH, cache_stats_symbol,
-    capability_report_symbol, configure_routes, events_symbol, install_openai_gateway_lib,
-    model_health_symbol, openai_gateway_admin_capability, run_get_symbol, runs_symbol,
-    storage_stats_symbol,
+    GatewayRequest, GatewayResponse, GatewayRouteState, GatewayRoutes, GatewayRoutesValue,
+    HEALTH_PATH, OPENAI_GATEWAY_ADMIN_CAPABILITY, OpenAiGatewayFunction, OpenAiKeyTable,
+    RESPONSES_PATH, cache_stats_symbol, capability_report_symbol, configure_routes,
+    configure_routes_with_state, events_symbol, install_openai_gateway_lib, model_health_symbol,
+    openai_gateway_admin_capability, run_get_symbol, runs_symbol, storage_stats_symbol,
 };
+
+const ADMIN_SECRET: &str = "sk-admin-route";
 
 #[test]
 fn public_health_does_not_leak_host_details() {
@@ -28,7 +30,7 @@ fn public_health_does_not_leak_host_details() {
 
 #[test]
 fn admin_routes_require_capability_and_return_json_metrics() {
-    let routes = configure_routes();
+    let routes = routes_with_admin_key();
     let response = routes.handle(&json_request(
         "POST",
         RESPONSES_PATH,
@@ -44,6 +46,13 @@ fn admin_routes_require_capability_and_return_json_metrics() {
     let denied = routes.handle(&GatewayRequest::get(ADMIN_STORAGE_STATS_PATH));
     assert_eq!(denied.status(), 403);
     assert_eq!(response_json(&denied)["error"]["code"], "capability_denied");
+
+    let header_only = routes.handle(&header_admin_get(ADMIN_STORAGE_STATS_PATH));
+    assert_eq!(header_only.status(), 403);
+    assert_eq!(
+        response_json(&header_only)["error"]["code"],
+        "capability_denied"
+    );
 
     let stats = response_json(&routes.handle(&admin_get(ADMIN_STORAGE_STATS_PATH)));
     assert_eq!(stats["object"], "openai-gateway/storage-stats");
@@ -128,12 +137,32 @@ fn admin_get(path: &str) -> GatewayRequest {
     GatewayRequest::new(
         "GET",
         path,
+        vec![("Authorization".to_owned(), format!("Bearer {ADMIN_SECRET}"))],
+        Vec::new(),
+    )
+}
+
+fn header_admin_get(path: &str) -> GatewayRequest {
+    GatewayRequest::new(
+        "GET",
+        path,
         vec![(
             "X-SIM-Capability".to_owned(),
             OPENAI_GATEWAY_ADMIN_CAPABILITY.to_owned(),
         )],
         Vec::new(),
     )
+}
+
+fn routes_with_admin_key() -> GatewayRoutes {
+    let key_table = OpenAiKeyTable::new().unwrap();
+    key_table
+        .add_secret(
+            ADMIN_SECRET,
+            CapabilitySet::new().grant(openai_gateway_admin_capability()),
+        )
+        .unwrap();
+    configure_routes_with_state(GatewayRouteState::memory().with_keys(key_table))
 }
 
 fn json_request(method: &str, path: &str, body: &str) -> GatewayRequest {

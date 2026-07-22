@@ -1,9 +1,15 @@
+use crate::ProviderAuth;
 use crate::client::{HttpRunnerRequest, post_json, post_json_stream};
+use crate::config::ProviderConfig;
 use crate::redact::redact_text;
 use crate::stream::HttpStreamDecoder;
 use sim_codec_chat::{
-    OllamaRequestOptions, decode_ollama_response, decode_ollama_stream, encode_ollama_request,
-    model_error_expr,
+    AnthropicRequestOptions, LemonadeRequestOptions, LmStudioRequestOptions, OllamaRequestOptions,
+    OpenAiRequestOptions, decode_anthropic_response, decode_anthropic_stream,
+    decode_lemonade_response, decode_lemonade_stream, decode_lm_studio_response,
+    decode_lm_studio_stream, decode_ollama_response, decode_ollama_stream, decode_openai_response,
+    encode_anthropic_request, encode_lemonade_request, encode_lm_studio_request,
+    encode_ollama_request, encode_openai_request, model_error_expr,
 };
 use sim_kernel::{
     CapabilityName, Cx, Datum, DatumStore, Effect, Error, Expr, Ref, Result, Symbol, core_any_ref,
@@ -11,8 +17,10 @@ use sim_kernel::{
 };
 use sim_lib_agent_runner_core::{
     ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
+    OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA,
+    grammar_dialect_symbol,
 };
-use sim_lib_openai_server::{OpenAiRequestOptions, decode_openai_response, encode_openai_request};
+use sim_shape::GrammarDialect;
 use std::time::Duration;
 
 /// HTTP-backed [`ModelRunner`] for OpenAI-compatible and Ollama endpoints.
@@ -26,14 +34,39 @@ pub struct HttpRunner {
     request_path: &'static str,
     endpoint: String,
     api_key_env: Option<String>,
+    auth: ProviderAuth,
     codec: Symbol,
     timeout: Duration,
     stream: bool,
     tools: bool,
     max_response_bytes: usize,
+    grammar_dialects: Vec<GrammarDialect>,
 }
 
 impl HttpRunner {
+    /// Builds a runner from an open provider config without changing the HTTP
+    /// transport path.
+    pub fn new_provider(config: ProviderConfig) -> Self {
+        let auth = config.profile.auth.clone();
+        Self {
+            runner: config.runner,
+            model: config.model,
+            provider: config.profile.provider,
+            locality: config.locality,
+            runner_label: "runner/provider",
+            request_path: config.profile.chat_path,
+            endpoint: config.endpoint,
+            api_key_env: config.api_key_env,
+            auth,
+            codec: config.codec,
+            timeout: config.timeout,
+            stream: config.stream,
+            tools: config.tools,
+            max_response_bytes: config.max_output_bytes,
+            grammar_dialects: config.grammar_dialects,
+        }
+    }
+
     /// Builds a runner targeting an OpenAI-compatible `/chat/completions`
     /// endpoint, reading its API key from the `api_key_env` environment
     /// variable.
@@ -49,6 +82,7 @@ impl HttpRunner {
         tools: bool,
         max_response_bytes: usize,
     ) -> Self {
+        let api_key_env = api_key_env.into();
         Self {
             runner,
             model: model.into(),
@@ -57,12 +91,14 @@ impl HttpRunner {
             runner_label: "runner/openai-compatible",
             request_path: "/chat/completions",
             endpoint: endpoint.into(),
-            api_key_env: Some(api_key_env.into()),
+            api_key_env: Some(api_key_env.clone()),
+            auth: ProviderAuth::BearerEnv { env: api_key_env },
             codec,
             timeout,
             stream,
             tools,
             max_response_bytes,
+            grammar_dialects: Vec::new(),
         }
     }
 
@@ -88,24 +124,27 @@ impl HttpRunner {
             request_path: "/api/chat",
             endpoint: endpoint.into(),
             api_key_env: None,
+            auth: ProviderAuth::None,
             codec,
             timeout,
             stream,
             tools,
             max_response_bytes,
+            grammar_dialects: vec![GrammarDialect::Gbnf],
         }
     }
 
     fn infer_inner(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
         let include_raw = self.include_raw(cx, &request);
-        let body = self.encode_request(request, self.stream)?;
         let api_key = self.api_key()?;
+        let headers = self.request_headers(api_key.as_deref());
+        let body = self.encode_request(request, self.stream)?;
         let response = post_json(
             HttpRunnerRequest {
                 runner_label: self.runner_label,
                 endpoint: self.endpoint.as_str(),
                 path: self.request_path,
-                bearer_token: api_key.as_deref(),
+                headers,
                 timeout: self.timeout,
                 body,
                 max_response_bytes: self.max_response_bytes,
@@ -127,8 +166,9 @@ impl HttpRunner {
             return Ok(response);
         }
         let include_raw = self.include_raw(cx, &request);
-        let body = self.encode_request(request, true)?;
         let api_key = self.api_key()?;
+        let headers = self.request_headers(api_key.as_deref());
+        let body = self.encode_request(request, true)?;
         let mut decoder = self.stream_decoder(include_raw)?;
         sink.emit(decoder.start_event())?;
         let response = post_json_stream(
@@ -136,7 +176,7 @@ impl HttpRunner {
                 runner_label: self.runner_label,
                 endpoint: self.endpoint.as_str(),
                 path: self.request_path,
-                bearer_token: api_key.as_deref(),
+                headers,
                 timeout: self.timeout,
                 body,
                 max_response_bytes: self.max_response_bytes,
@@ -155,17 +195,41 @@ impl HttpRunner {
 
     fn encode_request(&self, request: ModelRequest, stream: bool) -> Result<Vec<u8>> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
+        let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
+        let lemonade_codec = Symbol::qualified("codec", "lemonade");
+        let request = self.prepare_output_grammar(request);
         let request_expr: Expr = request.into();
         if self.codec == openai_codec {
             encode_openai_request(
                 &request_expr,
                 &OpenAiRequestOptions::new(self.model.clone(), stream, self.tools),
             )
+        } else if self.codec == anthropic_codec {
+            encode_anthropic_request(
+                &request_expr,
+                &AnthropicRequestOptions::new(
+                    self.model.clone(),
+                    DEFAULT_ANTHROPIC_MAX_TOKENS,
+                    stream,
+                    self.tools,
+                ),
+            )
         } else if self.codec == ollama_codec {
             encode_ollama_request(
                 &request_expr,
                 &OllamaRequestOptions::new(self.model.clone(), stream, self.tools),
+            )
+        } else if self.codec == lm_studio_codec {
+            encode_lm_studio_request(
+                &request_expr,
+                &LmStudioRequestOptions::new(self.model.clone(), stream, self.tools),
+            )
+        } else if self.codec == lemonade_codec {
+            encode_lemonade_request(
+                &request_expr,
+                &LemonadeRequestOptions::new(self.model.clone(), stream, self.tools),
             )
         } else {
             Err(Error::Eval(format!(
@@ -187,16 +251,64 @@ impl HttpRunner {
         }
     }
 
+    fn request_headers(&self, secret: Option<&str>) -> Vec<(String, String)> {
+        if self.provider == Symbol::new("anthropic")
+            && matches!(self.auth, ProviderAuth::HeaderEnv { .. })
+            && let Some(secret) = secret
+        {
+            return anthropic_headers(secret);
+        }
+
+        let mut headers = vec![content_type_header()];
+        match (&self.auth, secret) {
+            (
+                ProviderAuth::BearerEnv { .. } | ProviderAuth::OptionalBearerEnv { .. },
+                Some(secret),
+            ) => {
+                headers.push(("Authorization".to_owned(), format!("Bearer {secret}")));
+            }
+            (ProviderAuth::HeaderEnv { header, .. }, Some(secret)) => {
+                headers.push((header.clone(), secret.to_owned()));
+            }
+            _ => {}
+        }
+        if self.provider == Symbol::new("anthropic") {
+            headers.push(("anthropic-version".to_owned(), ANTHROPIC_VERSION.to_owned()));
+        }
+        headers
+    }
+
     fn decode_response(&self, body: &[u8], include_raw: bool) -> Result<ModelResponse> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
+        let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
+        let lemonade_codec = Symbol::qualified("codec", "lemonade");
         let expr = if self.codec == openai_codec {
             decode_openai_response(self.runner.clone(), &self.model, body, include_raw)?
+        } else if self.codec == anthropic_codec {
+            if self.stream {
+                decode_anthropic_stream(self.runner.clone(), &self.model, body, include_raw)?
+            } else {
+                decode_anthropic_response(self.runner.clone(), &self.model, body, include_raw)?
+            }
         } else if self.codec == ollama_codec {
             if self.stream {
                 decode_ollama_stream(self.runner.clone(), &self.model, body, include_raw)?
             } else {
                 decode_ollama_response(self.runner.clone(), &self.model, body, include_raw)?
+            }
+        } else if self.codec == lm_studio_codec {
+            if self.stream {
+                decode_lm_studio_stream(self.runner.clone(), &self.model, body, include_raw)?
+            } else {
+                decode_lm_studio_response(self.runner.clone(), &self.model, body, include_raw)?
+            }
+        } else if self.codec == lemonade_codec {
+            if self.stream {
+                decode_lemonade_stream(self.runner.clone(), &self.model, body, include_raw)?
+            } else {
+                decode_lemonade_response(self.runner.clone(), &self.model, body, include_raw)?
             }
         } else {
             unreachable!("codec checked above")
@@ -210,17 +322,45 @@ impl HttpRunner {
             && !request_privacy_no_raw(request)
     }
 
+    fn direct_capabilities(&self) -> Vec<CapabilityName> {
+        let mut capabilities = vec![CapabilityName::new(AI_RUNNER_CAPABILITY)];
+        if self.locality == Symbol::new("local") {
+            capabilities.push(CapabilityName::new(AI_RUNNER_LOCAL_CAPABILITY));
+        } else {
+            capabilities.push(CapabilityName::new(AI_RUNNER_NETWORK_CAPABILITY));
+        }
+        if self.api_key_env.is_some() {
+            capabilities.push(CapabilityName::new(AI_RUNNER_SECRET_CAPABILITY));
+        }
+        capabilities
+    }
+
     fn stream_decoder(&self, include_raw: bool) -> Result<HttpStreamDecoder> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
+        let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
+        let lemonade_codec = Symbol::qualified("codec", "lemonade");
         if self.codec == openai_codec {
             Ok(HttpStreamDecoder::openai(
                 self.runner.clone(),
                 self.model.clone(),
                 include_raw,
             ))
+        } else if self.codec == anthropic_codec {
+            Ok(HttpStreamDecoder::anthropic(
+                self.runner.clone(),
+                self.model.clone(),
+                include_raw,
+            ))
         } else if self.codec == ollama_codec {
             Ok(HttpStreamDecoder::ollama(
+                self.runner.clone(),
+                self.model.clone(),
+                include_raw,
+            ))
+        } else if self.codec == lm_studio_codec || self.codec == lemonade_codec {
+            Ok(HttpStreamDecoder::openai(
                 self.runner.clone(),
                 self.model.clone(),
                 include_raw,
@@ -240,6 +380,62 @@ impl HttpRunner {
             message.into(),
         ))
     }
+
+    fn prepare_output_grammar(&self, mut request: ModelRequest) -> ModelRequest {
+        let Some(dialect) = self.preferred_grammar_dialect() else {
+            strip_output_grammar(&mut request.extra);
+            return request;
+        };
+        if extra_field(&request.extra, RETURN_SHAPE_EXTRA).is_none()
+            && !explicit_output_grammar_matches(&request.extra, dialect)
+        {
+            strip_output_grammar(&mut request.extra);
+            return request;
+        }
+        let return_codec = extra_symbol(&request.extra, RETURN_CODEC_EXTRA);
+        if return_codec.as_ref() != Some(&Symbol::qualified("codec", "json")) {
+            strip_output_grammar(&mut request.extra);
+            return request;
+        }
+        if !explicit_output_grammar_matches(&request.extra, dialect) {
+            remove_extra(&mut request.extra, OUTPUT_GRAMMAR_EXTRA);
+        }
+        upsert_extra(
+            &mut request.extra,
+            OUTPUT_GRAMMAR_DIALECT_EXTRA,
+            Expr::Symbol(grammar_dialect_symbol(dialect)),
+        );
+        request
+    }
+
+    fn preferred_grammar_dialect(&self) -> Option<GrammarDialect> {
+        if self.grammar_dialects.contains(&GrammarDialect::JsonSchema) {
+            Some(GrammarDialect::JsonSchema)
+        } else if self.grammar_dialects.contains(&GrammarDialect::Gbnf) {
+            Some(GrammarDialect::Gbnf)
+        } else {
+            None
+        }
+    }
+}
+
+const ANTHROPIC_VERSION: &str = "2023-06-01";
+const DEFAULT_ANTHROPIC_MAX_TOKENS: u64 = 1024;
+const AI_RUNNER_CAPABILITY: &str = "ai-runner";
+const AI_RUNNER_NETWORK_CAPABILITY: &str = "ai-runner-network";
+const AI_RUNNER_LOCAL_CAPABILITY: &str = "ai-runner-local";
+const AI_RUNNER_SECRET_CAPABILITY: &str = "ai-runner-secret";
+
+fn anthropic_headers(secret: &str) -> Vec<(String, String)> {
+    vec![
+        ("x-api-key".to_owned(), secret.to_owned()),
+        ("anthropic-version".to_owned(), ANTHROPIC_VERSION.to_owned()),
+        content_type_header(),
+    ]
+}
+
+fn content_type_header() -> (String, String) {
+    ("content-type".to_owned(), "application/json".to_owned())
 }
 
 fn request_privacy_no_raw(request: &ModelRequest) -> bool {
@@ -271,14 +467,85 @@ fn is_field(expr: &Expr, name: &str) -> bool {
     )
 }
 
+fn extra_field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
+    entries.iter().find_map(|(key, value)| {
+        if is_field(key, name) {
+            Some(value)
+        } else {
+            None
+        }
+    })
+}
+
+fn extra_symbol(entries: &[(Expr, Expr)], name: &str) -> Option<Symbol> {
+    match extra_field(entries, name) {
+        Some(Expr::Symbol(symbol)) => Some(symbol.clone()),
+        _ => None,
+    }
+}
+
+fn upsert_extra(entries: &mut Vec<(Expr, Expr)>, name: &str, value: Expr) {
+    if let Some((_, existing)) = entries.iter_mut().find(|(key, _)| is_field(key, name)) {
+        *existing = value;
+        return;
+    }
+    entries.push((Expr::Symbol(Symbol::new(name)), value));
+}
+
+fn strip_output_grammar(entries: &mut Vec<(Expr, Expr)>) {
+    entries.retain(|(key, _)| {
+        !is_field(key, OUTPUT_GRAMMAR_EXTRA) && !is_field(key, OUTPUT_GRAMMAR_DIALECT_EXTRA)
+    });
+}
+
+fn remove_extra(entries: &mut Vec<(Expr, Expr)>, name: &str) {
+    entries.retain(|(key, _)| !is_field(key, name));
+}
+
+fn explicit_output_grammar_matches(entries: &[(Expr, Expr)], dialect: GrammarDialect) -> bool {
+    matches!(
+        extra_field(entries, OUTPUT_GRAMMAR_EXTRA),
+        Some(Expr::String(_))
+    ) && extra_field(entries, OUTPUT_GRAMMAR_DIALECT_EXTRA)
+        .and_then(|expr| match expr {
+            Expr::Symbol(symbol) => grammar_dialect_from_symbol_local(symbol),
+            _ => None,
+        })
+        .unwrap_or(GrammarDialect::JsonSchema)
+        == dialect
+}
+
+fn grammar_dialect_from_symbol_local(symbol: &Symbol) -> Option<GrammarDialect> {
+    match symbol.name.as_ref() {
+        "json-schema" if symbol.namespace.is_none() => Some(GrammarDialect::JsonSchema),
+        "gbnf" if symbol.namespace.is_none() => Some(GrammarDialect::Gbnf),
+        "sexpr" if symbol.namespace.is_none() => Some(GrammarDialect::SExpr),
+        _ => None,
+    }
+}
+
 impl ModelRunner for HttpRunner {
     fn card(&self) -> ModelCard {
-        ModelCard::new(
+        let mut card = ModelCard::new(
             self.runner.clone(),
             self.model.clone(),
             self.provider.clone(),
             self.locality.clone(),
-        )
+        );
+        if !self.grammar_dialects.is_empty() {
+            card.extra.push((
+                Expr::Symbol(Symbol::new("output-grammar-dialects")),
+                Expr::Vector(
+                    self.grammar_dialects
+                        .iter()
+                        .copied()
+                        .map(grammar_dialect_symbol)
+                        .map(Expr::Symbol)
+                        .collect(),
+                ),
+            ));
+        }
+        card
     }
 
     fn infer(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
@@ -357,18 +624,23 @@ impl HttpRunner {
         };
         let input = Ref::Content(cx.datum_store_mut().intern(input)?);
         Effect::new(
-            effect::effect_network_kind(),
+            network_effect_kind(),
             Ref::Symbol(self.runner.clone()),
             input,
             core_any_ref(),
             effect::effect_resume_op_key(),
             effect::effect_abort_op_key(),
         )
+        .with_requirements(self.direct_capabilities())
         .with_replay_key(Some(Ref::Symbol(Symbol::qualified(
             "agent",
             "http-runner-v1",
         ))))
     }
+}
+
+fn network_effect_kind() -> Symbol {
+    Symbol::qualified("effect", "network")
 }
 
 fn response_ref(cx: &mut Cx, response: ModelResponse) -> Result<Ref> {
@@ -381,3 +653,6 @@ fn response_ref(cx: &mut Cx, response: ModelResponse) -> Result<Ref> {
 fn response_from_ref(cx: &mut Cx, reference: &Ref) -> Result<ModelResponse> {
     ModelResponse::try_from(value_from_ref(cx, reference)?.object().as_expr(cx)?)
 }
+
+#[cfg(test)]
+mod tests;

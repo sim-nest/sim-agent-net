@@ -26,7 +26,7 @@ pub const IMAGES_GENERATIONS_PATH: &str = "/v1/images/generations";
 type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 
 /// Handles `POST /v1/images/generations`, returning deterministic fixture image
-/// references for the requested prompt and count.
+/// references for the requested JSON prompt and count.
 pub fn handle_image_generations(
     request: &GatewayRequest,
     state: &GatewayRouteState,

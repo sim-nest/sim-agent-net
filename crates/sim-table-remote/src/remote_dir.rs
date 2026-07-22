@@ -2,16 +2,13 @@ use std::{sync::Arc, time::Duration};
 
 use sim_kernel::{
     Consistency, Cx, Error, EvalMode, EvalRequest, Expr, Object, ObjectEncode, ObjectEncoding,
-    Result, Symbol, Table, Value,
-    capability::{eval_remote_capability, table_remote_capability},
-    id::CORE_TABLE_CLASS_ID,
-    object::ClassRef,
-    table::Dir,
+    Result, Symbol, Table, Value, capability::eval_remote_capability, id::CORE_TABLE_CLASS_ID,
+    object::ClassRef, table::Dir,
 };
 use sim_lib_server::{EvalSite, eval_reply_from_frame, server_frame_from_request};
 use sim_table_core::{TableOp, encode_table_op};
 
-use crate::citizen::remote_dir_class_symbol;
+use crate::{citizen::remote_dir_class_symbol, table_remote_capability};
 
 /// SIM table directory whose rows live on a remote [`EvalSite`].
 #[derive(Clone)]

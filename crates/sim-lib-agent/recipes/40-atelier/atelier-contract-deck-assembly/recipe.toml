@@ -1,0 +1,18 @@
+id = "atelier-contract-deck-assembly"
+title = "Contract deck assembly"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 6
+tags = ["atelier", "contract-native", "contract-deck", "contract-card", "shape", "offline", "deterministic", "sandbox-descriptor"]
+requires = ["agent", "forge", "contract-deck", "shape", "fake-runner", "cassette-hash"]
+runner_mode = "fake"
+live_model = false
+network = false
+cassette_hash = "fnv1a64:f016c320c6277c50"
+cassette_events = ["contract-deck:assemble:registry-generation-1", "contract-card:shape:data-roundtrip", "contract-card:example:shape-synthesized", "contract-gap:partial-card-preserved"]
+expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(atelier-self-hosting (id atelier-contract-deck-assembly) (runner fake) (network denied) (live-model denied) (contract-deck (scope task-scoped) (cards 4) (complete 3) (partial 1) (shape contract-card) (example shape-synthesized) (gaps preserved)) (cassette-hash fnv1a64:f016c320c6277c50))"

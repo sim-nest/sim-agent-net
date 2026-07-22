@@ -49,7 +49,8 @@ pub trait SkillTransport: Send + Sync {
 #[derive(Clone)]
 #[non_citizen(
     reason = "live skill transport handle; transport metadata is carried by skill/Card descriptor",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "skill/Card"
 )]
 pub struct SkillTransportValue {
     transport: Arc<dyn SkillTransport>,

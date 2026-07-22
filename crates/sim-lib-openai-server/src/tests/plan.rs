@@ -1,11 +1,15 @@
-use sim_codec_chat::validate_chat_transcript;
-use sim_kernel::{Args, Callable, Expr, Symbol};
-use sim_lib_agent_runner_core::ModelResponse;
+use std::sync::Arc;
+
+use sim_codec_chat::{text_part, validate_chat_transcript};
+use sim_kernel::{Args, Callable, Error, Expr, Symbol};
+use sim_lib_agent_runner_core::{ModelCard, ModelRequest, ModelResponse, ModelRunner};
 
 use crate::{
-    OpenAiGatewayFunction, PlanLimits, check_plan, check_plan_with_limits, eval_plan,
-    eval_plan_report, explain_plan, install_openai_gateway_lib, openai_gateway_plan_capability,
+    OpenAiGatewayFunction, OpenAiPlanCache, OpenAiRunnerRegistry, PlanLimits, check_plan,
+    check_plan_with_limits, eval_plan, eval_plan_report, eval_plan_report_with_cache_and_runners,
+    explain_plan, install_openai_gateway_lib, openai_gateway_plan_capability,
     openai_gateway_plan_remote_capability, parse_plan, plan_combinators_expr, plan_parse_symbol,
+    provider_prefixes, resolve_atom_address,
 };
 
 #[test]
@@ -196,6 +200,157 @@ fn plan_callables_are_registered_and_parse_plans() {
     assert!(matches!(plan_combinators_expr(), Expr::List(items) if !items.is_empty()));
 }
 
+#[test]
+fn native_provider_prefixes_resolve_as_open_plan_data() {
+    for prefix in ["openai", "anthropic", "ollama", "lm-studio", "lemonade"] {
+        assert!(provider_prefixes().contains(&prefix));
+        let address = format!("{prefix}/model");
+        let descriptor = resolve_atom_address(&address).unwrap();
+        assert_eq!(descriptor.head, prefix);
+        assert!(descriptor.is_runner_backed());
+    }
+}
+
+#[test]
+fn native_provider_atom_dispatches_to_registered_runner() {
+    let mut cx = plan_cx();
+    let plan = parse_plan("anthropic/claude-haiku").unwrap();
+    let request = model_request("native dispatch");
+    let registry = runner_registry(vec![test_runner(
+        "runner/anthropic",
+        "anthropic/claude-haiku",
+        "anthropic",
+        "network",
+        "claude ok",
+    )]);
+    let mut cache = OpenAiPlanCache::new();
+
+    let report =
+        eval_plan_report_with_cache_and_runners(&mut cx, &plan, &request, &mut cache, &registry)
+            .unwrap();
+    let response = ModelResponse::try_from(report.response).unwrap();
+
+    assert_eq!(response.runner, Symbol::new("runner/anthropic"));
+    assert_eq!(response.model, "anthropic/claude-haiku");
+    assert!(report_text(&response).contains("claude ok"));
+}
+
+#[test]
+fn native_provider_fallback_accepts_later_runner() {
+    let mut cx = plan_cx();
+    let plan = parse_plan("fallback(anthropic/fail, lm-studio/local-default)").unwrap();
+    let request = model_request("fallback dispatch");
+    let registry = runner_registry(vec![
+        failing_runner("runner/anthropic", "anthropic/fail", "anthropic", "network"),
+        test_runner(
+            "runner/lm-studio",
+            "lm-studio/local-default",
+            "lm-studio",
+            "local",
+            "lm studio ok",
+        ),
+    ]);
+    let mut cache = OpenAiPlanCache::new();
+
+    let report =
+        eval_plan_report_with_cache_and_runners(&mut cx, &plan, &request, &mut cache, &registry)
+            .unwrap();
+    let response = ModelResponse::try_from(report.response).unwrap();
+
+    assert_eq!(response.model, "lm-studio/local-default");
+    assert!(report_text(&response).contains("lm studio ok"));
+    assert!(has_branch_end(&report.events, "error"));
+    assert!(has_branch_end(&report.events, "accepted"));
+}
+
+#[test]
+fn native_provider_race_records_winner_and_cancelled_runner() {
+    let mut cx = plan_cx();
+    let plan = parse_plan("race(ollama/qwen, lemonade/qwen)").unwrap();
+    let request = model_request("race providers");
+    let registry = runner_registry(vec![
+        test_runner(
+            "runner/ollama",
+            "ollama/qwen",
+            "ollama",
+            "local",
+            "ollama ok",
+        ),
+        test_runner(
+            "runner/lemonade",
+            "lemonade/qwen",
+            "lemonade",
+            "local",
+            "lemonade ok",
+        ),
+    ]);
+    let mut cache = OpenAiPlanCache::new();
+
+    let report =
+        eval_plan_report_with_cache_and_runners(&mut cx, &plan, &request, &mut cache, &registry)
+            .unwrap();
+    let response = ModelResponse::try_from(report.response).unwrap();
+
+    assert_eq!(response.model, "ollama/qwen");
+    assert!(has_branch_end(&report.events, "winner"));
+    assert!(has_branch_end(&report.events, "cancelled"));
+}
+
+#[test]
+fn native_provider_local_only_uses_runner_card_locality() {
+    let request = model_request_with_privacy("stay local", "local-only");
+    let registry = runner_registry(vec![
+        test_runner(
+            "runner/lm-studio",
+            "lm-studio/local-default",
+            "lm-studio",
+            "local",
+            "local ok",
+        ),
+        test_runner(
+            "runner/openai",
+            "openai/hosted",
+            "openai",
+            "network",
+            "hosted ok",
+        ),
+    ]);
+
+    let mut cx = plan_cx();
+    let mut cache = OpenAiPlanCache::new();
+    let accepted = parse_plan("lm-studio/local-default").unwrap();
+    let accepted = eval_plan_report_with_cache_and_runners(
+        &mut cx, &accepted, &request, &mut cache, &registry,
+    )
+    .unwrap();
+    let accepted = ModelResponse::try_from(accepted.response).unwrap();
+    assert_eq!(accepted.model, "lm-studio/local-default");
+
+    let mut cx = plan_cx();
+    let mut cache = OpenAiPlanCache::new();
+    let rejected = parse_plan("openai/hosted").unwrap();
+    let err = eval_plan_report_with_cache_and_runners(
+        &mut cx, &rejected, &request, &mut cache, &registry,
+    )
+    .unwrap_err();
+    assert!(format!("{err}").contains("local-only privacy"));
+}
+
+#[test]
+fn native_provider_missing_runner_reports_model_not_found() {
+    let mut cx = plan_cx();
+    let plan = parse_plan("anthropic/missing").unwrap();
+    let request = model_request("missing provider");
+    let registry = OpenAiRunnerRegistry::new();
+    let mut cache = OpenAiPlanCache::new();
+
+    let err =
+        eval_plan_report_with_cache_and_runners(&mut cx, &plan, &request, &mut cache, &registry)
+            .unwrap_err();
+
+    assert!(format!("{err}").contains("model_not_found: anthropic/missing"));
+}
+
 fn plan_cx() -> sim_kernel::Cx {
     let mut cx = super::cx();
     cx.grant(openai_gateway_plan_capability());
@@ -262,6 +417,84 @@ fn has_branch_end(events: &[crate::PlanEvalEvent], status: &str) -> bool {
     events.iter().any(|event| {
         event.kind.name.as_ref() == "branch-end" && format!("{:?}", event.payload).contains(status)
     })
+}
+
+fn runner_registry(runners: Vec<TestRunner>) -> OpenAiRunnerRegistry {
+    let mut registry = OpenAiRunnerRegistry::new();
+    for runner in runners {
+        registry.register(runner.model, Arc::new(runner));
+    }
+    registry
+}
+
+fn test_runner(
+    runner: &'static str,
+    model: &'static str,
+    provider: &'static str,
+    locality: &'static str,
+    text: &'static str,
+) -> TestRunner {
+    TestRunner {
+        runner,
+        model,
+        provider,
+        locality,
+        text,
+        fail: false,
+    }
+}
+
+fn failing_runner(
+    runner: &'static str,
+    model: &'static str,
+    provider: &'static str,
+    locality: &'static str,
+) -> TestRunner {
+    TestRunner {
+        runner,
+        model,
+        provider,
+        locality,
+        text: "failed",
+        fail: true,
+    }
+}
+
+#[derive(Clone)]
+struct TestRunner {
+    runner: &'static str,
+    model: &'static str,
+    provider: &'static str,
+    locality: &'static str,
+    text: &'static str,
+    fail: bool,
+}
+
+impl ModelRunner for TestRunner {
+    fn card(&self) -> ModelCard {
+        ModelCard::new(
+            Symbol::new(self.runner),
+            self.model,
+            Symbol::new(self.provider),
+            Symbol::new(self.locality),
+        )
+    }
+
+    fn infer(
+        &self,
+        _cx: &mut sim_kernel::Cx,
+        _request: ModelRequest,
+    ) -> sim_kernel::Result<ModelResponse> {
+        if self.fail {
+            return Err(Error::Eval(format!("{} failed", self.model)));
+        }
+        Ok(ModelResponse::new(
+            Symbol::new(self.runner),
+            self.model,
+            vec![text_part(self.text)],
+            Symbol::new("stop"),
+        ))
+    }
 }
 
 fn plan_head(plan: &Expr) -> &str {

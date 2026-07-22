@@ -160,14 +160,15 @@ impl FrameEnvelope {
 
 #[sim_citizen_derive::non_citizen(
     reason = "server frame runtime shell; class-backed descriptor is server/Frame",
-    kind = "marker"
+    kind = "marker",
+    descriptor = "server/Frame"
 )]
 /// A wire frame carrying a codec-encoded payload plus protocol metadata.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServerFrame {
     /// Server frame format version.
     pub version: u16,
-    /// Codec used to encode the payload.
+    /// Codec for encoding the payload.
     pub codec: Symbol,
     /// Identifier of this message, if assigned.
     pub msg_id: Option<u64>,

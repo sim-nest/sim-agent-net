@@ -86,7 +86,9 @@ impl SkillCard {
     /// Decodes a card from a `skill/card` map [`Expr`], the inverse of
     /// [`SkillCard::to_expr`].
     ///
-    /// Missing policy fields fall back to [`SkillPolicy::default`].
+    /// An absent policy block falls back to [`SkillPolicy::default`]. A present
+    /// policy block rejects unknown keys and malformed values, while missing
+    /// individual policy fields default independently.
     pub fn from_expr(expr: &Expr) -> Result<Self> {
         let fields = map_fields(expr, "SkillCard")?;
         expect_kind(fields)?;
@@ -112,9 +114,9 @@ impl SkillCard {
             .iter()
             .map(capability_from_expr)
             .collect::<Result<Vec<_>>>()?;
-        let policy = match required_field(fields, "policy") {
-            Ok(expr) => policy_from_expr(expr)?,
-            Err(_) => SkillPolicy::default(),
+        let policy = match optional_field(fields, "policy") {
+            Some(expr) => policy_from_expr(expr)?,
+            None => SkillPolicy::default(),
         };
         let transport = map_fields(required_field(fields, "transport")?, "SkillCard transport")?;
 
@@ -175,7 +177,7 @@ fn expect_kind(fields: &[(Expr, Expr)]) -> Result<()> {
     }
 }
 
-use sim_value::access::map_entries as map_fields;
+use sim_value::access::{entry_field_any, map_entries as map_fields};
 
 fn required_field<'a>(fields: &'a [(Expr, Expr)], name: &str) -> Result<&'a Expr> {
     sim_value::access::entry_field(fields, name)
@@ -243,6 +245,7 @@ fn policy_expr(policy: &SkillPolicy) -> Expr {
 
 fn policy_from_expr(expr: &Expr) -> Result<SkillPolicy> {
     let fields = map_fields(expr, "SkillCard policy")?;
+    reject_unknown_policy_fields(fields)?;
     Ok(SkillPolicy {
         privacy: optional_field(fields, "privacy")
             .map(privacy_from_expr)
@@ -264,6 +267,33 @@ fn policy_from_expr(expr: &Expr) -> Result<SkillPolicy> {
             .map(stringish_from_expr)
             .transpose()?,
     })
+}
+
+fn reject_unknown_policy_fields(fields: &[(Expr, Expr)]) -> Result<()> {
+    const KNOWN_FIELDS: [&str; 5] = ["privacy", "cache", "cassette", "idempotent", "semantic-key"];
+
+    for (key, _) in fields {
+        let Some(name) = field_name(key) else {
+            return Err(Error::TypeMismatch {
+                expected: "bare symbol or string policy key",
+                found: "invalid policy key",
+            });
+        };
+        if !KNOWN_FIELDS.contains(&name) {
+            return Err(Error::Eval(format!(
+                "SkillCard policy has unknown field {name}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn field_name(key: &Expr) -> Option<&str> {
+    match key {
+        Expr::Symbol(symbol) if symbol.namespace.is_none() => Some(symbol.name.as_ref()),
+        Expr::String(text) => Some(text.as_str()),
+        _ => None,
+    }
 }
 
 fn privacy_from_expr(expr: &Expr) -> Result<SkillPrivacyPolicy> {
@@ -330,13 +360,7 @@ fn stringish_from_expr(expr: &Expr) -> Result<String> {
 }
 
 fn optional_field<'a>(fields: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
-    let key = Symbol::new(name.to_owned());
-    fields
-        .iter()
-        .find_map(|(candidate, value)| match candidate {
-            Expr::Symbol(symbol) if symbol == &key => Some(value),
-            _ => None,
-        })
+    entry_field_any(fields, name)
 }
 
 fn transport_kind(fields: &[(Expr, Expr)]) -> Result<String> {

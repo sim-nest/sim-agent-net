@@ -1,1 +1,1 @@
-(quote (stream-fabric content-key eval-cassette ledgered-relay))
+(stream-fabric content-key eval-cassette ledgered-relay)

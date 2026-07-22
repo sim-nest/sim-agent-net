@@ -74,7 +74,8 @@ pub(crate) struct AgentState {
 
 #[non_citizen(
     reason = "live agent session handle; reconstruct via agent-runner/ModelRequest, server/Address, and topology/Package descriptors",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "agent-runner/ModelRequest"
 )]
 /// A live agent session: a named manifest of components with its own
 /// capabilities, isolation policy, and runtime state.
@@ -94,7 +95,8 @@ pub struct Agent {
 
 #[non_citizen(
     reason = "live agent fabric handle; reconstruct via topology/Package and agent-runner/ModelCard descriptors",
-    kind = "handle"
+    kind = "handle",
+    descriptor = "topology/Package"
 )]
 /// A swarm of agents that evaluates together as a single [`EvalFabric`],
 /// coordinating its members through an optional topology, planner, and

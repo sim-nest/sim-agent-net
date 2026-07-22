@@ -1,4 +1,4 @@
-use sim_kernel::CapabilityName;
+use sim_kernel::{CapabilityName, Cx, Result};
 
 /// Capability id `openai-gateway.serve` for serving the OpenAI gateway.
 pub const OPENAI_GATEWAY_SERVE_CAPABILITY: &str = "openai-gateway.serve";
@@ -14,8 +14,8 @@ pub const OPENAI_GATEWAY_FEDERATE_CAPABILITY: &str = "openai-gateway.federate";
 pub const OPENAI_GATEWAY_TOOLS_CAPABILITY: &str = "openai-gateway.tools";
 /// Capability id `ai-runner-cache` for using the AI runner plan cache.
 pub const AI_RUNNER_CACHE_CAPABILITY: &str = "ai-runner-cache";
-/// Capability id `network` for outbound network access.
-pub const NETWORK_CAPABILITY: &str = "network";
+/// Capability id `net/http` for outbound HTTP access.
+pub const NETWORK_CAPABILITY: &str = "net/http";
 /// Capability id `webhook-serve` for serving inbound webhook requests.
 pub const WEBHOOK_SERVE_CAPABILITY: &str = "webhook-serve";
 
@@ -65,11 +65,40 @@ pub fn webhook_serve_capability() -> CapabilityName {
 }
 
 /// Returns the capability set required to serve the OpenAI gateway: serve,
-/// network, and webhook-serve.
+/// net/http, and webhook-serve.
 pub fn openai_gateway_serve_capabilities() -> Vec<CapabilityName> {
     vec![
         openai_gateway_serve_capability(),
         network_capability(),
         webhook_serve_capability(),
     ]
+}
+
+/// Requires the capabilities needed to serve the OpenAI gateway.
+pub fn require_openai_gateway_serve_capabilities(cx: &Cx) -> Result<()> {
+    cx.require(&openai_gateway_serve_capability())?;
+    require_with_aliases(cx, network_capability(), net_http_aliases())?;
+    cx.require(&webhook_serve_capability())
+}
+
+fn net_http_aliases() -> &'static [&'static str] {
+    &["net.http", "net-connect", "network"]
+}
+
+fn require_with_aliases(
+    cx: &Cx,
+    canonical: CapabilityName,
+    aliases: &'static [&'static str],
+) -> Result<()> {
+    if cx.capabilities().contains(&canonical)
+        || aliases
+            .iter()
+            .any(|alias| cx.capabilities().contains(&CapabilityName::new(*alias)))
+    {
+        Ok(())
+    } else {
+        Err(sim_kernel::Error::CapabilityDenied {
+            capability: canonical,
+        })
+    }
 }
