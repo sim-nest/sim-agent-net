@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
 
+// conformance: Forge intent evaluation compiles explicit runtime work.
+
 use sim_kernel::{Symbol, testing::bare_cx as cx};
 
 use crate::{run_eval, standard_eval_arms, standard_eval_corpus};

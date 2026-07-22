@@ -1,5 +1,7 @@
 use std::sync::Mutex;
 
+// conformance: BRIDGE packet runtime validates ASK packet exchange.
+
 use sim_codec_bridge::{
     BridgeBook, assert_total_ownership, expr_to_packet, packet_to_expr, stamp_packet_cid,
 };

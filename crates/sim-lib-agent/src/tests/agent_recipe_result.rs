@@ -1,6 +1,8 @@
 use super::support::{eval_cx, install_agent_lib, install_roundtrip_codecs};
 use sim_kernel::{Args, Expr, Symbol};
 
+// conformance: output contract repair recipes return checked agent results.
+
 #[test]
 fn agent_recipe_result_decodes_embedded_recipe_expectation() {
     let mut cx = eval_cx();
