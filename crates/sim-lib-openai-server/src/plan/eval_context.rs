@@ -74,9 +74,11 @@ impl EvalContext {
 fn request_budget_entries(request: &Expr) -> Vec<(String, Expr)> {
     let mut entries = Vec::new();
     if let Some(Expr::Map(fields)) = request_field(request, "budget") {
-        entries.extend(fields.iter().filter_map(|(key, value)| {
-            field_name(key).map(|name| (name.to_owned(), value.clone()))
-        }));
+        entries.extend(
+            fields.iter().filter_map(|(key, value)| {
+                key_name(key).map(|name| (name.to_owned(), value.clone()))
+            }),
+        );
     }
     for name in [
         "max-tokens",
@@ -98,7 +100,7 @@ fn budget_keyword_entries(args: &[Expr]) -> Vec<(String, Expr)> {
         .collect()
 }
 
-fn field_name(expr: &Expr) -> Option<&str> {
+fn key_name(expr: &Expr) -> Option<&str> {
     match expr {
         Expr::Symbol(symbol) if symbol.namespace.is_none() => Some(symbol.name.as_ref()),
         Expr::String(value) => Some(value.as_str()),

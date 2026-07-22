@@ -128,16 +128,5 @@ fn event_field<'a>(
     })
 }
 
-fn event_field_expr<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(fields) = expr else {
-        return None;
-    };
-    fields.iter().find_map(|(key, value)| {
-        let Expr::Symbol(symbol) = key else {
-            return None;
-        };
-        (symbol.namespace.is_none() && symbol.name.as_ref() == name).then_some(value)
-    })
-}
-
 use sim_kernel::testing::eager_cx as cx;
+use sim_value::access::field as event_field_expr;

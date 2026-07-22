@@ -93,19 +93,19 @@ fn eval_request_from_expr(cx: &mut Cx, expr: Expr) -> Result<EvalRequest> {
     let required_capabilities = parse_capability_expr(required_table_field(&expr, "requires")?)?;
     let deadline = parse_deadline_expr(required_table_field(&expr, "deadline")?)?;
     let consistency = parse_consistency_expr(required_table_field(&expr, "consistency")?)?;
-    let mode = optional_table_field(&expr, "mode")
+    let mode = optional_table_value(&expr, "mode")
         .map(parse_mode_expr)
         .transpose()?
         .unwrap_or(EvalMode::Eval);
-    let answer_limit = optional_table_field(&expr, "answer-limit")
+    let answer_limit = optional_table_value(&expr, "answer-limit")
         .map(parse_optional_usize_expr)
         .transpose()?
         .flatten();
-    let stream_buffer = optional_table_field(&expr, "stream-buffer")
+    let stream_buffer = optional_table_value(&expr, "stream-buffer")
         .map(parse_optional_usize_expr)
         .transpose()?
         .flatten();
-    let stream = optional_table_field(&expr, "stream")
+    let stream = optional_table_value(&expr, "stream")
         .map(parse_bool_expr)
         .transpose()?
         .unwrap_or(false);
@@ -151,7 +151,7 @@ fn required_table_field<'a>(expr: &'a Expr, key: &str) -> Result<&'a Expr> {
         .ok_or_else(|| Error::Eval(format!("missing frame field {key}")))
 }
 
-fn optional_table_field<'a>(expr: &'a Expr, key: &str) -> Option<&'a Expr> {
+fn optional_table_value<'a>(expr: &'a Expr, key: &str) -> Option<&'a Expr> {
     let Expr::Map(entries) = expr else {
         return None;
     };

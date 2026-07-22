@@ -273,7 +273,7 @@ fn reject_unknown_policy_fields(fields: &[(Expr, Expr)]) -> Result<()> {
     const KNOWN_FIELDS: [&str; 5] = ["privacy", "cache", "cassette", "idempotent", "semantic-key"];
 
     for (key, _) in fields {
-        let Some(name) = field_name(key) else {
+        let Some(name) = key_name(key) else {
             return Err(Error::TypeMismatch {
                 expected: "bare symbol or string policy key",
                 found: "invalid policy key",
@@ -288,7 +288,7 @@ fn reject_unknown_policy_fields(fields: &[(Expr, Expr)]) -> Result<()> {
     Ok(())
 }
 
-fn field_name(key: &Expr) -> Option<&str> {
+fn key_name(key: &Expr) -> Option<&str> {
     match key {
         Expr::Symbol(symbol) if symbol.namespace.is_none() => Some(symbol.name.as_ref()),
         Expr::String(text) => Some(text.as_str()),
@@ -381,5 +381,32 @@ fn parse_symbol_text(text: &str) -> Symbol {
             Symbol::qualified(namespace.to_owned(), name.to_owned())
         }
         _ => Symbol::new(text.to_owned()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn skill_policy_keys_use_provider_key_policy() {
+        let entries = vec![
+            field("privacy", Expr::Symbol(Symbol::new("no-raw"))),
+            (
+                Expr::String("cache".to_owned()),
+                Expr::Symbol(Symbol::new("read-through")),
+            ),
+            (
+                Expr::Symbol(Symbol::qualified("skill", "cassette")),
+                Expr::Symbol(Symbol::new("record-replay")),
+            ),
+        ];
+
+        assert_eq!(key_name(&entries[0].0), Some("privacy"));
+        assert_eq!(key_name(&entries[1].0), Some("cache"));
+        assert_eq!(key_name(&entries[2].0), None);
+        assert!(optional_field(&entries, "privacy").is_some());
+        assert!(optional_field(&entries, "cache").is_some());
+        assert_eq!(optional_field(&entries, "cassette"), None);
     }
 }

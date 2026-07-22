@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-18T14:40:47+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "9760fe8d87c884499a4f9b5d61af726e330c61fe",
+  "git_commit": "37cf5656ac133125d1a60c0e107e2430a1894531",
   "repo": "sim-agent-net",
   "schema": "sim.provenance.v1",
-  "source_commit": "9760fe8d87c884499a4f9b5d61af726e330c61fe",
+  "source_commit": "37cf5656ac133125d1a60c0e107e2430a1894531",
   "source_remote": "https://github.com/sim-nest/sim-agent-net",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "535c80855f8e0663",
+  "workspace_hash": "412ebd43a37208b1",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 681,
+  "workspace_hash_input_count": 682,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-agent/Cargo.toml",
@@ -462,6 +462,7 @@
     "crates/sim-lib-openai-server/src/plan/parse.rs",
     "crates/sim-lib-openai-server/src/plan/shape.rs",
     "crates/sim-lib-openai-server/src/routes/admin.rs",
+    "crates/sim-lib-openai-server/src/routes/admin_tests.rs",
     "crates/sim-lib-openai-server/src/routes/audio.rs",
     "crates/sim-lib-openai-server/src/routes/batches.rs",
     "crates/sim-lib-openai-server/src/routes/chat_completions.rs",

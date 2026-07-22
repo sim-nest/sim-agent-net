@@ -55,22 +55,11 @@ pub(super) fn request_field_text(expr: &Expr, name: &str) -> Option<String> {
     })
 }
 
-pub(super) fn request_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| match (key, value) {
-        (Expr::Symbol(key), value) if key.namespace.is_none() && key.name.as_ref() == name => {
-            Some(value)
-        }
-        _ => None,
-    })
-}
-
 pub(super) fn branch_id(branch: u64) -> Expr {
     Expr::String(format!("branch-{branch}"))
 }
 
+pub(super) use sim_value::access::field as request_field;
 pub(super) use sim_value::build::entry as field;
 
 fn keyword_name(expr: &Expr) -> Option<&str> {

@@ -380,10 +380,10 @@ fn average_latency_expr(events: &[(ContentId, GatewayEvent)]) -> Expr {
         if event.kind().name.as_ref() != "final" {
             continue;
         }
-        let Some(model) = string_field(event.payload(), "model") else {
+        let Some(model) = string_value(event.payload(), "model") else {
             continue;
         };
-        let Some(usage) = map_field(event.payload(), "usage") else {
+        let Some(usage) = map_value(event.payload(), "usage") else {
             continue;
         };
         let Some(latency) = u64_field(usage, "latency-ms") else {
@@ -414,14 +414,14 @@ fn run_id_from_path(path: &str) -> Option<&str> {
     super::path::id_from_path(path, ADMIN_RUN_RETRIEVAL_PREFIX)
 }
 
-fn string_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a str> {
+fn string_value<'a>(expr: &'a Expr, name: &str) -> Option<&'a str> {
     field_any(expr, name).and_then(|value| match value {
         Expr::String(value) => Some(value.as_str()),
         _ => None,
     })
 }
 
-fn map_field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
+fn map_value<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
     field_any(expr, name).filter(|value| matches!(value, Expr::Map(_)))
 }
 
@@ -479,3 +479,7 @@ fn expr_key(expr: &Expr) -> String {
         _ => format!("{expr:?}"),
     }
 }
+
+#[cfg(test)]
+#[path = "admin_tests.rs"]
+mod admin_tests;

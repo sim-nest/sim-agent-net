@@ -81,18 +81,5 @@ fn descriptor_name(expr: &Expr) -> String {
         .unwrap_or_default()
 }
 
-fn field_value<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(fields) = expr else {
-        return None;
-    };
-    fields.iter().find_map(|(key, value)| {
-        let field_name = match key {
-            Expr::Symbol(symbol) if symbol.namespace.is_none() => symbol.name.as_ref(),
-            Expr::String(text) => text.as_str(),
-            _ => return None,
-        };
-        (field_name == name).then_some(value)
-    })
-}
-
+use sim_value::access::field_any as field_value;
 use sim_value::build::entry as field;

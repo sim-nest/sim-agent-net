@@ -1,6 +1,7 @@
 use crate::Tool;
 use sim_codec_chat::{is_model_request_expr, validate_chat_transcript};
 use sim_kernel::{Cx, Error, Expr, Result, Symbol, Value};
+use sim_value::access::field;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn is_model_request(expr: &Expr) -> bool {
@@ -150,7 +151,7 @@ fn reject_conflicting_descriptor(explicit: &Expr, generated: &Expr, symbol: &Sym
         return Ok(());
     };
     for (key, value) in entries {
-        let Some(name) = field_name(key) else {
+        let Some(name) = key_name(key) else {
             continue;
         };
         if matches!(name, "name" | "tool" | "function") {
@@ -240,20 +241,7 @@ fn symbol_from_text(text: &str) -> Symbol {
     }
 }
 
-fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| {
-        if is_field(key, name) {
-            Some(value)
-        } else {
-            None
-        }
-    })
-}
-
-fn field_name(expr: &Expr) -> Option<&str> {
+fn key_name(expr: &Expr) -> Option<&str> {
     match expr {
         Expr::Symbol(symbol) if symbol.namespace.is_none() => Some(symbol.name.as_ref()),
         _ => None,
@@ -261,7 +249,47 @@ fn field_name(expr: &Expr) -> Option<&str> {
 }
 
 fn is_field(expr: &Expr, name: &str) -> bool {
-    matches!(field_name(expr), Some(found) if found == name)
+    matches!(key_name(expr), Some(found) if found == name)
 }
 
 use sim_value::build::entry as key_expr;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn canonical_field_keeps_bare_symbol_policy() {
+        let map = Expr::Map(vec![
+            key_expr("bare", Expr::String("accepted".to_owned())),
+            (
+                Expr::String("string".to_owned()),
+                Expr::String("rejected".to_owned()),
+            ),
+            (
+                Expr::Symbol(Symbol::qualified("provider", "qualified")),
+                Expr::String("rejected".to_owned()),
+            ),
+        ]);
+
+        assert!(matches!(
+            field(&map, "bare"),
+            Some(Expr::String(value)) if value == "accepted"
+        ));
+        assert_eq!(field(&map, "string"), None);
+        assert_eq!(field(&map, "qualified"), None);
+    }
+
+    #[test]
+    fn descriptor_key_names_are_bare_symbols_only() {
+        let cases = [
+            (Expr::Symbol(Symbol::new("bare")), Some("bare")),
+            (Expr::String("string".to_owned()), None),
+            (Expr::Symbol(Symbol::qualified("ns", "name")), None),
+        ];
+
+        for (expr, expected) in cases {
+            assert_eq!(key_name(&expr), expected);
+        }
+    }
+}

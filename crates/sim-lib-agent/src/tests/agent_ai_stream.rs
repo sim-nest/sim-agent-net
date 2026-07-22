@@ -4,6 +4,7 @@ use super::support::{
 use crate::value_from_expr;
 use sim_kernel::{Expr, Symbol, seq_close_value, seq_next_value};
 use sim_lib_server::{EvalSite, FrameKind, ServerFrame, StreamSink, eval_reply_from_frame};
+use sim_value::access::field;
 
 #[derive(Default)]
 struct CollectSink {
@@ -485,16 +486,4 @@ fn key_bool(name: &str, value: bool) -> (Expr, Expr) {
 
 fn key_expr(name: &str, value: Expr) -> (Expr, Expr) {
     (Expr::Symbol(Symbol::new(name)), value)
-}
-
-fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = expr else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| match key {
-        Expr::Symbol(symbol) if symbol.namespace.is_none() && symbol.name.as_ref() == name => {
-            Some(value)
-        }
-        _ => None,
-    })
 }
