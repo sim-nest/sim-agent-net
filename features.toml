@@ -54,7 +54,7 @@ title = "BRIDGE packet runtime"
 summary = "Transmit, receive, check, and route symmetric human-model packets with agent and bridge runtime support."
 owner = "crate/sim-lib-agent"
 audiences = ["code", "framework"]
-guidance = "Use this row when connecting model work to BRIDGE packet runtime behavior."
+guidance = "Use this row when connecting model work to BRIDGE packet runtime behavior. Call `bridge/run-ask` with any EvalFabric and a checked ASK packet to execute the canonical bounded decode, Shape-validation, repair, and receive-check loop."
 claims_anchors = [
   "anchor/crate/sim-lib-agent",
   "anchor/crate/sim-lib-bridge",
@@ -71,6 +71,7 @@ claims_anchors = [
   "anchor/export/sim-lib-bridge/bridge/fetch",
   "anchor/export/sim-lib-bridge/bridge/given.materialize",
   "anchor/export/sim-lib-bridge/bridge/packet",
+  "anchor/export/sim-lib-bridge/bridge/run-ask",
   "anchor/export/sim-lib-bridge/bridge/return",
   "anchor/export/sim-lib-bridge/bridge/warrant",
   "anchor/export/sim-lib-cookbook/codec/algol",

@@ -603,16 +603,17 @@ Specimen `spec-test/sim-agent-net/crates/sim-lib-bridge/src/tests/ask` is checke
 Source `crates/sim-lib-bridge/src/tests/ask.rs`:
 
 ```rust
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 // conformance: BRIDGE packet runtime validates ASK packet exchange.
 
 use sim_codec_bridge::{
-    BridgeBook, assert_total_ownership, expr_to_packet, packet_to_expr, stamp_packet_cid,
+    BridgeBook, BridgeCallPayload, assert_total_ownership, expr_to_packet, packet_to_expr,
+    stamp_packet_cid,
 };
 use sim_kernel::{
-    Args, Callable, Cx, Error, EvalFabric, EvalReply, EvalRequest, Export, Expr, Lib, Result,
-    Symbol,
+    Args, Callable, Cx, Error, EvalFabric, EvalReply, EvalRequest, Export, Expr, Lib,
+    NumberLiteral, Object, ObjectCompat, Result, Symbol,
 };
 use sim_lib_agent_runner_core::ModelResponse;
 use sim_lib_stream_fabric::ContentKey;
@@ -620,7 +621,8 @@ use sim_value::build::entry;
 
 use crate::{
     BridgeFunction, BridgeFunctionKind, BridgeLib, RepairPolicy, ask_packet_with_model_params,
-    bridge_ask_symbol, bridge_request_content_key, render_model_face, run_ask, run_ask_with_policy,
+    bridge_ask_symbol, bridge_request_content_key, bridge_run_ask_symbol, install_bridge_lib,
+    render_model_face, run_ask, run_ask_with_policy,
 };
 
 use super::{cx, text_content};
@@ -661,6 +663,22 @@ impl EvalFabric for SequenceFabric {
             diagnostics: Vec::new(),
             trace: None,
         })
+    }
+}
+
+impl Object for SequenceFabric {
+    fn display(&self, _cx: &mut Cx) -> Result<String> {
+        Ok("#<test-ask-fabric>".to_owned())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+impl ObjectCompat for SequenceFabric {
+    fn as_eval_fabric(&self) -> Option<&dyn EvalFabric> {
+        Some(self)
     }
 }
 
@@ -867,7 +885,15 @@ fn bridge_ask_runtime_export_constructs_packet() {
         .unwrap();
 
     let value = BridgeFunction::new(BridgeFunctionKind::Ask)
-        .call(&mut cx, Args::new(vec![target, call, params, return_shape]))
+        .call(
+            &mut cx,
+            Args::new(vec![
+                target.clone(),
+                call.clone(),
+                params.clone(),
+                return_shape.clone(),
+            ]),
+        )
         .unwrap();
     let packet =
         sim_codec_bridge::expr_to_packet(&value.object().as_expr(&mut cx).unwrap()).unwrap();
@@ -875,6 +901,116 @@ fn bridge_ask_runtime_export_constructs_packet() {
     assert_eq!(packet.header.to, vec!["model:drafter".to_owned()]);
     assert_eq!(packet.body[0].kind, Symbol::qualified("bridge", "Call"));
     assert_eq!(packet.body[1].kind, Symbol::qualified("bridge", "Return"));
+
+    let model_params = cx
+        .factory()
+        .expr(Expr::Map(vec![entry(
+            "temperature",
+            Expr::String("0".to_owned()),
+        )]))
+        .unwrap();
+    let value = BridgeFunction::new(BridgeFunctionKind::Ask)
+        .call(
+            &mut cx,
+            Args::new(vec![target, call, params, return_shape, model_params]),
+        )
+        .unwrap();
+    let packet = expr_to_packet(&value.object().as_expr(&mut cx).unwrap()).unwrap();
+    let call = BridgeCallPayload::from_expr(&packet.body[0].payload).unwrap();
+
+    assert_eq!(
+        call.model_params,
+        vec![(Symbol::new("temperature"), Expr::String("0".to_owned()))]
+    );
+}
+
+#[test]
+fn bridge_run_ask_executes_third_party_fabric_from_lisp() {
+    let mut cx = cx();
+    install_bridge_lib(&mut cx).unwrap();
+    let packet = ask_request(&mut cx, Expr::Symbol(Symbol::qualified("core", "String")));
+    let fabric = Arc::new(SequenceFabric::new(vec![json_response(vec![
+        Expr::String(json_text(&Expr::String("typed answer".to_owned()))),
+    ])]));
+    let fabric_symbol = Symbol::qualified("test", "ask-fabric");
+    let packet_symbol = Symbol::qualified("test", "ask-packet");
+    let fabric_value = cx.factory().opaque(fabric).unwrap();
+    let packet_value = cx.factory().expr(packet_to_expr(&packet)).unwrap();
+    cx.registry_mut()
+        .register_value(fabric_symbol.clone(), fabric_value)
+        .unwrap();
+    cx.registry_mut()
+        .register_value(packet_symbol.clone(), packet_value)
+        .unwrap();
+
+    let value = cx
+        .eval_expr(Expr::Call {
+            operator: Box::new(Expr::Symbol(bridge_run_ask_symbol())),
+            args: vec![Expr::Symbol(fabric_symbol), Expr::Symbol(packet_symbol)],
+        })
+        .unwrap();
+    let reply = expr_to_packet(&value.object().as_expr(&mut cx).unwrap()).unwrap();
+
+    assert_eq!(
+        reply.body[0].payload,
+        Expr::String("typed answer".to_owned())
+    );
+}
+
+#[test]
+fn bridge_run_ask_rejects_bad_target_and_malformed_packet() {
+    let mut cx = cx();
+    let packet = ask_request(&mut cx, Expr::Symbol(Symbol::qualified("core", "String")));
+    let bad_target = cx.factory().string("not a fabric".to_owned()).unwrap();
+    let packet_value = cx.factory().expr(packet_to_expr(&packet)).unwrap();
+    let err = BridgeFunction::new(BridgeFunctionKind::RunAsk)
+        .call(&mut cx, Args::new(vec![bad_target, packet_value]))
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        Error::TypeMismatch {
+            expected: "eval-fabric",
+            ..
+        }
+    ));
+
+    let fabric = Arc::new(SequenceFabric::new(Vec::new()));
+    let fabric_value = cx.factory().opaque(fabric).unwrap();
+    let malformed = cx.factory().bool(false).unwrap();
+    let err = BridgeFunction::new(BridgeFunctionKind::RunAsk)
+        .call(&mut cx, Args::new(vec![fabric_value, malformed]))
+        .unwrap_err();
+    assert!(err.to_string().contains("packet"));
+}
+
+#[test]
+fn bridge_run_ask_shape_rejection_obeys_retry_bound() {
+    let mut cx = cx();
+    let packet = ask_request(&mut cx, Expr::Symbol(Symbol::qualified("core", "String")));
+    let fabric = Arc::new(SequenceFabric::new(vec![
+        json_response(vec![Expr::String(json_text(&Expr::Bool(false)))]),
+        json_response(vec![Expr::String(json_text(&Expr::Bool(false)))]),
+        json_response(vec![Expr::String(json_text(&Expr::Bool(false)))]),
+    ]));
+    let fabric_value = cx.factory().opaque(fabric.clone()).unwrap();
+    let packet_value = cx.factory().expr(packet_to_expr(&packet)).unwrap();
+    let retries = cx
+        .factory()
+        .expr(Expr::Number(NumberLiteral {
+            domain: Symbol::new("u8"),
+            canonical: "9".to_owned(),
+        }))
+        .unwrap();
+
+    let err = BridgeFunction::new(BridgeFunctionKind::RunAsk)
+        .call(
+            &mut cx,
+            Args::new(vec![fabric_value, packet_value, retries]),
+        )
+        .unwrap_err();
+
+    assert!(err.to_string().contains("shape"));
+    assert_eq!(fabric.keys().len(), 3);
 }
 ```
 

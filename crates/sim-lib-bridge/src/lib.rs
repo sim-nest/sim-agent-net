@@ -44,7 +44,10 @@
 //!
 //! `materialize_given` / `fetch_obligation` implement budgeted context with the
 //! `Fetch` affordance; `install_bridge_lib` / `BridgeLib` register the runtime
-//! verbs (`bridge/tx`, `bridge/rx`, `bridge/ask`, `bridge/brief`, ...).
+//! verbs (`bridge/tx`, `bridge/rx`, `bridge/ask`, `bridge/run-ask`,
+//! `bridge/brief`, ...). `bridge/run-ask` accepts any object exposing
+//! [`EvalFabric`](sim_kernel::EvalFabric), a packet expression, and an optional
+//! bounded retry count.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -90,7 +93,8 @@ pub use repair::{AskFailure, RepairPolicy};
 pub use report::{BridgeObligation, BridgeReport};
 pub use runtime::{
     BridgeFunction, BridgeFunctionKind, BridgeLib, bridge_ask_symbol, bridge_brief_symbol,
-    bridge_report_symbol, bridge_rx_symbol, bridge_tx_symbol, install_bridge_lib, manifest_name,
+    bridge_report_symbol, bridge_run_ask_symbol, bridge_rx_symbol, bridge_tx_symbol,
+    install_bridge_lib, manifest_name,
 };
 pub use rx::{bridge_rx, bridge_rx_response, effective_caps, rx_check};
 pub use tx::{bridge_tx, prepare_packet, render_model_face, run_bridge};
