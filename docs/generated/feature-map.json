@@ -117,11 +117,6 @@
           "workspace_edges": []
         },
         {
-          "edges": [],
-          "name": "native-inference",
-          "workspace_edges": []
-        },
-        {
           "edges": [
             "dep:sim-wasm-abi"
           ],

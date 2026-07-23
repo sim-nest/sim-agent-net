@@ -400,6 +400,7 @@ impl HttpRunner {
         if !explicit_output_grammar_matches(&request.extra, dialect) {
             remove_extra(&mut request.extra, OUTPUT_GRAMMAR_EXTRA);
         }
+        normalize_return_shape_for_output_grammar(&mut request.extra);
         upsert_extra(
             &mut request.extra,
             OUTPUT_GRAMMAR_DIALECT_EXTRA,
@@ -477,6 +478,16 @@ fn extra_field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> 
     })
 }
 
+fn extra_field_mut<'a>(entries: &'a mut [(Expr, Expr)], name: &str) -> Option<&'a mut Expr> {
+    entries.iter_mut().find_map(|(key, value)| {
+        if is_field(key, name) {
+            Some(value)
+        } else {
+            None
+        }
+    })
+}
+
 fn extra_symbol(entries: &[(Expr, Expr)], name: &str) -> Option<Symbol> {
     match extra_field(entries, name) {
         Some(Expr::Symbol(symbol)) => Some(symbol.clone()),
@@ -500,6 +511,24 @@ fn strip_output_grammar(entries: &mut Vec<(Expr, Expr)>) {
 
 fn remove_extra(entries: &mut Vec<(Expr, Expr)>, name: &str) {
     entries.retain(|(key, _)| !is_field(key, name));
+}
+
+fn normalize_return_shape_for_output_grammar(entries: &mut [(Expr, Expr)]) {
+    let Some(shape_expr) = extra_field_mut(entries, RETURN_SHAPE_EXTRA) else {
+        return;
+    };
+    let Expr::Symbol(symbol) = shape_expr else {
+        return;
+    };
+    if symbol.namespace.as_deref() != Some("core") {
+        return;
+    }
+    if matches!(
+        symbol.name.as_ref(),
+        "Any" | "Bool" | "List" | "Map" | "Nil" | "Number" | "String" | "Symbol"
+    ) {
+        *shape_expr = Expr::Symbol(Symbol::new(symbol.name.to_string()));
+    }
 }
 
 fn explicit_output_grammar_matches(entries: &[(Expr, Expr)], dialect: GrammarDialect) -> bool {

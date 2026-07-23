@@ -123,6 +123,32 @@ fn ollama_provider_selects_gbnf_output_dialect() {
 }
 
 #[test]
+fn ollama_provider_normalizes_core_shape_for_output_grammar() {
+    let runner = HttpRunner::new_ollama(
+        Symbol::qualified("runner", "ollama"),
+        "qwen-test",
+        Symbol::new("local"),
+        "http://127.0.0.1:11434",
+        Symbol::qualified("codec", "ollama"),
+        Duration::from_secs(1),
+        false,
+        false,
+        64 * 1024,
+    );
+
+    let request = runner.prepare_output_grammar(core_shape_model_request());
+    let body = runner.encode_request(request, false).unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    assert!(
+        json["grammar"]
+            .as_str()
+            .is_some_and(|grammar| grammar.contains("root")),
+        "{json:?}"
+    );
+}
+
+#[test]
 fn provider_without_grammar_support_strips_grammar_for_repair() {
     let profile = provider_profiles::anthropic();
     let runner = HttpRunner::new_provider(ProviderConfig {
@@ -253,6 +279,22 @@ fn shape_model_request_with_stale_grammar() -> ModelRequest {
     request.extra.push(entry(
         OUTPUT_GRAMMAR_DIALECT_EXTRA,
         Expr::Symbol(Symbol::new("json-schema")),
+    ));
+    request
+}
+
+fn core_shape_model_request() -> ModelRequest {
+    let mut request = shape_model_request();
+    request.extra.retain(|(key, _)| {
+        !matches!(
+            key,
+            Expr::Symbol(symbol)
+                if symbol.namespace.is_none() && symbol.name.as_ref() == RETURN_SHAPE_EXTRA
+        )
+    });
+    request.extra.push(entry(
+        RETURN_SHAPE_EXTRA,
+        Expr::Symbol(Symbol::qualified("core", "String")),
     ));
     request
 }

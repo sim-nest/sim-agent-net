@@ -132,6 +132,23 @@ fn refusal_expr() -> Expr {
 }
 
 #[test]
+fn ask_packet_ceiling_admits_real_runner_powers() {
+    let mut cx = cx();
+    let packet = ask_request(&mut cx, Expr::Symbol(Symbol::qualified("core", "String")));
+
+    for capability in [
+        Symbol::qualified("ai", "run"),
+        Symbol::qualified("capability", "ai-runner"),
+        Symbol::qualified("capability", "ai-runner-local"),
+        Symbol::qualified("capability", "ai-runner-network"),
+        Symbol::qualified("capability", "exec"),
+        Symbol::qualified("capability", "host.process"),
+    ] {
+        assert!(packet.header.ceiling.contains(&capability));
+    }
+}
+
+#[test]
 fn identical_calls_share_replay_key() {
     let mut cx = cx();
     let book = BridgeBook::standard();

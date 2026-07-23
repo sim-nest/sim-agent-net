@@ -238,7 +238,7 @@ fn one_prompt_graph_realizes_against_three_placements() {
     register_loaded_model_site(
         &mut cx,
         "model-site:local",
-        "sim-local-stub",
+        "sim-local-modeled",
         "ok-local",
         None,
     );
@@ -275,7 +275,7 @@ fn cached_local_placement_skips_second_inference() {
     register_loaded_model_site(
         &mut cx,
         "model-site:cached-local",
-        "sim-local-stub",
+        "sim-local-modeled",
         "cached-local",
         Some(calls.clone()),
     );

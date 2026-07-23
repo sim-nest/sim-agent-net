@@ -65,7 +65,7 @@ pub fn ask_packet_with_model_params(
             parents: Vec::new(),
             task: Symbol::new("C1"),
             output: Symbol::new("O1"),
-            ceiling: vec![Symbol::qualified("ai", "run")],
+            ceiling: ask_capability_ceiling(),
             context: Vec::new(),
             provenance: BridgeProvenance::default(),
         },
@@ -86,6 +86,18 @@ pub fn ask_packet_with_model_params(
         ],
         warrant: None,
     })
+}
+
+fn ask_capability_ceiling() -> Vec<Symbol> {
+    [
+        Symbol::qualified("ai", "run"),
+        Symbol::qualified("capability", "ai-runner"),
+        Symbol::qualified("capability", "ai-runner-local"),
+        Symbol::qualified("capability", "ai-runner-network"),
+        Symbol::qualified("capability", "exec"),
+        Symbol::qualified("capability", "host.process"),
+    ]
+    .into()
 }
 
 /// Runs an ASK packet with the default bounded repair policy.

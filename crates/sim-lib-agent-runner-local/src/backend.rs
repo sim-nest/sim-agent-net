@@ -9,8 +9,6 @@ pub struct LocalModelBackend {
     runner: Symbol,
     model: String,
     placement_key: String,
-    #[cfg(feature = "native-inference")]
-    engine: crate::ffi::Engine,
 }
 
 impl LocalModelBackend {
@@ -20,8 +18,6 @@ impl LocalModelBackend {
             runner: Symbol::new(LOCAL_MODEL_RUNNER),
             model: LOCAL_MODEL_ID.to_owned(),
             placement_key: LOCAL_MODEL_SITE_KEY.to_owned(),
-            #[cfg(feature = "native-inference")]
-            engine: crate::ffi::Engine::new(),
         }
     }
 
@@ -30,10 +26,10 @@ impl LocalModelBackend {
         &self.placement_key
     }
 
-    pub(crate) fn stub_response(&self, request: ModelRequest) -> ModelResponse {
+    fn modeled_response(&self, request: ModelRequest) -> ModelResponse {
         let content = vec![Expr::Map(vec![
             key_expr("type", Expr::Symbol(Symbol::new("text"))),
-            key_expr("text", stub_text(&request)),
+            key_expr("text", modeled_text(&request)),
         ])];
         let mut response = ModelResponse::new(
             self.runner.clone(),
@@ -41,9 +37,10 @@ impl LocalModelBackend {
             content,
             Symbol::new("stop"),
         );
-        response
-            .extra
-            .push(key_expr("backend", Expr::Symbol(Symbol::new("local-stub"))));
+        response.extra.push(key_expr(
+            "backend",
+            Expr::Symbol(Symbol::new("modeled-local")),
+        ));
         response
     }
 }
@@ -74,23 +71,16 @@ impl ModelRunner for LocalModelBackend {
     }
 
     fn infer(&self, _cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
-        #[cfg(feature = "native-inference")]
-        {
-            self.engine.infer(self, request)
-        }
-        #[cfg(not(feature = "native-inference"))]
-        {
-            Ok(self.stub_response(request))
-        }
+        Ok(self.modeled_response(request))
     }
 }
 
-fn stub_text(request: &ModelRequest) -> Expr {
+fn modeled_text(request: &ModelRequest) -> Expr {
     let task_text = match &request.task {
         Expr::String(text) if !text.is_empty() => text.as_str(),
         _ => "request",
     };
-    Expr::String(format!("sim-local-stub-ok: {task_text}"))
+    Expr::String(format!("sim-local-modeled-ok: {task_text}"))
 }
 
 fn key_expr(key: &str, value: Expr) -> (Expr, Expr) {

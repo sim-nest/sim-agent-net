@@ -82,9 +82,9 @@ Agent and model fabric:
   (`ProcessRunner`, `ProcessProtocol::{JsonStdio, LineText}`) under capability
   checks, including incremental line-text streaming.
 - `sim-lib-agent-runner-local` -- loadable local model placement sites. The
-  deterministic default registers `model-site:local` with no model files;
-  optional native and wasm paths stay capability-gated and isolated in this
-  backend crate.
+  deterministic modeled site registers `model-site:local` with no model files;
+  real local execution uses the process runner, loopback HTTP profiles, or the
+  capability-gated wasm model site.
 
 Skills, tools, and gateways:
 

@@ -92,10 +92,10 @@ claims_specimens = [
 [[feature]]
 id = "feature/sim-agent-net/model-runner-framework"
 title = "Model runner framework"
-summary = "Run model requests through provider-neutral runner contracts, HTTP profiles, process adapters, and loadable model sites."
+summary = "Run local GenAI requests through provider-neutral runner contracts, HTTP profiles, process adapters, and loadable model sites."
 owner = "crate/sim-lib-agent-runner-core"
 audiences = ["code", "framework"]
-guidance = "Use this row when adding model execution. Implement `ModelRunner` for an in-process or host adapter, use the HTTP profiles for provider and loopback services, use the process runner for subprocess adapters, or expose a loadable `Export::Site` for placement through `runner/place` and `model/at`."
+guidance = "Use this row when adding model execution. Implement `ModelRunner` for an in-process or host adapter, use the HTTP profiles for provider and loopback local GenAI services, use the process runner for subprocess adapters, or expose a loadable `Export::Site` for placement through `runner/place` and `model/at`. The bundled `model-site:local` runner is a modeled fixture; real local execution crosses one of those runner or site boundaries."
 claims_anchors = [
   "anchor/crate/sim-lib-agent-runner-core",
   "anchor/crate/sim-lib-agent-runner-http",
@@ -163,7 +163,7 @@ title = "Checked GenAI assembly recipe"
 summary = "Compose one checked generative exchange from BRIDGE packets, model placement, JSON terminal content, and a return Shape."
 owner = "crate/sim-lib-agent"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when assembling a GenAI exchange from reusable pieces. Place a model target at `model-site:genai`, run the recipe, and replace the placement to change backends without changing the recipe body."
+guidance = "Use this row when assembling a local GenAI exchange from reusable pieces. Place a model target at `model-site:genai`, run the recipe, and replace the placement to move between fake, subprocess, loopback Ollama, provider, or loadable-site backends without changing the recipe body."
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly",
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly",
@@ -315,11 +315,11 @@ id = "route/run-genai-locally"
 task = "Run GenAI locally"
 audiences = ["user", "code", "framework"]
 steps = [
-  { feature = "feature/sim-agent-net/model-runner-framework", why = "The runner framework supplies provider-neutral requests, process adapters, loopback HTTP profiles, and loadable model sites." },
+  { feature = "feature/sim-agent-net/model-runner-framework", why = "The runner framework supplies provider-neutral requests, process adapters, loopback HTTP profiles, and loadable model sites for local GenAI execution." },
   { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE carries the checked model-facing packet workflow." },
   { feature = "feature/sim-agent-net/eval-fabric-sites", why = "EvalFabric placement resolves the selected local model site." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_placement_swap", why = "The checked specimen realizes one prompt through fake, local, and remote placements." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly", why = "The assembly recipe is the reusable checked exchange run after placing the local model site." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly", why = "The checked specimen runs the same recipe through fake, subprocess, and loopback Ollama placements." },
 ]
 
 [[route]]

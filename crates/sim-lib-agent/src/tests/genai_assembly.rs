@@ -1,71 +1,32 @@
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-};
+use std::sync::Arc;
 
 // conformance: the GenAI assembly recipe runs one checked ASK exchange through a placed target.
 
-use super::support::{eval_cx, install_agent_lib, install_roundtrip_codecs};
-use crate::{
-    AI_RUNNER_PLACEMENT_CAPABILITY, ExternalRunnerSpec, ModelCard, ModelRequest, ModelResponse,
-    ModelRunner, RECIPES, external_runner_value,
+#[cfg(feature = "runner-process")]
+use super::genai_assembly_support::{
+    ProcessFixture, decode_process_request, model_response_for, process_runner, shell_quote_path,
+    shell_quote_text,
 };
+use super::genai_assembly_support::{RecordingRunner, assert_recorded_contract, json_text};
+#[cfg(feature = "runner-ollama")]
+use super::genai_assembly_support::{
+    assert_ollama_card_is_local, bind_loopback_listener, http_json_body, ollama_runner,
+    spawn_ollama_recipe_mock,
+};
+use super::support::{eval_cx, install_agent_lib, install_roundtrip_codecs};
+use crate::{AI_RUNNER_PLACEMENT_CAPABILITY, ExternalRunnerSpec, RECIPES, external_runner_value};
 use sim_codec::{Input, decode_eval_expr_with_codec, decode_with_codec, lower_operator_nodes};
 use sim_cookbook::{RecipeCard, RecipeStore};
 use sim_kernel::{
-    Args, CapabilityName, CapabilitySet, Cx, EvalRequest, Expr, ReadPolicy, Result, Symbol, Value,
+    Args, CapabilityName, CapabilitySet, Cx, Expr, ReadPolicy, Symbol, Value,
     macro_expand_eval_capability, read_construct_capability, read_eval_capability,
 };
 use sim_lib_core::{SurfacePackLib, SurfacePackSpec};
-use sim_value::{access::field, build::entry};
+use sim_value::access::field;
 
 const RECIPE_ID: &str = "agent/01-basics/genai-assembly";
 const MODEL_SITE: &str = "model-site:genai";
 const SETUP_SOURCE: &str = include_str!("../../recipes/01-basics/genai-assembly/setup.siml");
-
-struct RecordingRunner {
-    requests: Mutex<Vec<Expr>>,
-    responses: Mutex<VecDeque<String>>,
-}
-
-impl RecordingRunner {
-    fn new(responses: impl IntoIterator<Item = String>) -> Self {
-        Self {
-            requests: Mutex::new(Vec::new()),
-            responses: Mutex::new(responses.into_iter().collect()),
-        }
-    }
-
-    fn requests(&self) -> Vec<Expr> {
-        self.requests.lock().unwrap().clone()
-    }
-}
-
-impl ModelRunner for RecordingRunner {
-    fn card(&self) -> ModelCard {
-        ModelCard::new(
-            Symbol::qualified("runner", "genai-recording"),
-            "genai/recording",
-            Symbol::new("fixture"),
-            Symbol::new("local"),
-        )
-    }
-
-    fn infer(&self, _cx: &mut Cx, _request: ModelRequest) -> Result<ModelResponse> {
-        let text = self
-            .responses
-            .lock()
-            .unwrap()
-            .pop_front()
-            .ok_or_else(|| sim_kernel::Error::Eval("recording runner exhausted".to_owned()))?;
-        Ok(model_response("genai/recording", text))
-    }
-
-    fn infer_request(&self, cx: &mut Cx, request: EvalRequest) -> Result<ModelResponse> {
-        self.requests.lock().unwrap().push(request.expr);
-        self.infer(cx, ModelRequest::default())
-    }
-}
 
 #[test]
 fn genai_assembly_recipe_runs_exact_source_against_replaceable_target() {
@@ -96,6 +57,87 @@ fn genai_assembly_recipe_runs_exact_source_against_replaceable_target() {
         Expr::String("recorded checked answer".to_owned())
     );
     assert_recorded_contract(&recording.requests());
+
+    #[cfg(feature = "runner-process")]
+    {
+        let fixture = ProcessFixture::new();
+        let response = json_text(&Expr::from(model_response_for(
+            Symbol::qualified("runner", "genai-process"),
+            "genai/process",
+            json_text(&Expr::String("process checked answer".to_owned())),
+        )));
+        let process = process_runner(
+            &mut cx,
+            &format!(
+                "cat > {}; printf '%s' {} | tee {}",
+                shell_quote_path(fixture.request_path()),
+                shell_quote_text(&response),
+                shell_quote_path(fixture.output_path())
+            ),
+        );
+        place_runner(&mut cx, process, true);
+
+        grant_real_local_caps(&mut cx);
+        let processed =
+            eval_recipe_source_with_real_local_caps(&mut cx, &card).unwrap_or_else(|err| {
+                panic!(
+                    "process recipe eval failed: {err:?}; stdout: {:?}; request: {:?}",
+                    std::fs::read_to_string(fixture.output_path()),
+                    std::fs::read_to_string(fixture.request_path())
+                )
+            });
+        assert_eq!(
+            reply_payload_from_expr(&processed),
+            Expr::String("process checked answer".to_owned())
+        );
+        assert_recorded_contract(&[decode_process_request(fixture.request_path())]);
+        assert_eq!(
+            std::fs::read_to_string(fixture.output_path()).unwrap(),
+            response
+        );
+    }
+
+    #[cfg(feature = "runner-ollama")]
+    if let Some(listener) = bind_loopback_listener() {
+        let port = listener.local_addr().unwrap().port();
+        let server = spawn_ollama_recipe_mock(listener);
+        let ollama = ollama_runner(&mut cx, port);
+        assert_ollama_card_is_local(&mut cx, &ollama);
+        place_runner(&mut cx, ollama, true);
+
+        grant_real_local_caps(&mut cx);
+        let run = eval_recipe_source_with_real_local_caps(&mut cx, &card);
+        let requests = server.join().unwrap();
+        let run =
+            run.unwrap_or_else(|err| panic!("ollama eval failed: {err:?}; requests: {requests:?}"));
+        assert_eq!(
+            reply_payload_from_expr(&run),
+            Expr::String("ollama checked answer".to_owned())
+        );
+        assert_eq!(requests.len(), 1, "{requests:?}");
+        let request = &requests[0];
+        assert!(request.starts_with("POST /api/chat HTTP/1.1"), "{request}");
+        assert!(!request.contains("Authorization:"), "{request}");
+        let body = http_json_body(request);
+        assert_eq!(body["model"], "qwen3.5:4b");
+        assert_eq!(body["stream"], false);
+        assert!(
+            body["grammar"]
+                .as_str()
+                .is_some_and(|grammar| grammar.contains("root")),
+            "{body:?}"
+        );
+        assert!(
+            body["messages"].as_array().is_some_and(|messages| {
+                messages.iter().any(|message| {
+                    message["content"]
+                        .as_str()
+                        .is_some_and(|content| content.contains("Explain SIM in one sentence."))
+                })
+            }),
+            "{body:?}"
+        );
+    }
 
     let fake = fake_runner(
         &mut cx,
@@ -176,6 +218,24 @@ fn assert_run_ok(cx: &mut Cx, card: &RecipeCard, run: &sim_cookbook::RecipeRun) 
     panic!("expected recipe run to pass, got {run:?}; direct eval: {direct:?}");
 }
 
+#[cfg(any(feature = "runner-ollama", feature = "runner-process"))]
+fn eval_recipe_source_with_real_local_caps(
+    cx: &mut Cx,
+    card: &RecipeCard,
+) -> sim_kernel::Result<Expr> {
+    let expr = lower_operator_nodes(
+        decode_eval_expr_with_codec(
+            cx,
+            &Symbol::qualified("codec", card.codec.as_str()),
+            Input::Text(setup_text(card).to_owned()),
+            trusted_recipe_read_policy(),
+        )
+        .unwrap(),
+    );
+    let value = cx.with_capabilities(real_local_capabilities(cx), |cx| cx.eval_expr(expr))?;
+    value.object().as_expr(cx)
+}
+
 fn trusted_recipe_read_policy() -> ReadPolicy {
     ReadPolicy {
         trust: sim_kernel::TrustLevel::TrustedSource,
@@ -224,25 +284,37 @@ fn place_runner(cx: &mut Cx, runner: Value, replace: bool) {
         .unwrap();
 }
 
-fn model_response(model: &str, text: String) -> ModelResponse {
-    let expr = sim_codec_chat::model_response_expr(
-        Symbol::qualified("runner", "genai-recording"),
-        model,
-        vec![text_content(text)],
-        Symbol::new("stop"),
-    );
-    ModelResponse::try_from(expr).unwrap()
+#[cfg(any(feature = "runner-ollama", feature = "runner-process"))]
+fn real_local_capabilities(cx: &Cx) -> CapabilitySet {
+    let mut capabilities = cx.capabilities().clone();
+    for capability in [
+        "ai-runner",
+        "ai-runner-local",
+        "ai-runner-network",
+        "ai/run",
+        "exec",
+        "host.process",
+    ] {
+        capabilities.insert(CapabilityName::new(capability));
+    }
+    capabilities.insert(read_construct_capability());
+    capabilities.insert(read_eval_capability());
+    capabilities.insert(macro_expand_eval_capability());
+    capabilities
 }
 
-fn text_content(text: String) -> Expr {
-    Expr::Map(vec![
-        entry("type", Expr::Symbol(Symbol::new("text"))),
-        entry("text", Expr::String(text)),
-    ])
-}
-
-fn json_text(expr: &Expr) -> String {
-    sim_codec_json::expr_to_json(expr).to_string()
+#[cfg(any(feature = "runner-ollama", feature = "runner-process"))]
+fn grant_real_local_caps(cx: &mut Cx) {
+    for capability in [
+        "ai-runner",
+        "ai-runner-local",
+        "ai-runner-network",
+        "ai/run",
+        "exec",
+        "host.process",
+    ] {
+        cx.grant_named(capability);
+    }
 }
 
 fn setup_text(card: &RecipeCard) -> &str {
@@ -252,7 +324,11 @@ fn setup_text(card: &RecipeCard) -> &str {
 fn reply_payload(cx: &mut Cx, run: &sim_cookbook::RecipeRun) -> Expr {
     assert_eq!(run.forms, 1);
     let expr = decode_lisp(cx, &run.results[0]);
-    let Some(Expr::Vector(parts)) = field(&expr, "body") else {
+    reply_payload_from_expr(&expr)
+}
+
+fn reply_payload_from_expr(expr: &Expr) -> Expr {
+    let Some(Expr::Vector(parts)) = field(expr, "body") else {
         panic!("reply packet missing body: {expr:?}");
     };
     let Some(part) = parts.first() else {
@@ -269,40 +345,4 @@ fn decode_lisp(cx: &mut Cx, text: &str) -> Expr {
         ReadPolicy::default(),
     )
     .unwrap()
-}
-
-fn assert_recorded_contract(requests: &[Expr]) {
-    assert_eq!(requests.len(), 1);
-    let request = &requests[0];
-    let Some(Expr::String(face)) = field(request, "task") else {
-        panic!("model task was not rendered text: {request:?}");
-    };
-    assert!(face.contains("CALL-DATA"), "{face}");
-    assert!(face.contains("Explain SIM in one sentence."), "{face}");
-    assert_eq!(
-        field(request, "return-codec"),
-        Some(&Expr::Symbol(Symbol::qualified("codec", "json")))
-    );
-    assert_eq!(
-        field(request, "return-shape"),
-        Some(&Expr::Symbol(Symbol::qualified("core", "String")))
-    );
-
-    let Some(Expr::Vector(calls)) = field(request, "bridge-calls") else {
-        panic!("model request missing bridge-calls: {request:?}");
-    };
-    let Some(call) = calls.first() else {
-        panic!("bridge-calls was empty");
-    };
-    assert_eq!(
-        field(call, "name"),
-        Some(&Expr::Symbol(Symbol::qualified("genai", "generate")))
-    );
-    let Some(model_params) = field(call, "model-params") else {
-        panic!("bridge call missing model params: {call:?}");
-    };
-    assert_eq!(
-        field(model_params, "temperature"),
-        Some(&Expr::String("0".to_owned()))
-    );
 }
