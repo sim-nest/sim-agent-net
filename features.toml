@@ -89,23 +89,61 @@ claims_specimens = [
 ]
 
 [[feature]]
-id = "feature/sim-agent-net/eval-fabric-sites"
-title = "Eval fabric sites"
-summary = "Place model and stream work through loadable runner, local model, and content-addressed fleet libraries."
-owner = "crate/sim-lib-agent-runner-local"
+id = "feature/sim-agent-net/model-runner-framework"
+title = "Model runner framework"
+summary = "Run model requests through provider-neutral runner contracts, HTTP profiles, process adapters, and loadable model sites."
+owner = "crate/sim-lib-agent-runner-core"
 audiences = ["code", "framework"]
-guidance = "Use this row when wiring a placement target, local model, or content-addressed fleet route."
+guidance = "Use this row when adding model execution. Implement `ModelRunner` for an in-process or host adapter, use the HTTP profiles for provider and loopback services, use the process runner for subprocess adapters, or expose a loadable `Export::Site` for placement through `runner/place` and `model/at`."
 claims_anchors = [
   "anchor/crate/sim-lib-agent-runner-core",
   "anchor/crate/sim-lib-agent-runner-http",
   "anchor/crate/sim-lib-agent-runner-local",
   "anchor/crate/sim-lib-agent-runner-process",
-  "anchor/crate/sim-lib-stream-fabric",
-  "anchor/crate/sim-table-remote",
   "anchor/export/sim-lib-agent-runner-local/model/local",
-  "anchor/export/sim-lib-stream-fabric/codec/binary",
   "anchor/runtime-lib/sim-lib-agent-runner-local/local-model-lib",
   "anchor/runtime-lib/sim-lib-agent-runner-local/wasm-model-lib",
+  "anchor/rustdoc/sim-lib-agent-runner-core/model-card",
+  "anchor/rustdoc/sim-lib-agent-runner-core/model-request",
+  "anchor/rustdoc/sim-lib-agent-runner-core/model-response",
+  "anchor/rustdoc/sim-lib-agent-runner-core/model-runner",
+  "anchor/rustdoc/sim-lib-agent-runner-http/anthropic_profile",
+  "anchor/rustdoc/sim-lib-agent-runner-http/http-runner",
+  "anchor/rustdoc/sim-lib-agent-runner-http/lemonade_profile",
+  "anchor/rustdoc/sim-lib-agent-runner-http/lm_studio_profile",
+  "anchor/rustdoc/sim-lib-agent-runner-http/ollama_profile",
+  "anchor/rustdoc/sim-lib-agent-runner-http/openai_compatible_profile",
+  "anchor/rustdoc/sim-lib-agent-runner-http/openai_profile",
+  "anchor/rustdoc/sim-lib-agent-runner-http/provider-profile",
+  "anchor/rustdoc/sim-lib-agent-runner-http/provider_profiles",
+  "anchor/rustdoc/sim-lib-agent-runner-local/local-model-backend",
+  "anchor/rustdoc/sim-lib-agent-runner-local/wasm-model-backend",
+  "anchor/rustdoc/sim-lib-agent-runner-process/process-command-spec",
+  "anchor/rustdoc/sim-lib-agent-runner-process/process-runner",
+  "anchor/rustdoc/sim-lib-agent/ai_runner_placement_capability",
+  "anchor/rustdoc/sim-lib-agent/runner-backend",
+]
+claims_surfaces = [
+  "model/sim-lib-agent-runner-core",
+  "model/sim-lib-agent-runner-http",
+  "model/sim-lib-agent-runner-local",
+  "model/sim-lib-agent-runner-process",
+]
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_placement_swap",
+]
+
+[[feature]]
+id = "feature/sim-agent-net/eval-fabric-sites"
+title = "Eval fabric sites"
+summary = "Place model and stream work through the agent placement catalog, modeled loadable sites, and content-addressed fleet libraries."
+owner = "crate/sim-lib-agent-runner-local"
+audiences = ["code", "framework"]
+guidance = "Use this row when wiring an EvalFabric placement target or content-addressed fleet route. Deterministic local sites are modeled placement targets; real local execution uses process runners, loopback HTTP providers, or loadable model sites."
+claims_anchors = [
+  "anchor/crate/sim-lib-stream-fabric",
+  "anchor/crate/sim-table-remote",
+  "anchor/export/sim-lib-stream-fabric/codec/binary",
   "anchor/runtime-lib/sim-lib-stream-fabric/cadr-fixture-lib",
 ]
 claims_surfaces = [
@@ -113,6 +151,9 @@ claims_surfaces = [
 ]
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-agent-runner-local/tests/load_register",
+]
+supports = [
+  "feature/sim-agent-net/model-runner-framework",
 ]
 
 [[feature]]
@@ -249,6 +290,27 @@ task = "Add an EvalFabric site"
 audiences = ["code", "framework"]
 steps = [
   { feature = "feature/sim-agent-net/eval-fabric-sites", why = "The EvalFabric row owns runner and fleet placement libraries." },
+]
+
+[[route]]
+id = "route/run-genai-locally"
+task = "Run GenAI locally"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/model-runner-framework", why = "The runner framework supplies provider-neutral requests, process adapters, loopback HTTP profiles, and loadable model sites." },
+  { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE carries the checked model-facing packet workflow." },
+  { feature = "feature/sim-agent-net/eval-fabric-sites", why = "EvalFabric placement resolves the selected local model site." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_placement_swap", why = "The checked specimen realizes one prompt through fake, local, and remote placements." },
+]
+
+[[route]]
+id = "route/run-genai-with-provider"
+task = "Run GenAI through a provider"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/model-runner-framework", why = "The runner framework owns HTTP provider profiles and the provider-neutral request and response contract." },
+  { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE keeps provider calls inside checked ASK packets and output validation." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-bridge/src/tests/ask", why = "The checked ASK specimen validates the exchange contract provider runners answer." },
 ]
 
 [[route]]

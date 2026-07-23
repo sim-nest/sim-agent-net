@@ -10,6 +10,8 @@ use sim_lib_stream_fabric::{ContentKey, EvalCassette, EvalCassetteLedger};
 use sim_value::access::field as map_field;
 use std::sync::{Arc, Mutex};
 
+// conformance: model runner framework realizes one prompt through open placements.
+
 #[derive(Default)]
 struct MemoryLedger {
     entries: Mutex<Vec<(ContentKey, EvalReply)>>,
