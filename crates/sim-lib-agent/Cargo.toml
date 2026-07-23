@@ -41,6 +41,8 @@ sim-codec-chat = { version = "0.1.4" }
 sim-codec-json = { version = "0.1.0" }
 sim-codec-lisp = { version = "0.1.0" }
 sim-kernel = { version = "0.1.4", features = ["test-support"] }
+sim-lib-bridge = { version = "0.1.4", path = "../sim-lib-bridge" }
+sim-lib-cookbook = { version = "0.1.14", path = "../sim-lib-cookbook" }
 sim-lib-topology = { version = "0.1.0" }
 wat = "1.245.1"
 

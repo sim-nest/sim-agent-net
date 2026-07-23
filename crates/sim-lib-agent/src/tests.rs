@@ -46,6 +46,7 @@ mod components;
 mod config_probe;
 mod core_tools;
 mod fairness;
+mod genai_assembly;
 mod memory_r15;
 mod multimodal;
 mod planning;

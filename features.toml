@@ -158,6 +158,23 @@ supports = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/genai-assembly"
+title = "Checked GenAI assembly recipe"
+summary = "Compose one checked generative exchange from BRIDGE packets, model placement, JSON terminal content, and a return Shape."
+owner = "crate/sim-lib-agent"
+audiences = ["user", "code", "framework"]
+guidance = "Use this row when assembling a GenAI exchange from reusable pieces. Place a model target at `model-site:genai`, run the recipe, and replace the placement to change backends without changing the recipe body."
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly",
+  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly",
+]
+supports = [
+  "feature/sim-agent-net/bridge-runtime",
+  "feature/sim-agent-net/model-runner-framework",
+  "feature/sim-agent-net/eval-fabric-sites",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/fabric-fixture-cli"
 title = "Fabric fixture command surface"
 summary = "Replay content-addressed stream-fabric fixtures through the loadable fixture command."
@@ -302,6 +319,7 @@ steps = [
   { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE carries the checked model-facing packet workflow." },
   { feature = "feature/sim-agent-net/eval-fabric-sites", why = "EvalFabric placement resolves the selected local model site." },
   { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_placement_swap", why = "The checked specimen realizes one prompt through fake, local, and remote placements." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly", why = "The assembly recipe is the reusable checked exchange run after placing the local model site." },
 ]
 
 [[route]]
@@ -312,6 +330,18 @@ steps = [
   { feature = "feature/sim-agent-net/model-runner-framework", why = "The runner framework owns HTTP provider profiles and the provider-neutral request and response contract." },
   { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE keeps provider calls inside checked ASK packets and output validation." },
   { specimen = "spec-test/sim-agent-net/crates/sim-lib-bridge/src/tests/ask", why = "The checked ASK specimen validates the exchange contract provider runners answer." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly", why = "The assembly recipe stays backend-neutral while the host places the provider target." },
+]
+
+[[route]]
+id = "route/compose-genai"
+task = "Compose GenAI from reusable components"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE builds and checks the ASK packet, output contract, and repair loop." },
+  { feature = "feature/sim-agent-net/model-runner-framework", why = "Model placement supplies the late-bound EvalFabric target." },
+  { feature = "feature/sim-agent-net/genai-assembly", why = "The assembly feature ties the reusable pieces into one recipe." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly", why = "The checked recipe is the runnable composition surface." },
 ]
 
 [[route]]
