@@ -20,3 +20,30 @@ Or the target can be a loopback Ollama service:
 ```lisp
 (runner/place "model-site:genai" (runner/ollama :model "qwen3.5:4b"))
 ```
+
+Provider targets use their provider credential environment names:
+
+```lisp
+(runner/place "model-site:genai" (runner/openai :model "gpt-5-mini"))
+```
+
+Required environment name: `OPENAI_API_KEY`.
+
+```lisp
+(runner/place
+  "model-site:genai"
+  (runner/anthropic :model "claude-sonnet-latest"))
+```
+
+Required environment name: `ANTHROPIC_API_KEY`.
+
+```lisp
+(runner/place
+  "model-site:genai"
+  (runner/openai-compatible
+    :endpoint "https://provider.example/v1"
+    :model "provider/model"
+    :api-key-env "PROVIDER_API_KEY"))
+```
+
+Required environment name: `PROVIDER_API_KEY`.

@@ -2,13 +2,17 @@ use std::{collections::VecDeque, sync::Mutex};
 
 #[cfg(feature = "runner-process")]
 use std::path::{Path, PathBuf};
-#[cfg(any(feature = "runner-ollama", feature = "runner-process"))]
-use std::time::{Duration, Instant};
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+use std::time::Duration;
 #[cfg(feature = "runner-ollama")]
+use std::time::Instant;
+#[cfg(feature = "runner-ollama")]
+use std::{io::Write, thread::JoinHandle};
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
 use std::{
-    io::{ErrorKind, Read, Write},
+    io::{ErrorKind, Read},
     net::{TcpListener, TcpStream},
-    thread::{self, JoinHandle},
+    thread,
 };
 
 #[cfg(feature = "runner-ollama")]
@@ -336,8 +340,8 @@ pub(super) fn spawn_ollama_recipe_mock(listener: TcpListener) -> JoinHandle<Vec<
     })
 }
 
-#[cfg(feature = "runner-ollama")]
-fn read_http_request(stream: &mut TcpStream) -> String {
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+pub(super) fn read_http_request(stream: &mut TcpStream) -> String {
     let mut request = Vec::new();
     let mut chunk = [0u8; 1024];
     let header_end = loop {
@@ -380,7 +384,7 @@ fn read_http_request(stream: &mut TcpStream) -> String {
     String::from_utf8(request).unwrap()
 }
 
-#[cfg(feature = "runner-ollama")]
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
 fn find_header_end(bytes: &[u8]) -> Option<usize> {
     bytes
         .windows(4)
@@ -388,7 +392,7 @@ fn find_header_end(bytes: &[u8]) -> Option<usize> {
         .map(|index| index + 4)
 }
 
-#[cfg(feature = "runner-ollama")]
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
 fn content_length(head: &str) -> usize {
     head.lines()
         .find_map(|line| {
@@ -399,7 +403,7 @@ fn content_length(head: &str) -> usize {
         .unwrap_or(0)
 }
 
-#[cfg(feature = "runner-ollama")]
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
 pub(super) fn http_json_body(request: &str) -> serde_json::Value {
     let (_, body) = request
         .split_once("\r\n\r\n")
@@ -407,7 +411,7 @@ pub(super) fn http_json_body(request: &str) -> serde_json::Value {
     serde_json::from_str(body).unwrap()
 }
 
-#[cfg(feature = "runner-ollama")]
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
 pub(super) fn bind_loopback_listener() -> Option<TcpListener> {
     for _ in 0..3 {
         match TcpListener::bind(("127.0.0.1", 0)) {

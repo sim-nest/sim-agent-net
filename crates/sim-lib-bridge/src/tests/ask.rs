@@ -141,6 +141,7 @@ fn ask_packet_ceiling_admits_real_runner_powers() {
         Symbol::qualified("capability", "ai-runner"),
         Symbol::qualified("capability", "ai-runner-local"),
         Symbol::qualified("capability", "ai-runner-network"),
+        Symbol::qualified("capability", "ai-runner-secret"),
         Symbol::qualified("capability", "exec"),
         Symbol::qualified("capability", "host.process"),
     ] {

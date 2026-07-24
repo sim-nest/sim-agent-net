@@ -1,7 +1,14 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
 
 // conformance: the GenAI assembly recipe runs one checked ASK exchange through a placed target.
 
+#[cfg(feature = "runner-http")]
+use super::genai_assembly_provider_support::{
+    HttpMockResponse, openai_runner, provider_secret, run_provider_recipe_cases,
+    spawn_provider_recipe_mock,
+};
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
+use super::genai_assembly_support::bind_loopback_listener;
 #[cfg(feature = "runner-process")]
 use super::genai_assembly_support::{
     ProcessFixture, decode_process_request, model_response_for, process_runner, shell_quote_path,
@@ -10,13 +17,14 @@ use super::genai_assembly_support::{
 use super::genai_assembly_support::{RecordingRunner, assert_recorded_contract, json_text};
 #[cfg(feature = "runner-ollama")]
 use super::genai_assembly_support::{
-    assert_ollama_card_is_local, bind_loopback_listener, http_json_body, ollama_runner,
-    spawn_ollama_recipe_mock,
+    assert_ollama_card_is_local, http_json_body, ollama_runner, spawn_ollama_recipe_mock,
 };
 use super::support::{eval_cx, install_agent_lib, install_roundtrip_codecs};
 use crate::{AI_RUNNER_PLACEMENT_CAPABILITY, ExternalRunnerSpec, RECIPES, external_runner_value};
 use sim_codec::{Input, decode_eval_expr_with_codec, decode_with_codec, lower_operator_nodes};
 use sim_cookbook::{RecipeCard, RecipeStore};
+#[cfg(feature = "runner-http")]
+use sim_kernel::Error;
 use sim_kernel::{
     Args, CapabilityName, CapabilitySet, Cx, Expr, ReadPolicy, Symbol, Value,
     macro_expand_eval_capability, read_construct_capability, read_eval_capability,
@@ -25,11 +33,12 @@ use sim_lib_core::{SurfacePackLib, SurfacePackSpec};
 use sim_value::access::field;
 
 const RECIPE_ID: &str = "agent/01-basics/genai-assembly";
-const MODEL_SITE: &str = "model-site:genai";
+pub(super) const MODEL_SITE: &str = "model-site:genai";
 const SETUP_SOURCE: &str = include_str!("../../recipes/01-basics/genai-assembly/setup.siml");
 
 #[test]
 fn genai_assembly_recipe_runs_exact_source_against_replaceable_target() {
+    let _guard = genai_assembly_test_lock();
     let mut cx = recipe_cx();
     let card = genai_card();
     assert_eq!(setup_text(&card), SETUP_SOURCE);
@@ -48,7 +57,7 @@ fn genai_assembly_recipe_runs_exact_source_against_replaceable_target() {
         },
     )
     .unwrap();
-    place_runner(&mut cx, runner, false);
+    place_runner(&mut cx, runner, true);
 
     let run = sim_lib_cookbook::run_recipe(&mut cx, &card).unwrap();
     assert_run_ok(&mut cx, &card, &run);
@@ -139,6 +148,9 @@ fn genai_assembly_recipe_runs_exact_source_against_replaceable_target() {
         );
     }
 
+    #[cfg(feature = "runner-http")]
+    run_provider_recipe_cases(&mut cx, &card);
+
     let fake = fake_runner(
         &mut cx,
         "genai-repair-fake",
@@ -173,6 +185,58 @@ fn genai_assembly_recipe_runs_exact_source_against_replaceable_target() {
     assert_eq!(setup_text(&card), SETUP_SOURCE);
 }
 
+#[test]
+#[cfg(feature = "runner-http")]
+fn genai_assembly_provider_recipe_fails_closed_without_caps_and_redacts_secrets() {
+    let _guard = genai_assembly_test_lock();
+    let secret = provider_secret();
+
+    let mut cx = recipe_cx();
+    let card = genai_card();
+    let openai = openai_runner(&mut cx, 1, "gpt-5-mini");
+    place_runner(&mut cx, openai, true);
+    let capabilities = base_recipe_capabilities(&cx);
+    assert_provider_recipe_denied(&mut cx, &card, capabilities, "ai-runner", &secret);
+
+    let mut cx = recipe_cx();
+    let card = genai_card();
+    let openai = openai_runner(&mut cx, 1, "gpt-5-mini");
+    place_runner(&mut cx, openai, true);
+    let capabilities = base_recipe_capabilities(&cx).grant(CapabilityName::new("ai-runner"));
+    assert_provider_recipe_denied(&mut cx, &card, capabilities, "ai-runner-network", &secret);
+
+    let mut cx = recipe_cx();
+    let card = genai_card();
+    let openai = openai_runner(&mut cx, 1, "gpt-5-mini");
+    place_runner(&mut cx, openai, true);
+    let capabilities = base_recipe_capabilities(&cx)
+        .grant(CapabilityName::new("ai-runner"))
+        .grant(CapabilityName::new("ai-runner-network"));
+    assert_provider_recipe_denied(&mut cx, &card, capabilities, "ai-runner-secret", &secret);
+
+    if let Some(listener) = bind_loopback_listener() {
+        let port = listener.local_addr().unwrap().port();
+        let server = spawn_provider_recipe_mock(
+            listener,
+            vec![HttpMockResponse::text(
+                "500 Internal Server Error",
+                format!("provider rejected secret {secret}"),
+            )],
+        );
+        let mut cx = recipe_cx();
+        let card = genai_card();
+        let openai = openai_runner(&mut cx, port, "gpt-5-mini");
+        place_runner(&mut cx, openai, true);
+
+        grant_provider_caps(&mut cx);
+        let err = eval_recipe_source_with_provider_caps(&mut cx, &card).unwrap_err();
+        let requests = server.join().unwrap();
+        assert_eq!(requests.len(), 1, "{requests:?}; err: {err:?}");
+        let message = format!("{err:?}");
+        assert!(!message.contains(&secret), "{message}");
+    }
+}
+
 fn recipe_cx() -> Cx {
     let mut cx = eval_cx();
     let core = SurfacePackLib {
@@ -189,6 +253,11 @@ fn recipe_cx() -> Cx {
     cx.grant(macro_expand_eval_capability());
     cx.grant(CapabilityName::new("ai/run"));
     cx
+}
+
+fn genai_assembly_test_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
 }
 
 fn genai_card() -> RecipeCard {
@@ -218,10 +287,15 @@ fn assert_run_ok(cx: &mut Cx, card: &RecipeCard, run: &sim_cookbook::RecipeRun) 
     panic!("expected recipe run to pass, got {run:?}; direct eval: {direct:?}");
 }
 
-#[cfg(any(feature = "runner-ollama", feature = "runner-process"))]
-fn eval_recipe_source_with_real_local_caps(
+#[cfg(any(
+    feature = "runner-http",
+    feature = "runner-ollama",
+    feature = "runner-process"
+))]
+fn eval_recipe_source_with_capabilities(
     cx: &mut Cx,
     card: &RecipeCard,
+    capabilities: CapabilitySet,
 ) -> sim_kernel::Result<Expr> {
     let expr = lower_operator_nodes(
         decode_eval_expr_with_codec(
@@ -232,8 +306,24 @@ fn eval_recipe_source_with_real_local_caps(
         )
         .unwrap(),
     );
-    let value = cx.with_capabilities(real_local_capabilities(cx), |cx| cx.eval_expr(expr))?;
+    let value = cx.with_capabilities(capabilities, |cx| cx.eval_expr(expr))?;
     value.object().as_expr(cx)
+}
+
+#[cfg(any(feature = "runner-ollama", feature = "runner-process"))]
+fn eval_recipe_source_with_real_local_caps(
+    cx: &mut Cx,
+    card: &RecipeCard,
+) -> sim_kernel::Result<Expr> {
+    eval_recipe_source_with_capabilities(cx, card, real_local_capabilities(cx))
+}
+
+#[cfg(feature = "runner-http")]
+pub(super) fn eval_recipe_source_with_provider_caps(
+    cx: &mut Cx,
+    card: &RecipeCard,
+) -> sim_kernel::Result<Expr> {
+    eval_recipe_source_with_capabilities(cx, card, provider_capabilities(cx))
 }
 
 fn trusted_recipe_read_policy() -> ReadPolicy {
@@ -270,7 +360,7 @@ fn fake_runner(
     .unwrap()
 }
 
-fn place_runner(cx: &mut Cx, runner: Value, replace: bool) {
+pub(super) fn place_runner(cx: &mut Cx, runner: Value, replace: bool) {
     cx.grant_named(AI_RUNNER_PLACEMENT_CAPABILITY);
     let mut args = vec![
         cx.factory().string(MODEL_SITE.to_owned()).unwrap(),
@@ -282,6 +372,44 @@ fn place_runner(cx: &mut Cx, runner: Value, replace: bool) {
     }
     cx.call_function(&Symbol::qualified("runner", "place"), Args::new(args))
         .unwrap();
+}
+
+#[cfg(feature = "runner-http")]
+pub(super) fn assert_model_site_model(cx: &mut Cx, model: &str) {
+    let card = cx
+        .call_function(
+            &Symbol::qualified("model", "site-card"),
+            Args::new(vec![cx.factory().string(MODEL_SITE.to_owned()).unwrap()]),
+        )
+        .unwrap()
+        .object()
+        .as_expr(cx)
+        .unwrap();
+    assert_eq!(field(&card, "model"), Some(&Expr::String(model.to_owned())));
+}
+
+#[cfg(feature = "runner-http")]
+fn provider_capabilities(cx: &Cx) -> CapabilitySet {
+    base_recipe_capabilities(cx)
+        .grant(CapabilityName::new("ai-runner"))
+        .grant(CapabilityName::new("ai-runner-network"))
+        .grant(CapabilityName::new("ai-runner-secret"))
+}
+
+#[cfg(feature = "runner-http")]
+pub(super) fn grant_provider_caps(cx: &mut Cx) {
+    for capability in ["ai-runner", "ai-runner-network", "ai-runner-secret"] {
+        cx.grant_named(capability);
+    }
+}
+
+#[cfg(feature = "runner-http")]
+fn base_recipe_capabilities(cx: &Cx) -> CapabilitySet {
+    let mut capabilities = cx.capabilities().clone();
+    capabilities.insert(read_construct_capability());
+    capabilities.insert(read_eval_capability());
+    capabilities.insert(macro_expand_eval_capability());
+    capabilities
 }
 
 #[cfg(any(feature = "runner-ollama", feature = "runner-process"))]
@@ -315,6 +443,25 @@ fn grant_real_local_caps(cx: &mut Cx) {
     ] {
         cx.grant_named(capability);
     }
+}
+
+#[cfg(feature = "runner-http")]
+fn assert_provider_recipe_denied(
+    cx: &mut Cx,
+    card: &RecipeCard,
+    capabilities: CapabilitySet,
+    expected: &str,
+    secret: &str,
+) {
+    let err = eval_recipe_source_with_capabilities(cx, card, capabilities).unwrap_err();
+    let message = format!("{err:?}");
+    match &err {
+        Error::CapabilityDenied { capability } => {
+            assert_eq!(capability, &CapabilityName::new(expected));
+        }
+        other => panic!("expected {expected} capability denial, got {other:?}"),
+    }
+    assert!(!message.contains(secret), "{message}");
 }
 
 fn setup_text(card: &RecipeCard) -> &str {

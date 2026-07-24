@@ -94,6 +94,7 @@ fn ask_capability_ceiling() -> Vec<Symbol> {
         Symbol::qualified("capability", "ai-runner"),
         Symbol::qualified("capability", "ai-runner-local"),
         Symbol::qualified("capability", "ai-runner-network"),
+        Symbol::qualified("capability", "ai-runner-secret"),
         Symbol::qualified("capability", "exec"),
         Symbol::qualified("capability", "host.process"),
     ]

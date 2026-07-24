@@ -6,6 +6,7 @@
 
 mod client;
 mod config;
+mod model_params;
 mod probe;
 mod provider;
 mod redact;

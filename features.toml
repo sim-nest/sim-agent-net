@@ -132,6 +132,7 @@ claims_surfaces = [
 ]
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_placement_swap",
+  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly",
 ]
 
 [[feature]]
@@ -160,10 +161,10 @@ supports = [
 [[feature]]
 id = "feature/sim-agent-net/genai-assembly"
 title = "Checked GenAI assembly recipe"
-summary = "Compose one checked generative exchange from BRIDGE packets, model placement, JSON terminal content, and a return Shape."
+summary = "Compose one checked generative exchange from BRIDGE packets, model placement, provider runners, JSON terminal content, and a return Shape."
 owner = "crate/sim-lib-agent"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when assembling a local GenAI exchange from reusable pieces. Place a model target at `model-site:genai`, run the recipe, and replace the placement to move between fake, subprocess, loopback Ollama, provider, or loadable-site backends without changing the recipe body."
+guidance = "Use this row when assembling a GenAI exchange from reusable pieces. Place a model target at `model-site:genai`, run the recipe, and replace the placement to move between fake, subprocess, loopback Ollama, native provider, OpenAI-compatible provider, or loadable-site backends without changing the recipe body."
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly",
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly",
@@ -319,7 +320,7 @@ steps = [
   { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE carries the checked model-facing packet workflow." },
   { feature = "feature/sim-agent-net/eval-fabric-sites", why = "EvalFabric placement resolves the selected local model site." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly", why = "The assembly recipe is the reusable checked exchange run after placing the local model site." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly", why = "The checked specimen runs the same recipe through fake, subprocess, and loopback Ollama placements." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly", why = "The checked specimen runs the same recipe through fake, subprocess, loopback Ollama, native provider, and OpenAI-compatible placements." },
 ]
 
 [[route]]
@@ -331,6 +332,7 @@ steps = [
   { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE keeps provider calls inside checked ASK packets and output validation." },
   { specimen = "spec-test/sim-agent-net/crates/sim-lib-bridge/src/tests/ask", why = "The checked ASK specimen validates the exchange contract provider runners answer." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly", why = "The assembly recipe stays backend-neutral while the host places the provider target." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly", why = "The checked specimen runs that recipe through OpenAI, Anthropic, and OpenAI-compatible provider placements with replacement and capability checks." },
 ]
 
 [[route]]

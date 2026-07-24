@@ -1,6 +1,7 @@
 use crate::ProviderAuth;
 use crate::client::{HttpRunnerRequest, post_json, post_json_stream};
 use crate::config::ProviderConfig;
+use crate::model_params::attach_bridge_model_params_to_body;
 use crate::redact::redact_text;
 use crate::stream::HttpStreamDecoder;
 use sim_codec_chat::{
@@ -17,8 +18,8 @@ use sim_kernel::{
 };
 use sim_lib_agent_runner_core::{
     ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
-    OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA,
-    grammar_dialect_symbol,
+    OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
+    RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA, grammar_dialect_symbol,
 };
 use sim_shape::GrammarDialect;
 use std::time::Duration;
@@ -200,8 +201,9 @@ impl HttpRunner {
         let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
         let lemonade_codec = Symbol::qualified("codec", "lemonade");
         let request = self.prepare_output_grammar(request);
+        let request_extra = request.extra.clone();
         let request_expr: Expr = request.into();
-        if self.codec == openai_codec {
+        let body = if self.codec == openai_codec {
             encode_openai_request(
                 &request_expr,
                 &OpenAiRequestOptions::new(self.model.clone(), stream, self.tools),
@@ -236,7 +238,8 @@ impl HttpRunner {
                 "{} unsupported codec {}",
                 self.runner_label, self.codec
             )))
-        }
+        }?;
+        attach_bridge_model_params_to_body(&self.codec, &request_extra, body, self.runner_label)
     }
 
     fn api_key(&self) -> Result<Option<String>> {
@@ -505,7 +508,10 @@ fn upsert_extra(entries: &mut Vec<(Expr, Expr)>, name: &str, value: Expr) {
 
 fn strip_output_grammar(entries: &mut Vec<(Expr, Expr)>) {
     entries.retain(|(key, _)| {
-        !is_field(key, OUTPUT_GRAMMAR_EXTRA) && !is_field(key, OUTPUT_GRAMMAR_DIALECT_EXTRA)
+        !is_field(key, OUTPUT_GRAMMAR_EXTRA)
+            && !is_field(key, OUTPUT_GRAMMAR_DIALECT_EXTRA)
+            && !is_field(key, OUTPUT_GRAMMAR_REQUIRED_EXTRA)
+            && !is_field(key, RETURN_SHAPE_EXTRA)
     });
 }
 

@@ -1,7 +1,8 @@
 use super::super::model::{AgentComponent, RunnerBackend};
 use super::runner_cache::{CacheEventSink, RunnerCachePlan, normalize_expr, set_cache_hit};
 use super::runner_effects::{
-    model_infer_replay_key, resolve_model_infer_effect, resolve_model_infer_stream_effect,
+    ModelInferTarget, model_infer_replay_key, resolve_model_infer_effect,
+    resolve_model_infer_stream_effect,
 };
 use super::runner_fake::{fake_response_expr, fake_stream_response};
 use super::runner_shape::{run_stream_with_shape_contract, run_with_shape_contract};
@@ -121,7 +122,8 @@ fn infer_runner_once(
         return Ok(hit);
     }
     cache.require_write_capability(cx)?;
-    let response = resolve_model_infer_effect(cx, request, |cx| {
+    let target = ModelInferTarget::new(&component.symbol, &model_id, &component.spec);
+    let response = resolve_model_infer_effect(cx, &target, request, |cx| {
         infer_runner_once_uncached(cx, component, backend, request)
     })?;
     cache.finish(response)
@@ -171,15 +173,20 @@ fn infer_runner_once_stream(
     cache.require_write_capability(cx)?;
     if cache.is_active() {
         let mut cache_events = CacheEventSink::new(events);
-        let response =
-            resolve_model_infer_stream_effect(cx, request, &mut cache_events, |cx, events| {
-                infer_runner_once_stream_uncached(cx, component, backend, request, events)
-            })?;
+        let target = ModelInferTarget::new(&component.symbol, &model_id, &component.spec);
+        let response = resolve_model_infer_stream_effect(
+            cx,
+            &target,
+            request,
+            &mut cache_events,
+            |cx, events| infer_runner_once_stream_uncached(cx, component, backend, request, events),
+        )?;
         let response = ModelResponse::try_from(cache.finish(response.into())?)?;
         events.emit(ModelEvent::final_of(&response))?;
         return Ok(response);
     }
-    resolve_model_infer_stream_effect(cx, request, events, |cx, events| {
+    let target = ModelInferTarget::new(&component.symbol, &model_id, &component.spec);
+    resolve_model_infer_stream_effect(cx, &target, request, events, |cx, events| {
         infer_runner_once_stream_uncached(cx, component, backend, request, events)
     })
 }
