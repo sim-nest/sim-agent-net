@@ -28,7 +28,7 @@ sim-shape = { version = "0.1.2" }
 sim-cookbook = { version = "0.1.0" }
 
 [dev-dependencies]
-rcgen = "0.13"
+rcgen = "0.14"
 
 [features]
 default = []
