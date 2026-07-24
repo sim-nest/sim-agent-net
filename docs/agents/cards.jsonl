@@ -52,6 +52,9 @@
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/fake-multimodal/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/fake-multimodal/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/fake-multimodal/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/genai-assembly/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/genai-assembly/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/genai-assembly/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/offline-agent/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/offline-agent/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-agent/recipes/01-basics/offline-agent/setup.siml"}

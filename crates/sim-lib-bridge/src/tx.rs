@@ -96,7 +96,7 @@ pub(crate) fn eval_request_for_checked_packet(
     let (face, _) = render_model_face(book, packet)?;
     let mut model = ModelRequest::new(
         Expr::String(face),
-        vec![Expr::String(FENCE_DATA_RULE.to_owned())],
+        vec![message_text(Symbol::new("system"), FENCE_DATA_RULE)],
     );
     if let Some(cid) = &packet.header.cid {
         model.extra.push((
@@ -119,6 +119,19 @@ pub(crate) fn eval_request_for_checked_packet(
         stream: false,
         trace: false,
     })
+}
+
+fn message_text(role: Symbol, text: &str) -> Expr {
+    Expr::Map(vec![
+        entry("role", Expr::Symbol(role)),
+        entry(
+            "content",
+            Expr::List(vec![Expr::Map(vec![
+                entry("type", Expr::Symbol(Symbol::new("text"))),
+                entry("text", Expr::String(text.to_owned())),
+            ])]),
+        ),
+    ])
 }
 
 fn render_call_fences(packet: &BridgePacket) -> Result<Vec<(String, String)>> {

@@ -9,15 +9,32 @@ fn model_infer_effect_kind() -> Symbol {
     Symbol::qualified("effect", "model-infer")
 }
 
+pub(super) struct ModelInferTarget<'a> {
+    runner: &'a Symbol,
+    model: &'a str,
+    spec: &'a [(Symbol, Expr)],
+}
+
+impl<'a> ModelInferTarget<'a> {
+    pub(super) fn new(runner: &'a Symbol, model: &'a str, spec: &'a [(Symbol, Expr)]) -> Self {
+        Self {
+            runner,
+            model,
+            spec,
+        }
+    }
+}
+
 pub(super) fn resolve_model_infer_effect<F>(
     cx: &mut Cx,
+    target: &ModelInferTarget<'_>,
     request: &EvalRequest,
     infer: F,
 ) -> Result<Expr>
 where
     F: FnOnce(&mut Cx) -> Result<Expr>,
 {
-    let effect = model_infer_effect(cx, request)?;
+    let effect = model_infer_effect(cx, target, request)?;
     let result = effect::resolve_effect(cx, effect, |cx, _effect| {
         let response = infer(cx)?;
         response_ref(cx, response)
@@ -27,6 +44,7 @@ where
 
 pub(super) fn resolve_model_infer_stream_effect<F>(
     cx: &mut Cx,
+    target: &ModelInferTarget<'_>,
     request: &EvalRequest,
     events: &mut dyn ModelEventSink,
     infer: F,
@@ -34,7 +52,7 @@ pub(super) fn resolve_model_infer_stream_effect<F>(
 where
     F: FnOnce(&mut Cx, &mut dyn ModelEventSink) -> Result<ModelResponse>,
 {
-    let effect = model_infer_effect(cx, request)?;
+    let effect = model_infer_effect(cx, target, request)?;
     let result = effect::resolve_effect(cx, effect, |cx, _effect| {
         let response = infer(cx, events)?;
         response_ref(cx, Expr::from(response))
@@ -47,27 +65,46 @@ pub(super) fn model_infer_replay_key(
     request: &Expr,
     result_shape: Option<&Expr>,
 ) -> Result<ContentId> {
-    let mut effect = model_infer_effect_for_expr(cx, request, result_shape)?;
+    let mut effect = model_infer_effect_for_expr(cx, None, request, result_shape)?;
     effect.ensure_replay_key(Some(model_infer_implementation()))
 }
 
-fn model_infer_effect(cx: &mut Cx, request: &EvalRequest) -> Result<Effect> {
+#[cfg(test)]
+fn model_infer_replay_key_for_target(
+    cx: &mut Cx,
+    target: &ModelInferTarget<'_>,
+    request: &Expr,
+    result_shape: Option<&Expr>,
+) -> Result<ContentId> {
+    let mut effect = model_infer_effect_for_expr(cx, Some(target), request, result_shape)?;
+    effect.ensure_replay_key(Some(model_infer_implementation()))
+}
+
+fn model_infer_effect(
+    cx: &mut Cx,
+    target: &ModelInferTarget<'_>,
+    request: &EvalRequest,
+) -> Result<Effect> {
     let result_shape = request
         .result_shape
         .as_ref()
         .map(|shape| shape.object().as_expr(cx))
         .transpose()?;
-    model_infer_effect_for_expr(cx, &request.expr, result_shape.as_ref())
+    model_infer_effect_for_expr(cx, Some(target), &request.expr, result_shape.as_ref())
 }
 
 fn model_infer_effect_for_expr(
     cx: &mut Cx,
+    target: Option<&ModelInferTarget<'_>>,
     request: &Expr,
     result_shape: Option<&Expr>,
 ) -> Result<Effect> {
+    let target = target
+        .map(model_infer_target_expr)
+        .map(|expr| normalize_expr(&expr));
     let request = normalize_expr(request);
     let result_shape = result_shape.map(normalize_expr);
-    let input = model_infer_input_datum(&request, result_shape.as_ref());
+    let input = model_infer_input_datum(target.as_ref(), &request, result_shape.as_ref());
     let input = Ref::Content(cx.datum_store_mut().intern(input)?);
     let result_shape = match result_shape {
         Some(expr) => Ref::Content(cx.datum_store_mut().intern(expr_replay_datum(&expr))?),
@@ -84,13 +121,24 @@ fn model_infer_effect_for_expr(
     .with_replay_key(Some(model_infer_implementation()))
 }
 
-fn model_infer_input_datum(request: &Expr, result_shape: Option<&Expr>) -> Datum {
+fn model_infer_input_datum(
+    target: Option<&Expr>,
+    request: &Expr,
+    result_shape: Option<&Expr>,
+) -> Datum {
     Datum::Node {
         tag: Symbol::qualified("agent", "ModelInferInput"),
         fields: vec![
             (
                 Symbol::new("version"),
                 Datum::String("sim-agent-model-infer-v1".to_owned()),
+            ),
+            (
+                Symbol::new("target"),
+                match target {
+                    Some(expr) => expr_replay_datum(expr),
+                    None => Datum::Nil,
+                },
             ),
             (Symbol::new("request"), expr_replay_datum(request)),
             (
@@ -102,6 +150,28 @@ fn model_infer_input_datum(request: &Expr, result_shape: Option<&Expr>) -> Datum
             ),
         ],
     }
+}
+
+fn model_infer_target_expr(target: &ModelInferTarget<'_>) -> Expr {
+    Expr::Map(vec![
+        entry("runner", Expr::Symbol(target.runner.clone())),
+        entry("model", Expr::String(target.model.to_owned())),
+        entry(
+            "spec",
+            Expr::List(
+                target
+                    .spec
+                    .iter()
+                    .map(|(key, value)| {
+                        Expr::Map(vec![
+                            entry("key", Expr::Symbol(key.clone())),
+                            entry("value", value.clone()),
+                        ])
+                    })
+                    .collect(),
+            ),
+        ),
+    ])
 }
 
 fn expr_replay_datum(expr: &Expr) -> Datum {
@@ -123,6 +193,10 @@ fn ref_to_expr(cx: &mut Cx, reference: &Ref) -> Result<Expr> {
 
 fn model_infer_implementation() -> Ref {
     Ref::Symbol(Symbol::qualified("agent", "model-infer-v1"))
+}
+
+fn entry(key: &str, value: Expr) -> (Expr, Expr) {
+    (Expr::Symbol(Symbol::new(key)), value)
 }
 
 #[cfg(test)]
@@ -162,6 +236,43 @@ mod tests {
     }
 
     #[test]
+    fn model_infer_replay_key_includes_target_metadata() {
+        let mut cx = cx();
+        let request = Expr::String("task".to_owned());
+        let left_runner = Symbol::qualified("runner", "left");
+        let right_runner = Symbol::qualified("runner", "right");
+        let left_spec = vec![(
+            Symbol::new("endpoint"),
+            Expr::String("http://left".to_owned()),
+        )];
+        let right_spec = vec![(
+            Symbol::new("endpoint"),
+            Expr::String("http://right".to_owned()),
+        )];
+        let left = ModelInferTarget::new(&left_runner, "same/model", &left_spec);
+        let right = ModelInferTarget::new(&right_runner, "same/model", &right_spec);
+
+        assert_ne!(
+            model_infer_replay_key_for_target(&mut cx, &left, &request, None).unwrap(),
+            model_infer_replay_key_for_target(&mut cx, &right, &request, None).unwrap()
+        );
+    }
+
+    #[test]
+    fn model_infer_replay_key_accepts_repeated_spec_fields() {
+        let mut cx = cx();
+        let request = Expr::String("task".to_owned());
+        let runner = Symbol::qualified("runner", "dupe");
+        let spec = vec![
+            (Symbol::new("capability"), Expr::String("one".to_owned())),
+            (Symbol::new("capability"), Expr::String("two".to_owned())),
+        ];
+        let target = ModelInferTarget::new(&runner, "dupe/model", &spec);
+
+        model_infer_replay_key_for_target(&mut cx, &target, &request, None).unwrap();
+    }
+
+    #[test]
     fn cassette_result_can_satisfy_model_infer_effect() {
         let mut cx = cx();
         let request = EvalRequest {
@@ -176,7 +287,9 @@ mod tests {
             stream_buffer: None,
             stream: false,
         };
-        let key = model_infer_replay_key(&mut cx, &request.expr, None).unwrap();
+        let runner = Symbol::qualified("runner", "fake");
+        let target = ModelInferTarget::new(&runner, "fake/model", &[]);
+        let key = model_infer_replay_key_for_target(&mut cx, &target, &request.expr, None).unwrap();
         let response = Expr::Map(vec![
             (
                 Expr::Symbol(Symbol::new("model-response")),
@@ -200,7 +313,7 @@ mod tests {
         cx.effect_ledger_mut()
             .insert_cassette_result(key, response_ref);
 
-        let actual = resolve_model_infer_effect(&mut cx, &request, |_cx| {
+        let actual = resolve_model_infer_effect(&mut cx, &target, &request, |_cx| {
             panic!("cassette result should bypass inference")
         })
         .unwrap();

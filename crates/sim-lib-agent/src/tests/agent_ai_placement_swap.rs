@@ -10,6 +10,8 @@ use sim_lib_stream_fabric::{ContentKey, EvalCassette, EvalCassetteLedger};
 use sim_value::access::field as map_field;
 use std::sync::{Arc, Mutex};
 
+// conformance: model runner framework realizes one prompt through open placements.
+
 #[derive(Default)]
 struct MemoryLedger {
     entries: Mutex<Vec<(ContentKey, EvalReply)>>,
@@ -236,7 +238,7 @@ fn one_prompt_graph_realizes_against_three_placements() {
     register_loaded_model_site(
         &mut cx,
         "model-site:local",
-        "sim-local-stub",
+        "sim-local-modeled",
         "ok-local",
         None,
     );
@@ -273,7 +275,7 @@ fn cached_local_placement_skips_second_inference() {
     register_loaded_model_site(
         &mut cx,
         "model-site:cached-local",
-        "sim-local-stub",
+        "sim-local-modeled",
         "cached-local",
         Some(calls.clone()),
     );

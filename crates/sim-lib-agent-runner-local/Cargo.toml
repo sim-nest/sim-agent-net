@@ -16,7 +16,6 @@ path = "src/lib.rs"
 [features]
 default = []
 native-export = ["dep:sim-codec-binary", "dep:sim-macros"]
-native-inference = []
 wasm-model = ["dep:sim-wasm-abi"]
 
 [dependencies]

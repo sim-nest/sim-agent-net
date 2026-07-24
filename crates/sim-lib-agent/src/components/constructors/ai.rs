@@ -2,19 +2,9 @@ use super::super::{
     model::{AgentComponent, ComponentBackend, RunnerBackend, component_value},
     options::{parse_component_options, path_option, string_option, symbol_option},
 };
-#[cfg(feature = "runner-http")]
-use crate::AI_RUNNER_CAPABILITY;
-#[cfg(feature = "runner-http")]
-use crate::AI_RUNNER_NETWORK_CAPABILITY;
-#[cfg(feature = "runner-http")]
-use crate::AI_RUNNER_SECRET_CAPABILITY;
 use crate::{ComponentKind, memory::load_memory_log, util::installed_codecs};
-#[cfg(feature = "runner-http")]
-use sim_kernel::CapabilityName;
 use sim_kernel::{Args, Cx, Error, Expr, Result, Symbol, Value};
-#[cfg(feature = "runner-http")]
-use sim_lib_agent_runner_http::HttpRunner;
-#[cfg(feature = "runner-ollama")]
+#[cfg(any(feature = "runner-http", feature = "runner-ollama"))]
 use sim_lib_agent_runner_http::{ProviderConfig, provider_profiles};
 use sim_lib_server::{ServerAddress, parse_duration};
 use std::{
@@ -132,85 +122,9 @@ pub(crate) fn runner_fake_value(cx: &mut Cx, args: Args) -> Result<Value> {
 #[cfg(feature = "runner-http")]
 pub(crate) fn runner_openai_compatible_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let options = parse_component_options(cx, args, "runner/openai-compatible")?;
-    let symbol = symbol_option(
-        cx,
-        &options,
-        "name",
-        Symbol::qualified("runner", "openai-compatible"),
-    )?;
-    let model = string_option(cx, &options, "model", "gpt-4.1-mini")?;
-    let endpoint = string_option(cx, &options, "endpoint", "http://127.0.0.1:0/v1")?;
-    let api_key_env = string_option(cx, &options, "api-key-env", "OPENAI_API_KEY")?;
-    let codec = symbol_option(cx, &options, "codec", Symbol::qualified("codec", "openai"))?;
-    let timeout = timeout_with_default(cx, &options, Duration::from_secs(60))?;
-    let stream = bool_option(
-        cx,
-        &options,
-        "stream",
-        "runner/openai-compatible :stream expects a boolean",
-        false,
-    )?;
-    let tools = bool_option(
-        cx,
-        &options,
-        "tools",
-        "runner/openai-compatible :tools expects a boolean",
-        true,
-    )?;
-    let max_output_bytes = max_output_bytes_option(cx, &options, "runner/openai-compatible")?;
-    component_value(
-        cx,
-        AgentComponent {
-            symbol: symbol.clone(),
-            kind: ComponentKind::Runner,
-            capabilities: vec![
-                CapabilityName::new(AI_RUNNER_CAPABILITY),
-                CapabilityName::new(AI_RUNNER_NETWORK_CAPABILITY),
-                CapabilityName::new(AI_RUNNER_SECRET_CAPABILITY),
-            ],
-            address: ServerAddress::Local,
-            codecs: installed_codecs(cx),
-            spec: vec![
-                (
-                    Symbol::new("backend"),
-                    Expr::Symbol(Symbol::new("openai-compatible")),
-                ),
-                (Symbol::new("model"), Expr::String(model.clone())),
-                (Symbol::new("endpoint"), Expr::String(endpoint.clone())),
-                (
-                    Symbol::new("api-key-env"),
-                    Expr::String(api_key_env.clone()),
-                ),
-                (Symbol::new("codec"), Expr::Symbol(codec.clone())),
-                (
-                    Symbol::new("timeout"),
-                    Expr::String(format!("{}ms", timeout.as_millis())),
-                ),
-                (Symbol::new("stream"), Expr::Bool(stream)),
-                (Symbol::new("tools"), Expr::Bool(tools)),
-                (
-                    Symbol::new("max-output-bytes"),
-                    Expr::Number(sim_kernel::NumberLiteral {
-                        domain: Symbol::qualified("numbers", "f64"),
-                        canonical: max_output_bytes.to_string(),
-                    }),
-                ),
-            ],
-            backend: ComponentBackend::Runner(RunnerBackend::External {
-                runner: Arc::new(HttpRunner::new_openai_compatible(
-                    symbol,
-                    model,
-                    endpoint,
-                    api_key_env,
-                    codec,
-                    timeout,
-                    stream,
-                    tools,
-                    max_output_bytes,
-                )),
-            }),
-        },
-    )
+    let config =
+        ProviderConfig::from_options(provider_profiles::openai_compatible(), cx, &options)?;
+    super::ai_provider_runner::provider_runner_value(cx, config)
 }
 
 #[cfg(feature = "runner-ollama")]
@@ -306,60 +220,5 @@ fn delay_option(
             )),
         },
         None => Ok(Duration::ZERO),
-    }
-}
-
-#[cfg(feature = "runner-http")]
-fn timeout_with_default(
-    cx: &mut Cx,
-    options: &std::collections::HashMap<String, Value>,
-    default: Duration,
-) -> Result<Duration> {
-    match options.get("timeout") {
-        Some(value) => parse_duration(&value.object().as_expr(cx)?),
-        None => Ok(default),
-    }
-}
-
-#[cfg(feature = "runner-http")]
-fn bool_option(
-    cx: &mut Cx,
-    options: &std::collections::HashMap<String, Value>,
-    key: &str,
-    error: &str,
-    default: bool,
-) -> Result<bool> {
-    match options.get(key) {
-        Some(value) => match value.object().as_expr(cx)? {
-            Expr::Bool(flag) => Ok(flag),
-            _ => Err(Error::Eval(error.to_owned())),
-        },
-        None => Ok(default),
-    }
-}
-
-#[cfg(feature = "runner-http")]
-fn max_output_bytes_option(
-    cx: &mut Cx,
-    options: &std::collections::HashMap<String, Value>,
-    runner_label: &str,
-) -> Result<usize> {
-    match options.get("max-output-bytes") {
-        Some(value) => match value.object().as_expr(cx)? {
-            Expr::String(text) => text.parse::<usize>().map_err(|_| {
-                Error::Eval(format!(
-                    "{runner_label} :max-output-bytes expects an integer"
-                ))
-            }),
-            Expr::Number(number) => number.canonical.parse::<usize>().map_err(|_| {
-                Error::Eval(format!(
-                    "{runner_label} :max-output-bytes expects an integer"
-                ))
-            }),
-            _ => Err(Error::Eval(format!(
-                "{runner_label} :max-output-bytes expects an integer"
-            ))),
-        },
-        None => Ok(1024 * 1024),
     }
 }

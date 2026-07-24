@@ -86,15 +86,15 @@ fn model_at_realizes_loaded_local_stub() {
     validate_chat_transcript(&expr).unwrap();
     let response = ModelResponse::try_from(expr).unwrap();
     assert_eq!(response.runner, Symbol::new("runner/local-model"));
-    assert_eq!(response.model, "sim-local-stub");
-    assert!(format!("{:?}", response.content).contains("sim-local-stub-ok: local prompt"));
+    assert_eq!(response.model, "sim-local-modeled");
+    assert!(format!("{:?}", response.content).contains("sim-local-modeled-ok: local prompt"));
 }
 
 #[test]
 fn card_reports_local_placement_and_capabilities() {
     let card = LocalModelBackend::new().card();
     assert_eq!(card.locality, Symbol::new("local"));
-    assert_eq!(card.model, "sim-local-stub");
+    assert_eq!(card.model, "sim-local-modeled");
     assert_eq!(
         find_extra_string(&card, "placement-key"),
         Some(LOCAL_MODEL_SITE_KEY)

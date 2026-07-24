@@ -11,7 +11,7 @@ use crate::routes::models::handle_models;
 fn models_catalog_lists_loadable_local_model_card() {
     let catalog = ModelCatalog::from_model_cards(vec![ModelCard::new(
         Symbol::new("runner/local-model"),
-        "sim-local-stub",
+        "sim-local-modeled",
         Symbol::new("local-model"),
         Symbol::new("local"),
     )]);
@@ -21,7 +21,7 @@ fn models_catalog_lists_loadable_local_model_card() {
         .as_array()
         .unwrap()
         .iter()
-        .find(|model| model["id"] == "sim-local-stub")
+        .find(|model| model["id"] == "sim-local-modeled")
         .expect("local model card appears in /v1/models catalog");
 
     assert_eq!(local["owned_by"], "local-model");

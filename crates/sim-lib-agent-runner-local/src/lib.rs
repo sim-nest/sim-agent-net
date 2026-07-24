@@ -3,20 +3,17 @@
 //! The crate exposes a deterministic local
 //! [`ModelRunner`](sim_lib_agent_runner_core::ModelRunner) and a loadable
 //! library that registers the runner as a site under `model-site:local`. The
-//! default build performs no native inference and needs no model files. The
-//! runner card names the local provider, locality, placement key, stream
-//! support, and cache support. The `native-inference` feature confines native
-//! runtime contact to the `ffi` module, while the `wasm-model` feature loads a
-//! model guest through the framed wasm ABI after `ai-runner-local` and
-//! `ai-runner-wasm` capability checks.
+//! built-in site is a modeled, deterministic target with no model files or
+//! outside contact. The runner card names the local provider, locality,
+//! placement key, stream support, and cache support. The `wasm-model` feature
+//! loads a real model guest through the framed wasm ABI after
+//! `ai-runner-local` and `ai-runner-wasm` capability checks.
 
-#![cfg_attr(not(feature = "native-inference"), forbid(unsafe_code))]
+#![deny(unsafe_code)]
 #![deny(missing_docs)]
 #![allow(deprecated)]
 
 mod backend;
-#[cfg(feature = "native-inference")]
-mod ffi;
 mod register;
 #[cfg(feature = "wasm-model")]
 mod wasm;
@@ -40,7 +37,7 @@ pub const LOCAL_MODEL_SITE_KEY: &str = "model-site:local";
 /// Runner symbol advertised by the deterministic local backend.
 pub const LOCAL_MODEL_RUNNER: &str = "runner/local-model";
 /// Model id advertised by the deterministic local backend.
-pub const LOCAL_MODEL_ID: &str = "sim-local-stub";
+pub const LOCAL_MODEL_ID: &str = "sim-local-modeled";
 /// Placement key registered by the local wasm model site.
 #[cfg(feature = "wasm-model")]
 pub const LOCAL_WASM_MODEL_SITE_KEY: &str = "model-site:local-wasm";

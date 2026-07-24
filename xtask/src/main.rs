@@ -23,17 +23,23 @@ fn run() -> Result<(), String> {
     let program = args.first().map(String::as_str).unwrap_or("xtask");
     match args.get(1).map(String::as_str) {
         Some("simdoc") => {
-            let root = std::env::current_dir().map_err(|err| format!("current dir: {err}"))?;
-            let summary = recipe_assertions::check_repo(&root)?;
-            println!(
-                "simdoc: recipe assertions checked {} recipe(s), including {} 30-agents recipe(s); {} publishable package(s) have recipe coverage",
-                summary.checked_recipes, summary.agent30_recipes, summary.publishable_packages
-            );
+            run_recipe_assertions("simdoc")?;
             simdoc::run(args)
         }
+        Some("check-recipes") => run_recipe_assertions("check-recipes"),
         Some("check-file-sizes") => file_sizes::run(&args),
         _ => Err(format!(
-            "usage: {program} simdoc [--check] | check-file-sizes"
+            "usage: {program} simdoc [--check] | check-file-sizes | check-recipes"
         )),
     }
+}
+
+fn run_recipe_assertions(label: &str) -> Result<(), String> {
+    let root = std::env::current_dir().map_err(|err| format!("current dir: {err}"))?;
+    let summary = recipe_assertions::check_repo(&root)?;
+    println!(
+        "{label}: recipe assertions checked {} recipe(s), including {} 30-agents recipe(s); {} publishable package(s) have recipe coverage",
+        summary.checked_recipes, summary.agent30_recipes, summary.publishable_packages
+    );
+    Ok(())
 }

@@ -46,6 +46,10 @@ mod components;
 mod config_probe;
 mod core_tools;
 mod fairness;
+mod genai_assembly;
+#[cfg(feature = "runner-http")]
+mod genai_assembly_provider_support;
+mod genai_assembly_support;
 mod memory_r15;
 mod multimodal;
 mod planning;

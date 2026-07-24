@@ -1,0 +1,8 @@
+(bridge/run-ask
+  (model/at "model-site:genai")
+  (bridge/ask
+    "model-site:genai"
+    genai/generate
+    (expr:map [prompt "Explain SIM in one sentence."])
+    core/String
+    (expr:map [temperature "0"])))

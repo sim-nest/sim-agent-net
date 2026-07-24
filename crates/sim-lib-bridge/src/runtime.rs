@@ -5,9 +5,14 @@ use sim_kernel::{
     AbiVersion, Args, Callable, Cx, Error, Export, Lib, LibManifest, LibTarget, Linker, LoadCx,
     Object, ObjectCompat, Result, Symbol, Value, Version,
 };
-use sim_shape::{AnyShape, ListShape, Shape, shape_value};
+use sim_shape::{AnyShape, ListShape, OneOfShape, Shape, shape_value};
 
-use crate::{ask_packet, bridge_brief, bridge_tx, receipt_packet_for_report, rx_check};
+use crate::{
+    RepairPolicy, ask_packet_with_model_params, bridge_brief, bridge_tx, receipt_packet_for_report,
+    run_ask_with_policy, rx_check,
+};
+
+const BRIDGE_RUN_ASK_NAME: &str = "bridge/run-ask";
 
 /// Loadable BRIDGE runtime library.
 pub struct BridgeLib;
@@ -69,6 +74,11 @@ pub fn bridge_ask_symbol() -> Symbol {
     Symbol::qualified("bridge", "ask")
 }
 
+/// Runtime symbol for `bridge/run-ask`.
+pub fn bridge_run_ask_symbol() -> Symbol {
+    Symbol::qualified("bridge", "run-ask")
+}
+
 fn bridge_exports() -> Vec<Export> {
     BridgeFunctionKind::ALL
         .iter()
@@ -94,17 +104,20 @@ pub enum BridgeFunctionKind {
     Brief,
     /// Build an ASK request packet from one typed call.
     Ask,
+    /// Run a checked ASK packet against an eval fabric.
+    RunAsk,
 }
 
 impl BridgeFunctionKind {
     /// All exported function kinds.
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::Tx,
         Self::Rx,
         Self::Report,
         Self::Receipt,
         Self::Brief,
         Self::Ask,
+        Self::RunAsk,
     ];
 
     /// Runtime symbol for this kind.
@@ -116,6 +129,7 @@ impl BridgeFunctionKind {
             Self::Receipt => crate::receipt_symbol(),
             Self::Brief => bridge_brief_symbol(),
             Self::Ask => bridge_ask_symbol(),
+            Self::RunAsk => bridge_run_ask_symbol(),
         }
     }
 }
@@ -168,6 +182,7 @@ impl Callable for BridgeFunction {
             BridgeFunctionKind::Receipt => call_receipt(cx, args),
             BridgeFunctionKind::Brief => call_brief(cx, args),
             BridgeFunctionKind::Ask => call_ask(cx, args),
+            BridgeFunctionKind::RunAsk => call_run_ask(cx, args),
         }
     }
 
@@ -183,12 +198,12 @@ impl Callable for BridgeFunction {
                 Arc::new(AnyShape),
                 Arc::new(AnyShape),
             ])),
-            BridgeFunctionKind::Ask => Arc::new(ListShape::new(vec![
-                Arc::new(AnyShape),
-                Arc::new(AnyShape),
-                Arc::new(AnyShape),
-                Arc::new(AnyShape),
-            ])),
+            BridgeFunctionKind::Ask => {
+                Arc::new(OneOfShape::new(vec![any_args_shape(4), any_args_shape(5)]))
+            }
+            BridgeFunctionKind::RunAsk => {
+                Arc::new(OneOfShape::new(vec![any_args_shape(2), any_args_shape(3)]))
+            }
         };
         Ok(Some(shape_value(
             Symbol::qualified(self.symbol().to_string(), "args"),
@@ -248,26 +263,80 @@ fn call_ask(cx: &mut Cx, args: Args) -> Result<Value> {
     let mut exprs = expr_args(
         cx,
         args,
-        "bridge/ask expects target, call, params, and return shape",
+        "bridge/ask expects target, call, params, return shape, and optional model params",
     )?;
-    if exprs.len() != 4 {
+    if !matches!(exprs.len(), 4 | 5) {
         return Err(Error::Eval(format!(
-            "bridge/ask expects 4 argument(s), found {}",
+            "bridge/ask expects 4 or 5 argument(s), found {}",
             exprs.len()
         )));
     }
+    let model_params = if exprs.len() == 5 {
+        call_params(&exprs.pop().expect("length checked"))?
+    } else {
+        Vec::new()
+    };
     let return_shape = exprs.pop().expect("length checked");
     let params = exprs.pop().expect("length checked");
     let call = exprs.pop().expect("length checked");
     let target = exprs.pop().expect("length checked");
-    let packet = ask_packet(
+    let packet = ask_packet_with_model_params(
         cx,
         &call_name(&call)?,
         call_params(&params)?,
+        model_params,
         return_shape,
         &target_name(&target)?,
     )?;
     cx.factory().expr(packet_to_expr(&packet))
+}
+
+fn call_run_ask(cx: &mut Cx, args: Args) -> Result<Value> {
+    let mut values = args.into_vec();
+    if !matches!(values.len(), 2 | 3) {
+        return Err(Error::Eval(format!(
+            "{BRIDGE_RUN_ASK_NAME} expects 2 or 3 argument(s), found {}",
+            values.len()
+        )));
+    }
+    let policy = if values.len() == 3 {
+        repair_policy(cx, &values.pop().expect("length checked"))?
+    } else {
+        RepairPolicy::default()
+    };
+    let packet = expr_to_packet(&values.pop().expect("length checked").object().as_expr(cx)?)?;
+    let target = values.pop().expect("length checked");
+    let Some(fabric) = target.object().as_eval_fabric() else {
+        return Err(Error::TypeMismatch {
+            expected: "eval-fabric",
+            found: "non-eval-fabric",
+        });
+    };
+    let reply = run_ask_with_policy(cx, fabric, packet, policy)?;
+    cx.factory().expr(packet_to_expr(&reply))
+}
+
+fn any_args_shape(arity: usize) -> Arc<dyn Shape> {
+    Arc::new(ListShape::new(
+        (0..arity)
+            .map(|_| Arc::new(AnyShape) as Arc<dyn Shape>)
+            .collect(),
+    ))
+}
+
+fn repair_policy(cx: &mut Cx, value: &Value) -> Result<RepairPolicy> {
+    let expr = value.object().as_expr(cx)?;
+    let sim_kernel::Expr::Number(number) = expr else {
+        return Err(Error::Eval(format!(
+            "{BRIDGE_RUN_ASK_NAME} retries must be a non-negative integer"
+        )));
+    };
+    let retries = number.canonical.parse::<u8>().map_err(|_| {
+        Error::Eval(format!(
+            "{BRIDGE_RUN_ASK_NAME} retries must be a non-negative integer"
+        ))
+    })?;
+    Ok(RepairPolicy::new(retries))
 }
 
 fn packet_arg(
