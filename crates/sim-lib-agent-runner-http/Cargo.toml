@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent-runner-http"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 license = "MPL-2.0"
 description = "HTTP-backed model runners for SIM."
