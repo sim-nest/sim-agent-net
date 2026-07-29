@@ -9,11 +9,12 @@
 //!   touches the thin cookbook engine (R6/R7): the runner (`run.rs`) depends only
 //!   on this trait, never on a concrete domain lib.
 //! - [`CookbookCapabilityProfile`]: the deterministic capability set the cookbook
-//!   seats its eval `Cx` with. It GRANTS pure/offline/deterministic effects and
-//!   DENIES live-net, live-hardware, process-spawn, wall-clock, fs/write, and
-//!   unseeded entropy. An op that requests a denied capability fails closed (the
-//!   capability is simply never granted), which is what makes a Category D recipe
-//!   a descriptor BY CONSTRUCTION.
+//!   seats its eval `Cx` with. It GRANTS pure/offline/deterministic effects,
+//!   including local placement through `EvalFabric`, and DENIES live-net,
+//!   live-hardware, process-spawn, wall-clock, fs/write, and unseeded entropy. An
+//!   op that requests a denied capability fails closed (the capability is simply
+//!   never granted), which is what makes a Category D recipe a descriptor BY
+//!   CONSTRUCTION.
 
 use sim_cookbook::RecipeCard;
 use sim_kernel::{CapabilityName, Cx, GrantSeat, Lib, Result, Symbol};
@@ -139,14 +140,16 @@ pub struct CookbookCapabilityProfile;
 impl CookbookCapabilityProfile {
     /// The capabilities this profile GRANTS: read-construct, read-eval,
     /// eval-time macro expansion, and the pure/offline/deterministic effect
-    /// vocabulary (compute, codec round-trip, offline render with no device,
-    /// deterministic cassette replay, and a deterministic model fixture).
+    /// vocabulary (local eval-fabric placement, compute, codec round-trip,
+    /// offline render with no device, deterministic cassette replay, and a
+    /// deterministic model fixture).
     pub fn granted() -> Vec<CapabilityName> {
         [
             "read-construct",
             "read-eval",
             "macro.expand",
             "macro.expand.eval",
+            "eval.fabric",
             "compute",
             "codec-encode",
             "codec-decode",
