@@ -302,15 +302,10 @@
         },
         {
           "edges": [
-            "dep:sim-lib-server",
             "sim-lib-server/server-net-http"
           ],
           "name": "http",
           "workspace_edges": [
-            {
-              "feature": null,
-              "package": "sim-lib-server"
-            },
             {
               "feature": "server-net-http",
               "package": "sim-lib-server"

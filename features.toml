@@ -269,6 +269,27 @@ claims_specimens = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/server-wall-clock"
+title = "Injectable server wall clock"
+summary = "Observe a validated wall clock timestamp in Unix milliseconds through one injectable server contract."
+owner = "crate/sim-lib-server"
+audiences = ["code", "framework"]
+guidance = "Use WallClock and WallTimestamp for optional human timestamps and host scheduling in server-side libraries. Inject DeterministicWallClock for tests and replay. Wall observations may move backward and never replace kernel logical ticks, revisions, or Instant deadlines for correctness ordering."
+claims_anchors = [
+  "anchor/crate/sim-lib-server",
+  "anchor/rustdoc/sim-lib-server/deterministic-wall-clock",
+  "anchor/rustdoc/sim-lib-server/system-wall-clock",
+  "anchor/rustdoc/sim-lib-server/wall-clock",
+  "anchor/rustdoc/sim-lib-server/wall-timestamp",
+]
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-server/src/clock/tests",
+]
+supports = [
+  "feature/sim-agent-net/agent-server-tools",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/generated-docs"
 title = "Repository documentation surface"
 summary = "Publish generated package, card, recipe, and index facts for agent, bridge, MCP, and fabric crates."
@@ -372,4 +393,13 @@ audiences = ["code", "framework"]
 steps = [
   { feature = "feature/sim-agent-net/forge-intent", why = "The Forge row owns checked intent compilation." },
   { feature = "feature/sim-agent-net/agent-server-tools", why = "Server tool rows expose the host-facing model gateway." },
+]
+
+[[route]]
+id = "route/inject-server-wall-clock"
+task = "Inject a server wall clock"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/server-wall-clock", why = "The wall-clock row owns the validated timestamp contract and injectable system and deterministic implementations." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-server/src/clock/tests", why = "The checked clock specimen proves pre-epoch and overflow rejection, deterministic reads, and rollback-safe scheduling." },
 ]

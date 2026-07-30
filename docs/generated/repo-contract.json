@@ -291,7 +291,7 @@
       "descriptor": "server/Address",
       "file": "crates/sim-lib-server/src/trigger.rs",
       "kind": "handle",
-      "line": 61,
+      "line": 74,
       "reason": "live trigger handle; reconstruct source through server/Address descriptor and trigger ops"
     },
     {
@@ -1191,7 +1191,7 @@
         },
         {
           "kind": "normal",
-          "optional": true,
+          "optional": false,
           "package": "sim-lib-server",
           "rename": null,
           "target": null
@@ -1206,15 +1206,10 @@
         },
         {
           "edges": [
-            "dep:sim-lib-server",
             "sim-lib-server/server-net-http"
           ],
           "name": "http",
           "workspace_edges": [
-            {
-              "feature": null,
-              "package": "sim-lib-server"
-            },
             {
               "feature": "server-net-http",
               "package": "sim-lib-server"
@@ -1727,10 +1722,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "9010105143a3d593055170559225ee2c597b2673",
+    "git_commit": "a5154dfb7fa8bab726ecde988a3fe403b9b6911f",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "9010105143a3d593055170559225ee2c597b2673",
+    "source_commit": "a5154dfb7fa8bab726ecde988a3fe403b9b6911f",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1743,9 +1738,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "e7d457cf8b973509",
+    "workspace_hash": "fc8aeb07fc3d177d",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 685,
+    "workspace_hash_input_count": 688,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -2255,6 +2250,8 @@
       "crates/sim-lib-server/src/address.rs",
       "crates/sim-lib-server/src/citizen.rs",
       "crates/sim-lib-server/src/cli.rs",
+      "crates/sim-lib-server/src/clock/tests.rs",
+      "crates/sim-lib-server/src/clock.rs",
       "crates/sim-lib-server/src/codecio.rs",
       "crates/sim-lib-server/src/connection.rs",
       "crates/sim-lib-server/src/cookbook_web.rs",
@@ -2303,6 +2300,7 @@
       "crates/sim-lib-server/src/stream_support.rs",
       "crates/sim-lib-server/src/tests/basics.rs",
       "crates/sim-lib-server/src/tests/capabilities.rs",
+      "crates/sim-lib-server/src/tests/clock.rs",
       "crates/sim-lib-server/src/tests/cookbook_web.rs",
       "crates/sim-lib-server/src/tests/lifecycle.rs",
       "crates/sim-lib-server/src/tests/lifecycle_roundtrip.rs",

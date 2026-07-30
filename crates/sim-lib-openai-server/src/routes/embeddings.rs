@@ -3,7 +3,7 @@ use sim_cookbook::fnv1a64;
 use sim_kernel::{Error, Expr, Symbol};
 
 use crate::{
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     content_id::content_id_for_expr,
     objects::{GatewayRequest, GatewayResponse},
     plan::{check_plan, parse_plan, resolve_atom_address, shape::plan_parts},
@@ -49,7 +49,7 @@ struct EmbeddingUsage {
 /// Handles `POST /v1/embeddings`, executing the request against the gateway
 /// store and returning the OpenAI-shaped embeddings response.
 pub fn handle_embeddings(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = EmbeddingIdGenerators::deterministic(seed);
     match state.store().lock() {
@@ -74,7 +74,7 @@ pub fn execute_embedding_request<S, C>(
 ) -> EmbeddingExecution
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_embedding_request(store, ids, clock, request) {
         Ok(execution) => execution,
@@ -90,7 +90,7 @@ fn try_execute_embedding_request<S, C>(
 ) -> RouteResult<EmbeddingExecution>
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let object = request_object(request.body())?;
     let model = required_string(&object, "model")?.to_owned();

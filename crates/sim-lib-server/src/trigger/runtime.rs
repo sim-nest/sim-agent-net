@@ -7,7 +7,7 @@ use std::{
         mpsc,
     },
     thread,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 use sim_kernel::{Args, Cx, Error, Expr, Result, Symbol, Value};
@@ -40,6 +40,7 @@ impl TriggerHandle {
             network_source,
         } = config;
         let id = NEXT_TRIGGER_ID.fetch_add(1, Ordering::Relaxed);
+        let wall_clock = server.wall_clock().clone();
         let stdin = match &source {
             ServerAddress::Stdin => {
                 let (tx, rx) = mpsc::channel();
@@ -67,6 +68,7 @@ impl TriggerHandle {
             decoder,
             cron,
             network_source: network_source.map(Mutex::new),
+            wall_clock,
             stopping: AtomicBool::new(false),
             handle: Mutex::new(None),
             stdin,
@@ -337,19 +339,20 @@ impl TriggerHandle {
         let Some(matcher) = &self.cron else {
             return Ok(0);
         };
-        let Some(minute_key) = matcher.current_match(SystemTime::now()) else {
-            return Ok(0);
-        };
+        let now = self.wall_clock.now()?;
+        let current_minute = now.unix_millis() / 60_000;
         {
             let mut state = self
                 .state
                 .lock()
                 .map_err(|_| Error::PoisonedLock("trigger state"))?;
-            if state.last_cron_minute == Some(minute_key) {
+            if !state.advance_cron_high_watermark(current_minute) {
                 return Ok(0);
             }
-            state.last_cron_minute = Some(minute_key);
         }
+        let Some(_minute_key) = matcher.current_match(now) else {
+            return Ok(0);
+        };
         self.inject_event(cx, b"tick")?;
         Ok(1)
     }
@@ -358,10 +361,7 @@ impl TriggerHandle {
         require_source_capability(cx, &self.source)?;
         let expr = self.decode_event(cx, raw)?;
         let source = self.source.kind_symbol();
-        let when_ms = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_millis() as u64)
-            .unwrap_or(0);
+        let when_ms = self.wall_clock.now()?.unix_millis();
         let mut frame = ServerFrame::from_expr(
             cx,
             self.codec.clone(),

@@ -1,7 +1,7 @@
 use sim_kernel::{Expr, Symbol};
 
 use crate::{
-    clock::GatewayClock,
+    clock::WallClock,
     content_id::content_id_for_expr,
     objects::{GatewayRequest, GatewayResponse},
     storage::GatewayStore,
@@ -74,7 +74,7 @@ pub(crate) fn record_route_execution<S, C>(
 ) -> RouteResult<RouteRunExecution>
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let RouteRunRecord {
         response,

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde_json::{Map, Value as JsonValue, json};
 use sim_kernel::{Args, Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeRef, Symbol};
 use sim_lib_openai_server::{
-    DeterministicGatewayClock, GatewayEvent, GatewayRequest, MemoryGatewayStore, OpenAiTool,
+    DeterministicWallClock, GatewayEvent, GatewayRequest, MemoryGatewayStore, OpenAiTool,
     OpenAiToolRegistry, RESPONSES_PATH, ResponseIdGenerators, execute_response_request,
     install_openai_gateway_lib, openai_gateway_tools_capability,
 };
@@ -160,7 +160,7 @@ fn execute_skill_response(
 ) -> sim_lib_openai_server::ResponseExecution {
     let mut store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(1);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request = GatewayRequest::new(
         "POST",
         RESPONSES_PATH,

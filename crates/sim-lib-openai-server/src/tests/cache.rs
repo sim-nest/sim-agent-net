@@ -2,7 +2,7 @@ use serde_json::Value;
 use sim_kernel::Expr;
 
 use crate::{
-    DeterministicGatewayClock, GatewayEvent, GatewayRequest, GatewayStore, MemoryGatewayStore,
+    DeterministicWallClock, GatewayEvent, GatewayRequest, GatewayStore, MemoryGatewayStore,
     OpenAiPlanCache, PlanCacheKey, PlanCacheWriteTarget, RESPONSES_PATH, ResponseIdGenerators,
     ai_runner_cache_capability, execute_response_request_with_cache,
     openai_gateway_plan_capability,
@@ -15,7 +15,7 @@ fn repeated_cache_plan_returns_hit_without_backend_branch() {
     let mut store = MemoryGatewayStore::new();
     let mut cache = OpenAiPlanCache::new();
     let mut ids = ResponseIdGenerators::deterministic(1);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request =
         responses_request(r#"{"model":"cache(fixture/echo)","input":"cache me","store":true}"#);
 
@@ -48,7 +48,7 @@ fn refresh_cache_mode_bypasses_hit_and_rewrites_entry() {
     let mut store = MemoryGatewayStore::new();
     let mut cache = OpenAiPlanCache::new();
     let mut ids = ResponseIdGenerators::deterministic(20);
-    let mut clock = DeterministicGatewayClock::new(2_000, 10);
+    let mut clock = DeterministicWallClock::new(2_000, 10);
     let read_through =
         responses_request(r#"{"model":"cache(fixture/echo)","input":"refresh me","store":true}"#);
     let refresh = responses_request(

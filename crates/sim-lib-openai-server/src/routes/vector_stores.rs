@@ -3,7 +3,7 @@ use sim_cookbook::fnv1a64;
 use sim_kernel::Expr;
 
 use crate::{
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     ids::GatewayIdGenerator,
     objects::{GatewayRequest, GatewayResponse},
     routes::{
@@ -59,7 +59,7 @@ pub fn handle_vector_stores(
     request: &GatewayRequest,
     state: &GatewayRouteState,
 ) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = VectorStoreIdGenerators::deterministic(seed);
     match state.store().lock() {
@@ -82,7 +82,7 @@ pub fn handle_vector_store_search(
     let Some(vector_store_id) = vector_store_id_from_search_path(request.path()) else {
         return OpenAiRouteError::not_found_kind("vector_store", request.path()).into_response();
     };
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = RouteRunIdGenerators::deterministic(seed);
     match state.store().lock() {
@@ -108,7 +108,7 @@ pub(crate) fn execute_vector_store_create_request<S, C>(
 ) -> RouteRunExecution
 where
     S: GatewayStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_vector_store_create_request(store, ids, clock, request) {
         Ok(execution) => execution,
@@ -125,7 +125,7 @@ pub(crate) fn execute_vector_store_search_request<S, C>(
 ) -> RouteRunExecution
 where
     S: GatewayStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_vector_store_search_request(store, ids, clock, request, vector_store_id) {
         Ok(execution) => execution,
@@ -141,7 +141,7 @@ fn try_execute_vector_store_create_request<S, C>(
 ) -> RouteResult<RouteRunExecution>
 where
     S: GatewayStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let object = request_object(request.body())?;
     let name = optional_string(&object, "name", "sim-vector-store");
@@ -201,7 +201,7 @@ fn try_execute_vector_store_search_request<S, C>(
 ) -> RouteResult<RouteRunExecution>
 where
     S: GatewayStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let object = request_object(request.body())?;
     let query = required_string(&object, "query")?;

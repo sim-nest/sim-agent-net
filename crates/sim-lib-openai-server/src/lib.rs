@@ -19,7 +19,7 @@
 pub mod capabilities;
 /// Citizen descriptor types bridging gateway objects into the SIM object graph.
 pub mod citizen;
-/// Gateway clock abstractions for deterministic and system time sources.
+/// Compatibility names for the canonical server wall-clock contract.
 pub mod clock;
 /// OpenAI JSON codec surface: decode, encode, streaming, and shared shapes.
 pub mod codec_openai;
@@ -60,6 +60,7 @@ pub use capabilities::{
     openai_gateway_tools_capability, require_openai_gateway_serve_capabilities,
     webhook_serve_capability,
 };
+#[allow(deprecated)]
 pub use clock::{DeterministicGatewayClock, GatewayClock, SystemGatewayClock};
 pub use codec_openai::{
     ChatTranscript, GatewayEventData, OpenAiCodec, OpenAiCodecOptions, OpenAiRequestOptions,
@@ -157,6 +158,7 @@ pub use server::{
     GatewayRouteState, GatewayRoutes, GatewayRoutesValue, configure_routes,
     configure_routes_with_state,
 };
+pub use sim_lib_server::{DeterministicWallClock, SystemWallClock, WallClock, WallTimestamp};
 pub use storage::{
     GATEWAY_BATCH_KIND, GATEWAY_FILE_KIND, GATEWAY_THREAD_KIND, GATEWAY_THREAD_MESSAGE_KIND,
     GATEWAY_VECTOR_STORE_ITEM_KIND, GATEWAY_VECTOR_STORE_KIND, GatewayBatch, GatewayBatchCounts,

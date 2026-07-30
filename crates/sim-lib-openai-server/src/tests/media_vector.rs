@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use crate::{
-    AUDIO_SPEECH_PATH, AUDIO_TRANSCRIPTIONS_PATH, DeterministicGatewayClock, GatewayRequest,
+    AUDIO_SPEECH_PATH, AUDIO_TRANSCRIPTIONS_PATH, DeterministicWallClock, GatewayRequest,
     GatewayResponse, GatewayRouteState, GatewayStateStore, GatewayStore, GatewayVectorStore,
     GatewayVectorStoreItem, IMAGES_GENERATIONS_PATH, MemoryGatewayStore, TableGatewayStore,
     VECTOR_STORE_SEARCH_ROUTE, VECTOR_STORES_PATH, configure_routes, configure_routes_with_state,
@@ -30,7 +30,7 @@ fn phase21_routes_are_registered() {
 fn audio_transcription_records_replayable_fixture_run() {
     let mut store = MemoryGatewayStore::new();
     let mut ids = RouteRunIdGenerators::deterministic(7);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request = json_request(
         AUDIO_TRANSCRIPTIONS_PATH,
         r#"{"input":"hello   SIM audio","store":true}"#,

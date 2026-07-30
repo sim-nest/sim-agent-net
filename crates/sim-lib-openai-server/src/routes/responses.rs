@@ -5,7 +5,7 @@ use sim_codec::Input;
 use sim_kernel::{Cx, DefaultFactory, EvalFabric, Expr, NoopEvalPolicy};
 
 use crate::{
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     codec_openai::{
         OpenAiSseSurface, decode_openai_request, encode_gateway_events_sse,
         encode_openai_responses_response,
@@ -47,7 +47,7 @@ type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 /// Handles `POST /v1/responses`, realizing the request through the gateway
 /// eval fabric under the caller's effective capabilities.
 pub fn handle_responses(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
     let fabric = OpenAiGatewayFabric::with_state_system(state.clone(), seed);
@@ -146,7 +146,7 @@ pub fn execute_response_request<S, C>(
 ) -> ResponseExecution
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let mut cache = OpenAiPlanCache::new();
     execute_response_request_with_cache(cx, store, &mut cache, ids, clock, request)
@@ -164,7 +164,7 @@ pub fn execute_response_request_with_cache<S, C>(
 ) -> ResponseExecution
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_response_request(cx, store, cache, ids, clock, request, None) {
         Ok(execution) => execution,
@@ -184,7 +184,7 @@ pub fn execute_response_request_with_runners<S, C>(
 ) -> ResponseExecution
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let mut cache = OpenAiPlanCache::new();
     execute_response_request_with_cache_and_runners(
@@ -205,7 +205,7 @@ pub fn execute_response_request_with_cache_and_runners<S, C>(
 ) -> ResponseExecution
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_response_request(
         cx,
@@ -234,7 +234,7 @@ pub fn execute_response_request_with_cache_runners_and_federation<S, C>(
 ) -> ResponseExecution
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_response_request(cx, store, cache, ids, clock, request, Some(targets)) {
         Ok(execution) => execution,
@@ -253,7 +253,7 @@ fn try_execute_response_request<S, C>(
 ) -> RouteResult<ResponseExecution>
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let normalized = normalize_response_request(store, request)?;
     let object = normalized.object;

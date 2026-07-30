@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 use sim_kernel::{CapabilitySet, ContentId};
 
 use crate::{
-    AUDIO_TRANSCRIPTIONS_PATH, DeterministicGatewayClock, EMBEDDINGS_PATH, EmbeddingIdGenerators,
+    AUDIO_TRANSCRIPTIONS_PATH, DeterministicWallClock, EMBEDDINGS_PATH, EmbeddingIdGenerators,
     GatewayEvent, GatewayRequest, GatewayResponse, GatewayResponseObjectStore, GatewayRouteState,
     GatewayStore, MemoryGatewayStore, OpenAiKeyTable, RESPONSES_PATH, ResponseIdGenerators,
     SIM_REPLAY_PATH, TENSOR_F64_SMALL_EMBEDDING_MODEL, configure_routes_with_state, content_id_hex,
@@ -51,7 +51,7 @@ fn responses_golden(store: bool) -> Value {
     let mut cx = super::cx();
     let mut gateway_store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(1);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request = json_request(
         RESPONSES_PATH,
         &format!(r#"{{"model":"fixture/echo","input":"golden input","store":{store}}}"#),
@@ -126,7 +126,7 @@ fn embeddings_execution_record_store_false_golden() {
 fn embeddings_golden(store: bool) -> Value {
     let mut gateway_store = MemoryGatewayStore::new();
     let mut ids = EmbeddingIdGenerators::deterministic(7);
-    let mut clock = DeterministicGatewayClock::new(2_000, 20);
+    let mut clock = DeterministicWallClock::new(2_000, 20);
     let request = json_request(
         EMBEDDINGS_PATH,
         &format!(
@@ -170,7 +170,7 @@ fn run_record_audio_execution_record_store_false_golden() {
 fn audio_golden(store: bool) -> Value {
     let mut gateway_store = MemoryGatewayStore::new();
     let mut ids = RouteRunIdGenerators::deterministic(11);
-    let mut clock = DeterministicGatewayClock::new(3_000, 30);
+    let mut clock = DeterministicWallClock::new(3_000, 30);
     let request = json_request(
         AUDIO_TRANSCRIPTIONS_PATH,
         &format!(r#"{{"input":"golden   SIM audio","store":{store}}}"#),

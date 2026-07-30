@@ -6,7 +6,7 @@ use sim_kernel::Expr;
 use sim_kernel::{Symbol, eval_fabric_capability};
 
 use crate::{
-    DeterministicGatewayClock, GatewayEvent, GatewayRequest, GatewayResponseObjectStore,
+    DeterministicWallClock, GatewayEvent, GatewayRequest, GatewayResponseObjectStore,
     GatewayResponseValue, GatewayStore, MemoryGatewayStore, OpenAiGatewayFabric, RESPONSES_PATH,
     ResponseIdGenerators, configure_routes, execute_response_request,
     gateway_event_data_from_packet, gateway_event_data_packets, openai_gateway_plan_capability,
@@ -103,7 +103,7 @@ fn gateway_fabric_and_http_execution_share_event_log() {
     let mut http_cx = super::cx();
     let mut http_store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(7);
-    let mut clock = DeterministicGatewayClock::new(2_000, 20);
+    let mut clock = DeterministicWallClock::new(2_000, 20);
     let http_execution = execute_response_request(
         &mut http_cx,
         &mut http_store,
@@ -149,7 +149,7 @@ fn streaming_response_data_packets_reconstruct_event_log() {
     let mut cx = super::cx();
     let mut store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(17);
-    let mut clock = DeterministicGatewayClock::new(4_000, 40);
+    let mut clock = DeterministicWallClock::new(4_000, 40);
 
     let execution = execute_response_request(&mut cx, &mut store, &mut ids, &mut clock, &request);
     let packets = gateway_event_data_packets(execution.events());
@@ -260,7 +260,7 @@ fn response_execution_stores_response_when_requested() {
     let mut cx = super::cx();
     let mut store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(1);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request = responses_request(r#"{"model":"fixture/echo","input":"store me","store":true}"#);
 
     let execution = execute_response_request(&mut cx, &mut store, &mut ids, &mut clock, &request);
@@ -285,7 +285,7 @@ fn response_stream_execution_stores_split_event_log() {
     let mut cx = super::cx();
     let mut store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(1);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request = responses_request(
         r#"{"model":"fixture/echo","input":"split me now","store":true,"stream":true}"#,
     );
@@ -325,7 +325,7 @@ fn responses_execution_records_plan_branch_events() {
     cx.grant(openai_gateway_plan_capability());
     let mut store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(1);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request = responses_request(
         r#"{"model":"race(fixture/echo, fixture/slow-echo)","input":"branch me","store":true}"#,
     );

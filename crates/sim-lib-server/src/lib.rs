@@ -14,6 +14,7 @@
 mod address;
 mod citizen;
 mod cli;
+mod clock;
 mod codecio;
 mod connection;
 mod cookbook_web;
@@ -51,6 +52,7 @@ pub use citizen::{
     ServerAddressDescriptor, ServerFrameDescriptor, server_address_class_symbol,
     server_frame_class_symbol,
 };
+pub use clock::{DeterministicWallClock, SystemWallClock, WallClock, WallTimestamp};
 pub use codecio::{decode_frame_payload, encode_frame_payload};
 pub use connection::{Connection, Session};
 pub use cookbook_web::{CookbookWebResponse, CookbookWebState};

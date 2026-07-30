@@ -14,7 +14,7 @@ use sim_kernel::{
     read_construct_capability, read_eval_capability,
 };
 
-use crate::{Server, ServerAddress, cron::CronMatcher, ensure_installed_codec};
+use crate::{Server, ServerAddress, WallClock, cron::CronMatcher, ensure_installed_codec};
 
 mod runtime;
 mod source_options;
@@ -45,12 +45,25 @@ struct TriggerConfig {
 }
 
 #[derive(Default)]
-struct TriggerState {
+pub(crate) struct TriggerState {
     file_offset: usize,
     file_remainder: Vec<u8>,
     delivered: u64,
     source_closed: bool,
-    last_cron_minute: Option<u64>,
+    cron_high_watermark: Option<u64>,
+}
+
+impl TriggerState {
+    pub(crate) fn advance_cron_high_watermark(&mut self, current_minute: u64) -> bool {
+        if self
+            .cron_high_watermark
+            .is_some_and(|high_watermark| current_minute <= high_watermark)
+        {
+            return false;
+        }
+        self.cron_high_watermark = Some(current_minute);
+        true
+    }
 }
 
 enum StdinSource {
@@ -75,6 +88,7 @@ pub struct TriggerHandle {
     decoder: TriggerDecoder,
     cron: Option<CronMatcher>,
     network_source: Option<Mutex<Box<dyn TriggerSource>>>,
+    wall_clock: Arc<dyn WallClock>,
     stopping: AtomicBool,
     handle: Mutex<Option<JoinHandle<()>>>,
     stdin: StdinSource,

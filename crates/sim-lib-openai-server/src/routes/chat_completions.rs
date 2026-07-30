@@ -4,7 +4,7 @@ use serde_json::{Map, Value, json};
 use sim_kernel::{Cx, DefaultFactory, NoopEvalPolicy};
 
 use crate::{
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     codec_openai::{OpenAiSseSurface, encode_gateway_events_sse},
     objects::{GatewayRequest, GatewayResponse},
     routes::responses::{
@@ -57,7 +57,7 @@ pub fn handle_chat_completions(
     request: &GatewayRequest,
     state: &GatewayRouteState,
 ) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = ResponseIdGenerators::deterministic(seed);
     let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
@@ -96,7 +96,7 @@ pub fn execute_chat_completion_request<S, C>(
 ) -> ChatCompletionExecution
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_chat_completion_request(cx, store, ids, clock, request, None, None) {
         Ok(execution) => execution,
@@ -116,7 +116,7 @@ pub fn execute_chat_completion_request_with_runners<S, C>(
 ) -> ChatCompletionExecution
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_chat_completion_request(cx, store, ids, clock, request, Some(runners), None) {
         Ok(execution) => execution,
@@ -136,7 +136,7 @@ pub fn execute_chat_completion_request_with_runners_and_federation<S, C>(
 ) -> ChatCompletionExecution
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_chat_completion_request(cx, store, ids, clock, request, None, Some(targets)) {
         Ok(execution) => execution,
@@ -155,7 +155,7 @@ fn try_execute_chat_completion_request<S, C>(
 ) -> RouteResult<ChatCompletionExecution>
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let stream_response = request_stream_flag(request.body())?;
     let runtime_request = chat_completion_runtime_request(request)?;
