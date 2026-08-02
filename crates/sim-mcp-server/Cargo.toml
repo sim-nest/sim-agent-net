@@ -11,7 +11,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
 sim-lib-mcp = { version = "0.1.1", features = ["serve"], path = "../sim-lib-mcp" }
-sim-run-core = { version = "0.1.1" }
+sim-run-core = { version = "0.2.0" }
 
 
 
