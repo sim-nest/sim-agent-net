@@ -11,7 +11,7 @@ use sim_kernel::{ClassRef, Cx, Expr, Object, Result, Symbol, Value};
 
 use crate::{
     EvalSite, FrameRouter, IsolationPolicy, ServerAddress, ServerFrame, ServerRuntime,
-    TriggerHandle, symbol_list_value,
+    SystemWallClock, TriggerHandle, WallClock, symbol_list_value,
 };
 
 static NEXT_SERVER_ID: AtomicU64 = AtomicU64::new(1);
@@ -157,6 +157,7 @@ pub struct Server {
     router: Arc<FrameRouter>,
     triggers: Arc<Mutex<Vec<Arc<TriggerHandle>>>>,
     runtime: Option<Arc<ServerRuntime>>,
+    wall_clock: Arc<dyn WallClock>,
     started_at: Instant,
 }
 
@@ -215,8 +216,17 @@ impl Server {
             router: Arc::new(FrameRouter::default()),
             triggers: Arc::new(Mutex::new(Vec::new())),
             runtime,
+            wall_clock: Arc::new(SystemWallClock),
             started_at: Instant::now(),
         })
+    }
+
+    /// Replaces the host wall-clock observation source used by this server and its triggers.
+    ///
+    /// Configure the clock before sharing the server or registering triggers.
+    pub fn with_wall_clock(mut self, wall_clock: Arc<dyn WallClock>) -> Self {
+        self.wall_clock = wall_clock;
+        self
     }
 
     /// Returns this server's unique id.
@@ -267,6 +277,11 @@ impl Server {
     /// Returns the attached runtime, if the server is listening.
     pub fn runtime(&self) -> Option<&Arc<ServerRuntime>> {
         self.runtime.as_ref()
+    }
+
+    /// Returns the injectable host wall-clock source used by this server.
+    pub fn wall_clock(&self) -> &Arc<dyn WallClock> {
+        &self.wall_clock
     }
 
     /// Returns the current lifecycle status.
@@ -423,6 +438,7 @@ impl Clone for Server {
             router: self.router.clone(),
             triggers: self.triggers.clone(),
             runtime: self.runtime.clone(),
+            wall_clock: self.wall_clock.clone(),
             started_at: self.started_at,
         }
     }

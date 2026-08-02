@@ -2,7 +2,7 @@ use serde_json::{Map, Value, json};
 use sim_kernel::Expr;
 
 use crate::{
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     content_id::content_id_for_expr,
     ids::GatewayIdGenerator,
     objects::{GatewayRequest, GatewayResponse, content_id_hex},
@@ -23,7 +23,7 @@ type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 
 /// Handles `POST /v1/files`, storing JSON `content` bytes and returning a file object.
 pub fn handle_files(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = GatewayIdGenerator::deterministic("file", seed);
     match state.store().lock() {
@@ -68,7 +68,7 @@ fn create_file<S, C>(
 ) -> RouteResult<GatewayResponse>
 where
     S: GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let object = request_object(request.body())?;
     let filename = required_string(&object, "filename")?.to_owned();

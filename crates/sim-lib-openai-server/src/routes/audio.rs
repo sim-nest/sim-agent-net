@@ -2,7 +2,7 @@ use serde_json::{Map, Value, json};
 use sim_kernel::Expr;
 
 use crate::{
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     objects::{GatewayRequest, GatewayResponse},
     routes::{
         request_json::{optional_string, record_execution, request_object, required_string},
@@ -30,7 +30,7 @@ pub fn handle_audio_transcriptions(
     request: &GatewayRequest,
     state: &GatewayRouteState,
 ) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = RouteRunIdGenerators::deterministic(seed);
     match state.store().lock() {
@@ -47,7 +47,7 @@ pub fn handle_audio_transcriptions(
 /// Handles `POST /v1/audio/speech`, returning deterministic fixture audio bytes
 /// for the requested JSON text input.
 pub fn handle_audio_speech(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = RouteRunIdGenerators::deterministic(seed);
     match state.store().lock() {
@@ -67,7 +67,7 @@ pub(crate) fn execute_audio_transcription_request<S, C>(
 ) -> RouteRunExecution
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_audio_transcription_request(store, ids, clock, request) {
         Ok(execution) => execution,
@@ -83,7 +83,7 @@ pub(crate) fn execute_audio_speech_request<S, C>(
 ) -> RouteRunExecution
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     match try_execute_audio_speech_request(store, ids, clock, request) {
         Ok(execution) => execution,
@@ -99,7 +99,7 @@ fn try_execute_audio_transcription_request<S, C>(
 ) -> RouteResult<RouteRunExecution>
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let object = request_object(request.body())?;
     let model = optional_string(&object, "model", "sim/audio/transcribe-fixture");
@@ -141,7 +141,7 @@ fn try_execute_audio_speech_request<S, C>(
 ) -> RouteResult<RouteRunExecution>
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let object = request_object(request.body())?;
     let model = optional_string(&object, "model", "sim/audio/speech-fixture");

@@ -2,9 +2,9 @@ use serde_json::Value;
 use sim_kernel::{ContentId, Expr};
 
 use crate::{
-    DeterministicGatewayClock, EMBEDDINGS_PATH, EmbeddingIdGenerators, GatewayEvent,
-    GatewayRequest, GatewayStore, MemoryGatewayStore, TENSOR_F64_SMALL_EMBEDDING_MODEL,
-    configure_routes, execute_embedding_request,
+    DeterministicWallClock, EMBEDDINGS_PATH, EmbeddingIdGenerators, GatewayEvent, GatewayRequest,
+    GatewayStore, MemoryGatewayStore, TENSOR_F64_SMALL_EMBEDDING_MODEL, configure_routes,
+    execute_embedding_request,
 };
 
 #[test]
@@ -67,7 +67,7 @@ fn embeddings_route_batch_input_is_deterministic_with_stable_dimension() {
 fn embedding_execution_records_run_usage_and_response_when_stored() {
     let mut store = MemoryGatewayStore::new();
     let mut ids = EmbeddingIdGenerators::deterministic(7);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request = embeddings_request(&format!(
         r#"{{"model":"{TENSOR_F64_SMALL_EMBEDDING_MODEL}","input":["hello","wide world"],"store":true}}"#
     ));

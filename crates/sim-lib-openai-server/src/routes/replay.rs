@@ -8,7 +8,7 @@ use sim_lib_net_core::hex_encode;
 
 use crate::{
     capabilities::OPENAI_GATEWAY_ADMIN_CAPABILITY,
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     codec_openai::gateway_event_data_packets,
     objects::{GatewayEvent, GatewayRequest, GatewayResponse, content_id_hex},
     routes::responses::{RESPONSE_RETRIEVAL_PREFIX, ResponseIdGenerators, ResponseRuntimeTargets},
@@ -131,7 +131,7 @@ pub fn handle_sim_fork(request: &GatewayRequest, state: &GatewayRouteState) -> G
         Ok(access) => access,
         Err(error) => return error.into_response(),
     };
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1).saturating_add(1_000_000);
     let mut ids = ResponseIdGenerators::deterministic(seed);
     let targets = ResponseRuntimeTargets::with_federation(state.runners(), state.federation());
@@ -267,7 +267,7 @@ fn fork_response<S, C>(
 ) -> RouteResult<GatewayResponse>
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let parent = store
         .response_object(parent_response_id)

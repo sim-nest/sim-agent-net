@@ -4,7 +4,7 @@ use serde_json::{Map, Value, json};
 use sim_kernel::{CapabilitySet, Cx, DefaultFactory, Expr, NoopEvalPolicy};
 
 use crate::{
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     content_id::content_id_for_expr,
     ids::GatewayIdGenerator,
     objects::{GatewayRequest, GatewayResponse},
@@ -62,7 +62,7 @@ struct BatchRunResult {
 /// Handles `POST /v1/batches`, creating a batch and (unless deferred) running
 /// its JSONL items through the responses runtime.
 pub fn handle_batches(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = BatchIdGenerators::deterministic(seed);
     let capabilities = match state.keys().effective_capabilities(request) {
@@ -104,7 +104,7 @@ pub fn handle_batch_cancel(request: &GatewayRequest, state: &GatewayRouteState) 
     let Some(batch_id) = cancel_batch_id_from_path(request.path()) else {
         return OpenAiRouteError::not_found_kind("batch", request.path()).into_response();
     };
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     match state.store().lock() {
         Ok(mut store) => cancel_batch(&mut *store, &mut clock, batch_id)
             .unwrap_or_else(OpenAiRouteError::into_response),
@@ -134,7 +134,7 @@ fn create_batch<S, C>(
 ) -> RouteResult<GatewayResponse>
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let object = request_object(request.body())?;
     let input_file_id = required_string(&object, "input_file_id")?.to_owned();
@@ -222,7 +222,7 @@ fn run_batch_items<S, C>(
 ) -> RouteResult<BatchRunResult>
 where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let (mut cx, seat) = Cx::new_seated(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
     grant_capability_set(&seat, &mut cx, capabilities).map_err(OpenAiRouteError::internal)?;
@@ -273,7 +273,7 @@ where
 fn cancel_batch<S, C>(store: &mut S, clock: &mut C, batch_id: &str) -> RouteResult<GatewayResponse>
 where
     S: GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let batch = store
         .batch(batch_id)
@@ -424,7 +424,7 @@ fn store_jsonl_file<S, C>(
 ) -> RouteResult<Option<String>>
 where
     S: GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     if records.is_empty() {
         return Ok(None);

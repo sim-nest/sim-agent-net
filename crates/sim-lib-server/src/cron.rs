@@ -1,6 +1,6 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use sim_kernel::{Error, Result};
+
+use crate::WallTimestamp;
 
 #[derive(Clone)]
 pub(crate) struct CronMatcher {
@@ -41,10 +41,8 @@ impl CronMatcher {
             && self.weekday.matches(weekday)
     }
 
-    pub(crate) fn current_match(&self, now: SystemTime) -> Option<u64> {
-        let duration = now.duration_since(UNIX_EPOCH).ok()?;
-        let total_seconds = duration.as_secs();
-        let minute_key = total_seconds / 60;
+    pub(crate) fn current_match(&self, now: WallTimestamp) -> Option<u64> {
+        let minute_key = now.unix_millis() / 60_000;
         let day_number = minute_key / (24 * 60);
         let minute_of_day = (minute_key % (24 * 60)) as u16;
         let hour = (minute_of_day / 60) as u8;

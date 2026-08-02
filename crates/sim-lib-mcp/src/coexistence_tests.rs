@@ -4,7 +4,7 @@ use serde_json::{Value as JsonValue, json};
 use sim_codec_mcp::{CAPABILITY_DENIED, McpEnvelope, McpErrorEnvelope, McpRequest, McpResponse};
 use sim_kernel::{Args, Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeRef, Symbol, Value};
 use sim_lib_openai_server::{
-    DeterministicGatewayClock, GatewayEvent, GatewayRequest, MemoryGatewayStore, OpenAiTool,
+    DeterministicWallClock, GatewayEvent, GatewayRequest, MemoryGatewayStore, OpenAiTool,
     RESPONSES_PATH, ResponseIdGenerators, execute_response_request, install_openai_gateway_lib,
     openai_gateway_tools_capability,
 };
@@ -173,7 +173,7 @@ fn execute_openai_response(
 ) -> sim_lib_openai_server::ResponseExecution {
     let mut store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(1);
-    let mut clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut clock = DeterministicWallClock::new(1_000, 10);
     let request = GatewayRequest::new(
         "POST",
         RESPONSES_PATH,

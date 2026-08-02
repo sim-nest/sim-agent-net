@@ -12,7 +12,7 @@
 use sim_kernel::{ContentId, Expr, Symbol};
 
 use crate::{
-    clock::GatewayClock,
+    clock::WallClock,
     content_id::{content_id_for_expr, request_content_id},
     ids::GatewayIdGenerator,
     objects::{GatewayEvent, GatewayRequest, GatewayResponse, GatewayRun},
@@ -98,7 +98,7 @@ pub(crate) fn append_event<S, C>(
 ) -> RouteResult<()>
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let event = GatewayEvent::new(
         ids.next_event_id().map_err(OpenAiRouteError::internal)?,
@@ -145,7 +145,7 @@ pub(crate) fn begin_run<S, C>(
 ) -> RouteResult<RunPrologue>
 where
     S: GatewayStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let recorded_request = redacted_gateway_request(request).with_metadata(
         ids.request.next_id().map_err(OpenAiRouteError::internal)?,

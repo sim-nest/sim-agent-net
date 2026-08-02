@@ -1,5 +1,6 @@
 mod basics;
 mod capabilities;
+mod clock;
 mod cookbook_web;
 mod lifecycle;
 mod lifecycle_roundtrip;

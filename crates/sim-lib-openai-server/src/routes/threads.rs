@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 
 use crate::{
-    clock::{GatewayClock, SystemGatewayClock},
+    clock::{SystemWallClock, WallClock},
     ids::GatewayIdGenerator,
     objects::{GatewayRequest, GatewayResponse},
     server::GatewayRouteState,
@@ -23,7 +23,7 @@ type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 
 /// Handles `POST /v1/threads`, creating a new thread and returning its JSON object.
 pub fn handle_threads(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = GatewayIdGenerator::deterministic("thread", seed);
     match state.store().lock() {
@@ -39,7 +39,7 @@ pub fn handle_thread_post(request: &GatewayRequest, state: &GatewayRouteState) -
     let Some(thread_id) = message_thread_id_from_path(request.path()) else {
         return OpenAiRouteError::not_found_kind("thread", request.path()).into_response();
     };
-    let mut clock = SystemGatewayClock;
+    let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = GatewayIdGenerator::deterministic("msg", seed);
     match state.store().lock() {
@@ -113,7 +113,7 @@ fn create_thread<S, C>(
 ) -> RouteResult<GatewayResponse>
 where
     S: GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     let object = request_object(request.body())?;
     let thread = GatewayThread::new(
@@ -139,7 +139,7 @@ fn append_message<S, C>(
 ) -> RouteResult<GatewayResponse>
 where
     S: GatewayStateStore,
-    C: GatewayClock,
+    C: WallClock,
 {
     if store.thread(thread_id).is_none() {
         return Err(OpenAiRouteError::not_found_kind("thread", thread_id));

@@ -1,12 +1,12 @@
 use sim_kernel::{Expr, Symbol};
 
 use crate::{
-    DeterministicGatewayClock, GATEWAY_EVENT_OBJECT, GATEWAY_REQUEST_OBJECT,
-    GATEWAY_RESPONSE_OBJECT, GATEWAY_RUN_OBJECT, GatewayBatch, GatewayBatchCounts, GatewayClock,
-    GatewayEvent, GatewayFile, GatewayFileStorageRef, GatewayIdGenerator, GatewayRequest,
-    GatewayResponse, GatewayResponseObjectStore, GatewayRun, GatewayStateStore, GatewayStore,
-    GatewayThread, GatewayThreadMessage, MemoryGatewayStore, StoredGatewayResponse,
-    TableGatewayStore, content_id_for_expr, request_content_id,
+    DeterministicWallClock, GATEWAY_EVENT_OBJECT, GATEWAY_REQUEST_OBJECT, GATEWAY_RESPONSE_OBJECT,
+    GATEWAY_RUN_OBJECT, GatewayBatch, GatewayBatchCounts, GatewayEvent, GatewayFile,
+    GatewayFileStorageRef, GatewayIdGenerator, GatewayRequest, GatewayResponse,
+    GatewayResponseObjectStore, GatewayRun, GatewayStateStore, GatewayStore, GatewayThread,
+    GatewayThreadMessage, MemoryGatewayStore, StoredGatewayResponse, TableGatewayStore, WallClock,
+    content_id_for_expr, request_content_id,
 };
 
 #[test]
@@ -108,7 +108,7 @@ fn gateway_objects_project_to_stable_maps() {
 #[test]
 fn deterministic_gateway_ids_and_clock_are_reproducible() {
     let mut ids = GatewayIdGenerator::deterministic("run", 7);
-    let mut clock = DeterministicGatewayClock::new(1_000, 25);
+    let clock = DeterministicWallClock::new(1_000, 25);
 
     assert_eq!(ids.next_id().unwrap(), "run_000007");
     assert_eq!(ids.next_id().unwrap(), "run_000008");
@@ -139,7 +139,7 @@ where
     S: GatewayStore,
 {
     let mut ids = GatewayIdGenerator::deterministic("gw", 1);
-    let mut clock = DeterministicGatewayClock::new(500, 10);
+    let clock = DeterministicWallClock::new(500, 10);
     let request = GatewayRequest::new(
         "POST",
         "/v1/responses",
@@ -186,7 +186,7 @@ where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
 {
     let mut ids = GatewayIdGenerator::deterministic("gw", 20);
-    let mut clock = DeterministicGatewayClock::new(2_000, 10);
+    let clock = DeterministicWallClock::new(2_000, 10);
     let request = GatewayRequest::new(
         "POST",
         "/v1/responses",

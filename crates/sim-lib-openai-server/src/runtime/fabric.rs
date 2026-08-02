@@ -8,7 +8,7 @@ use sim_kernel::{
 };
 
 use crate::{
-    clock::{DeterministicGatewayClock, GatewayClock, SystemGatewayClock},
+    clock::{DeterministicWallClock, SystemWallClock, WallClock, WallTimestamp},
     objects::{GatewayRequest, GatewayResponseValue},
     routes::responses::{RESPONSES_PATH, ResponseExecution, ResponseIdGenerators},
     server::GatewayRouteState,
@@ -38,8 +38,8 @@ struct GatewayFabricRuntime {
 }
 
 enum GatewayFabricClock {
-    System(SystemGatewayClock),
-    Deterministic(DeterministicGatewayClock),
+    System(SystemWallClock),
+    Deterministic(DeterministicWallClock),
 }
 
 impl OpenAiGatewayFabric {
@@ -56,7 +56,7 @@ impl OpenAiGatewayFabric {
         Self::with_state_clock(
             GatewayRouteState::memory(),
             ResponseIdGenerators::deterministic(id_start),
-            GatewayFabricClock::Deterministic(DeterministicGatewayClock::new(
+            GatewayFabricClock::Deterministic(DeterministicWallClock::new(
                 clock_start_ms,
                 clock_step_ms,
             )),
@@ -70,7 +70,7 @@ impl OpenAiGatewayFabric {
         Self::with_state_clock(
             state,
             ResponseIdGenerators::deterministic(id_seed),
-            GatewayFabricClock::System(SystemGatewayClock),
+            GatewayFabricClock::System(SystemWallClock),
         )
     }
 
@@ -258,11 +258,11 @@ impl sim_lib_server::EvalSite for OpenAiGatewayFabric {
     }
 }
 
-impl GatewayClock for GatewayFabricClock {
-    fn now_ms(&mut self) -> Result<u64> {
+impl WallClock for GatewayFabricClock {
+    fn now(&self) -> Result<WallTimestamp> {
         match self {
-            Self::System(clock) => clock.now_ms(),
-            Self::Deterministic(clock) => clock.now_ms(),
+            Self::System(clock) => clock.now(),
+            Self::Deterministic(clock) => clock.now(),
         }
     }
 }

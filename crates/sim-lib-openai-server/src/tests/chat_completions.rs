@@ -2,7 +2,7 @@ use serde_json::Value;
 use sim_kernel::ContentId;
 
 use crate::{
-    CHAT_COMPLETIONS_PATH, DeterministicGatewayClock, GatewayEvent, GatewayRequest, GatewayStore,
+    CHAT_COMPLETIONS_PATH, DeterministicWallClock, GatewayEvent, GatewayRequest, GatewayStore,
     MemoryGatewayStore, ResponseIdGenerators, configure_routes, execute_chat_completion_request,
     execute_response_request, gateway_event_data_from_packet, gateway_event_data_packets,
     routes::chat_completions::chat_completion_runtime_request,
@@ -74,7 +74,7 @@ fn chat_completions_and_responses_share_runtime_event_log() {
     let mut chat_cx = super::cx();
     let mut chat_store = MemoryGatewayStore::new();
     let mut chat_ids = ResponseIdGenerators::deterministic(7);
-    let mut chat_clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut chat_clock = DeterministicWallClock::new(1_000, 10);
     let chat_execution = execute_chat_completion_request(
         &mut chat_cx,
         &mut chat_store,
@@ -86,7 +86,7 @@ fn chat_completions_and_responses_share_runtime_event_log() {
     let mut response_cx = super::cx();
     let mut response_store = MemoryGatewayStore::new();
     let mut response_ids = ResponseIdGenerators::deterministic(7);
-    let mut response_clock = DeterministicGatewayClock::new(1_000, 10);
+    let mut response_clock = DeterministicWallClock::new(1_000, 10);
     let response_execution = execute_response_request(
         &mut response_cx,
         &mut response_store,
@@ -121,7 +121,7 @@ fn streaming_chat_completion_data_packets_reconstruct_event_log() {
     let mut cx = super::cx();
     let mut store = MemoryGatewayStore::new();
     let mut ids = ResponseIdGenerators::deterministic(13);
-    let mut clock = DeterministicGatewayClock::new(3_000, 30);
+    let mut clock = DeterministicWallClock::new(3_000, 30);
 
     let execution =
         execute_chat_completion_request(&mut cx, &mut store, &mut ids, &mut clock, &chat);

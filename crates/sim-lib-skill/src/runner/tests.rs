@@ -110,7 +110,7 @@ fn non_model_skill_is_rejected_as_runner() {
 fn openai_skill_model_id_executes_only_registered_model_role_skill() {
     use serde_json::{Value as JsonValue, json};
     use sim_lib_openai_server::{
-        DeterministicGatewayClock, GatewayRequest, MemoryGatewayStore, OpenAiRunnerRegistry,
+        DeterministicWallClock, GatewayRequest, MemoryGatewayStore, OpenAiRunnerRegistry,
         RESPONSES_PATH, ResponseIdGenerators, execute_response_request_with_runners,
         install_openai_gateway_lib,
     };
@@ -151,7 +151,7 @@ fn openai_skill_model_id_executes_only_registered_model_role_skill() {
     ) -> sim_lib_openai_server::ResponseExecution {
         let mut store = MemoryGatewayStore::new();
         let mut ids = ResponseIdGenerators::deterministic(1);
-        let mut clock = DeterministicGatewayClock::new(1_000, 10);
+        let mut clock = DeterministicWallClock::new(1_000, 10);
         let request = GatewayRequest::new(
             "POST",
             RESPONSES_PATH,

@@ -1,6 +1,6 @@
 [package]
 name = "sim-mcp-server"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MPL-2.0"
 description = "Stdio MCP server bootloader for SIM."
@@ -11,7 +11,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
 sim-lib-mcp = { version = "0.1.1", features = ["serve"], path = "../sim-lib-mcp" }
-sim-run-core = { version = "0.1.1" }
+sim-run-core = { version = "0.2.0" }
 
 
 
