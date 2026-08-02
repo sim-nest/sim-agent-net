@@ -248,13 +248,17 @@ fn push_recipe_summary(out: &mut String, cx: &Cx, card: &RecipeCard) {
     push_json_str(out, &card.book);
     out.push_str(",\"chapter\":");
     push_json_str(out, &card.chapter);
-    // A `sandbox-descriptor` recipe documents a descriptor whose live result is
-    // not reproducible in the sandbox; every other recipe is runnable.
     out.push_str(",\"runnable\":");
-    let runnable = !card.tags.iter().any(|t| t == "sandbox-descriptor");
-    out.push_str(if runnable { "true" } else { "false" });
+    out.push_str(if web_runnable(card) { "true" } else { "false" });
     push_lifecycle_fields(out, cx, card);
     out.push('}');
+}
+
+fn web_runnable(card: &RecipeCard) -> bool {
+    let sandbox_descriptor = card.tags.iter().any(|tag| tag == "sandbox-descriptor");
+    // The runtime WebUI evaluates codec-backed setup forms. Rust setup files are
+    // checked by repo harnesses, not decoded by `read-eval`.
+    !sandbox_descriptor && card.codec != "rust"
 }
 
 fn push_lifecycle_fields(out: &mut String, cx: &Cx, card: &RecipeCard) {

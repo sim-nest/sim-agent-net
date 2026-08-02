@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use sim_codec_lisp::LispCodecLib;
+use sim_cookbook::EmbeddedDir;
 use sim_kernel::{
     AbiVersion, Cx, Dependency, Export, LibManifest, LibTarget, Linker, LoadCx, Result, Symbol,
     Version, library::Lib, read_eval_capability,
@@ -70,6 +71,23 @@ fn fixture_directory() -> LoadableLibList {
     }])
 }
 
+static RUST_RECIPES: EmbeddedDir = &[
+    (
+        "book.toml",
+        b"book = \"rust-demo\"\ntitle = \"Rust Demo\"\nsummary = \"Rust checked recipes.\"\n",
+    ),
+    ("01-basics/chapter.toml", b"title = \"Basics\"\n"),
+    (
+        "01-basics/cargo-example/recipe.toml",
+        b"id = \"cargo-example\"\ntitle = \"Cargo example\"\ncodec = \"rust\"\nsetup = \"setup.rs\"\npurpose = \"purpose.md\"\n",
+    ),
+    ("01-basics/cargo-example/setup.rs", b"fn main() {}\n"),
+    (
+        "01-basics/cargo-example/purpose.md",
+        b"Checked by cargo example.\n",
+    ),
+];
+
 #[test]
 fn cookbook_default_directory_and_startup_loaded_counts_are_current() {
     let directory = SeededLibCatalog::loadable_libs();
@@ -130,6 +148,22 @@ fn cookbook_dynamic_api_lists_load_recipe_for_unloaded_lib() {
     );
     assert!(
         response.body.contains("\"loaded\":false"),
+        "{}",
+        response.body
+    );
+}
+
+#[test]
+fn cookbook_api_marks_rust_harness_recipes_not_web_runnable() {
+    let state = CookbookWebState::seeded_with_books(&[("rust-demo", RUST_RECIPES)]).unwrap();
+    let mut cx = lisp_cx();
+    let response = state.handle_request("GET", "/api/cookbook", Some(&mut cx));
+
+    assert_eq!(response.status, 200, "{}", response.body);
+    assert!(
+        response.body.contains(
+            "\"id\":\"rust-demo/01-basics/cargo-example\",\"title\":\"Cargo example\",\"book\":\"rust-demo\",\"chapter\":\"01-basics\",\"runnable\":false"
+        ),
         "{}",
         response.body
     );
