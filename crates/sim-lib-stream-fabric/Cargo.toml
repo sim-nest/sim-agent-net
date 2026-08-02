@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-stream-fabric"
-version = "0.1.5"
+version = "0.2.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "Content-addressed distributed evaluation for remote stream realization."

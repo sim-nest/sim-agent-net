@@ -29,20 +29,20 @@ sim-lib-core = { version = "0.1.2" }
 sim-lib-dispatch = { optional = true, version = "0.1.0" }
 sim-lib-pattern = { optional = true, version = "0.1.1" }
 sim-lib-sequence = { optional = true, version = "0.1.1" }
-sim-lib-numbers-rational = { optional = true, version = "0.2.0" }
-sim-lib-numbers-cas = { optional = true, version = "0.2.0" }
-sim-lib-numbers-func = { optional = true, version = "0.2.0" }
-sim-lib-numbers-complex = { optional = true, version = "0.2.0" }
-sim-lib-numbers-f64 = { optional = true, version = "0.2.0" }
-sim-lib-numbers-i64 = { optional = true, version = "0.2.0" }
-sim-lib-numbers-arith = { optional = true, version = "0.2.0" }
-sim-lib-numbers-bigint = { optional = true, version = "0.2.0" }
-sim-lib-numbers-bool = { optional = true, version = "0.2.0" }
-sim-lib-numbers-tensor = { optional = true, version = "0.1.6" }
-sim-lib-numbers-tensor-bcast = { optional = true, version = "0.2.0" }
-sim-lib-numbers-tensor-cmplxf = { optional = true, version = "0.2.0" }
-sim-lib-numbers-tensor-rat64 = { optional = true, version = "0.2.0" }
-sim-lib-discrete = { optional = true, version = "0.1.3", features = ["runtime"] }
+sim-lib-numbers-rational = { optional = true, version = "0.3.0" }
+sim-lib-numbers-cas = { optional = true, version = "0.3.0" }
+sim-lib-numbers-func = { optional = true, version = "0.3.0" }
+sim-lib-numbers-complex = { optional = true, version = "0.3.0" }
+sim-lib-numbers-f64 = { optional = true, version = "0.3.0" }
+sim-lib-numbers-i64 = { optional = true, version = "0.3.0" }
+sim-lib-numbers-arith = { optional = true, version = "0.3.0" }
+sim-lib-numbers-bigint = { optional = true, version = "0.3.0" }
+sim-lib-numbers-bool = { optional = true, version = "0.3.0" }
+sim-lib-numbers-tensor = { optional = true, version = "0.2.0" }
+sim-lib-numbers-tensor-bcast = { optional = true, version = "0.3.0" }
+sim-lib-numbers-tensor-cmplxf = { optional = true, version = "0.3.0" }
+sim-lib-numbers-tensor-rat64 = { optional = true, version = "0.3.0" }
+sim-lib-discrete = { optional = true, version = "0.1.4", features = ["runtime"] }
 sim-lib-stream-core = { optional = true, version = "0.1.1" }
 sim-shape = { version = "0.1.1" }
 [build-dependencies]

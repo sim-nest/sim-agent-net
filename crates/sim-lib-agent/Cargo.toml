@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent"
-version = "0.1.13"
+version = "0.1.14"
 edition = "2024"
 license = "MPL-2.0"
 description = "Agent runtime surfaces for SIM."
@@ -25,10 +25,10 @@ sim-lib-agent-runner-http = { version = "0.1.6", optional = true, path = "../sim
 sim-lib-agent-runner-process = { version = "0.1.4", optional = true, path = "../sim-lib-agent-runner-process" }
 sim-lib-cookbook = { version = "0.1.14", optional = true, path = "../sim-lib-cookbook" }
 sim-lib-core = { version = "0.1.2" }
-sim-lib-numbers-stats = { version = "0.1.0" }
+sim-lib-numbers-stats = { version = "0.3.1" }
 sim-lib-rank = { version = "0.1.0" }
 sim-lib-server = { version = "0.1.0", path = "../sim-lib-server" }
-sim-lib-stream-fabric = { version = "0.1.0", path = "../sim-lib-stream-fabric" }
+sim-lib-stream-fabric = { version = "0.2.0", path = "../sim-lib-stream-fabric" }
 sim-lib-stream-core = { version = "0.1.2" }
 sim-shape = { version = "0.1.1" }
 sim-value = { version = "0.1.0" }
