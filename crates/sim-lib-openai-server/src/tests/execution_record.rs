@@ -283,7 +283,11 @@ fn golden_path(name: &str) -> PathBuf {
 
 fn assert_golden(name: &str, value: &Value) {
     let path = golden_path(name);
-    let actual = format!("{}\n", serde_json::to_string_pretty(value).unwrap());
+    // Golden bytes must not depend on serde_json's workspace-unified map
+    // representation. Production response ordering remains unchanged.
+    let mut canonical = value.clone();
+    canonical.sort_all_objects();
+    let actual = format!("{}\n", serde_json::to_string_pretty(&canonical).unwrap());
 
     if std::env::var_os("SIM_BLESS_GOLDENS").is_some() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
