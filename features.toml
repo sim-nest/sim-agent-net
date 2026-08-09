@@ -132,7 +132,6 @@ claims_surfaces = [
 ]
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_placement_swap",
-  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/genai_assembly",
 ]
 
 [[feature]]
@@ -276,7 +275,6 @@ owner = "crate/sim-lib-server"
 audiences = ["code", "framework"]
 guidance = "Use WallClock and WallTimestamp for optional human timestamps and host scheduling in server-side libraries. Inject DeterministicWallClock for tests and replay. Wall observations may move backward and never replace kernel logical ticks, revisions, or Instant deadlines for correctness ordering."
 claims_anchors = [
-  "anchor/crate/sim-lib-server",
   "anchor/rustdoc/sim-lib-server/deterministic-wall-clock",
   "anchor/rustdoc/sim-lib-server/system-wall-clock",
   "anchor/rustdoc/sim-lib-server/wall-clock",
