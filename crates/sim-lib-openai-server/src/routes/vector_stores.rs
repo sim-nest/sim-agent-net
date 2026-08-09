@@ -171,10 +171,7 @@ where
     store
         .put_vector_store(vector_store.clone())
         .map_err(OpenAiRouteError::internal)?;
-    let response = GatewayResponse::json(
-        200,
-        vector_store_json(&vector_store).to_string().into_bytes(),
-    );
+    let response = GatewayResponse::json_value(200, vector_store_json(&vector_store));
     record_route_execution(
         store,
         &mut ids.run,
@@ -210,12 +207,7 @@ where
         .vector_store(vector_store_id)
         .ok_or_else(|| OpenAiRouteError::not_found_kind("vector_store", vector_store_id))?;
     let hits = search_vector_store(&vector_store, query, limit as usize);
-    let response = GatewayResponse::json(
-        200,
-        search_json(vector_store_id, query, &hits)
-            .to_string()
-            .into_bytes(),
-    );
+    let response = GatewayResponse::json_value(200, search_json(vector_store_id, query, &hits));
     record_route_execution(
         store,
         ids,

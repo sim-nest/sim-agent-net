@@ -312,7 +312,7 @@ fn admin_json_response(
         Err(error) => return error.into_response(),
     }
     expr()
-        .map(|expr| GatewayResponse::json(200, admin_expr_json(&expr).to_string().into_bytes()))
+        .map(|expr| GatewayResponse::json_value(200, admin_expr_json(&expr)))
         .unwrap_or_else(OpenAiRouteError::into_response)
 }
 

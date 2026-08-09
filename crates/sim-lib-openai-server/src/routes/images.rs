@@ -92,16 +92,14 @@ where
             })
         })
         .collect::<Vec<_>>();
-    let response = GatewayResponse::json(
+    let response = GatewayResponse::json_value(
         200,
         json!({
             "object": "image.generation",
             "created": 0,
             "model": model,
             "data": data,
-        })
-        .to_string()
-        .into_bytes(),
+        }),
     );
     record_route_execution(
         store,

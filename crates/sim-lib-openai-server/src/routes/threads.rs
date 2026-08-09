@@ -79,7 +79,7 @@ where
 {
     store
         .thread(thread_id)
-        .map(|thread| GatewayResponse::json(200, thread_json(&thread).to_string().into_bytes()))
+        .map(|thread| GatewayResponse::json_value(200, thread_json(&thread)))
         .unwrap_or_else(|| OpenAiRouteError::not_found_kind("thread", thread_id).into_response())
 }
 
@@ -97,12 +97,7 @@ where
         .iter()
         .map(message_json)
         .collect::<Vec<_>>();
-    GatewayResponse::json(
-        200,
-        json!({ "object": "list", "data": data })
-            .to_string()
-            .into_bytes(),
-    )
+    GatewayResponse::json_value(200, json!({ "object": "list", "data": data }))
 }
 
 fn create_thread<S, C>(
@@ -124,10 +119,7 @@ where
     store
         .put_thread(thread.clone())
         .map_err(OpenAiRouteError::internal)?;
-    Ok(GatewayResponse::json(
-        200,
-        thread_json(&thread).to_string().into_bytes(),
-    ))
+    Ok(GatewayResponse::json_value(200, thread_json(&thread)))
 }
 
 fn append_message<S, C>(
@@ -157,10 +149,7 @@ where
     store
         .put_thread_message(message.clone())
         .map_err(OpenAiRouteError::internal)?;
-    Ok(GatewayResponse::json(
-        200,
-        message_json(&message).to_string().into_bytes(),
-    ))
+    Ok(GatewayResponse::json_value(200, message_json(&message)))
 }
 
 use crate::routes::request_json::{request_object_or_empty as request_object, required_string};

@@ -56,7 +56,7 @@ where
 {
     store
         .file(file_id)
-        .map(|file| GatewayResponse::json(200, file_json(&file).to_string().into_bytes()))
+        .map(|file| GatewayResponse::json_value(200, file_json(&file)))
         .unwrap_or_else(|| OpenAiRouteError::not_found_kind("file", file_id).into_response())
 }
 
@@ -92,10 +92,7 @@ where
     store
         .put_file(file.clone(), bytes)
         .map_err(OpenAiRouteError::internal)?;
-    Ok(GatewayResponse::json(
-        200,
-        file_json(&file).to_string().into_bytes(),
-    ))
+    Ok(GatewayResponse::json_value(200, file_json(&file)))
 }
 
 use crate::routes::request_json::{request_object, required_string};

@@ -1,7 +1,7 @@
 use serde_json::{Map, Value, json};
 
 use crate::{
-    objects::GatewayRequest,
+    objects::{GatewayRequest, canonical_json_bytes},
     storage::{GatewayStateStore, GatewayThreadMessage},
 };
 
@@ -23,11 +23,7 @@ where
 {
     let object = request_object(request.body())?;
     let object = with_thread_messages(store, object)?;
-    let body = serde_json::to_vec(&Value::Object(object.clone())).map_err(|err| {
-        OpenAiRouteError::internal_message(format!(
-            "failed to encode normalized response request: {err}"
-        ))
-    })?;
+    let body = canonical_json_bytes(Value::Object(object.clone()));
     Ok(NormalizedResponseRequest {
         object,
         request: GatewayRequest::new(

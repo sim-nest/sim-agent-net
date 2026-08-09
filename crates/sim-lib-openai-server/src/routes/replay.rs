@@ -171,12 +171,7 @@ where
 {
     stored_events(store, response_id)
         .map(|(record, events)| {
-            GatewayResponse::json(
-                200,
-                event_history_json(&record, &events, true)
-                    .to_string()
-                    .into_bytes(),
-            )
+            GatewayResponse::json_value(200, event_history_json(&record, &events, true))
         })
         .unwrap_or_else(OpenAiRouteError::into_response)
 }
@@ -192,11 +187,9 @@ where
     stored_events(store, response_id)
         .and_then(|(record, events)| {
             ensure_response_owner(&record, access)?;
-            Ok(GatewayResponse::json(
+            Ok(GatewayResponse::json_value(
                 200,
-                event_history_json(&record, &events, access.inspect)
-                    .to_string()
-                    .into_bytes(),
+                event_history_json(&record, &events, access.inspect),
             ))
         })
         .unwrap_or_else(OpenAiRouteError::into_response)
@@ -210,7 +203,7 @@ where
 {
     stored_events(store, response_id)
         .and_then(|(record, events)| sim_json(store, &record, &events, true))
-        .map(|value| GatewayResponse::json(200, value.to_string().into_bytes()))
+        .map(|value| GatewayResponse::json_value(200, value))
         .unwrap_or_else(OpenAiRouteError::into_response)
 }
 
@@ -227,7 +220,7 @@ where
             ensure_response_owner(&record, access)?;
             sim_json(store, &record, &events, access.inspect)
         })
-        .map(|value| GatewayResponse::json(200, value.to_string().into_bytes()))
+        .map(|value| GatewayResponse::json_value(200, value))
         .unwrap_or_else(OpenAiRouteError::into_response)
 }
 
@@ -242,16 +235,14 @@ where
     stored_events(store, response_id)
         .and_then(|(record, events)| {
             ensure_response_owner(&record, access)?;
-            Ok(GatewayResponse::json(
+            Ok(GatewayResponse::json_value(
                 200,
                 json!({
                     "object": "sim.replay",
                     "response_id": record.response_id(),
                     "data": events_json(&record, &events, access.inspect),
                     "stream": data_stream_json(&events, access.inspect),
-                })
-                .to_string()
-                .into_bytes(),
+                }),
             ))
         })
         .unwrap_or_else(OpenAiRouteError::into_response)
@@ -321,7 +312,7 @@ where
     let request_id = store
         .request(request_content_id)
         .and_then(|request| request.id().map(str::to_owned));
-    Ok(GatewayResponse::json(
+    Ok(GatewayResponse::json_value(
         200,
         json!({
             "object": "sim.fork",
@@ -331,9 +322,7 @@ where
             "source_request_content_id": content_id_hex(&source_request_id),
             "request_content_id": content_id_hex(request_content_id),
             "response": response_body_json(execution.response())?,
-        })
-        .to_string()
-        .into_bytes(),
+        }),
     ))
 }
 
@@ -484,9 +473,7 @@ fn forked_request(
     }
     object.insert("store".to_owned(), Value::Bool(true));
     object.insert("stream".to_owned(), Value::Bool(false));
-    let body = serde_json::to_vec(&Value::Object(object)).map_err(|err| {
-        OpenAiRouteError::internal_message(format!("failed to encode fork request: {err}"))
-    })?;
+    let body = crate::objects::canonical_json_bytes(Value::Object(object));
     Ok(GatewayRequest::new(
         source.method().to_owned(),
         source.path().to_owned(),

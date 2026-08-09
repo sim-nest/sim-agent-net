@@ -219,11 +219,7 @@ pub(crate) fn chat_completion_runtime_request(
         final_message_text(messages)?
     };
     object.insert("input".to_owned(), Value::String(input));
-    let body = serde_json::to_vec(&Value::Object(object)).map_err(|err| {
-        OpenAiRouteError::internal_message(format!(
-            "failed to encode normalized chat completion request: {err}"
-        ))
-    })?;
+    let body = crate::objects::canonical_json_bytes(Value::Object(object));
     Ok(GatewayRequest::new(
         "POST",
         RESPONSES_PATH,
@@ -256,7 +252,7 @@ fn chat_completion_response(response: &GatewayResponse) -> RouteResult<GatewayRe
     let model = string_member(object, "model")?;
     let output_text = string_member(object, "output_text")?;
     let usage = object.get("usage").cloned().unwrap_or(Value::Null);
-    let body = serde_json::to_vec(&json!({
+    let body = crate::objects::canonical_json_bytes(json!({
         "id": chat_completion_id(response_id),
         "object": "chat.completion",
         "created": created,
@@ -270,12 +266,7 @@ fn chat_completion_response(response: &GatewayResponse) -> RouteResult<GatewayRe
             "finish_reason": "stop",
         }],
         "usage": usage,
-    }))
-    .map_err(|err| {
-        OpenAiRouteError::internal_message(format!(
-            "failed to encode chat completion response: {err}"
-        ))
-    })?;
+    }));
     Ok(GatewayResponse::json(200, body))
 }
 

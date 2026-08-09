@@ -105,9 +105,7 @@ impl StreamSink {
 
     /// Appends one `data:` SSE frame carrying the JSON `value`.
     pub fn event(&mut self, value: Value) -> Result<()> {
-        let line = serde_json::to_vec(&value).map_err(|err| {
-            Error::Eval(format!("openai codec failed to encode SSE chunk: {err}"))
-        })?;
+        let line = crate::objects::canonical_json_bytes(value);
         self.body.extend_from_slice(b"data: ");
         self.body.extend_from_slice(&line);
         self.body.extend_from_slice(b"\n\n");
