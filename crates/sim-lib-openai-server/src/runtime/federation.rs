@@ -178,8 +178,9 @@ fn federated_request_body(
     if !budget.is_empty() {
         object.insert("budget".to_owned(), JsonValue::Object(budget));
     }
-    serde_json::to_vec(&JsonValue::Object(object))
-        .map_err(|err| Error::Eval(format!("failed to encode federated gateway request: {err}")))
+    Ok(crate::objects::canonical_json_bytes(JsonValue::Object(
+        object,
+    )))
 }
 
 fn budget_json(entries: &[(String, Expr)]) -> Map<String, JsonValue> {

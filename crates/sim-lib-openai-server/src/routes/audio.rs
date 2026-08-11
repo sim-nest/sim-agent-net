@@ -105,16 +105,14 @@ where
     let model = optional_string(&object, "model", "sim/audio/transcribe-fixture");
     let input = audio_input(&object)?;
     let text = deterministic_transcript(input);
-    let response = GatewayResponse::json(
+    let response = GatewayResponse::json_value(
         200,
         json!({
             "object": "audio.transcription",
             "model": model,
             "text": text,
             "duration_ms": fixture_duration_ms(input),
-        })
-        .to_string()
-        .into_bytes(),
+        }),
     );
     record_route_execution(
         store,

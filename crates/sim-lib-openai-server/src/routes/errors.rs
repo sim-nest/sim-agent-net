@@ -101,7 +101,7 @@ impl OpenAiRouteError {
     }
 
     pub(crate) fn into_response(self) -> GatewayResponse {
-        GatewayResponse::json(
+        GatewayResponse::json_value(
             self.status,
             json!({
                 "error": {
@@ -110,9 +110,7 @@ impl OpenAiRouteError {
                     "param": self.param,
                     "code": self.code,
                 }
-            })
-            .to_string()
-            .into_bytes(),
+            }),
         )
     }
 }

@@ -54,6 +54,24 @@ fn request_content_id_changes_when_prompt_changes() {
 }
 
 #[test]
+fn generated_json_response_bytes_and_content_ids_ignore_object_insertion_order() {
+    let left = GatewayResponse::json_value(
+        200,
+        serde_json::from_str(r#"{"b":1,"a":{"d":2,"c":3}}"#).unwrap(),
+    );
+    let right = GatewayResponse::json_value(
+        200,
+        serde_json::from_str(r#"{"a":{"c":3,"d":2},"b":1}"#).unwrap(),
+    );
+
+    assert_eq!(left.body(), right.body());
+    assert_eq!(
+        content_id_for_expr(&left.to_expr()).unwrap(),
+        content_id_for_expr(&right.to_expr()).unwrap(),
+    );
+}
+
+#[test]
 fn gateway_objects_project_to_stable_maps() {
     let request = GatewayRequest::new(
         "POST",

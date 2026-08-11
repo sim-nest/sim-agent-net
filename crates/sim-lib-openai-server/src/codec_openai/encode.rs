@@ -4,6 +4,8 @@ use sim_codec_json::json_number_to_u64;
 use sim_kernel::{Error, Expr, Result};
 use sim_value::access::{entry_field, entry_required_str_any, entry_required_sym_any};
 
+use crate::objects::canonical_json_bytes;
+
 /// Encodes a response transcript into OpenAI Responses API response JSON,
 /// stamping it with `response_id` and `created_at_ms`.
 pub fn encode_openai_responses_response(
@@ -12,11 +14,7 @@ pub fn encode_openai_responses_response(
     created_at_ms: u64,
 ) -> Result<Vec<u8>> {
     let value = responses_response_json(expr, response_id, created_at_ms)?;
-    serde_json::to_vec(&value).map_err(|err| {
-        Error::Eval(format!(
-            "openai codec failed to encode responses response: {err}"
-        ))
-    })
+    Ok(canonical_json_bytes(value))
 }
 
 fn responses_response_json(expr: &Expr, response_id: &str, created_at_ms: u64) -> Result<Value> {

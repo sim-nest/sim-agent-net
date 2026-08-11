@@ -297,7 +297,7 @@ fn embedding_response_body(
     embeddings: &[Vec<f64>],
     usage: &EmbeddingUsage,
 ) -> RouteResult<Vec<u8>> {
-    serde_json::to_vec(&json!({
+    Ok(crate::objects::canonical_json_bytes(json!({
         "object": "list",
         "data": embeddings
             .iter()
@@ -315,10 +315,7 @@ fn embedding_response_body(
             "prompt_tokens": usage.prompt_tokens,
             "total_tokens": usage.total_tokens,
         },
-    }))
-    .map_err(|err| {
-        OpenAiRouteError::internal_message(format!("failed to encode embeddings response: {err}"))
-    })
+    })))
 }
 
 fn embedding_event_expr(model: &EmbeddingModel, input_count: usize) -> Expr {

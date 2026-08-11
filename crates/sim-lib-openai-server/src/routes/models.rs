@@ -180,7 +180,7 @@ pub fn models_response_for_runner_args(
 
 /// Encodes the given catalog as the OpenAI `list`-of-models JSON body.
 pub fn models_response_for_catalog(catalog: &ModelCatalog) -> GatewayResponse {
-    GatewayResponse::json(200, catalog.to_json().to_string().into_bytes())
+    GatewayResponse::json_value(200, catalog.to_json())
 }
 
 /// Returns the `runner/cards` function symbol that fetches model cards.

@@ -120,7 +120,7 @@ where
 {
     store
         .batch(batch_id)
-        .map(|batch| GatewayResponse::json(200, batch_json(&batch).to_string().into_bytes()))
+        .map(|batch| GatewayResponse::json_value(200, batch_json(&batch)))
         .unwrap_or_else(|| OpenAiRouteError::not_found_kind("batch", batch_id).into_response())
 }
 
@@ -166,10 +166,7 @@ where
         .and_then(Value::as_bool)
         .unwrap_or(false)
     {
-        return Ok(GatewayResponse::json(
-            200,
-            batch_json(&batch).to_string().into_bytes(),
-        ));
+        return Ok(GatewayResponse::json_value(200, batch_json(&batch)));
     }
 
     let result = run_batch_items(store, ids, clock, &batch, &lines, targets, capabilities)?;
@@ -205,10 +202,7 @@ where
     store
         .put_batch(completed.clone())
         .map_err(OpenAiRouteError::internal)?;
-    Ok(GatewayResponse::json(
-        200,
-        batch_json(&completed).to_string().into_bytes(),
-    ))
+    Ok(GatewayResponse::json_value(200, batch_json(&completed)))
 }
 
 fn run_batch_items<S, C>(
@@ -289,10 +283,7 @@ where
     store
         .put_batch(batch.clone())
         .map_err(OpenAiRouteError::internal)?;
-    Ok(GatewayResponse::json(
-        200,
-        batch_json(&batch).to_string().into_bytes(),
-    ))
+    Ok(GatewayResponse::json_value(200, batch_json(&batch)))
 }
 
 use crate::routes::request_json::{request_object, required_string};
@@ -365,9 +356,7 @@ fn item_request(item: &BatchItem) -> RouteResult<GatewayRequest> {
     let mut body = item.body.clone();
     body.insert("store".to_owned(), Value::Bool(true));
     body.insert("stream".to_owned(), Value::Bool(false));
-    let body = serde_json::to_vec(&Value::Object(body)).map_err(|err| {
-        OpenAiRouteError::internal_message(format!("failed to encode batch item body: {err}"))
-    })?;
+    let body = crate::objects::canonical_json_bytes(Value::Object(body));
     Ok(GatewayRequest::new(
         item.method.clone(),
         item.path.clone(),

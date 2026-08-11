@@ -276,11 +276,7 @@ fn gateway_request_from_expr(expr: &Expr, stream: bool) -> Result<GatewayRequest
             if stream && let Some(object) = json.as_object_mut() {
                 object.insert("stream".to_owned(), JsonValue::Bool(true));
             }
-            serde_json::to_vec(&json).map_err(|err| {
-                Error::Eval(format!(
-                    "failed to encode OpenAI gateway request JSON: {err}"
-                ))
-            })?
+            crate::objects::canonical_json_bytes(json)
         }
         _ => {
             return Err(Error::TypeMismatch {
@@ -309,11 +305,7 @@ fn ensure_streaming_body(body: Vec<u8>) -> Result<Vec<u8>> {
         ));
     };
     object.insert("stream".to_owned(), JsonValue::Bool(true));
-    serde_json::to_vec(&json).map_err(|err| {
-        Error::Eval(format!(
-            "failed to encode streaming OpenAI gateway request JSON: {err}"
-        ))
-    })
+    Ok(crate::objects::canonical_json_bytes(json))
 }
 
 fn json_from_expr(expr: &Expr) -> Result<JsonValue> {

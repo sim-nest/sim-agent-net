@@ -161,6 +161,11 @@ impl GatewayResponse {
         )
     }
 
+    /// Builds a JSON response with recursively canonicalized object-key order.
+    pub fn json_value(status: u16, body: serde_json::Value) -> Self {
+        Self::json(status, canonical_json_bytes(body))
+    }
+
     /// Builds a response with `Content-Type: text/plain`.
     pub fn text(status: u16, body: impl Into<Vec<u8>>) -> Self {
         Self::new(
@@ -212,6 +217,11 @@ impl GatewayResponse {
             field("body", Expr::Bytes(self.body.clone())),
         ])
     }
+}
+
+pub(crate) fn canonical_json_bytes(mut value: serde_json::Value) -> Vec<u8> {
+    value.sort_all_objects();
+    serde_json::to_vec(&value).expect("serializing a JSON value cannot fail")
 }
 
 impl Object for GatewayResponse {
