@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent-runner-local"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 license = "MPL-2.0"
 description = "Loadable local model runner for SIM."
@@ -19,12 +19,12 @@ native-export = ["dep:sim-codec-binary", "dep:sim-macros"]
 wasm-model = ["dep:sim-wasm-abi"]
 
 [dependencies]
-sim-codec-binary = { version = "0.2.0", optional = true }
+sim-codec-binary = { version = "0.2.1", optional = true }
 sim-cookbook = { version = "0.2.0" }
 sim-kernel = { version = "0.2.0" }
 sim-lib-agent-runner-core = { version = "0.2.0", path = "../sim-lib-agent-runner-core" }
 sim-macros = { version = "0.2.0", optional = true }
-sim-wasm-abi = { version = "0.2.0", optional = true, features = ["model"] }
+sim-wasm-abi = { version = "0.3.0", optional = true, features = ["model"] }
 [build-dependencies]
 sim-cookbook = { version = "0.2.0" }
 
