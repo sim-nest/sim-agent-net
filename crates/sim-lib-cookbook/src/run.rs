@@ -20,7 +20,9 @@ use sim_kernel::{
     Symbol, TrustLevel, macro_expand_eval_capability, read_construct_capability,
     read_eval_capability,
 };
-use sim_lib_core::{ReadEvalBroker, ReadEvalRequest, ReadEvalSource, RequestOrigin};
+use sim_lib_core::{
+    ReadEvalBroker, ReadEvalRequest, ReadEvalSource, RequestOrigin, SourceAuthority,
+};
 use sim_shape::AnyShape;
 
 use crate::catalog::{CookbookCapabilityProfile, EmptyCatalog, LibCatalog, load_requires};
@@ -125,7 +127,7 @@ fn run_recipe_with_catalog_shape(
         codec.clone(),
         ReadEvalSource::Expr(expr),
         expected_shape,
-    );
+    )?;
     let broker = ReadEvalBroker::new();
     let (results, eval_ok) = match broker.admit(cx, request) {
         Ok(value) => {
@@ -186,19 +188,21 @@ fn recipe_read_eval_request(
     codec: Symbol,
     source: ReadEvalSource,
     expected_shape: Arc<dyn Shape>,
-) -> ReadEvalRequest {
-    ReadEvalRequest {
-        origin: RequestOrigin::with_detail(
+) -> Result<ReadEvalRequest> {
+    Ok(ReadEvalRequest::new(
+        RequestOrigin::with_detail(
             Symbol::qualified("cookbook", "recipe"),
             Expr::String(card.id.clone()),
         ),
         codec,
         source,
-        read_policy: trusted_recipe_read_policy(),
-        requires: recipe_required_capabilities(card),
-        allow: recipe_allowed_capabilities(card),
+        SourceAuthority::new(
+            trusted_recipe_read_policy(),
+            recipe_required_capabilities(card),
+            recipe_allowed_capabilities(card),
+        )?,
         expected_shape,
-    }
+    ))
 }
 
 fn recipe_result_shape() -> Arc<dyn Shape> {

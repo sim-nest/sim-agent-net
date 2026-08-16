@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent"
-version = "0.1.15"
+version = "0.1.16"
 edition = "2024"
 license = "MPL-2.0"
 description = "Agent runtime surfaces for SIM."
@@ -23,11 +23,11 @@ sim-kernel = { version = "0.2.0" }
 sim-lib-agent-runner-core = { version = "0.2.0", path = "../sim-lib-agent-runner-core" }
 sim-lib-agent-runner-http = { version = "0.2.0", optional = true, path = "../sim-lib-agent-runner-http" }
 sim-lib-agent-runner-process = { version = "0.1.5", optional = true, path = "../sim-lib-agent-runner-process" }
-sim-lib-cookbook = { version = "0.1.15", optional = true, path = "../sim-lib-cookbook" }
-sim-lib-core = { version = "0.1.4" }
-sim-lib-numbers-stats = { version = "0.3.1" }
-sim-lib-rank = { version = "0.1.3" }
-sim-lib-server = { version = "0.1.11", path = "../sim-lib-server" }
+sim-lib-cookbook = { version = "0.1.16", optional = true, path = "../sim-lib-cookbook" }
+sim-lib-core = { version = "0.2.0" }
+sim-lib-numbers-stats = { version = "0.4.0" }
+sim-lib-rank = { version = "0.1.4" }
+sim-lib-server = { version = "0.1.12", path = "../sim-lib-server" }
 sim-lib-stream-fabric = { version = "0.2.1", path = "../sim-lib-stream-fabric" }
 sim-lib-stream-core = { version = "0.1.4" }
 sim-shape = { version = "0.2.1" }
@@ -42,7 +42,7 @@ sim-codec-json = { version = "0.2.0" }
 sim-codec-lisp = { version = "0.2.0" }
 sim-kernel = { version = "0.2.0", features = ["test-support"] }
 sim-lib-bridge = { version = "0.1.6", path = "../sim-lib-bridge" }
-sim-lib-cookbook = { version = "0.1.15", path = "../sim-lib-cookbook" }
+sim-lib-cookbook = { version = "0.1.16", path = "../sim-lib-cookbook" }
 sim-lib-topology = { version = "0.1.0" }
 wat = "1.245.1"
 
