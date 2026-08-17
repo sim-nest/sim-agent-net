@@ -8,13 +8,13 @@
 | `sim-lib-agent-runner-core` | `workspace` | 0 | 0 |
 | `sim-lib-agent-runner-core-recipe-output-contract-repair` | `workspace` | 0 | 0 |
 | `sim-lib-agent-runner-http` | `workspace` | 2 | 0 |
-| `sim-lib-agent-runner-local` | `workspace` | 4 | 0 |
+| `sim-lib-agent-runner-local` | `workspace` | 3 | 0 |
 | `sim-lib-agent-runner-process` | `workspace` | 0 | 0 |
 | `sim-lib-bridge` | `workspace` | 0 | 0 |
 | `sim-lib-cookbook` | `workspace` | 2 | 1 |
 | `sim-lib-forge` | `workspace` | 0 | 0 |
 | `sim-lib-mcp` | `workspace` | 10 | 5 |
-| `sim-lib-openai-server` | `workspace` | 2 | 2 |
+| `sim-lib-openai-server` | `workspace` | 2 | 1 |
 | `sim-lib-server` | `workspace` | 8 | 0 |
 | `sim-lib-skill` | `workspace` | 10 | 5 |
 | `sim-lib-stream-fabric` | `workspace` | 0 | 0 |
