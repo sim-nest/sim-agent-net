@@ -17,6 +17,9 @@ use sim_cookbook::RecipeCard;
 use sim_kernel::{Args, Cx, Expr, Symbol, Value};
 use sim_value::access::field;
 
+const MOCK_ACCEPT_TIMEOUT: Duration = Duration::from_secs(30);
+const MOCK_IO_TIMEOUT: Duration = Duration::from_secs(5);
+
 pub(super) fn run_provider_recipe_cases(cx: &mut Cx, card: &RecipeCard) {
     if let Some(listener) = bind_loopback_listener() {
         let port = listener.local_addr().unwrap().port();
@@ -144,7 +147,10 @@ pub(super) fn spawn_provider_recipe_mock(
         let mut responses = VecDeque::from(responses);
         let mut requests = Vec::new();
         while let Some(response) = responses.pop_front() {
-            let deadline = Instant::now() + Duration::from_secs(2);
+            // Recipe setup can be CPU-starved while the all-features suite runs
+            // hundreds of tests in parallel. Keep the listener alive until the
+            // runner reaches it, while retaining a bounded failure mode.
+            let deadline = Instant::now() + MOCK_ACCEPT_TIMEOUT;
             let (mut stream, _) = loop {
                 match listener.accept() {
                     Ok(pair) => break pair,
@@ -157,12 +163,8 @@ pub(super) fn spawn_provider_recipe_mock(
                     Err(error) => panic!("mock provider accept failed: {error}"),
                 }
             };
-            stream
-                .set_read_timeout(Some(Duration::from_secs(2)))
-                .unwrap();
-            stream
-                .set_write_timeout(Some(Duration::from_secs(2)))
-                .unwrap();
+            stream.set_read_timeout(Some(MOCK_IO_TIMEOUT)).unwrap();
+            stream.set_write_timeout(Some(MOCK_IO_TIMEOUT)).unwrap();
             requests.push(read_http_request(&mut stream));
             write_http_response(&mut stream, response);
         }
