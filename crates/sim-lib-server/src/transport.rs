@@ -10,6 +10,8 @@ mod backends;
 mod framing;
 #[cfg(feature = "server-net-http")]
 mod http_transport;
+#[allow(dead_code)]
+pub(crate) mod port_io;
 mod site;
 mod socket;
 #[cfg(feature = "server-net-http")]
@@ -37,14 +39,37 @@ pub use ws_transport::{WsConnectionTransport, WsServerTransport};
 
 pub(crate) use backends::TransportEndpoint;
 use backends::{has_registered_endpoint, register_endpoint, unregister_endpoint};
+#[cfg(feature = "server-net-http")]
+use framing::io_to_host;
 use framing::{
-    answer_or_negotiate, error_frame_from_error, io_to_host, is_timeout, read_frame_from,
-    route_frame_bytes, update_negotiated_codec_from_reply, write_frame_to,
+    answer_or_negotiate, error_frame_from_error, is_timeout, read_frame_from, route_frame_bytes,
+    update_negotiated_codec_from_reply, write_frame_to,
 };
 
 pub(crate) const MAX_TRANSPORT_FRAME_BYTES: usize = 8 * 1024 * 1024;
 pub(crate) const SERVER_CONNECTION_IO_TIMEOUT_MS: u64 = 250;
 pub(crate) const DEFAULT_MAX_INFLIGHT_FRAMES: usize = 8;
+fn bound_transport_services()
+-> std::result::Result<sim_transport_ports::TransportServices, sim_transport_ports::TransportError>
+{
+    match sim_transport_ports::services() {
+        Ok(value) => Ok(value),
+        #[cfg(test)]
+        Err(_) => {
+            let mut model = sim_transport_ports::model::ModelPorts::new(Default::default());
+            model.ipc = true;
+            let model = Arc::new(model);
+            sim_transport_ports::bind_services(sim_transport_ports::TransportServices {
+                sockets: model.clone(),
+                dns: model.clone(),
+                ipc: Some(model),
+            })?;
+            sim_transport_ports::services()
+        }
+        #[cfg(not(test))]
+        Err(error) => Err(error),
+    }
+}
 pub(crate) const WEBHOOK_SERVE_CAPABILITY: &str = "webhook-serve";
 #[cfg(feature = "server-net-http")]
 pub(crate) const HTTP_TRANSPORT_PATH: &str = "/sim/frame";

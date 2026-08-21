@@ -1,9 +1,5 @@
-use std::{
-    io::ErrorKind,
-    net::{Shutdown, TcpListener, TcpStream},
-    sync::Arc,
-    time::Duration,
-};
+use super::port_io::{PortTcpListener as TcpListener, PortTcpStream as TcpStream};
+use std::{io::ErrorKind, net::Shutdown, sync::Arc, time::Duration};
 
 use sim_kernel::{Cx, Error, Result, Symbol};
 

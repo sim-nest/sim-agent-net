@@ -1,12 +1,12 @@
-#[cfg(any(feature = "trigger-imap", feature = "trigger-smtp"))]
-use std::io::{BufRead, BufReader, Read, Write};
 #[cfg(any(
     feature = "trigger-imap",
     feature = "trigger-smtp",
     feature = "trigger-telegram",
     feature = "trigger-matrix"
 ))]
-use std::net::TcpStream;
+use crate::transport::port_io::PortTcpStream as TcpStream;
+#[cfg(any(feature = "trigger-imap", feature = "trigger-smtp"))]
+use std::io::{BufRead, BufReader, Read, Write};
 #[cfg(any(
     feature = "trigger-imap",
     feature = "trigger-smtp",
@@ -43,8 +43,7 @@ pub(super) fn parse_host_port(address: &str, default_port: u16) -> Result<(Strin
     feature = "trigger-matrix"
 ))]
 pub(super) fn connect_with_timeout(host: &str, port: u16, timeout: Duration) -> Result<TcpStream> {
-    let addr = format!("{host}:{port}");
-    let stream = TcpStream::connect(addr).map_err(io_to_host)?;
+    let stream = TcpStream::connect((host, port)).map_err(io_to_host)?;
     stream.set_read_timeout(Some(timeout)).map_err(io_to_host)?;
     stream
         .set_write_timeout(Some(timeout))

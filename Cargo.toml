@@ -14,6 +14,7 @@ members = [
   "crates/sim-lib-mcp",
   "crates/sim-lib-openai-server",
   "crates/sim-lib-server",
+  "crates/sim-transport-ports",
   "crates/sim-lib-skill",
   "crates/sim-lib-stream-fabric",
   "crates/sim-table-remote",

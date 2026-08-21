@@ -21,6 +21,7 @@ sim-kernel = { version = "0.2.1" }
 sim-lib-cookbook = { version = "0.1.16", path = "../sim-lib-cookbook" }
 sim-lib-core = { version = "0.2.0" }
 sim-lib-net-core = { version = "0.2.0" }
+sim-transport-ports = { path = "../sim-transport-ports" }
 sim-lib-stream-core = { version = "0.1.4" }
 sim-value = { version = "0.2.0" }
 sim-shape = { version = "0.2.3" }

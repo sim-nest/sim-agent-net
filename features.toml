@@ -19,6 +19,15 @@ major_entrypoints = "advisory"
 frameworks = "advisory"
 
 [[feature]]
+id = "feature/sim-agent-net/transport-ports"
+title = "Provider-neutral transport ports"
+summary = "Keep socket, DNS, and local IPC mechanics behind narrow byte-stream ports while protocol framing and session policy remain unchanged."
+owner = "crate/sim-transport-ports"
+audiences = ["code", "framework"]
+guidance = "Compose SocketPort and DnsPort for network transports and bind IpcPort only when the selected platform offers native local IPC. Use ModelPorts fault profiles for deterministic fragmentation, loss, pressure, resolution failure, collision, cancellation, and half-close tests; never infer a Windows pipe name from a Unix path."
+claims_anchors = ["anchor/crate/sim-transport-ports"]
+
+[[feature]]
 id = "feature/sim-agent-net/mcp-server"
 title = "MCP server surface"
 summary = "Serve MCP requests through the loaded sim-lib-mcp command and runtime libraries."

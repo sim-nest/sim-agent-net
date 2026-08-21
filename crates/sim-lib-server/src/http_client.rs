@@ -1,6 +1,7 @@
 use crate::http::{HttpRequest, parse_url, read_response, write_request};
+use crate::transport::port_io::PortTcpStream as TcpStream;
 use sim_kernel::{Error, Result};
-use std::{net::TcpStream, time::Duration};
+use std::time::Duration;
 
 /// Outcome of an HTTP GET request issued by the server library.
 #[derive(Clone, Debug, PartialEq, Eq)]
