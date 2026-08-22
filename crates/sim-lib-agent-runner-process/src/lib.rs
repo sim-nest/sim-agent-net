@@ -10,6 +10,7 @@ mod codex;
 mod effects;
 mod json_stdio;
 mod line_text;
+mod opencode;
 mod process;
 
 use sim_codec_chat::model_error_expr;
@@ -22,6 +23,7 @@ pub use broker::BrokerSessionController;
 pub use claude::{ClaudeCliAdapter, register_claude_cli};
 pub use codex::{CodexCliAdapter, register_codex_cli};
 pub use effects::host_process_capability;
+pub use opencode::{OpenCodeCliAdapter, register_opencode_cli};
 pub use process::{
     BrokerProcessSpec, StdoutFraming, active_process_port, bind_process_port, frame_stdout,
     process_port_symbol, run_broker_process,

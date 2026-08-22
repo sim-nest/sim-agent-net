@@ -15,6 +15,7 @@ mod cards;
 mod claude;
 mod codex;
 mod fanout;
+mod opencode;
 mod ops;
 mod principal;
 mod registry;
@@ -37,6 +38,9 @@ pub use codex::{CodexCliConfigHome, CodexCliProbe, codex_cli_family};
 pub use fanout::{
     Fanout, FanoutClock, FanoutMode, FanoutReport, FanoutRow, FanoutSeat, FanoutStatus,
     ManualFanoutClock, PlannedSeat, SystemFanoutClock,
+};
+pub use opencode::{
+    OpenCodeConfig, OpenCodeProbe, OpenCodeTermsPolicy, OpenCodeTransport, opencode_cli_family,
 };
 pub use ops::{discover, families, open, seats, show_family, show_seat};
 pub use principal::CredentialSource;
