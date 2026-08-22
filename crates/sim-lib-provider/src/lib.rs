@@ -8,6 +8,8 @@
 #![deny(missing_docs)]
 
 mod adapter;
+mod auth;
+mod broker;
 mod call;
 mod cards;
 mod fanout;
@@ -19,6 +21,10 @@ mod secret;
 mod secret_provider;
 
 pub use adapter::ProviderAdapter;
+pub use auth::{
+    AuthMetadata, AuthMethod, AuthOwner, SessionStatus, TermsAcknowledgement, auth_metadata_key,
+};
+pub use broker::{BrokerRevision, ProviderControlResult, operation as provider_operation};
 pub use call::{ProviderCall, ProviderDispatch, ProviderOutcome, ProviderSeatExecution};
 pub use cards::{
     EndpointCard, HarnessCard, PrincipalCard, ProviderFamilyCard, ProviderSeatCard,

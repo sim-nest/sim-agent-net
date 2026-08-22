@@ -1,6 +1,6 @@
 //! Deterministic, capacity-aware provider fan-out.
 
-use crate::{ProviderDispatch, ProviderSeatExecution};
+use crate::ProviderSeatExecution;
 use sim_kernel::{Cx, Error, Result};
 use sim_lib_agent_runner_core::{ModelRequest, ModelResponse};
 use sim_lib_server::{ThreadMode, WorkerPool, default_worker_pool};
@@ -448,7 +448,11 @@ mod tests {
     }
 
     fn cx() -> Cx {
-        Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+        Cx::new(
+            Arc::new(EagerPolicy),
+            Arc::new(DefaultFactory),
+            sim_kernel::HandleSeed::new(0x4641_4e4f),
+        )
     }
 
     #[test]

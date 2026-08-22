@@ -4,6 +4,7 @@
 #![deny(missing_docs)]
 #![allow(deprecated)]
 
+mod broker;
 mod effects;
 mod json_stdio;
 mod line_text;
@@ -15,6 +16,7 @@ use sim_lib_agent_runner_core::{
     ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
 };
 
+pub use broker::BrokerSessionController;
 pub use effects::host_process_capability;
 pub use process::{
     BrokerProcessSpec, StdoutFraming, active_process_port, bind_process_port, frame_stdout,

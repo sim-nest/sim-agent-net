@@ -1,4 +1,4 @@
-use crate::ProviderSeatId;
+use crate::{AuthMetadata, ProviderSeatId, auth_metadata_key};
 use sim_citizen::{CitizenField, field_error};
 use sim_citizen_derive::Citizen;
 use sim_kernel::{Expr, Result, Symbol};
@@ -105,6 +105,45 @@ pub struct ProviderSeatCard {
     pub revision: Expr,
     /// Open extension fields.
     pub extra: Vec<(Expr, Expr)>,
+}
+
+fn auth_metadata(extra: &[(Expr, Expr)]) -> Result<Option<AuthMetadata>> {
+    let key = auth_metadata_key();
+    extra
+        .iter()
+        .find_map(|(candidate, value)| (candidate == &key).then_some(value))
+        .map(AuthMetadata::from_expr)
+        .transpose()
+}
+
+impl ProviderFamilyCard {
+    /// Returns whether typed authentication metadata is present on this card.
+    pub fn auth_metadata(&self) -> Result<Option<AuthMetadata>> {
+        auth_metadata(&self.extra)
+    }
+
+    /// Records typed authentication metadata as a redaction-safe card extension.
+    pub fn set_auth_metadata(&mut self, metadata: &AuthMetadata) {
+        set_auth_metadata(&mut self.extra, metadata);
+    }
+}
+
+impl ProviderSeatCard {
+    /// Returns whether typed authentication metadata is present on this card.
+    pub fn auth_metadata(&self) -> Result<Option<AuthMetadata>> {
+        auth_metadata(&self.extra)
+    }
+
+    /// Records typed authentication metadata as a redaction-safe card extension.
+    pub fn set_auth_metadata(&mut self, metadata: &AuthMetadata) {
+        set_auth_metadata(&mut self.extra, metadata);
+    }
+}
+
+fn set_auth_metadata(extra: &mut Vec<(Expr, Expr)>, metadata: &AuthMetadata) {
+    let key = auth_metadata_key();
+    extra.retain(|(candidate, _)| candidate != &key);
+    extra.push((key, metadata.to_expr()));
 }
 
 impl Default for ProviderFamilyCard {

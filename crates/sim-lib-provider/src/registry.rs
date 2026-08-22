@@ -1,4 +1,7 @@
-use crate::{ProviderAdapter, ProviderFamilyCard, ProviderSeatCard, ProviderSeatId};
+use crate::{
+    AuthMethod, ProviderAdapter, ProviderControlResult, ProviderFamilyCard, ProviderSeatCard,
+    ProviderSeatId, SessionStatus,
+};
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::ModelRunner;
 use std::collections::BTreeMap;
@@ -97,6 +100,7 @@ impl ProviderRegistry {
         let card = self
             .show_seat(seat)
             .ok_or_else(|| Error::Eval(format!("provider seat {seat} has not been discovered")))?;
+        require_card_terms(&card)?;
         let adapter = self
             .adapters
             .get(&family_key(&card.family))
@@ -104,6 +108,51 @@ impl ProviderRegistry {
                 Error::Eval(format!("provider family {} is not registered", card.family))
             })?;
         adapter.open(cx, &card, options)
+    }
+
+    /// Lists typed authentication methods for one registered family.
+    pub fn auth_methods(&self, cx: &mut Cx, family: &Symbol) -> Result<Vec<AuthMethod>> {
+        self.adapter(family)?.auth_methods(cx)
+    }
+
+    /// Starts a login flow for one discovered seat.
+    pub fn login(
+        &self,
+        cx: &mut Cx,
+        seat: &ProviderSeatId,
+        method: AuthMethod,
+    ) -> Result<SessionStatus> {
+        let (adapter, card) = self.adapter_and_seat(seat)?;
+        require_card_terms(&card)?;
+        adapter.login(cx, &card, method)
+    }
+
+    /// Queries typed session status for one discovered seat.
+    pub fn status(&self, cx: &mut Cx, seat: &ProviderSeatId) -> Result<SessionStatus> {
+        let (adapter, card) = self.adapter_and_seat(seat)?;
+        adapter.status(cx, &card)
+    }
+
+    /// Logs out one discovered seat.
+    pub fn logout(&self, cx: &mut Cx, seat: &ProviderSeatId) -> Result<ProviderControlResult> {
+        let (adapter, card) = self.adapter_and_seat(seat)?;
+        adapter.logout(cx, &card)
+    }
+
+    fn adapter(&self, family: &Symbol) -> Result<&Arc<dyn ProviderAdapter>> {
+        self.adapters
+            .get(&family_key(family))
+            .ok_or_else(|| Error::Eval(format!("provider family {family} is not registered")))
+    }
+
+    fn adapter_and_seat(
+        &self,
+        seat: &ProviderSeatId,
+    ) -> Result<(&Arc<dyn ProviderAdapter>, ProviderSeatCard)> {
+        let card = self
+            .show_seat(seat)
+            .ok_or_else(|| Error::Eval(format!("provider seat {seat} has not been discovered")))?;
+        Ok((self.adapter(&card.family)?, card))
     }
 
     fn insert_seat(&mut self, seat: ProviderSeatCard) -> Result<()> {
@@ -123,6 +172,13 @@ impl ProviderRegistry {
     pub(crate) fn replace_seat_for_test(&mut self, seat: ProviderSeatCard) {
         self.seats.insert(seat_key(&seat.seat), seat);
     }
+}
+
+fn require_card_terms(card: &ProviderSeatCard) -> Result<()> {
+    if let Some(metadata) = card.auth_metadata()? {
+        metadata.require_terms()?;
+    }
+    Ok(())
 }
 
 fn family_key(family: &Symbol) -> String {

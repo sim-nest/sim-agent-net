@@ -281,6 +281,7 @@ mod tests {
         Cx::new(
             Arc::new(sim_kernel::eval::NoopEvalPolicy),
             Arc::new(sim_kernel::DefaultFactory),
+            sim_kernel::HandleSeed::new(0x5052_4f43),
         )
     }
 

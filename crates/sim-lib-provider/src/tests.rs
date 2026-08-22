@@ -1,7 +1,8 @@
 use crate::{
-    CredentialSource, EndpointCard, HarnessCard, PrincipalCard, ProviderAdapter,
-    ProviderFamilyCard, ProviderRegistry, ProviderSeatCard, ProviderSeatId, ProviderSeatLimits,
-    Secret, SecretProvider, SecretProviderRegistry,
+    AuthMetadata, AuthMethod, AuthOwner, CredentialSource, EndpointCard, HarnessCard,
+    PrincipalCard, ProviderAdapter, ProviderFamilyCard, ProviderRegistry, ProviderSeatCard,
+    ProviderSeatId, ProviderSeatLimits, Secret, SecretProvider, SecretProviderRegistry,
+    SessionStatus, TermsAcknowledgement,
 };
 use sim_kernel::{
     CapabilityName, CapabilitySet, Cx, DefaultFactory, EagerPolicy, Error, Expr, Ref, Result,
@@ -83,7 +84,7 @@ impl ProviderAdapter for MultiSeatAdapter {
 #[test]
 fn provider_families_and_discovered_seats_are_open() {
     let adapter = FictionalAdapter;
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = test_cx_with_secret_capability();
 
     assert_eq!(adapter.family().family.name.as_ref(), FICTIONAL_FAMILY);
     let seats = adapter.discover(&mut cx, Expr::Nil).unwrap();
@@ -125,7 +126,7 @@ fn registry_preserves_and_opens_two_seats_for_one_family_separately() {
             labels: &["violet", "amber"],
         }))
         .unwrap();
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = test_cx_with_secret_capability();
     let discovered = registry.discover(&mut cx, Expr::Nil).unwrap();
 
     assert_eq!(registry.families().len(), 1);
@@ -159,7 +160,7 @@ fn removing_one_adapter_does_not_change_another_family() {
             .unwrap();
     }
     registry.remove_family(&Symbol::qualified("provider", "north-star"));
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = test_cx_with_secret_capability();
     let seats = registry.discover(&mut cx, Expr::Nil).unwrap();
 
     assert_eq!(registry.families().len(), 1);
@@ -176,7 +177,7 @@ fn registry_refuses_duplicate_ids_and_has_no_vendor_switch_or_preference() {
             labels: &["same", "same"],
         }))
         .unwrap();
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = test_cx_with_secret_capability();
     assert!(registry.discover(&mut cx, Expr::Nil).is_err());
 
     let source = include_str!("registry.rs");
@@ -306,7 +307,11 @@ fn secret_provider_resolution_requires_open_time_authority() {
 }
 
 fn test_cx_with_secret_capability() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x5052_4f56),
+    )
 }
 
 fn family_card() -> ProviderFamilyCard {
@@ -359,4 +364,89 @@ fn seat_card_named(family_name: &str, label: &str) -> ProviderSeatCard {
         revision: Expr::Nil,
         extra: Vec::new(),
     }
+}
+
+#[test]
+fn auth_vocabulary_and_control_operations_are_stable_and_separate_from_inference() {
+    let methods = [
+        AuthMethod::ApiKey,
+        AuthMethod::OauthBrowser,
+        AuthMethod::OauthDevice,
+        AuthMethod::Subscription,
+        AuthMethod::BrokerOwned,
+        AuthMethod::None,
+    ];
+    assert_eq!(
+        methods.map(|method| method.symbol().to_string()),
+        [
+            "api-key",
+            "oauth-browser",
+            "oauth-device",
+            "subscription",
+            "broker-owned",
+            "none"
+        ]
+    );
+    assert_eq!(
+        crate::provider_operation::all()
+            .into_iter()
+            .map(|op| op.to_string())
+            .collect::<Vec<_>>(),
+        [
+            "provider/auth-methods",
+            "provider/login",
+            "provider/status",
+            "provider/logout"
+        ]
+    );
+}
+
+#[test]
+fn redacted_auth_metadata_round_trips_and_terms_gate_open_and_login() {
+    let mut seat = seat_card();
+    let metadata = AuthMetadata {
+        owner: AuthOwner::Broker,
+        session: SessionStatus::LoginRequired,
+        required_terms: Some(("provider-terms".into(), "2026-08".into())),
+        acknowledgement: None,
+    };
+    seat.set_auth_metadata(&metadata);
+    assert_eq!(seat.auth_metadata().unwrap(), Some(metadata.clone()));
+    let encoded = format!("{:?}", seat.extra);
+    assert!(!encoded.contains("credential"));
+    assert!(!encoded.contains("cookie"));
+
+    let mut registry = ProviderRegistry::new();
+    registry.register(Arc::new(FictionalAdapter)).unwrap();
+    registry
+        .discover(&mut test_cx_with_secret_capability(), Expr::Nil)
+        .unwrap();
+    registry.replace_seat_for_test(seat.clone());
+    let mut cx = test_cx_with_secret_capability();
+    let open_error = match registry.open(&mut cx, &seat.seat, Expr::Nil) {
+        Ok(_) => panic!("unacknowledged terms must refuse open"),
+        Err(error) => error,
+    };
+    assert!(open_error.to_string().contains("must be acknowledged"));
+    assert!(
+        registry
+            .login(&mut cx, &seat.seat, AuthMethod::BrokerOwned)
+            .unwrap_err()
+            .to_string()
+            .contains("must be acknowledged")
+    );
+
+    let mut accepted = metadata;
+    accepted.acknowledgement = Some(TermsAcknowledgement {
+        terms_id: "provider-terms".into(),
+        revision: "2026-08".into(),
+        acknowledged_by: "operator".into(),
+    });
+    seat.set_auth_metadata(&accepted);
+    registry.replace_seat_for_test(seat.clone());
+    let adapter_error = match registry.open(&mut cx, &seat.seat, Expr::Nil) {
+        Ok(_) => panic!("fictional adapter unexpectedly opened"),
+        Err(error) => error,
+    };
+    assert!(adapter_error.to_string().contains("no execution backend"));
 }

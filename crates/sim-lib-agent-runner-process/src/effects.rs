@@ -48,6 +48,7 @@ fn process_effect(
     };
     let input = Ref::Content(cx.datum_store_mut().intern(input)?);
     Effect::new(
+        cx.fresh_handle(),
         host_process_effect_kind(),
         Ref::Symbol(runner.runner.clone()),
         input,

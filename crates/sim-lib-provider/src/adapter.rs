@@ -1,5 +1,7 @@
-use crate::{ProviderFamilyCard, ProviderSeatCard};
-use sim_kernel::{Cx, Expr, Result};
+use crate::{
+    AuthMethod, ProviderControlResult, ProviderFamilyCard, ProviderSeatCard, SessionStatus,
+};
+use sim_kernel::{Cx, Error, Expr, Result};
 use sim_lib_agent_runner_core::ModelRunner;
 use std::sync::Arc;
 
@@ -22,4 +24,29 @@ pub trait ProviderAdapter: Send + Sync {
         seat: &ProviderSeatCard,
         options: Expr,
     ) -> Result<Arc<dyn ModelRunner>>;
+
+    /// Lists supported authentication methods without performing inference.
+    fn auth_methods(&self, _cx: &mut Cx) -> Result<Vec<AuthMethod>> {
+        Ok(Vec::new())
+    }
+
+    /// Starts or resumes a typed login flow.
+    fn login(
+        &self,
+        _cx: &mut Cx,
+        _seat: &ProviderSeatCard,
+        _method: AuthMethod,
+    ) -> Result<SessionStatus> {
+        Err(Error::Eval("provider login is not supported".into()))
+    }
+
+    /// Queries current session state without performing inference.
+    fn status(&self, _cx: &mut Cx, _seat: &ProviderSeatCard) -> Result<SessionStatus> {
+        Ok(SessionStatus::LoginRequired)
+    }
+
+    /// Ends the current provider session.
+    fn logout(&self, _cx: &mut Cx, _seat: &ProviderSeatCard) -> Result<ProviderControlResult> {
+        Err(Error::Eval("provider logout is not supported".into()))
+    }
 }
