@@ -9,8 +9,9 @@ use sim_codec_chat::{
     OpenAiRequestOptions, decode_anthropic_response, decode_anthropic_stream,
     decode_lemonade_response, decode_lemonade_stream, decode_lm_studio_response,
     decode_lm_studio_stream, decode_ollama_response, decode_ollama_stream, decode_openai_response,
-    encode_anthropic_request, encode_lemonade_request, encode_lm_studio_request,
-    encode_ollama_request, encode_openai_request, model_error_expr,
+    decode_openai_responses_response, encode_anthropic_request, encode_lemonade_request,
+    encode_lm_studio_request, encode_ollama_request, encode_openai_request,
+    encode_openai_responses_request, model_error_expr,
 };
 use sim_kernel::{
     CapabilityName, Cx, Datum, DatumStore, Effect, Error, Expr, Ref, Result, Symbol, core_any_ref,
@@ -217,6 +218,7 @@ impl HttpRunner {
 
     fn encode_request(&self, request: ModelRequest, stream: bool) -> Result<Vec<u8>> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let openai_responses_codec = Symbol::qualified("codec", "openai-responses");
         let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
         let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
@@ -224,7 +226,12 @@ impl HttpRunner {
         let request = self.prepare_output_grammar(request);
         let request_extra = request.extra.clone();
         let request_expr: Expr = request.into();
-        let body = if self.codec == openai_codec {
+        let body = if self.codec == openai_responses_codec {
+            encode_openai_responses_request(
+                &request_expr,
+                &OpenAiRequestOptions::new(self.model.clone(), stream, self.tools),
+            )
+        } else if self.codec == openai_codec {
             encode_openai_request(
                 &request_expr,
                 &OpenAiRequestOptions::new(self.model.clone(), stream, self.tools),
@@ -301,11 +308,14 @@ impl HttpRunner {
 
     fn decode_response(&self, body: &[u8], include_raw: bool) -> Result<ModelResponse> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let openai_responses_codec = Symbol::qualified("codec", "openai-responses");
         let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
         let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
         let lemonade_codec = Symbol::qualified("codec", "lemonade");
-        let expr = if self.codec == openai_codec {
+        let expr = if self.codec == openai_responses_codec {
+            decode_openai_responses_response(self.runner.clone(), &self.model, body, include_raw)?
+        } else if self.codec == openai_codec {
             decode_openai_response(self.runner.clone(), &self.model, body, include_raw)?
         } else if self.codec == anthropic_codec {
             if self.stream {
@@ -358,11 +368,16 @@ impl HttpRunner {
 
     fn stream_decoder(&self, include_raw: bool) -> Result<HttpStreamDecoder> {
         let openai_codec = Symbol::qualified("codec", "openai");
+        let openai_responses_codec = Symbol::qualified("codec", "openai-responses");
         let anthropic_codec = Symbol::qualified("codec", "anthropic");
         let ollama_codec = Symbol::qualified("codec", "ollama");
         let lm_studio_codec = Symbol::qualified("codec", "lm-studio");
         let lemonade_codec = Symbol::qualified("codec", "lemonade");
-        if self.codec == openai_codec {
+        if self.codec == openai_responses_codec {
+            Err(Error::Eval(
+                "streaming OpenAI Responses seats are not yet supported".to_owned(),
+            ))
+        } else if self.codec == openai_codec {
             Ok(HttpStreamDecoder::openai(
                 self.runner.clone(),
                 self.model.clone(),

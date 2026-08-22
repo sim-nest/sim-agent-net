@@ -6,6 +6,7 @@
 
 mod client;
 mod config;
+mod direct_api;
 mod local_service;
 mod model_params;
 mod probe;
@@ -15,6 +16,9 @@ mod runner;
 mod stream;
 
 pub use config::ProviderConfig;
+pub use direct_api::{
+    DirectApiAdapter, DirectApiAuth, DirectApiSeat, OpenAiWire, register_direct_api_families,
+};
 pub use local_service::{
     LocalServiceAdapter, LocalServiceEndpoint, register_local_service_families,
 };

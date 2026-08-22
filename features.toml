@@ -147,10 +147,10 @@ claims_specimens = [
 [[feature]]
 id = "feature/sim-agent-net/model-runner-framework"
 title = "Model runner framework"
-summary = "Run local GenAI requests through provider-neutral runner contracts, HTTP profiles, process adapters, and loadable model sites."
+summary = "Run GenAI requests through provider-neutral runner contracts, named direct-API families, HTTP profiles, process adapters, and loadable model sites."
 owner = "crate/sim-lib-agent-runner-core"
 audiences = ["code", "framework"]
-guidance = "Use this row when adding model execution. Implement `ModelRunner` for an in-process or host adapter, use the HTTP profiles for provider and loopback local GenAI services, use the process runner for subprocess adapters, or expose a loadable `Export::Site` for placement through `runner/place` and `model/at`. HTTP non-streaming inference uses the provider plan, dispatch, and land split so transport work can leave the Cx thread; streaming remains on its Cx-bound path until its family supports an honest split. The bundled `model-site:local` runner is a modeled fixture; real local execution crosses one of those runner or site boundaries."
+guidance = "Use this row when adding model execution. Register named `provider/openai-api` and `provider/anthropic-api` families for vendor-direct service: every independently authenticated principal is a seat, OpenAI seats explicitly select `openai-chat` or `openai-responses`, and SIM owns API-key resolution through the secret-provider seam. Add a future direct OAuth credential as another typed family or seat on this provider organ, not another execution API. Keep `openai-compatible` as the generic extension identity and keep LM Studio and Lemonade under their named local-service identities even where wire shapes overlap. Implement `ModelRunner` for an in-process or host adapter, use the HTTP profiles for provider and loopback local GenAI services, use the process runner for subprocess adapters, or expose a loadable `Export::Site` for placement through `runner/place` and `model/at`. HTTP non-streaming inference uses the provider plan, dispatch, and land split so transport work can leave the Cx thread; streaming remains on its Cx-bound path until its family supports an honest split. The bundled `model-site:local` runner is a modeled fixture; real local execution crosses one of those runner or site boundaries."
 claims_anchors = [
   "anchor/crate/sim-lib-agent-runner-core",
   "anchor/crate/sim-lib-agent-runner-http",
