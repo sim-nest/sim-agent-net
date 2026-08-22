@@ -5,6 +5,7 @@
 #![allow(deprecated)]
 
 mod broker;
+mod claude;
 mod codex;
 mod effects;
 mod json_stdio;
@@ -18,6 +19,7 @@ use sim_lib_agent_runner_core::{
 };
 
 pub use broker::BrokerSessionController;
+pub use claude::{ClaudeCliAdapter, register_claude_cli};
 pub use codex::{CodexCliAdapter, register_codex_cli};
 pub use effects::host_process_capability;
 pub use process::{

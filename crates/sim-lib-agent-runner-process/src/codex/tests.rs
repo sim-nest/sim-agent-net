@@ -108,7 +108,7 @@ fn subscription_and_api_key_homes_are_distinct_seats_with_complete_harness_ident
             .iter()
             .map(|seat| seat.seat.to_string())
             .collect::<Vec<_>>(),
-        ["provider/codex-cli:personal", "provider/codex-cli:work"]
+        ["seat:codex-cli#personal", "seat:codex-cli#work"]
     );
     assert_eq!(seats[0].principal.kind, Symbol::new("subscription"));
     assert_eq!(seats[1].principal.kind, Symbol::new("api-key"));
@@ -160,13 +160,17 @@ fn login_required_version_drift_malformed_json_timeout_and_quota_refusal_fail_cl
         Reply::Text("Usage: codex exec --json --model MODEL --sandbox MODE"),
         Reply::Text(auth_status("login-required")),
     ]);
-    let mut cx = cx(port);
+    let mut locked_cx = cx(port);
     let adapter = adapter(vec![home("locked", "home-locked")]);
-    let seat = adapter.discover(&mut cx, Expr::Nil).unwrap().remove(0);
+    let seat = adapter
+        .discover(&mut locked_cx, Expr::Nil)
+        .unwrap()
+        .remove(0);
     assert!(
         adapter
-            .open(&mut cx, &seat, Expr::Nil)
-            .unwrap_err()
+            .open(&mut locked_cx, &seat, Expr::Nil)
+            .err()
+            .unwrap()
             .to_string()
             .contains("login required")
     );

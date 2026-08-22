@@ -12,6 +12,7 @@ mod auth;
 mod broker;
 mod call;
 mod cards;
+mod claude;
 mod codex;
 mod fanout;
 mod ops;
@@ -31,6 +32,7 @@ pub use cards::{
     EndpointCard, HarnessCard, PrincipalCard, ProviderFamilyCard, ProviderSeatCard,
     ProviderSeatLimits,
 };
+pub use claude::{ClaudeCliConfigHome, ClaudeCliProbe, ClaudeCliTermsPolicy, claude_cli_family};
 pub use codex::{CodexCliConfigHome, CodexCliProbe, codex_cli_family};
 pub use fanout::{
     Fanout, FanoutClock, FanoutMode, FanoutReport, FanoutRow, FanoutSeat, FanoutStatus,

@@ -207,7 +207,7 @@ impl ModelRunner for CodexRunner {
         self.inner.card()
     }
     fn infer(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
-        let raw = self.inner.infer(cx, request)?;
+        let raw = self.inner.infer_inner(cx, request)?;
         let text = raw
             .extra
             .iter()
