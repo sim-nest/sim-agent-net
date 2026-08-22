@@ -10,6 +10,7 @@
 mod adapter;
 mod call;
 mod cards;
+mod fanout;
 mod ops;
 mod principal;
 mod registry;
@@ -22,6 +23,10 @@ pub use call::{ProviderCall, ProviderDispatch, ProviderOutcome, ProviderSeatExec
 pub use cards::{
     EndpointCard, HarnessCard, PrincipalCard, ProviderFamilyCard, ProviderSeatCard,
     ProviderSeatLimits,
+};
+pub use fanout::{
+    Fanout, FanoutClock, FanoutMode, FanoutReport, FanoutRow, FanoutSeat, FanoutStatus,
+    ManualFanoutClock, PlannedSeat, SystemFanoutClock,
 };
 pub use ops::{discover, families, open, seats, show_family, show_seat};
 pub use principal::CredentialSource;

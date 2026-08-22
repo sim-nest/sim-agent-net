@@ -5,6 +5,7 @@ use std::collections::HashMap;
 pub(crate) struct MarketPolicy {
     pub(crate) prefer: Symbol,
     pub(crate) execution: Option<Symbol>,
+    pub(crate) quorum: Option<u64>,
     pub(crate) max_cost_usd: Option<f64>,
     pub(crate) deadline: Option<String>,
     pub(crate) min_context_tokens: Option<u64>,
@@ -19,6 +20,7 @@ impl Default for MarketPolicy {
         Self {
             prefer: Symbol::new("local-first"),
             execution: None,
+            quorum: None,
             max_cost_usd: None,
             deadline: None,
             min_context_tokens: None,
@@ -36,6 +38,7 @@ impl MarketPolicy {
             prefer: optional_symbol(cx, options, "prefer")?.unwrap_or(Symbol::new("local-first")),
             execution: optional_symbol(cx, options, "execution")?
                 .or(optional_symbol(cx, options, "mode")?),
+            quorum: optional_u64(cx, options, "quorum")?,
             max_cost_usd: optional_f64(cx, options, "max-cost-usd")?,
             deadline: optional_string(cx, options, "deadline")?,
             min_context_tokens: optional_u64(cx, options, "min-context-tokens")?,
@@ -55,6 +58,7 @@ impl MarketPolicy {
             .or_else(|| field(expr, "mode"))
             .map(|expr| expr_symbol(expr, "model-policy :execution expects a symbol"))
             .transpose()?;
+        policy.quorum = field(expr, "quorum").map(require_u64).transpose()?;
         policy.max_cost_usd = field(expr, "max-cost-usd").map(require_f64).transpose()?;
         policy.deadline = field(expr, "deadline").map(expr_label).transpose()?;
         policy.min_context_tokens = field(expr, "min-context-tokens")
@@ -80,6 +84,9 @@ impl MarketPolicy {
         let mut entries = vec![key_expr("prefer", Expr::Symbol(self.prefer.clone()))];
         if let Some(value) = &self.execution {
             entries.push(key_expr("execution", Expr::Symbol(value.clone())));
+        }
+        if let Some(value) = self.quorum {
+            entries.push(key_expr("quorum", number_expr(value)));
         }
         if let Some(value) = self.max_cost_usd {
             entries.push(key_expr("max-cost-usd", float_expr(value)));

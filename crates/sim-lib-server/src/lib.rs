@@ -69,6 +69,7 @@ pub use helpers::parse_duration;
 #[cfg(feature = "server-net-http")]
 pub use http_client::{HttpGetResponse, http_get};
 pub use isolation::{IsolationPolicy, ShareMode};
+pub use pool::{WorkerPool, default_worker_pool};
 pub use realize::{realize as realize_site_fragment, realize_stream_events};
 pub use registries::{
     AddressResolver, LineDriverFactory, ResolvedAddress, register_address_resolver,
