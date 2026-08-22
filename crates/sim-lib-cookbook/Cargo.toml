@@ -46,7 +46,7 @@ sim-lib-discrete = { optional = true, version = "0.1.5", features = ["runtime"] 
 sim-lib-stream-core = { optional = true, version = "0.1.4" }
 sim-shape = { version = "0.2.3" }
 [build-dependencies]
-sim-cookbook = { version = "0.2.0" }
+sim-cookbook-build = { version = "0.1.0" }
 
 [dev-dependencies]
 sim-kernel = { version = "0.2.1", features = ["test-support"] }

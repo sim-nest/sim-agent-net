@@ -25,7 +25,7 @@ sim-lib-net-core = { version = "0.2.0" }
 sim-lib-openai-server = { version = "0.3.0", path = "../sim-lib-openai-server" }
 sim-shape = { version = "0.2.1" }
 [build-dependencies]
-sim-cookbook = { version = "0.2.0" }
+sim-cookbook-build = { version = "0.1.0" }
 
 [dev-dependencies]
 rcgen = "0.13"
