@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 
 mod adapter;
+mod call;
 mod cards;
 mod ops;
 mod principal;
@@ -17,6 +18,7 @@ mod secret;
 mod secret_provider;
 
 pub use adapter::ProviderAdapter;
+pub use call::{ProviderCall, ProviderDispatch, ProviderOutcome, ProviderSeatExecution};
 pub use cards::{
     EndpointCard, HarnessCard, PrincipalCard, ProviderFamilyCard, ProviderSeatCard,
     ProviderSeatLimits,

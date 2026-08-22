@@ -6,6 +6,7 @@ use sim_lib_agent_runner_core::{
     OUTPUT_GRAMMAR_REQUIRED_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA,
 };
 use sim_lib_provider::Secret;
+use sim_lib_provider::{ProviderDispatch, ProviderSeatExecution};
 use sim_transport_ports::model::ScriptedStreamPort;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
@@ -78,18 +79,16 @@ fn two_open_seats_keep_distinct_credentials_without_ambient_lookup() {
     let second = runner("second-seat", "beta-credential");
 
     assert_eq!(
-        first.request_headers(first.secret.as_ref().map(Secret::expose))[1],
-        (
-            "Authorization".to_owned(),
-            "Bearer alpha-credential".to_owned()
-        )
+        first.request_headers(first.secret.as_ref().map(Secret::expose))[1]
+            .1
+            .expose(),
+        "Bearer alpha-credential"
     );
     assert_eq!(
-        second.request_headers(second.secret.as_ref().map(Secret::expose))[1],
-        (
-            "Authorization".to_owned(),
-            "Bearer beta-credential".to_owned()
-        )
+        second.request_headers(second.secret.as_ref().map(Secret::expose))[1]
+            .1
+            .expose(),
+        "Bearer beta-credential"
     );
     let printable = format!("{first:?} {second:?}");
     assert!(!printable.contains("alpha-credential"));
@@ -242,14 +241,11 @@ fn openai_compatible_without_grammar_support_does_not_derive_schema() {
 
 #[test]
 fn anthropic_headers_include_secret_version_and_json_content_type() {
-    assert_eq!(
-        anthropic_headers("secret-token"),
-        vec![
-            ("x-api-key".to_owned(), "secret-token".to_owned()),
-            ("anthropic-version".to_owned(), "2023-06-01".to_owned()),
-            ("content-type".to_owned(), "application/json".to_owned()),
-        ]
-    );
+    let headers = anthropic_headers("secret-token");
+    assert_eq!(headers[0].0, "x-api-key");
+    assert_eq!(headers[0].1.expose(), "secret-token");
+    assert_eq!(headers[1].1.expose(), "2023-06-01");
+    assert_eq!(headers[2].1.expose(), "application/json");
 }
 
 #[test]
@@ -279,14 +275,18 @@ fn direct_http_runner_denies_without_runner_capabilities() {
 }
 
 #[test]
-fn direct_http_runner_allows_with_runner_network_and_secret_capabilities() {
+fn direct_and_split_http_paths_are_identical_and_thread_safe() {
     let body = r#"{"id":"chatcmpl-direct","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"direct ok"}}],"usage":{"prompt_tokens":2,"completion_tokens":1,"total_tokens":3}}"#;
     let response = format!(
         "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
         body.len(),
         body
     );
-    let transport = Arc::new(ScriptedStreamPort::new([response.into_bytes()]));
+    let transport = Arc::new(ScriptedStreamPort::new([
+        response.clone().into_bytes(),
+        response.clone().into_bytes(),
+        response.into_bytes(),
+    ]));
     sim_transport_ports::bind_services(transport.services()).unwrap();
     let runner = HttpRunner::new_openai_compatible(
         Symbol::qualified("runner", "direct-allowed"),
@@ -319,6 +319,59 @@ fn direct_http_runner_allows_with_runner_network_and_secret_capabilities() {
     assert!(format!("{:?}", response.content).contains("direct ok"));
     assert!(request.starts_with("POST /v1/chat/completions HTTP/1.1"));
     assert!(request.contains("allowed direct"));
+
+    let request = ModelRequest::new(Expr::String("threaded split".to_owned()), Vec::new());
+
+    let planning_runner = runner.clone();
+    let planning_request = request.clone();
+    let call = std::thread::spawn(move || {
+        let mut planning_cx = test_cx();
+        planning_runner.plan(&mut planning_cx, planning_request)
+    })
+    .join()
+    .unwrap()
+    .unwrap();
+    let outcome = std::thread::spawn(move || HttpRunner::dispatch(call))
+        .join()
+        .unwrap()
+        .unwrap();
+    let mut landing_cx = test_cx();
+    let split_response = runner.land(&mut landing_cx, outcome).unwrap();
+
+    let mut direct_cx = test_cx();
+    let direct_response = runner.infer_inner(&mut direct_cx, request).unwrap();
+
+    assert_eq!(split_response, direct_response);
+    assert_eq!(transport.requests().len(), 3);
+}
+
+#[test]
+fn split_planning_rejects_streaming_explicitly() {
+    let runner = HttpRunner::new_ollama(
+        Symbol::qualified("runner", "streaming"),
+        "qwen-test",
+        Symbol::new("local"),
+        "http://provider.test:8080",
+        Symbol::qualified("codec", "ollama"),
+        Duration::from_secs(1),
+        true,
+        false,
+        4096,
+    );
+    let mut cx = test_cx();
+
+    let error = runner
+        .plan(
+            &mut cx,
+            ModelRequest::new(Expr::String("stream".to_owned()), Vec::new()),
+        )
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("split-mode streaming is unsupported")
+    );
 }
 
 fn test_cx() -> Cx {

@@ -4,6 +4,7 @@ use rustls::{
     ServerConfig, ServerConnection, StreamOwned,
     pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
 };
+use sim_lib_provider::Secret;
 use std::{
     io::{ErrorKind, Read, Write},
     net::TcpListener,
@@ -64,11 +65,17 @@ fn https_post_json_supports_tls_and_chunked_bodies() {
     let response = post_json_with_tls_roots(
         HttpRunnerRequest {
             runner_label: "runner/openai-compatible",
-            endpoint: &format!("https://localhost:{port}/v1"),
+            endpoint: format!("https://localhost:{port}/v1"),
             path: "/chat/completions",
             headers: vec![
-                ("content-type".to_owned(), "application/json".to_owned()),
-                ("Authorization".to_owned(), "Bearer secret-token".to_owned()),
+                (
+                    "content-type".to_owned(),
+                    Secret::new("application/json").unwrap(),
+                ),
+                (
+                    "Authorization".to_owned(),
+                    Secret::new("Bearer secret-token").unwrap(),
+                ),
             ],
             timeout: Duration::from_secs(1),
             body: br#"{"hello":"world"}"#.to_vec(),

@@ -21,7 +21,9 @@ use sim_lib_agent_runner_core::{
     OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
     RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA, grammar_dialect_symbol,
 };
-use sim_lib_provider::Secret;
+use sim_lib_provider::{
+    ProviderCall, ProviderDispatch, ProviderOutcome, ProviderSeatExecution, Secret,
+};
 use sim_shape::GrammarDialect;
 use std::time::Duration;
 
@@ -43,6 +45,21 @@ pub struct HttpRunner {
     tools: bool,
     max_response_bytes: usize,
     grammar_dialects: Vec<GrammarDialect>,
+}
+
+/// Owned HTTP dispatch payload produced by [`HttpRunner::plan`].
+#[derive(Clone, Debug)]
+pub struct HttpProviderCall {
+    request: HttpRunnerRequest,
+    secret: Option<Secret>,
+    include_raw: bool,
+}
+
+/// Owned HTTP outcome consumed by [`HttpRunner::land`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HttpProviderOutcome {
+    response: crate::client::HttpRunnerResponse,
+    include_raw: bool,
 }
 
 impl HttpRunner {
@@ -147,7 +164,7 @@ impl HttpRunner {
         let response = post_json(
             HttpRunnerRequest {
                 runner_label: self.runner_label,
-                endpoint: self.endpoint.as_str(),
+                endpoint: self.endpoint.clone(),
                 path: self.request_path,
                 headers,
                 timeout: self.timeout,
@@ -179,7 +196,7 @@ impl HttpRunner {
         let response = post_json_stream(
             HttpRunnerRequest {
                 runner_label: self.runner_label,
-                endpoint: self.endpoint.as_str(),
+                endpoint: self.endpoint.clone(),
                 path: self.request_path,
                 headers,
                 timeout: self.timeout,
@@ -246,7 +263,7 @@ impl HttpRunner {
         attach_bridge_model_params_to_body(&self.codec, &request_extra, body, self.runner_label)
     }
 
-    fn request_headers(&self, secret: Option<&str>) -> Vec<(String, String)> {
+    fn request_headers(&self, secret: Option<&str>) -> Vec<(String, Secret)> {
         if self.provider == Symbol::new("anthropic")
             && matches!(self.auth, ProviderAuth::HeaderEnv { .. })
             && let Some(secret) = secret
@@ -260,15 +277,24 @@ impl HttpRunner {
                 ProviderAuth::BearerEnv { .. } | ProviderAuth::OptionalBearerEnv { .. },
                 Some(secret),
             ) => {
-                headers.push(("Authorization".to_owned(), format!("Bearer {secret}")));
+                headers.push((
+                    "Authorization".to_owned(),
+                    Secret::new(format!("Bearer {secret}")).expect("valid bearer header"),
+                ));
             }
             (ProviderAuth::HeaderEnv { header, .. }, Some(secret)) => {
-                headers.push((header.clone(), secret.to_owned()));
+                headers.push((
+                    header.clone(),
+                    Secret::new(secret).expect("validated provider secret"),
+                ));
             }
             _ => {}
         }
         if self.provider == Symbol::new("anthropic") {
-            headers.push(("anthropic-version".to_owned(), ANTHROPIC_VERSION.to_owned()));
+            headers.push((
+                "anthropic-version".to_owned(),
+                Secret::new(ANTHROPIC_VERSION).expect("valid fixed header"),
+            ));
         }
         headers
     }
@@ -422,16 +448,25 @@ const AI_RUNNER_NETWORK_CAPABILITY: &str = "ai-runner-network";
 const AI_RUNNER_LOCAL_CAPABILITY: &str = "ai-runner-local";
 const AI_RUNNER_SECRET_CAPABILITY: &str = "ai-runner-secret";
 
-fn anthropic_headers(secret: &str) -> Vec<(String, String)> {
+fn anthropic_headers(secret: &str) -> Vec<(String, Secret)> {
     vec![
-        ("x-api-key".to_owned(), secret.to_owned()),
-        ("anthropic-version".to_owned(), ANTHROPIC_VERSION.to_owned()),
+        (
+            "x-api-key".to_owned(),
+            Secret::new(secret).expect("validated provider secret"),
+        ),
+        (
+            "anthropic-version".to_owned(),
+            Secret::new(ANTHROPIC_VERSION).expect("valid fixed header"),
+        ),
         content_type_header(),
     ]
 }
 
-fn content_type_header() -> (String, String) {
-    ("content-type".to_owned(), "application/json".to_owned())
+fn content_type_header() -> (String, Secret) {
+    (
+        "content-type".to_owned(),
+        Secret::new("application/json").expect("valid fixed header"),
+    )
 }
 
 fn request_privacy_no_raw(request: &ModelRequest) -> bool {
@@ -577,7 +612,11 @@ impl ModelRunner for HttpRunner {
 
     fn infer(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
         match self.resolve_network_effect(cx, request, |runner, cx, request| {
-            runner.infer_inner(cx, request)
+            if runner.stream {
+                runner.infer_inner(cx, request)
+            } else {
+                runner.execute(cx, request)
+            }
         }) {
             Ok(response) => Ok(response),
             Err(error) => self.error_response(redact_text(&error.to_string(), &[])),
@@ -608,6 +647,56 @@ impl ModelRunner for HttpRunner {
                 Ok(response)
             }
         }
+    }
+}
+
+impl ProviderDispatch for HttpRunner {
+    type Call = HttpProviderCall;
+    type Outcome = HttpProviderOutcome;
+
+    fn dispatch(call: ProviderCall<Self::Call>) -> Result<ProviderOutcome<Self::Outcome>> {
+        let HttpProviderCall {
+            request,
+            secret,
+            include_raw,
+        } = call.payload;
+        let response = post_json(request, secret.as_ref().map(Secret::expose))?;
+        Ok(ProviderOutcome::new(HttpProviderOutcome {
+            response,
+            include_raw,
+        }))
+    }
+}
+
+impl ProviderSeatExecution for HttpRunner {
+    fn plan(&self, cx: &mut Cx, request: ModelRequest) -> Result<ProviderCall<Self::Call>> {
+        if self.stream {
+            return Err(Error::Eval(format!(
+                "{} split-mode streaming is unsupported",
+                self.runner_label
+            )));
+        }
+        let include_raw = self.include_raw(cx, &request);
+        let secret = self.secret.clone();
+        let headers = self.request_headers(secret.as_ref().map(Secret::expose));
+        let body = self.encode_request(request, false)?;
+        Ok(ProviderCall::new(HttpProviderCall {
+            request: HttpRunnerRequest {
+                runner_label: self.runner_label,
+                endpoint: self.endpoint.clone(),
+                path: self.request_path,
+                headers,
+                timeout: self.timeout,
+                body,
+                max_response_bytes: self.max_response_bytes,
+            },
+            secret,
+            include_raw,
+        }))
+    }
+
+    fn land(&self, _cx: &mut Cx, outcome: ProviderOutcome<Self::Outcome>) -> Result<ModelResponse> {
+        self.decode_response(&outcome.payload.response.body, outcome.payload.include_raw)
     }
 }
 

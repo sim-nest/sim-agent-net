@@ -1,5 +1,6 @@
 use crate::redact::redact_text;
 use sim_kernel::{Error, Result};
+use sim_lib_provider::Secret;
 use std::{
     io::{BufReader, Read, Write},
     time::Duration,
@@ -20,11 +21,12 @@ use rustls::{
 #[cfg(feature = "tls")]
 use std::sync::Arc;
 
-pub(crate) struct HttpRunnerRequest<'a> {
-    pub(crate) runner_label: &'a str,
-    pub(crate) endpoint: &'a str,
-    pub(crate) path: &'a str,
-    pub(crate) headers: Vec<(String, String)>,
+#[derive(Clone, Debug)]
+pub(crate) struct HttpRunnerRequest {
+    pub(crate) runner_label: &'static str,
+    pub(crate) endpoint: String,
+    pub(crate) path: &'static str,
+    pub(crate) headers: Vec<(String, Secret)>,
     pub(crate) timeout: Duration,
     pub(crate) body: Vec<u8>,
     pub(crate) max_response_bytes: usize,
@@ -228,7 +230,7 @@ trait ReadWrite: Read + Write {}
 impl<T: Read + Write> ReadWrite for T {}
 
 pub(crate) fn post_json(
-    request: HttpRunnerRequest<'_>,
+    request: HttpRunnerRequest,
     secret: Option<&str>,
 ) -> Result<HttpRunnerResponse> {
     #[cfg(feature = "tls")]
@@ -242,7 +244,7 @@ pub(crate) fn post_json(
 }
 
 pub(crate) fn post_json_stream(
-    request: HttpRunnerRequest<'_>,
+    request: HttpRunnerRequest,
     secret: Option<&str>,
     on_body_chunk: BodyChunkCallback<'_>,
 ) -> Result<HttpRunnerResponse> {
@@ -257,7 +259,7 @@ pub(crate) fn post_json_stream(
 }
 
 fn post_json_with_tls_roots(
-    request: HttpRunnerRequest<'_>,
+    request: HttpRunnerRequest,
     secret: Option<&str>,
     #[cfg(feature = "tls")] tls_roots: Option<Vec<CertificateDer<'static>>>,
 ) -> Result<HttpRunnerResponse> {
@@ -272,7 +274,7 @@ fn post_json_with_tls_roots(
 }
 
 fn post_json_with_tls_roots_stream(
-    request: HttpRunnerRequest<'_>,
+    request: HttpRunnerRequest,
     secret: Option<&str>,
     #[cfg(feature = "tls")] tls_roots: Option<Vec<CertificateDer<'static>>>,
     on_body_chunk: BodyChunkCallback<'_>,
@@ -288,12 +290,12 @@ fn post_json_with_tls_roots_stream(
 }
 
 fn post_json_with_tls_roots_impl(
-    request: HttpRunnerRequest<'_>,
+    request: HttpRunnerRequest,
     secret: Option<&str>,
     #[cfg(feature = "tls")] tls_roots: Option<Vec<CertificateDer<'static>>>,
     on_body_chunk: OptionalBodyChunkCallback<'_>,
 ) -> Result<HttpRunnerResponse> {
-    let url = parse_url(request.runner_label, request.endpoint)?;
+    let url = parse_url(request.runner_label, &request.endpoint)?;
     validate_request_headers(request.runner_label, &request.headers)?;
     let services = sim_transport_ports::services()
         .map_err(|err| transport_error(request.runner_label, err, secret))?;
@@ -328,7 +330,7 @@ fn post_json_with_tls_roots_impl(
     for (name, value) in &request.headers {
         head.push_str(name);
         head.push_str(": ");
-        head.push_str(value);
+        head.push_str(value.expose());
         head.push_str("\r\n");
     }
     head.push_str("\r\n");
@@ -358,14 +360,14 @@ fn post_json_with_tls_roots_impl(
     Ok(response)
 }
 
-fn validate_request_headers(runner_label: &str, headers: &[(String, String)]) -> Result<()> {
+fn validate_request_headers(runner_label: &str, headers: &[(String, Secret)]) -> Result<()> {
     for (name, value) in headers {
         if !valid_header_name(name) {
             return Err(Error::Eval(format!(
                 "{runner_label} invalid http header name"
             )));
         }
-        if !valid_header_value(value) {
+        if !valid_header_value(value.expose()) {
             return Err(Error::Eval(format!(
                 "{runner_label} invalid http header value"
             )));
@@ -480,12 +482,16 @@ fn tls_client_config(
 #[cfg(test)]
 mod header_validation_tests {
     use super::validate_request_headers;
+    use sim_lib_provider::Secret;
 
     #[test]
     fn rejects_header_names_that_cannot_be_http_tokens() {
         let err = validate_request_headers(
             "runner/test",
-            &[("Authorization\r\nX-Injected".to_owned(), "ok".to_owned())],
+            &[(
+                "Authorization\r\nX-Injected".to_owned(),
+                Secret::new("ok").unwrap(),
+            )],
         )
         .unwrap_err();
 
@@ -495,13 +501,9 @@ mod header_validation_tests {
     #[test]
     fn rejects_header_values_that_can_escape_raw_header_lines() {
         for value in ["ok\r\nX-Injected: yes", "ok\nbad", "ok\0bad"] {
-            let err = validate_request_headers(
-                "runner/test",
-                &[("Authorization".to_owned(), value.to_owned())],
-            )
-            .unwrap_err();
+            let err = Secret::new(value).unwrap_err();
 
-            assert!(err.to_string().contains("invalid http header value"));
+            assert!(err.to_string().contains("malformed material"));
         }
     }
 
@@ -510,8 +512,14 @@ mod header_validation_tests {
         validate_request_headers(
             "runner/test",
             &[
-                ("content-type".to_owned(), "application/json".to_owned()),
-                ("X-Sim_Trace".to_owned(), "value\twith tab".to_owned()),
+                (
+                    "content-type".to_owned(),
+                    Secret::new("application/json").unwrap(),
+                ),
+                (
+                    "X-Sim_Trace".to_owned(),
+                    Secret::new("value with space").unwrap(),
+                ),
             ],
         )
         .unwrap();
