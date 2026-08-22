@@ -1,8 +1,9 @@
 //! Provider option-map parsing for HTTP model runners.
 
 use crate::provider::ProviderProfile;
-use sim_kernel::{Cx, Error, Expr, NumberLiteral, Result, Symbol, Value};
+use sim_kernel::{CapabilityName, Cx, Error, Expr, NumberLiteral, Result, Symbol, Value};
 use sim_lib_net_core::{UrlParts, parse_url};
+use sim_lib_provider::Secret;
 use std::{collections::HashMap, time::Duration};
 
 /// Concrete HTTP runner configuration derived from a provider profile and an
@@ -19,8 +20,10 @@ pub struct ProviderConfig {
     pub endpoint: String,
     /// Model name to send to the provider codec.
     pub model: String,
-    /// Environment variable carrying the provider secret, when any.
+    /// Historical environment variable used by compatibility constructors.
     pub api_key_env: Option<String>,
+    /// Credential resolved once while opening or constructing this seat.
+    pub secret: Option<Secret>,
     /// Runner locality after endpoint posture has been classified.
     pub locality: Symbol,
     /// HTTP timeout.
@@ -67,6 +70,7 @@ impl ProviderConfig {
             endpoint,
             model,
             api_key_env,
+            secret: None,
             locality,
             timeout,
             stream,
@@ -75,6 +79,46 @@ impl ProviderConfig {
             grammar_dialects,
         })
     }
+
+    /// Resolves the historical environment-backed credential once while the
+    /// compatibility seat is being opened.
+    pub fn resolve_compatibility_credential(&mut self, cx: &Cx) -> Result<()> {
+        self.secret = resolve_compatibility_secret(cx, &self.profile, self.api_key_env.as_deref())?;
+        Ok(())
+    }
+
+    /// Reports whether this opened config carries credential material.
+    pub fn has_credential(&self) -> bool {
+        self.secret.is_some()
+    }
+}
+
+fn resolve_compatibility_secret(
+    cx: &Cx,
+    profile: &ProviderProfile,
+    api_key_env: Option<&str>,
+) -> Result<Option<Secret>> {
+    let Some(env) = api_key_env else {
+        return Ok(None);
+    };
+    cx.require(&CapabilityName::new("ai-runner-secret"))?;
+    match std::env::var(env) {
+        Ok(material) => Secret::new(material).map(Some),
+        Err(_) if matches!(profile.auth, crate::ProviderAuth::OptionalBearerEnv { .. }) => Ok(None),
+        Err(_) => Err(Error::Eval(format!(
+            "provider seat credential is unavailable from compatibility source {env}"
+        ))),
+    }
+}
+
+pub(crate) fn compatibility_secret(env: &str) -> Result<Secret> {
+    std::env::var(env)
+        .map_err(|_| {
+            Error::Eval(format!(
+                "provider seat credential is unavailable from compatibility source {env}"
+            ))
+        })
+        .and_then(Secret::new)
 }
 
 fn endpoint_option(

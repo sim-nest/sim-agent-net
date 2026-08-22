@@ -5,6 +5,7 @@ use sim_lib_agent_runner_core::{
     ModelRequest, ModelRunner, OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA,
     OUTPUT_GRAMMAR_REQUIRED_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA,
 };
+use sim_lib_provider::Secret;
 use sim_transport_ports::model::ScriptedStreamPort;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
@@ -18,6 +19,7 @@ fn new_provider_maps_config_onto_existing_runner_fields() {
         endpoint: "https://api.anthropic.com/v1".to_owned(),
         model: "claude-sonnet-latest".to_owned(),
         api_key_env: Some("ANTHROPIC_API_KEY".to_owned()),
+        secret: Some(Secret::new("seat-alpha").unwrap()),
         locality: Symbol::new("network"),
         timeout: Duration::from_secs(45),
         stream: true,
@@ -35,7 +37,7 @@ fn new_provider_maps_config_onto_existing_runner_fields() {
     assert_eq!(runner.runner_label, "runner/provider");
     assert_eq!(runner.request_path, "/messages");
     assert_eq!(runner.endpoint, "https://api.anthropic.com/v1");
-    assert_eq!(runner.api_key_env, Some("ANTHROPIC_API_KEY".to_owned()));
+    assert_eq!(runner.secret.as_ref().unwrap().expose(), "seat-alpha");
     assert_eq!(
         runner.auth,
         ProviderAuth::HeaderEnv {
@@ -50,6 +52,48 @@ fn new_provider_maps_config_onto_existing_runner_fields() {
     assert_eq!(runner.max_response_bytes, 8192);
     assert!(runner.grammar_dialects.is_empty());
     assert_eq!(profile.chat_path, "/messages");
+}
+
+#[test]
+fn two_open_seats_keep_distinct_credentials_without_ambient_lookup() {
+    let profile = provider_profiles::openai();
+    let runner = |name: &str, material: &str| {
+        HttpRunner::new_provider(ProviderConfig {
+            profile: profile.clone(),
+            runner: Symbol::qualified("runner", name),
+            codec: profile.codec.clone(),
+            endpoint: "https://provider.example/v1".to_owned(),
+            model: "model".to_owned(),
+            api_key_env: None,
+            secret: Some(Secret::new(material).unwrap()),
+            locality: Symbol::new("network"),
+            timeout: Duration::from_secs(1),
+            stream: false,
+            tools: false,
+            max_output_bytes: 4096,
+            grammar_dialects: Vec::new(),
+        })
+    };
+    let first = runner("first-seat", "alpha-credential");
+    let second = runner("second-seat", "beta-credential");
+
+    assert_eq!(
+        first.request_headers(first.secret.as_ref().map(Secret::expose))[1],
+        (
+            "Authorization".to_owned(),
+            "Bearer alpha-credential".to_owned()
+        )
+    );
+    assert_eq!(
+        second.request_headers(second.secret.as_ref().map(Secret::expose))[1],
+        (
+            "Authorization".to_owned(),
+            "Bearer beta-credential".to_owned()
+        )
+    );
+    let printable = format!("{first:?} {second:?}");
+    assert!(!printable.contains("alpha-credential"));
+    assert!(!printable.contains("beta-credential"));
 }
 
 #[test]
@@ -76,6 +120,7 @@ fn openai_provider_selects_json_schema_output_dialect() {
         endpoint: "http://127.0.0.1:9/v1".to_owned(),
         model: "gpt-test".to_owned(),
         api_key_env: Some("CARGO_MANIFEST_DIR".to_owned()),
+        secret: Some(Secret::new("fixture").unwrap()),
         locality: Symbol::new("network"),
         timeout: Duration::from_secs(1),
         stream: false,
@@ -152,6 +197,7 @@ fn provider_without_grammar_support_strips_grammar_for_repair() {
         endpoint: "http://127.0.0.1:9/v1".to_owned(),
         model: "claude-test".to_owned(),
         api_key_env: Some("CARGO_MANIFEST_DIR".to_owned()),
+        secret: Some(Secret::new("fixture").unwrap()),
         locality: Symbol::new("network"),
         timeout: Duration::from_secs(1),
         stream: false,
@@ -178,6 +224,7 @@ fn openai_compatible_without_grammar_support_does_not_derive_schema() {
         endpoint: "http://127.0.0.1:9/v1".to_owned(),
         model: "provider/model".to_owned(),
         api_key_env: Some("CARGO_MANIFEST_DIR".to_owned()),
+        secret: Some(Secret::new("fixture").unwrap()),
         locality: Symbol::new("network"),
         timeout: Duration::from_secs(1),
         stream: false,

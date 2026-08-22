@@ -1,10 +1,30 @@
 use crate::{
-    EndpointCard, HarnessCard, PrincipalCard, ProviderAdapter, ProviderFamilyCard,
-    ProviderRegistry, ProviderSeatCard, ProviderSeatId, ProviderSeatLimits,
+    CredentialSource, EndpointCard, HarnessCard, PrincipalCard, ProviderAdapter,
+    ProviderFamilyCard, ProviderRegistry, ProviderSeatCard, ProviderSeatId, ProviderSeatLimits,
+    Secret, SecretProvider, SecretProviderRegistry,
 };
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Error, Expr, Result, Symbol};
+use sim_kernel::{
+    CapabilityName, CapabilitySet, Cx, DefaultFactory, EagerPolicy, Error, Expr, Ref, Result,
+    Symbol,
+};
 use sim_lib_agent_runner_core::ModelRunner;
 use std::sync::Arc;
+
+enum FakeSecretResult {
+    Material(&'static str),
+    Error(&'static str),
+}
+
+struct FakeSecretProvider(FakeSecretResult);
+
+impl SecretProvider for FakeSecretProvider {
+    fn resolve(&self, _cx: &mut Cx) -> Result<Secret> {
+        match self.0 {
+            FakeSecretResult::Material(material) => Secret::new(material),
+            FakeSecretResult::Error(reason) => Err(Error::Eval(reason.to_owned())),
+        }
+    }
+}
 
 const FICTIONAL_FAMILY: &str = "nebula-relay";
 const DISCOVERED_LABEL: &str = "violet-seat-47";
@@ -166,6 +186,127 @@ fn registry_refuses_duplicate_ids_and_has_no_vendor_switch_or_preference() {
     assert!(!source.contains("anthropic"));
     assert!(!source.contains(".first()"));
     assert!(!source.contains(".next()"));
+}
+
+#[test]
+fn two_preopened_providers_resolve_distinct_seat_credentials_in_one_process() {
+    let alpha = Ref::Symbol(Symbol::qualified("secret-provider", "alpha"));
+    let beta = Ref::Symbol(Symbol::qualified("secret-provider", "beta"));
+    let mut providers = SecretProviderRegistry::new();
+    providers
+        .bind(
+            alpha.clone(),
+            Arc::new(FakeSecretProvider(FakeSecretResult::Material("alpha-key"))),
+        )
+        .unwrap();
+    providers
+        .bind(
+            beta.clone(),
+            Arc::new(FakeSecretProvider(FakeSecretResult::Material("beta-key"))),
+        )
+        .unwrap();
+    let mut cx = test_cx_with_secret_capability();
+
+    let capabilities = CapabilitySet::new().grant(CapabilityName::new("ai-runner-secret"));
+    let (first, second) = cx
+        .with_capabilities(capabilities.clone(), |cx| {
+            Ok((
+                providers
+                    .resolve(cx, &CredentialSource::SecretProvider(alpha))?
+                    .unwrap(),
+                providers
+                    .resolve(cx, &CredentialSource::SecretProvider(beta))?
+                    .unwrap(),
+            ))
+        })
+        .unwrap();
+
+    assert_eq!(first.expose(), "alpha-key");
+    assert_eq!(second.expose(), "beta-key");
+    assert_eq!(
+        providers
+            .resolve(&mut cx, &CredentialSource::BrokerOwned)
+            .unwrap(),
+        None
+    );
+    assert_eq!(
+        providers.resolve(&mut cx, &CredentialSource::None).unwrap(),
+        None
+    );
+}
+
+#[test]
+fn secret_provider_failures_and_revocation_never_echo_material() {
+    let reference = Ref::Symbol(Symbol::qualified("secret-provider", "fixture"));
+    let material = "never-print-this-secret";
+    let cases = ["refused", "revoked", "timed out"];
+    for reason in cases {
+        let mut providers = SecretProviderRegistry::new();
+        providers
+            .bind(
+                reference.clone(),
+                Arc::new(FakeSecretProvider(FakeSecretResult::Error(reason))),
+            )
+            .unwrap();
+        let mut cx = test_cx_with_secret_capability();
+        let capabilities = CapabilitySet::new().grant(CapabilityName::new("ai-runner-secret"));
+        let error = cx
+            .with_capabilities(capabilities, |cx| {
+                providers.resolve(cx, &CredentialSource::SecretProvider(reference.clone()))
+            })
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains(reason));
+        assert!(!error.contains(material));
+    }
+
+    let mut providers = SecretProviderRegistry::new();
+    let mut cx = test_cx_with_secret_capability();
+    let source = CredentialSource::SecretProvider(reference.clone());
+    let capabilities = CapabilitySet::new().grant(CapabilityName::new("ai-runner-secret"));
+    let error = cx
+        .with_capabilities(capabilities, |cx| providers.resolve(cx, &source))
+        .unwrap_err()
+        .to_string();
+    assert!(!error.contains(material));
+    providers
+        .bind(
+            reference.clone(),
+            Arc::new(FakeSecretProvider(FakeSecretResult::Material(material))),
+        )
+        .unwrap();
+    assert!(providers.revoke(&reference));
+    let capabilities = CapabilitySet::new().grant(CapabilityName::new("ai-runner-secret"));
+    let error = cx
+        .with_capabilities(capabilities, |cx| {
+            providers.resolve(cx, &CredentialSource::SecretProvider(reference))
+        })
+        .unwrap_err()
+        .to_string();
+    assert!(!error.contains(material));
+}
+
+#[test]
+fn secret_provider_resolution_requires_open_time_authority() {
+    let reference = Ref::Symbol(Symbol::qualified("secret-provider", "denied"));
+    let mut providers = SecretProviderRegistry::new();
+    providers
+        .bind(
+            reference.clone(),
+            Arc::new(FakeSecretProvider(FakeSecretResult::Material("denied-key"))),
+        )
+        .unwrap();
+    let mut cx = test_cx_with_secret_capability();
+    let error = providers
+        .resolve(&mut cx, &CredentialSource::SecretProvider(reference))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("ai-runner-secret"));
+    assert!(!error.contains("denied-key"));
+}
+
+fn test_cx_with_secret_capability() -> Cx {
+    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
 }
 
 fn family_card() -> ProviderFamilyCard {

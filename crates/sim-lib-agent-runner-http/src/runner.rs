@@ -1,6 +1,6 @@
 use crate::ProviderAuth;
 use crate::client::{HttpRunnerRequest, post_json, post_json_stream};
-use crate::config::ProviderConfig;
+use crate::config::{ProviderConfig, compatibility_secret};
 use crate::model_params::attach_bridge_model_params_to_body;
 use crate::redact::redact_text;
 use crate::stream::HttpStreamDecoder;
@@ -21,6 +21,7 @@ use sim_lib_agent_runner_core::{
     OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA, OUTPUT_GRAMMAR_REQUIRED_EXTRA,
     RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA, grammar_dialect_symbol,
 };
+use sim_lib_provider::Secret;
 use sim_shape::GrammarDialect;
 use std::time::Duration;
 
@@ -34,7 +35,7 @@ pub struct HttpRunner {
     runner_label: &'static str,
     request_path: &'static str,
     endpoint: String,
-    api_key_env: Option<String>,
+    secret: Option<Secret>,
     auth: ProviderAuth,
     codec: Symbol,
     timeout: Duration,
@@ -57,7 +58,7 @@ impl HttpRunner {
             runner_label: "runner/provider",
             request_path: config.profile.chat_path,
             endpoint: config.endpoint,
-            api_key_env: config.api_key_env,
+            secret: config.secret,
             auth,
             codec: config.codec,
             timeout: config.timeout,
@@ -84,6 +85,9 @@ impl HttpRunner {
         max_response_bytes: usize,
     ) -> Self {
         let api_key_env = api_key_env.into();
+        let secret = compatibility_secret(&api_key_env).expect(
+            "historical OpenAI-compatible constructor requires its credential at construction time",
+        );
         Self {
             runner,
             model: model.into(),
@@ -92,7 +96,7 @@ impl HttpRunner {
             runner_label: "runner/openai-compatible",
             request_path: "/chat/completions",
             endpoint: endpoint.into(),
-            api_key_env: Some(api_key_env.clone()),
+            secret: Some(secret),
             auth: ProviderAuth::BearerEnv { env: api_key_env },
             codec,
             timeout,
@@ -124,7 +128,7 @@ impl HttpRunner {
             runner_label: "runner/ollama",
             request_path: "/api/chat",
             endpoint: endpoint.into(),
-            api_key_env: None,
+            secret: None,
             auth: ProviderAuth::None,
             codec,
             timeout,
@@ -137,8 +141,8 @@ impl HttpRunner {
 
     fn infer_inner(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
         let include_raw = self.include_raw(cx, &request);
-        let api_key = self.api_key()?;
-        let headers = self.request_headers(api_key.as_deref());
+        let api_key = self.secret.as_ref().map(Secret::expose);
+        let headers = self.request_headers(api_key);
         let body = self.encode_request(request, self.stream)?;
         let response = post_json(
             HttpRunnerRequest {
@@ -150,7 +154,7 @@ impl HttpRunner {
                 body,
                 max_response_bytes: self.max_response_bytes,
             },
-            api_key.as_deref(),
+            api_key,
         )?;
         self.decode_response(&response.body, include_raw)
     }
@@ -167,8 +171,8 @@ impl HttpRunner {
             return Ok(response);
         }
         let include_raw = self.include_raw(cx, &request);
-        let api_key = self.api_key()?;
-        let headers = self.request_headers(api_key.as_deref());
+        let api_key = self.secret.as_ref().map(Secret::expose);
+        let headers = self.request_headers(api_key);
         let body = self.encode_request(request, true)?;
         let mut decoder = self.stream_decoder(include_raw)?;
         sink.emit(decoder.start_event())?;
@@ -182,7 +186,7 @@ impl HttpRunner {
                 body,
                 max_response_bytes: self.max_response_bytes,
             },
-            api_key.as_deref(),
+            api_key,
             &mut |chunk| decoder.feed(chunk, sink),
         )?;
         let model_response = if decoder.has_stream_output() {
@@ -240,18 +244,6 @@ impl HttpRunner {
             )))
         }?;
         attach_bridge_model_params_to_body(&self.codec, &request_extra, body, self.runner_label)
-    }
-
-    fn api_key(&self) -> Result<Option<String>> {
-        match &self.api_key_env {
-            Some(api_key_env) => Ok(Some(std::env::var(api_key_env).map_err(|_| {
-                Error::Eval(format!(
-                    "{} missing env var {}",
-                    self.runner_label, api_key_env
-                ))
-            })?)),
-            None => Ok(None),
-        }
     }
 
     fn request_headers(&self, secret: Option<&str>) -> Vec<(String, String)> {
@@ -332,7 +324,7 @@ impl HttpRunner {
         } else {
             capabilities.push(CapabilityName::new(AI_RUNNER_NETWORK_CAPABILITY));
         }
-        if self.api_key_env.is_some() {
+        if self.secret.is_some() {
             capabilities.push(CapabilityName::new(AI_RUNNER_SECRET_CAPABILITY));
         }
         capabilities

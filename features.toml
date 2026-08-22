@@ -21,15 +21,18 @@ frameworks = "advisory"
 [[feature]]
 id = "feature/sim-agent-net/provider-control"
 title = "Reusable provider control"
-summary = "Register open provider families, preserve every independently selectable seat, and expose reusable setup outside agent assembly."
+summary = "Register open provider families, preserve independently selectable seats, and bind each seat to an opaque, preopened credential source."
 owner = "crate/sim-lib-provider"
 audiences = ["code", "framework"]
-guidance = "Register each ProviderAdapter with ProviderRegistry, discover every visible provider seat, and open an explicit ProviderSeatId as the existing ModelRunner. Families are open symbols and multiple principals or endpoints within one family remain separate seats. Keep HTTP, process, BRIDGE, CLI parsing, and inference in their owning crates; provider control is reusable setup, not an agent-local subsystem."
+guidance = "Register each ProviderAdapter with ProviderRegistry, discover every visible provider seat, and open an explicit ProviderSeatId as the existing ModelRunner. Bind SecretProvider refs before opening and resolve each seat's Secret once under ai-runner-secret; BrokerOwned and None never synthesize credential material. Families are open symbols and multiple principals or endpoints within one family remain separate seats. Keep environment, file, keyring, interactive, and remote sourcing private to the bound provider, and keep transport and inference in their owning crates."
 claims_anchors = [
   "anchor/crate/sim-lib-provider",
   "anchor/rustdoc/sim-lib-provider/provider-adapter",
   "anchor/rustdoc/sim-lib-provider/provider-family-card",
   "anchor/rustdoc/sim-lib-provider/provider-registry",
+  "anchor/rustdoc/sim-lib-provider/secret",
+  "anchor/rustdoc/sim-lib-provider/secret-provider",
+  "anchor/rustdoc/sim-lib-provider/secret-provider-registry",
   "anchor/rustdoc/sim-lib-provider/provider-seat-card",
   "anchor/rustdoc/sim-lib-provider/provider-seat-id",
 ]
@@ -38,6 +41,8 @@ claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/provider_families_and_discovered_seats_are_open",
   "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/registry_preserves_and_opens_two_seats_for_one_family_separately",
   "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/removing_one_adapter_does_not_change_another_family",
+  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/two_preopened_providers_resolve_distinct_seat_credentials_in_one_process",
+  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/secret_provider_failures_and_revocation_never_echo_material",
 ]
 supports = [
   "feature/sim-agent-net/model-runner-framework",

@@ -5,6 +5,7 @@ use sim_lib_agent_runner_http::{
     probe_provider, provider_profiles,
 };
 use sim_lib_net_core::HttpHead;
+use sim_lib_provider::Secret;
 use std::{sync::Mutex, time::Duration};
 
 const OPENAI_STYLE_MODELS: &str = r#"{"data":[{"id":"model-a"},{"id":"model-b"}]}"#;
@@ -358,6 +359,7 @@ fn config_for(profile: ProviderProfile, api_key_env: Option<&str>) -> ProviderCo
         endpoint,
         model,
         api_key_env: api_key_env.map(str::to_owned),
+        secret: api_key_env.map(|_| Secret::new("probe-fixture").unwrap()),
         locality,
         timeout: Duration::from_secs(1),
         stream,

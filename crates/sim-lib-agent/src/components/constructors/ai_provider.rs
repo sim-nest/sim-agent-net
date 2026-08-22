@@ -181,7 +181,11 @@ impl ProviderAdapter for HttpProfileRegistration {
             principal: PrincipalCard {
                 label: "default".to_owned(),
                 kind: provider_auth_kind(&self.0.auth),
-                source: Symbol::new("environment"),
+                source: if matches!(self.0.auth, ProviderAuth::None) {
+                    Symbol::new("none")
+                } else {
+                    Symbol::new("secret-provider")
+                },
                 digest: "redacted".to_owned(),
                 extra: Vec::new(),
             },
@@ -210,7 +214,8 @@ impl ProviderAdapter for HttpProfileRegistration {
                 "provider/open HTTP registration currently accepts nil options".to_owned(),
             ));
         }
-        let config = ProviderConfig::from_options(self.0.clone(), cx, &HashMap::new())?;
+        let mut config = ProviderConfig::from_options(self.0.clone(), cx, &HashMap::new())?;
+        config.resolve_compatibility_credential(cx)?;
         Ok(Arc::new(HttpRunner::new_provider(config)))
     }
 }
