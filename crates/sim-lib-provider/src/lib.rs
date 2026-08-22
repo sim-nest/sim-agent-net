@@ -9,6 +9,8 @@
 
 mod adapter;
 mod cards;
+mod ops;
+mod registry;
 mod seat_id;
 
 pub use adapter::ProviderAdapter;
@@ -16,6 +18,8 @@ pub use cards::{
     EndpointCard, HarnessCard, PrincipalCard, ProviderFamilyCard, ProviderSeatCard,
     ProviderSeatLimits,
 };
+pub use ops::{discover, families, open, seats, show_family, show_seat};
+pub use registry::ProviderRegistry;
 pub use seat_id::ProviderSeatId;
 pub use sim_lib_agent_runner_core::ModelRunner;
 
