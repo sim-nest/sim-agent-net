@@ -19,6 +19,28 @@ major_entrypoints = "advisory"
 frameworks = "advisory"
 
 [[feature]]
+id = "feature/sim-agent-net/provider-control"
+title = "Reusable provider control"
+summary = "Discover open provider families and selectable seats as reusable setup outside agent assembly."
+owner = "crate/sim-lib-provider"
+audiences = ["code", "framework"]
+guidance = "Use ProviderAdapter to enumerate every visible provider seat and open exactly one as the existing ModelRunner. Keep HTTP, process, BRIDGE, CLI parsing, and inference in their owning crates; provider control is reusable setup, not an agent-local subsystem."
+claims_anchors = [
+  "anchor/crate/sim-lib-provider",
+  "anchor/rustdoc/sim-lib-provider/provider-adapter",
+  "anchor/rustdoc/sim-lib-provider/provider-family-card",
+  "anchor/rustdoc/sim-lib-provider/provider-seat-card",
+  "anchor/rustdoc/sim-lib-provider/provider-seat-id",
+]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-provider/01-basics/open-seat",
+  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/provider_families_and_discovered_seats_are_open",
+]
+supports = [
+  "feature/sim-agent-net/model-runner-framework",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/transport-ports"
 title = "Provider-neutral transport ports"
 summary = "Keep socket, DNS, and local IPC mechanics behind narrow byte-stream ports while protocol framing and session policy remain unchanged."

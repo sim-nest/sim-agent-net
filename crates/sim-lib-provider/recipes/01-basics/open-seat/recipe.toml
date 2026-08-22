@@ -1,0 +1,8 @@
+id = "open-seat"
+title = "Open provider seat"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["provider", "seat", "setup", "model-runner"]
+requires = ["core", "codec/lisp"]
