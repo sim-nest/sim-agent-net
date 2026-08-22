@@ -1,8 +1,4 @@
-use std::{
-    collections::VecDeque,
-    sync::Mutex,
-    time::{Duration, UNIX_EPOCH},
-};
+use std::{collections::VecDeque, sync::Mutex};
 
 use sim_kernel::{Error, Result};
 
@@ -23,21 +19,6 @@ impl WallClock for ReversingWallClock {
             .pop_front()
             .ok_or_else(|| Error::Eval("reversing wall clock exhausted".to_owned()))
     }
-}
-
-#[test]
-fn wall_timestamp_rejects_pre_epoch_system_time() {
-    let before_epoch = UNIX_EPOCH
-        .checked_sub(Duration::from_millis(1))
-        .expect("one millisecond before the epoch is representable");
-    let error = WallTimestamp::from_system_time(before_epoch).unwrap_err();
-    assert!(error.to_string().contains("before UNIX_EPOCH"));
-}
-
-#[test]
-fn wall_timestamp_rejects_millisecond_overflow() {
-    let error = WallTimestamp::from_epoch_duration(Duration::from_secs(u64::MAX)).unwrap_err();
-    assert!(error.to_string().contains("exceeds u64 milliseconds"));
 }
 
 #[test]

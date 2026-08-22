@@ -2,7 +2,6 @@ use crate::redact::redact_text;
 use sim_kernel::{Error, Result};
 use std::{
     io::{BufReader, Read, Write},
-    net::TcpStream,
     time::Duration,
 };
 
@@ -296,14 +295,25 @@ fn post_json_with_tls_roots_impl(
 ) -> Result<HttpRunnerResponse> {
     let url = parse_url(request.runner_label, request.endpoint)?;
     validate_request_headers(request.runner_label, &request.headers)?;
-    let stream = TcpStream::connect((url.host.as_str(), url.port))
-        .map_err(|err| host_error(request.runner_label, err, secret))?;
+    let services = sim_transport_ports::services()
+        .map_err(|err| transport_error(request.runner_label, err, secret))?;
+    let addresses = services
+        .dns
+        .resolve(&url.host, url.port)
+        .map_err(|err| transport_error(request.runner_label, err, secret))?;
+    let address = addresses.first().ok_or_else(|| {
+        Error::HostError(format!(
+            "{} DNS returned no addresses",
+            request.runner_label
+        ))
+    })?;
+    let stream = services
+        .sockets
+        .connect_tcp(address)
+        .map_err(|err| transport_error(request.runner_label, err, secret))?;
     stream
         .set_read_timeout(Some(request.timeout))
-        .map_err(|err| host_error(request.runner_label, err, secret))?;
-    stream
-        .set_write_timeout(Some(request.timeout))
-        .map_err(|err| host_error(request.runner_label, err, secret))?;
+        .map_err(|err| transport_error(request.runner_label, err, secret))?;
     #[cfg(feature = "tls")]
     let mut stream = connect_stream(request.runner_label, &url, stream, secret, tls_roots)?;
     #[cfg(not(feature = "tls"))]
@@ -400,7 +410,7 @@ fn valid_header_value(value: &str) -> bool {
 fn connect_stream(
     _runner_label: &str,
     url: &ParsedUrl,
-    stream: TcpStream,
+    stream: Box<dyn sim_transport_ports::Stream>,
     _secret: Option<&str>,
     #[cfg(feature = "tls")] tls_roots: Option<Vec<CertificateDer<'static>>>,
 ) -> Result<Box<dyn ReadWrite>> {
@@ -420,6 +430,20 @@ fn connect_stream(
             Ok(Box::new(StreamOwned::new(connection, stream)))
         }
     }
+}
+
+fn transport_error(
+    runner_label: &str,
+    error: sim_transport_ports::TransportError,
+    secret: Option<&str>,
+) -> Error {
+    Error::HostError(redact(
+        &format!(
+            "{runner_label} transport {:?}: {}",
+            error.kind, error.detail
+        ),
+        secret,
+    ))
 }
 
 #[cfg(feature = "tls")]

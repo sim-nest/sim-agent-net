@@ -52,7 +52,7 @@ pub use citizen::{
     ServerAddressDescriptor, ServerFrameDescriptor, server_address_class_symbol,
     server_frame_class_symbol,
 };
-pub use clock::{DeterministicWallClock, SystemWallClock, WallClock, WallTimestamp};
+pub use clock::{DeterministicWallClock, WallClock, WallTimestamp};
 pub use codecio::{decode_frame_payload, encode_frame_payload};
 pub use connection::{Connection, Session};
 pub use cookbook_web::{CookbookWebResponse, CookbookWebState};

@@ -282,10 +282,9 @@ title = "Injectable server wall clock"
 summary = "Observe a validated wall clock timestamp in Unix milliseconds through one injectable server contract."
 owner = "crate/sim-lib-server"
 audiences = ["code", "framework"]
-guidance = "Use WallClock and WallTimestamp for optional human timestamps and host scheduling in server-side libraries. Inject DeterministicWallClock for tests and replay. Wall observations may move backward and never replace kernel logical ticks, revisions, or Instant deadlines for correctness ordering."
+guidance = "Use WallClock and WallTimestamp for optional human timestamps and host scheduling in server-side libraries. Inject DeterministicWallClock for product defaults, tests, and replay; physical capsules implement the same contract. Wall observations may move backward and never replace kernel logical ticks or revisions for correctness ordering."
 claims_anchors = [
   "anchor/rustdoc/sim-lib-server/deterministic-wall-clock",
-  "anchor/rustdoc/sim-lib-server/system-wall-clock",
   "anchor/rustdoc/sim-lib-server/wall-clock",
   "anchor/rustdoc/sim-lib-server/wall-timestamp",
 ]

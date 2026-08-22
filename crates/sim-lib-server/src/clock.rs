@@ -1,7 +1,4 @@
-use std::{
-    sync::atomic::{AtomicU64, Ordering},
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use sim_kernel::{Error, Result};
 
@@ -23,21 +20,6 @@ impl WallTimestamp {
     pub const fn unix_millis(self) -> u64 {
         self.0
     }
-
-    /// Converts a system wall-clock reading, rejecting pre-epoch and unrepresentable values.
-    pub fn from_system_time(time: SystemTime) -> Result<Self> {
-        let elapsed = time
-            .duration_since(UNIX_EPOCH)
-            .map_err(|err| Error::Eval(format!("system wall clock is before UNIX_EPOCH: {err}")))?;
-        Self::from_epoch_duration(elapsed)
-    }
-
-    fn from_epoch_duration(elapsed: Duration) -> Result<Self> {
-        let unix_millis = u64::try_from(elapsed.as_millis()).map_err(|_| {
-            Error::Eval("system wall-clock timestamp exceeds u64 milliseconds".to_owned())
-        })?;
-        Ok(Self(unix_millis))
-    }
 }
 
 /// Object-safe source of host wall-clock observations.
@@ -52,16 +34,6 @@ pub trait WallClock: Send + Sync {
     /// Observes the current host wall clock as Unix milliseconds.
     fn now_ms(&self) -> Result<u64> {
         self.now().map(WallTimestamp::unix_millis)
-    }
-}
-
-/// [`WallClock`] backed by the host system clock.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct SystemWallClock;
-
-impl WallClock for SystemWallClock {
-    fn now(&self) -> Result<WallTimestamp> {
-        WallTimestamp::from_system_time(SystemTime::now())
     }
 }
 

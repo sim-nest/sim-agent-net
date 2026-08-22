@@ -24,6 +24,7 @@ sim-lib-agent-runner-core = { version = "0.2.0", path = "../sim-lib-agent-runner
 sim-lib-net-core = { version = "0.2.0" }
 sim-lib-openai-server = { version = "0.3.0", path = "../sim-lib-openai-server" }
 sim-shape = { version = "0.2.1" }
+sim-transport-ports = { version = "0.1.0", path = "../sim-transport-ports" }
 [build-dependencies]
 sim-cookbook-build = { version = "0.1.0" }
 

@@ -1,8 +1,5 @@
 use std::{
-    io::{ErrorKind, Read, Write},
-    net::{TcpListener, TcpStream},
-    sync::Arc,
-    thread::{self, JoinHandle},
+    sync::{Arc, Mutex},
     time::Duration,
 };
 
@@ -13,15 +10,23 @@ use sim_lib_openai_server::{
     GatewayRequest, GatewayResponse, GatewayRouteState, MODELS_PATH, MemoryGatewayStore,
     OpenAiKeyTable, OpenAiRunnerRegistry, RESPONSES_PATH, configure_routes_with_state,
 };
+use sim_transport_ports::model::ScriptedStreamPort;
+
+static TRANSPORT_TEST: Mutex<()> = Mutex::new(());
 
 #[test]
 fn openai_compatible_runner_reaches_mock_provider_through_gateway() {
-    let Some(listener) = bind_loopback_listener() else {
-        return;
-    };
-    let port = listener.local_addr().unwrap().port();
-    let server = spawn_openai_mock(listener);
-    let routes = configure_routes_with_state(route_state(format!("http://127.0.0.1:{port}/v1")));
+    let _guard = TRANSPORT_TEST.lock().unwrap();
+    let body = r#"{"id":"chatcmpl-mock","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"mock ok"}}],"usage":{"prompt_tokens":3,"completion_tokens":2,"total_tokens":5}}"#;
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let transport = Arc::new(ScriptedStreamPort::new([response.into_bytes()]));
+    sim_transport_ports::bind_services(transport.services()).unwrap();
+    let routes =
+        configure_routes_with_state(route_state("http://provider.test:8080/v1".to_owned()));
 
     let models = routes.handle(&GatewayRequest::get(MODELS_PATH));
     let models_json = response_json(&models);
@@ -41,7 +46,7 @@ fn openai_compatible_runner_reaches_mock_provider_through_gateway() {
         br#"{"model":"openai/gpt-4o-mini","input":"hello outbound","store":true}"#.to_vec(),
     ));
     let json = response_json(&response);
-    let request = server.join().unwrap();
+    let request = String::from_utf8(transport.requests().into_iter().next().unwrap()).unwrap();
 
     assert_eq!(response.status(), 200);
     assert_eq!(json["object"], "response");
@@ -55,12 +60,11 @@ fn openai_compatible_runner_reaches_mock_provider_through_gateway() {
 
 #[test]
 fn unavailable_remote_runner_returns_structured_error_response() {
-    let Some(listener) = bind_loopback_listener() else {
-        return;
-    };
-    let port = listener.local_addr().unwrap().port();
-    let server = spawn_closing_server(listener);
-    let routes = configure_routes_with_state(route_state(format!("http://127.0.0.1:{port}/v1")));
+    let _guard = TRANSPORT_TEST.lock().unwrap();
+    let transport = Arc::new(ScriptedStreamPort::new([Vec::new()]));
+    sim_transport_ports::bind_services(transport.services()).unwrap();
+    let routes =
+        configure_routes_with_state(route_state("http://provider.test:8080/v1".to_owned()));
 
     let response = routes.handle(&GatewayRequest::new(
         "POST",
@@ -69,7 +73,6 @@ fn unavailable_remote_runner_returns_structured_error_response() {
         br#"{"model":"openai/gpt-4o-mini","input":"provider is down"}"#.to_vec(),
     ));
     let json = response_json(&response);
-    server.join().unwrap();
 
     assert_eq!(response.status(), 200);
     assert_eq!(json["object"], "response");
@@ -129,90 +132,10 @@ fn runner_capabilities() -> CapabilitySet {
         .grant(CapabilityName::new("ai-runner-secret"))
 }
 
-fn spawn_openai_mock(listener: TcpListener) -> JoinHandle<String> {
-    thread::spawn(move || {
-        let (mut stream, _) = listener.accept().unwrap();
-        stream
-            .set_read_timeout(Some(Duration::from_secs(2)))
-            .unwrap();
-        let request = read_http_request(&mut stream);
-        let body = r#"{"id":"chatcmpl-mock","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"mock ok"}}],"usage":{"prompt_tokens":3,"completion_tokens":2,"total_tokens":5}}"#;
-        stream
-            .write_all(
-                format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                    body.len(),
-                    body
-                )
-                .as_bytes(),
-            )
-            .unwrap();
-        request
-    })
-}
-
-fn spawn_closing_server(listener: TcpListener) -> JoinHandle<()> {
-    thread::spawn(move || {
-        let (stream, _) = listener.accept().unwrap();
-        drop(stream);
-    })
-}
-
-fn read_http_request(stream: &mut TcpStream) -> String {
-    let mut request = Vec::new();
-    let mut chunk = [0u8; 1024];
-    let header_end = loop {
-        let read = stream.read(&mut chunk).unwrap();
-        assert_ne!(read, 0, "mock provider received EOF before request headers");
-        request.extend_from_slice(&chunk[..read]);
-        if let Some(end) = find_header_end(&request) {
-            break end;
-        }
-    };
-    let head = std::str::from_utf8(&request[..header_end]).unwrap();
-    let content_length = content_length(head);
-    while request.len() < header_end + content_length {
-        let read = stream.read(&mut chunk).unwrap();
-        assert_ne!(read, 0, "mock provider received EOF before request body");
-        request.extend_from_slice(&chunk[..read]);
-    }
-    String::from_utf8(request).unwrap()
-}
-
-fn find_header_end(bytes: &[u8]) -> Option<usize> {
-    bytes
-        .windows(4)
-        .position(|window| window == b"\r\n\r\n")
-        .map(|index| index + 4)
-}
-
-fn content_length(head: &str) -> usize {
-    head.lines()
-        .find_map(|line| {
-            let (key, value) = line.split_once(':')?;
-            key.eq_ignore_ascii_case("Content-Length")
-                .then(|| value.trim().parse::<usize>().unwrap())
-        })
-        .unwrap_or(0)
-}
-
 fn provider_body(request: &str) -> &str {
     request.split("\r\n\r\n").nth(1).unwrap()
 }
 
 fn response_json(response: &GatewayResponse) -> Value {
     serde_json::from_slice(response.body()).unwrap()
-}
-
-fn bind_loopback_listener() -> Option<TcpListener> {
-    for _ in 0..3 {
-        match TcpListener::bind(("127.0.0.1", 0)) {
-            Ok(listener) => return Some(listener),
-            Err(error) if error.kind() == ErrorKind::PermissionDenied => {
-                thread::sleep(Duration::from_millis(25));
-            }
-            Err(error) => panic!("failed to bind loopback listener: {error}"),
-        }
-    }
-    None
 }

@@ -10,6 +10,123 @@ use std::{
     time::Duration,
 };
 
+/// One deterministic request/response exchange for protocol tests.
+#[derive(Clone, Default)]
+pub struct ScriptedStreamPort {
+    responses: Arc<Mutex<VecDeque<Vec<u8>>>>,
+    requests: Arc<Mutex<Vec<Vec<u8>>>>,
+}
+
+impl ScriptedStreamPort {
+    #[must_use]
+    pub fn new(responses: impl IntoIterator<Item = Vec<u8>>) -> Self {
+        Self {
+            responses: Arc::new(Mutex::new(responses.into_iter().collect())),
+            requests: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    #[must_use]
+    pub fn requests(&self) -> Vec<Vec<u8>> {
+        self.requests.lock().expect("script mutex poisoned").clone()
+    }
+
+    #[must_use]
+    pub fn services(self: &Arc<Self>) -> super::TransportServices {
+        super::TransportServices {
+            sockets: self.clone(),
+            dns: self.clone(),
+            ipc: None,
+        }
+    }
+}
+
+struct ScriptedStream {
+    response: VecDeque<u8>,
+    request: Vec<u8>,
+    requests: Arc<Mutex<Vec<Vec<u8>>>>,
+}
+
+impl Drop for ScriptedStream {
+    fn drop(&mut self) {
+        self.requests
+            .lock()
+            .expect("script mutex poisoned")
+            .push(std::mem::take(&mut self.request));
+    }
+}
+
+impl Read for ScriptedStream {
+    fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
+        let count = output.len().min(self.response.len());
+        for byte in &mut output[..count] {
+            *byte = self.response.pop_front().expect("bounded by response");
+        }
+        Ok(count)
+    }
+}
+
+impl Write for ScriptedStream {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.request.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+impl Stream for ScriptedStream {
+    fn set_read_timeout(&self, _: Option<Duration>) -> Result<()> {
+        Ok(())
+    }
+    fn shutdown(&self, _: Half) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl SocketPort for ScriptedStreamPort {
+    fn listen_tcp(&self, _: &SocketAddress) -> Result<Box<dyn Listener>> {
+        Err(TransportError::new(
+            TransportErrorKind::Unsupported,
+            "scripted client port cannot listen",
+        ))
+    }
+    fn connect_tcp(&self, _: &SocketAddress) -> Result<Box<dyn Stream>> {
+        let response = self
+            .responses
+            .lock()
+            .expect("script mutex poisoned")
+            .pop_front()
+            .ok_or_else(|| {
+                TransportError::new(
+                    TransportErrorKind::ConnectionRefused,
+                    "script has no response",
+                )
+            })?;
+        Ok(Box::new(ScriptedStream {
+            response: response.into(),
+            request: Vec::new(),
+            requests: self.requests.clone(),
+        }))
+    }
+    fn bind_udp(&self, _: &SocketAddress) -> Result<Box<dyn Datagram>> {
+        Err(TransportError::new(
+            TransportErrorKind::Unsupported,
+            "scripted client port has no datagrams",
+        ))
+    }
+}
+
+impl DnsPort for ScriptedStreamPort {
+    fn resolve(&self, _: &str, port: u16) -> Result<Vec<SocketAddress>> {
+        Ok(vec![SocketAddress::Ip {
+            address: "192.0.2.1".parse().expect("documentation address"),
+            port,
+        }])
+    }
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Profile {
     pub fragment: Option<usize>,
