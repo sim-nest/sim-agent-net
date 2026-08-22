@@ -104,6 +104,21 @@ fn remote_dir_roundtrips_against_in_process_site() {
     assert_eq!(table.keys(&mut cx).unwrap(), vec![Symbol::new("x")]);
     assert_eq!(table.len(&mut cx).unwrap(), 1);
 
+    let replacement = cx.factory().string("next").unwrap();
+    let cas = table
+        .compare_exchange(
+            &mut cx,
+            Symbol::new("x"),
+            sim_kernel::TableExpected::Value(Expr::String("root".to_owned())),
+            sim_kernel::TableReplacement::Value(replacement),
+        )
+        .unwrap();
+    assert!(cas.exchanged);
+    assert_eq!(
+        cas.observed,
+        sim_kernel::TableObserved::Value(Expr::String("root".to_owned()))
+    );
+
     let sub = dir.mkdir(&mut cx, Symbol::new("sub")).unwrap();
     let sub_dir = sub.object().as_dir().unwrap();
     assert!(dir.is_dir(&mut cx, Symbol::new("sub")).unwrap());
