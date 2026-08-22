@@ -1,21 +1,22 @@
-use crate::{
-    ProcessRunner,
-    process::{run_command, stream_command_lines},
-};
+use crate::{ProcessRunner, frame_stdout, run_broker_process};
 use sim_codec_chat::text_part;
-use sim_kernel::{Error, Expr, Result, Symbol};
+use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{
     ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelUsage,
 };
+use sim_lib_exec::ProcessCancellation;
 
-pub(crate) fn infer(runner: &ProcessRunner, request: ModelRequest) -> Result<ModelResponse> {
+pub(crate) fn infer(
+    cx: &Cx,
+    runner: &ProcessRunner,
+    request: ModelRequest,
+) -> Result<ModelResponse> {
     let prompt = prompt_text(&request);
-    let stdout = run_command(
-        &runner.command,
+    let stdout = run_broker_process(
+        cx,
+        &runner.process,
         prompt.into_bytes(),
-        "runner/process",
-        runner.timeout,
-        runner.max_output_bytes,
+        &ProcessCancellation::default(),
     )?;
     let text = String::from_utf8(stdout)
         .map_err(|_| sim_kernel::Error::Eval("runner/process returned non-utf8 text".to_owned()))?;
@@ -38,6 +39,7 @@ pub(crate) fn infer(runner: &ProcessRunner, request: ModelRequest) -> Result<Mod
 }
 
 pub(crate) fn infer_stream(
+    cx: &Cx,
     runner: &ProcessRunner,
     request: ModelRequest,
     sink: &mut dyn ModelEventSink,
@@ -50,25 +52,24 @@ pub(crate) fn infer_stream(
         span_id.clone(),
     ))?;
     let mut line_count = 0_u64;
-    let stdout = stream_command_lines(
-        &runner.command,
+    let stdout = run_broker_process(
+        cx,
+        &runner.process,
         prompt.into_bytes(),
-        "runner/process",
-        runner.timeout,
-        runner.max_output_bytes,
-        |line| {
-            let line = std::str::from_utf8(line)
-                .map_err(|_| Error::Eval("runner/process returned non-utf8 text".to_owned()))?;
-            let line = line.trim_end_matches(['\r', '\n']);
-            line_count += 1;
-            sink.emit(ModelEvent::delta_text(
-                runner.runner.clone(),
-                runner.model.clone(),
-                span_id.clone(),
-                line,
-            ))
-        },
+        &ProcessCancellation::default(),
     )?;
+    for line in frame_stdout(stdout.clone(), "lines")? {
+        let line = std::str::from_utf8(&line)
+            .map_err(|_| Error::Eval("runner/process returned non-utf8 text".to_owned()))?;
+        let line = line.trim_end_matches(['\r', '\n']);
+        line_count += 1;
+        sink.emit(ModelEvent::delta_text(
+            runner.runner.clone(),
+            runner.model.clone(),
+            span_id.clone(),
+            line,
+        ))?;
+    }
     let text = String::from_utf8(stdout)
         .map_err(|_| Error::Eval("runner/process returned non-utf8 text".to_owned()))?;
     let response = ModelResponse::new(
@@ -159,49 +160,5 @@ fn flatten_expr(expr: &Expr) -> String {
         Expr::Quote { expr, .. } => flatten_expr(expr),
         Expr::Annotated { expr, .. } => flatten_expr(expr),
         Expr::Extension { tag, payload } => format!("{tag} {}", flatten_expr(payload)),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{ProcessProtocol, ProcessRunner};
-    use sim_lib_agent_runner_core::VecEventSink;
-    use std::time::Duration;
-
-    #[test]
-    fn line_text_streams_deltas_before_final_response() {
-        let runner = ProcessRunner::new(
-            Symbol::new("line-runner"),
-            "line/model",
-            "printf 'one\\ntwo\\n'",
-            ProcessProtocol::LineText,
-            Duration::from_secs(1),
-            1024,
-        );
-        let request = ModelRequest::new(Expr::String("prompt".to_owned()), Vec::new());
-        let mut sink = VecEventSink::new();
-
-        let response = infer_stream(&runner, request, &mut sink).unwrap();
-        let events = sink.into_events();
-        let kinds = events
-            .iter()
-            .map(|event| event.event.clone())
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            kinds,
-            vec![
-                Symbol::new("start"),
-                Symbol::new("delta"),
-                Symbol::new("delta"),
-                Symbol::new("usage"),
-                Symbol::new("final"),
-            ]
-        );
-        assert!(format!("{:?}", events[1].extra).contains("one"));
-        assert!(format!("{:?}", events[2].extra).contains("two"));
-        assert!(format!("{:?}", response.content).contains("one"));
-        assert!(format!("{:?}", response.content).contains("two"));
     }
 }

@@ -14,10 +14,12 @@ use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_agent_runner_core::{
     ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
 };
-use std::time::Duration;
 
 pub use effects::host_process_capability;
-pub use process::{ProcessCommandSpec, run_process_command, stream_process_command_lines};
+pub use process::{
+    BrokerProcessSpec, StdoutFraming, active_process_port, bind_process_port, frame_stdout,
+    process_port_symbol, run_broker_process,
+};
 
 /// Wire protocol a [`ProcessRunner`] speaks with its subprocess.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -33,37 +35,30 @@ pub enum ProcessProtocol {
 pub struct ProcessRunner {
     runner: Symbol,
     model: String,
-    command: String,
+    process: BrokerProcessSpec,
     protocol: ProcessProtocol,
-    timeout: Duration,
-    max_output_bytes: usize,
 }
 
 impl ProcessRunner {
-    /// Builds a runner that invokes `command` using `protocol`, bounded by
-    /// `timeout` and `max_output_bytes`.
+    /// Builds a runner over one sealed broker process specification.
     pub fn new(
         runner: Symbol,
         model: impl Into<String>,
-        command: impl Into<String>,
+        process: BrokerProcessSpec,
         protocol: ProcessProtocol,
-        timeout: Duration,
-        max_output_bytes: usize,
     ) -> Self {
         Self {
             runner,
             model: model.into(),
-            command: command.into(),
+            process,
             protocol,
-            timeout,
-            max_output_bytes,
         }
     }
 
-    fn infer_inner(&self, request: ModelRequest) -> Result<ModelResponse> {
+    fn infer_inner(&self, cx: &Cx, request: ModelRequest) -> Result<ModelResponse> {
         match self.protocol {
-            ProcessProtocol::JsonStdio => json_stdio::infer(self, request),
-            ProcessProtocol::LineText => line_text::infer(self, request),
+            ProcessProtocol::JsonStdio => json_stdio::infer(cx, self, request),
+            ProcessProtocol::LineText => line_text::infer(cx, self, request),
         }
     }
 
@@ -88,8 +83,8 @@ impl ModelRunner for ProcessRunner {
     }
 
     fn infer(&self, cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
-        match effects::resolve_process_effect(self, cx, request, |runner, request| {
-            runner.infer_inner(request)
+        match effects::resolve_process_effect(self, cx, request, |cx, runner, request| {
+            runner.infer_inner(cx, request)
         }) {
             Ok(response) => Ok(response),
             Err(error) => Ok(self.error_response(render_error(error))),
@@ -110,13 +105,13 @@ impl ModelRunner for ProcessRunner {
                 request.clone(),
                 {
                     let sink = &mut *sink;
-                    |runner, request| line_text::infer_stream(runner, request, sink)
+                    |cx, runner, request| line_text::infer_stream(cx, runner, request, sink)
                 },
             )),
         };
         match streamed.unwrap_or_else(|| {
-            effects::resolve_process_effect(self, cx, request, |runner, request| {
-                runner.infer_inner(request)
+            effects::resolve_process_effect(self, cx, request, |cx, runner, request| {
+                runner.infer_inner(cx, request)
             })
         }) {
             Ok(response) => Ok(response),

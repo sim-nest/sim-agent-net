@@ -1,557 +1,400 @@
-use sim_kernel::{Error, Result};
-use std::{
-    io::{BufRead, BufReader, Read, Write},
-    process::{Child, Command, Stdio},
-    sync::{Arc, Mutex, mpsc},
-    thread,
-    time::{Duration, Instant},
+use sim_kernel::{ClassRef, Cx, Error, Object, ObjectCompat, Result, Symbol};
+use sim_lib_exec::{
+    ArgAtom, PrivateArtifactRef, ProcessAttempt, ProcessBudget, ProcessCancellation, ProcessPort,
+    ProcessRequest, ProgramRef, ProjectRootRef, SealedBindings,
 };
+use std::{any::Any, sync::Arc, time::Duration};
 
-/// Describes a subprocess command invocation and its resource bounds.
-#[derive(Clone, Debug)]
-pub struct ProcessCommandSpec {
-    command: String,
-    label: String,
-    timeout: Duration,
-    max_output_bytes: usize,
+/// Symbol of the lexical binding that carries the active process capsule.
+pub fn process_port_symbol() -> Symbol {
+    Symbol::qualified("agent", "process-port")
 }
 
-impl ProcessCommandSpec {
-    /// Builds a spec running `command` (labelled `label` for diagnostics),
-    /// bounded by `timeout` and `max_output_bytes`.
+/// A broker seat's complete, portable process configuration.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BrokerProcessSpec {
+    request: ProcessRequest,
+    label: String,
+}
+
+impl BrokerProcessSpec {
+    /// Creates a seat specification from opaque resources and literal arguments.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        command: impl Into<String>,
+        program: ProgramRef,
+        argv: Vec<ArgAtom>,
+        root: ProjectRootRef,
+        environment: SealedBindings,
+        private_artifacts: Vec<PrivateArtifactRef>,
         label: impl Into<String>,
         timeout: Duration,
         max_output_bytes: usize,
-    ) -> Self {
-        Self {
-            command: command.into(),
+    ) -> Result<Self> {
+        let timeout_ms = u64::try_from(timeout.as_millis())
+            .map_err(|_| Error::Eval("process timeout exceeds the portable budget".into()))?;
+        if timeout_ms == 0 {
+            return Err(Error::Eval("process timeout must be non-zero".into()));
+        }
+        if max_output_bytes == 0 {
+            return Err(Error::Eval("process output bound must be non-zero".into()));
+        }
+        Ok(Self {
+            request: ProcessRequest {
+                program,
+                argv,
+                root,
+                environment,
+                private_artifacts,
+                budget: ProcessBudget {
+                    timeout_ms,
+                    max_output_bytes,
+                    stdin: None,
+                },
+            },
             label: label.into(),
-            timeout,
-            max_output_bytes,
-        }
+        })
+    }
+
+    /// Returns the exact request template owned by this seat.
+    pub fn request(&self) -> &ProcessRequest {
+        &self.request
+    }
+
+    fn request_with_stdin(&self, stdin: Vec<u8>) -> ProcessRequest {
+        let mut request = self.request.clone();
+        request.budget.stdin = Some(stdin);
+        request
     }
 }
 
-/// Runs the command in `spec`, feeding `stdin`, and returns its captured stdout.
-pub fn run_process_command(spec: &ProcessCommandSpec, stdin: Vec<u8>) -> Result<Vec<u8>> {
-    run_command(
-        &spec.command,
-        stdin,
-        &spec.label,
-        spec.timeout,
-        spec.max_output_bytes,
-    )
+/// Output framing admitted by the broker adapter.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StdoutFraming {
+    /// Preserve the complete bounded stdout value.
+    Whole,
+    /// Split stdout into text lines.
+    Lines,
+    /// Split stdout into validated JSON lines.
+    JsonLines,
 }
 
-/// Runs the command in `spec`, feeding `stdin`, invoking `on_line` for each
-/// stdout line as it arrives, and returns the full captured stdout.
-pub fn stream_process_command_lines(
-    spec: &ProcessCommandSpec,
+/// Binds a process port in the active lexical environment.
+pub fn bind_process_port(cx: &mut Cx, port: Arc<dyn ProcessPort>) -> Result<()> {
+    let value = cx.factory().opaque(Arc::new(ProcessPortBinding { port }))?;
+    cx.env_mut().define(process_port_symbol(), value);
+    Ok(())
+}
+
+/// Returns the process port in the active lexical environment.
+pub fn active_process_port(cx: &Cx) -> Result<Arc<dyn ProcessPort>> {
+    cx.env()
+        .get(&process_port_symbol())
+        .and_then(|value| {
+            value
+                .object()
+                .downcast_ref::<ProcessPortBinding>()
+                .map(|binding| Arc::clone(&binding.port))
+        })
+        .ok_or_else(|| Error::HostError("provider refused: no active process port is bound".into()))
+}
+
+/// Runs a broker request exclusively through the active process port.
+pub fn run_broker_process(
+    cx: &Cx,
+    spec: &BrokerProcessSpec,
     stdin: Vec<u8>,
-    on_line: impl FnMut(&[u8]) -> Result<()>,
+    cancellation: &ProcessCancellation,
 ) -> Result<Vec<u8>> {
-    stream_command_lines(
-        &spec.command,
-        stdin,
-        &spec.label,
-        spec.timeout,
-        spec.max_output_bytes,
-        on_line,
-    )
-}
-
-pub(super) fn shell_child(command: &str) -> Command {
-    let mut child = Command::new("/bin/sh");
-    // `-c` (not `-lc`): a model call must not source the host's login profile
-    // files; it runs only the command it was given.
-    child.arg("-c").arg(command);
-    child
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null());
-    child
-}
-
-pub(super) fn capture_child_output(
-    mut child: Child,
-    stdin: Vec<u8>,
-    label: &str,
-    timeout: Duration,
-    max_output_bytes: usize,
-) -> Result<Vec<u8>> {
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| Error::HostError(format!("{label} stdout was not captured")))?;
-    let stdin_handle = child
-        .stdin
-        .take()
-        .ok_or_else(|| Error::HostError(format!("{label} stdin was not captured")))?;
-    let child = Arc::new(Mutex::new(child));
-
-    // Keep the raw io error so the join site can tell a benign EPIPE/WriteZero
-    // (the child stopped reading early) from a real write failure.
-    let (writer_tx, writer_rx) = mpsc::channel();
-    let writer = thread::spawn(move || {
-        let mut stdin_handle = stdin_handle;
-        let _ = writer_tx.send(stdin_handle.write_all(&stdin));
-    });
-    let (tx, rx) = mpsc::channel();
-    let reader = thread::spawn(move || {
-        let mut reader = stdout;
-        let mut bytes = Vec::new();
-        let mut chunk = [0_u8; 4096];
-        loop {
-            match reader.read(&mut chunk) {
-                Ok(0) => break,
-                Ok(read) => {
-                    let remaining = max_output_bytes
-                        .saturating_add(1)
-                        .saturating_sub(bytes.len());
-                    if remaining == 0 {
-                        break;
-                    }
-                    let take = remaining.min(read);
-                    bytes.extend_from_slice(&chunk[..take]);
-                    if bytes.len() > max_output_bytes {
-                        break;
-                    }
-                }
-                Err(err) => {
-                    let _ = tx.send(Err(io_error_to_host(err)));
-                    return;
-                }
-            }
-        }
-        let _ = tx.send(Ok(bytes));
-    });
-
-    // Bound BOTH the child exit and the stdout drain by the deadline. A
-    // backgrounded grandchild can hold the stdout pipe open after the shell
-    // exits, so an unbounded `rx.recv()` here would hang forever despite the
-    // timeout; pace the wait with `recv_timeout` and kill on expiry.
-    let deadline = Instant::now() + timeout;
-    let mut status: Option<std::process::ExitStatus> = None;
-    let mut captured: Option<Result<Vec<u8>>> = None;
-    let mut writer_outcome: Option<std::io::Result<()>> = None;
-    loop {
-        if status.is_none() {
-            let mut child = child
-                .lock()
-                .map_err(|_| Error::HostError(format!("{label} mutex poisoned")))?;
-            status = child.try_wait().map_err(io_error_to_host)?;
-        }
-        if captured.is_none() {
-            match rx.try_recv() {
-                Ok(message) => captured = Some(message),
-                Err(mpsc::TryRecvError::Empty) => {}
-                Err(mpsc::TryRecvError::Disconnected) => captured = Some(Ok(Vec::new())),
-            }
-        }
-        if writer_outcome.is_none() {
-            match writer_rx.try_recv() {
-                Ok(message) => writer_outcome = Some(message),
-                Err(mpsc::TryRecvError::Empty) => {}
-                Err(mpsc::TryRecvError::Disconnected) => writer_outcome = Some(Ok(())),
-            }
-        }
-        if status.is_some() && captured.is_some() && writer_outcome.is_some() {
-            break;
-        }
-        if Instant::now() >= deadline {
-            let mut child = child
-                .lock()
-                .map_err(|_| Error::HostError(format!("{label} mutex poisoned")))?;
-            let _ = child.kill();
-            let _ = child.wait();
-            // Do not join the reader/writer here: either may still be blocked on
-            // a pipe a grandchild holds open, which would re-introduce the hang.
-            return Err(Error::Eval(format!(
-                "{label} timed out after {}ms",
-                timeout.as_millis()
+    let port = active_process_port(cx)?;
+    let request = spec.request_with_stdin(stdin);
+    let result = match port.run(&request, cancellation) {
+        ProcessAttempt::Completed { receipt } => receipt.result,
+        ProcessAttempt::NotDispatched { refusal } => {
+            return Err(Error::HostError(format!(
+                "{} provider refused before dispatch: {refusal:?}",
+                spec.label
             )));
         }
-        thread::sleep(Duration::from_millis(10));
-    }
-
-    let status =
-        status.ok_or_else(|| Error::HostError(format!("{label} status was not captured")))?;
-    let bytes =
-        captured.ok_or_else(|| Error::HostError(format!("{label} stdout reader failed")))??;
-    let writer_outcome =
-        writer_outcome.ok_or_else(|| Error::HostError(format!("{label} stdin writer failed")))?;
-    reader
-        .join()
-        .map_err(|_| Error::HostError(format!("{label} stdout reader panicked")))?;
-    writer
-        .join()
-        .map_err(|_| Error::HostError(format!("{label} stdin writer panicked")))?;
-    if bytes.len() > max_output_bytes {
-        return Err(Error::Eval(format!(
-            "{label} exceeded max output bytes {max_output_bytes}"
-        )));
-    }
-    if !status.success() {
-        // The exit status is the real diagnostic for an early-exiting command;
-        // a stdin EPIPE caused by that early exit must not mask it.
-        return Err(Error::Eval(format!(
-            "{label} exited with status {}",
-            status
-                .code()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "signal".to_owned())
-        )));
-    }
-    // The child succeeded. Surface a stdin write error only when it is not a
-    // benign pipe closure from the child closing stdin after reading enough.
-    if let Err(err) = writer_outcome
-        && !is_benign_stdin_pipe_error(&err)
-    {
-        return Err(io_error_to_host(err));
-    }
-    Ok(bytes)
-}
-
-/// Whether a stdin-writer error is the benign "child stopped reading" closure
-/// (EPIPE / zero-length write) rather than a real I/O failure.
-fn is_benign_stdin_pipe_error(err: &std::io::Error) -> bool {
-    matches!(
-        err.kind(),
-        std::io::ErrorKind::BrokenPipe | std::io::ErrorKind::WriteZero
-    )
-}
-
-pub(super) fn run_command(
-    command: &str,
-    stdin: Vec<u8>,
-    label: &str,
-    timeout: Duration,
-    max_output_bytes: usize,
-) -> Result<Vec<u8>> {
-    let child = shell_child(command).spawn().map_err(io_error_to_host)?;
-    capture_child_output(child, stdin, label, timeout, max_output_bytes)
-}
-
-pub(super) fn stream_command_lines(
-    command: &str,
-    stdin: Vec<u8>,
-    label: &str,
-    timeout: Duration,
-    max_output_bytes: usize,
-    mut on_line: impl FnMut(&[u8]) -> Result<()>,
-) -> Result<Vec<u8>> {
-    let mut child = shell_child(command).spawn().map_err(io_error_to_host)?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| Error::HostError(format!("{label} stdout was not captured")))?;
-    let stdin_handle = child
-        .stdin
-        .take()
-        .ok_or_else(|| Error::HostError(format!("{label} stdin was not captured")))?;
-    let child = Arc::new(Mutex::new(child));
-    // Return the raw io error so the join site can tell a benign EPIPE/WriteZero
-    // (the child stopped reading stdin early -- e.g. a command that ignores its
-    // input and exits) from a real write failure, matching capture_child_output.
-    let (writer_tx, writer_rx) = mpsc::channel();
-    let writer = thread::spawn(move || {
-        let mut stdin_handle = stdin_handle;
-        let _ = writer_tx.send(stdin_handle.write_all(&stdin));
-    });
-    let (tx, rx) = mpsc::channel();
-    let reader = thread::spawn(move || {
-        let mut reader = BufReader::new(stdout);
-        loop {
-            let mut line = Vec::new();
-            match reader.read_until(b'\n', &mut line) {
-                Ok(0) => break,
-                Ok(_) => {
-                    if tx.send(Ok(line)).is_err() {
-                        return;
-                    }
-                }
-                Err(err) => {
-                    let _ = tx.send(Err(io_error_to_host(err)));
-                    return;
-                }
-            }
+        ProcessAttempt::StoppedAfterTimeout { .. } => {
+            return Err(Error::Eval(format!("{} timed out", spec.label)));
         }
-    });
-
-    let deadline = Instant::now() + timeout;
-    let mut bytes = Vec::new();
-    let mut status = None;
-    let mut reader_done = false;
-    let mut writer_outcome = None;
-    while !reader_done || status.is_none() || writer_outcome.is_none() {
-        match rx.recv_timeout(Duration::from_millis(10)) {
-            Ok(Ok(line)) => {
-                if bytes.len().saturating_add(line.len()) > max_output_bytes {
-                    kill_child(&child);
-                    // Do not join reader/writer: a backgrounded grandchild can
-                    // keep the stdout/stdin pipes open after the direct child is
-                    // killed, so joining would block past the bound. Mirror the
-                    // non-streaming timeout path in capture_child_output.
-                    return Err(Error::Eval(format!(
-                        "{label} exceeded max output bytes {max_output_bytes}"
-                    )));
-                }
-                on_line(&line)?;
-                bytes.extend_from_slice(&line);
-            }
-            Ok(Err(err)) => {
-                kill_child(&child);
-                // Do not join reader/writer: a grandchild may still hold the
-                // pipes open, which would re-introduce the hang.
-                return Err(err);
-            }
-            Err(mpsc::RecvTimeoutError::Timeout) => {}
-            Err(mpsc::RecvTimeoutError::Disconnected) => {
-                reader_done = true;
-            }
+        ProcessAttempt::StoppedAfterCancel { .. } => {
+            return Err(Error::Eval(format!("{} was cancelled", spec.label)));
         }
-        if writer_outcome.is_none() {
-            match writer_rx.try_recv() {
-                Ok(message) => writer_outcome = Some(message),
-                Err(mpsc::TryRecvError::Empty) => {}
-                Err(mpsc::TryRecvError::Disconnected) => writer_outcome = Some(Ok(())),
-            }
-        }
-        if status.is_none() {
-            let mut child = child
-                .lock()
-                .map_err(|_| Error::HostError(format!("{label} mutex poisoned")))?;
-            status = child.try_wait().map_err(io_error_to_host)?;
-        }
-        if Instant::now() >= deadline {
-            kill_child(&child);
-            // Do not join reader/writer here: either may still be blocked on a
-            // pipe a grandchild holds open, which would re-introduce the hang.
-            // Mirror the non-streaming timeout path in capture_child_output.
-            return Err(Error::Eval(format!(
-                "{label} timed out after {}ms",
-                timeout.as_millis()
+        ProcessAttempt::UnknownAfterDispatch { evidence } => {
+            return Err(Error::HostError(format!(
+                "{} process outcome is unknown after dispatch at {}: {}",
+                spec.label, evidence.stage, evidence.detail
             )));
         }
-    }
-    reader
-        .join()
-        .map_err(|_| Error::HostError(format!("{label} stdout reader panicked")))?;
-    let writer_outcome =
-        writer_outcome.ok_or_else(|| Error::HostError(format!("{label} stdin writer failed")))?;
-    writer
-        .join()
-        .map_err(|_| Error::HostError(format!("{label} stdin writer panicked")))?;
-    let status =
-        status.ok_or_else(|| Error::HostError(format!("{label} status was not captured")))?;
-    if !status.success() {
-        // The exit status is the real diagnostic for an early-exiting command;
-        // a stdin EPIPE caused by that early exit must not mask it.
+    };
+    if result.truncated {
         return Err(Error::Eval(format!(
-            "{label} exited with status {}",
-            status
-                .code()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "signal".to_owned())
+            "{} exceeded max output bytes {}",
+            spec.label, request.budget.max_output_bytes
         )));
     }
-    // The child succeeded. Surface a stdin write error only when it is not a
-    // benign pipe closure from the child closing stdin after reading enough.
-    if let Err(err) = writer_outcome
-        && !is_benign_stdin_pipe_error(&err)
-    {
-        return Err(io_error_to_host(err));
+    if result.exit_code != 0 {
+        return Err(Error::Eval(format!(
+            "{} exited with status {}",
+            spec.label, result.exit_code
+        )));
     }
-    Ok(bytes)
+    Ok(result.stdout.into_bytes())
 }
 
-fn kill_child(child: &Arc<Mutex<Child>>) {
-    if let Ok(mut child) = child.lock() {
-        let _ = child.kill();
-        let _ = child.wait();
+/// Frames already bounded stdout. Unsupported framing names fail closed.
+pub fn frame_stdout(stdout: Vec<u8>, framing: &str) -> Result<Vec<Vec<u8>>> {
+    match framing {
+        "whole" => Ok(vec![stdout]),
+        "lines" => Ok(stdout
+            .split_inclusive(|byte| *byte == b'\n')
+            .map(<[u8]>::to_vec)
+            .collect()),
+        "json-lines" => json_lines(&stdout),
+        other => Err(Error::Eval(format!("unknown stdout framing {other}"))),
     }
 }
 
-pub(super) fn io_error_to_host(err: std::io::Error) -> Error {
-    Error::host_io(err)
+fn json_lines(stdout: &[u8]) -> Result<Vec<Vec<u8>>> {
+    let mut lines = Vec::new();
+    for raw in stdout.split_inclusive(|byte| *byte == b'\n') {
+        let payload = raw.strip_suffix(b"\n").unwrap_or(raw);
+        let payload = payload.strip_suffix(b"\r").unwrap_or(payload);
+        if payload.is_empty() {
+            continue;
+        }
+        serde_json::from_slice::<serde_json::Value>(payload)
+            .map_err(|error| Error::Eval(format!("invalid JSON line framing: {error}")))?;
+        lines.push(raw.to_vec());
+    }
+    Ok(lines)
+}
+
+struct ProcessPortBinding {
+    port: Arc<dyn ProcessPort>,
+}
+impl Object for ProcessPortBinding {
+    fn display(&self, _cx: &mut Cx) -> Result<String> {
+        Ok("#<process-port>".into())
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+impl ObjectCompat for ProcessPortBinding {
+    fn class(&self, cx: &mut Cx) -> Result<ClassRef> {
+        cx.factory().class_stub(
+            sim_kernel::CORE_FUNCTION_CLASS_ID,
+            Symbol::qualified("core", "Function"),
+        )
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ProcessProtocol, ProcessRunner, effects::host_process_capability};
-    use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, Symbol};
-    use sim_lib_agent_runner_core::ModelRequest;
+    use sim_lib_exec::{ProcResult, ProcessReceipt, ProcessRefusal, StopReceipt};
+    use std::sync::Mutex;
 
-    #[test]
-    fn denied_host_process_refuses_before_spawn() {
-        let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
-        let runner = ProcessRunner::new(
-            Symbol::new("p"),
-            "m",
-            "echo should-not-run",
-            ProcessProtocol::LineText,
-            Duration::from_secs(5),
-            1024,
-        );
-        let request = ModelRequest::new(Expr::String("hi".to_owned()), Vec::new());
-
-        let err = crate::effects::resolve_process_effect(&runner, &mut cx, request, |_, _| {
-            panic!("subprocess spawned despite denied host-process capability")
-        })
-        .expect_err("denied capability must refuse before spawn");
-
-        assert!(matches!(
-            err,
-            Error::CapabilityDenied { capability }
-                if capability == host_process_capability()
-        ));
+    struct ModelPort {
+        requests: Mutex<Vec<ProcessRequest>>,
+        attempts: Mutex<Vec<ProcessAttempt>>,
     }
 
-    #[test]
-    fn granted_host_process_allows_spawn() {
-        let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
-        cx.grant(host_process_capability());
-        // With the capability granted, the effect-path `cx.require` passes, so a
-        // real `infer` would proceed to spawn; exercise the spawn directly.
-        assert!(cx.require(&host_process_capability()).is_ok());
-        let bytes = run_command(
-            "printf ok",
-            Vec::new(),
-            "test",
-            Duration::from_secs(5),
-            1024,
-        )
-        .expect("granted command runs");
-        assert_eq!(bytes, b"ok");
-    }
-
-    #[test]
-    fn streaming_tolerates_benign_stdin_epipe_from_early_exit() {
-        // A streamed command that ignores stdin and exits closes its stdin
-        // read-end before the writer drains the payload. A 1 MiB payload exceeds
-        // the OS pipe buffer, so write_all is still blocked when the child exits,
-        // making the resulting EPIPE deterministic. It is benign and must NOT
-        // fail the call; the streaming path has the same tolerance as the
-        // buffered path.
-        let mut lines = Vec::new();
-        let bytes = stream_command_lines(
-            "printf 'one\\ntwo\\n'",
-            vec![b'x'; 1024 * 1024],
-            "test",
-            Duration::from_secs(5),
-            1024,
-            |line| {
-                lines.push(
-                    String::from_utf8_lossy(line)
-                        .trim_end_matches(['\r', '\n'])
-                        .to_owned(),
-                );
-                Ok(())
-            },
-        )
-        .expect("a stdin-ignoring streamed command must not fail on benign EPIPE");
-        assert_eq!(lines, vec!["one".to_owned(), "two".to_owned()]);
-        assert_eq!(bytes, b"one\ntwo\n");
-    }
-
-    #[test]
-    fn backgrounded_grandchild_returns_at_timeout_not_hang() {
-        let start = Instant::now();
-        let err = run_command(
-            "sleep 0.01; (sleep 60 &)",
-            Vec::new(),
-            "test",
-            Duration::from_millis(300),
-            4096,
-        )
-        .expect_err("a grandchild holding stdout must not hang past the deadline");
-
-        assert!(matches!(err, Error::Eval(message) if message.contains("timed out")));
-        // Far below the 60s grandchild sleep: the deadline, not the grandchild,
-        // bounded the wait.
-        assert!(start.elapsed() < Duration::from_secs(5));
-    }
-
-    #[test]
-    fn streaming_backgrounded_grandchild_returns_at_timeout_not_hang() {
-        // A shell grandchild inherits stdout and keeps it open after the direct
-        // child exits. The streaming reader thread stays blocked on that pipe, so
-        // joining it at the deadline would hang forever; the timeout branch must
-        // return without joining (regression for the streaming path).
-        let start = Instant::now();
-        let mut lines = Vec::new();
-        let err = stream_command_lines(
-            "printf 'ready\\n'; (sleep 60 &); sleep 60",
-            Vec::new(),
-            "test",
-            Duration::from_millis(300),
-            4096,
-            |line| {
-                lines.push(
-                    String::from_utf8_lossy(line)
-                        .trim_end_matches(['\r', '\n'])
-                        .to_owned(),
-                );
-                Ok(())
-            },
-        )
-        .expect_err("a streaming grandchild must not hang past the deadline");
-
-        assert!(matches!(err, Error::Eval(message) if message.contains("timed out")));
-        assert!(lines.contains(&"ready".to_owned()));
-        // Far below the 60s grandchild sleep: the deadline bounded the wait.
-        assert!(start.elapsed() < Duration::from_secs(5));
-    }
-
-    #[test]
-    fn streaming_max_output_with_grandchild_returns_not_hang() {
-        // The max-output branch kills the child while a grandchild may keep
-        // stdout open. Emit past the cap while a grandchild keeps the pipe open
-        // and confirm a prompt bounded error.
-        let start = Instant::now();
-        let err = stream_command_lines(
-            "(sleep 60 &); printf 'aaaaaaaaaa\\nbbbbbbbbbb\\n'; sleep 60",
-            Vec::new(),
-            "test",
-            Duration::from_secs(5),
-            4,
-            |_line| Ok(()),
-        )
-        .expect_err("exceeding max output must return, not hang on a grandchild");
-
-        assert!(matches!(err, Error::Eval(message) if message.contains("max output bytes")));
-        assert!(start.elapsed() < Duration::from_secs(5));
-    }
-
-    #[test]
-    fn early_exit_reports_status_not_stdin_pipe_error() {
-        // `head -c1` consumes one byte then the shell exits 3, dropping the read
-        // end of stdin while the writer still has ~1 MiB to push (EPIPE).
-        let stdin = vec![b'x'; 1 << 20];
-        let err = run_command(
-            "head -c1 >/dev/null; exit 3",
-            stdin,
-            "test",
-            Duration::from_secs(5),
-            1 << 20,
-        )
-        .expect_err("a non-zero exit must surface as an error");
-
-        match err {
-            Error::Eval(message) => {
-                assert!(
-                    message.contains("exited with status 3"),
-                    "expected exit-3 status, got: {message}"
-                );
-                assert!(
-                    !message.to_lowercase().contains("pipe"),
-                    "stdin pipe error masked the real exit status: {message}"
-                );
+    impl ModelPort {
+        fn new(attempts: Vec<ProcessAttempt>) -> Self {
+            Self {
+                requests: Mutex::default(),
+                attempts: Mutex::new(attempts.into_iter().rev().collect()),
             }
-            other => panic!("expected an Eval status error, got: {other}"),
         }
+    }
+
+    impl ProcessPort for ModelPort {
+        fn run(
+            &self,
+            request: &ProcessRequest,
+            cancellation: &ProcessCancellation,
+        ) -> ProcessAttempt {
+            self.requests.lock().unwrap().push(request.clone());
+            if cancellation.is_cancelled() {
+                return ProcessAttempt::StoppedAfterCancel { receipt: stop() };
+            }
+            self.attempts.lock().unwrap().pop().unwrap()
+        }
+    }
+
+    fn completed(stdout: &str, exit_code: i32, truncated: bool) -> ProcessAttempt {
+        ProcessAttempt::Completed {
+            receipt: ProcessReceipt {
+                provider: "model".into(),
+                elapsed_mono_ns: 1,
+                result: ProcResult {
+                    stdout: stdout.into(),
+                    stderr: String::new(),
+                    exit_code,
+                    truncated,
+                },
+            },
+        }
+    }
+
+    fn stop() -> StopReceipt {
+        StopReceipt {
+            provider: "model".into(),
+            elapsed_mono_ns: 1,
+            cleanup: "reaped".into(),
+        }
+    }
+
+    fn spec(root: &str, artifact: &str) -> BrokerProcessSpec {
+        BrokerProcessSpec::new(
+            ProgramRef::new("provider-cli").unwrap(),
+            vec![
+                ArgAtom::new("spaces stay whole").unwrap(),
+                ArgAtom::new("a'\"b").unwrap(),
+            ],
+            ProjectRootRef::new(root).unwrap(),
+            SealedBindings::try_from_entries([(
+                "CONFIG_HOME".into(),
+                sim_lib_exec::BindingValue::PrivateArtifact(
+                    PrivateArtifactRef::new(artifact).unwrap(),
+                ),
+            )])
+            .unwrap(),
+            vec![PrivateArtifactRef::new(artifact).unwrap()],
+            "provider-seat",
+            Duration::from_millis(25),
+            64,
+        )
+        .unwrap()
+    }
+
+    fn cx_with(port: Arc<ModelPort>) -> Cx {
+        let mut cx = test_cx();
+        bind_process_port(&mut cx, port).unwrap();
+        cx
+    }
+
+    fn test_cx() -> Cx {
+        Cx::new(
+            Arc::new(sim_kernel::eval::NoopEvalPolicy),
+            Arc::new(sim_kernel::DefaultFactory),
+        )
+    }
+
+    #[test]
+    fn exact_request_has_literal_argv_sealed_mount_and_no_ambient_environment() {
+        let port = Arc::new(ModelPort::new(vec![completed("ok", 0, false)]));
+        let cx = cx_with(Arc::clone(&port));
+        assert_eq!(
+            run_broker_process(
+                &cx,
+                &spec("seat-a", "config-a"),
+                b"input".to_vec(),
+                &ProcessCancellation::default()
+            )
+            .unwrap(),
+            b"ok"
+        );
+        let requests = port.requests.lock().unwrap();
+        let request = &requests[0];
+        assert_eq!(
+            request.argv.iter().map(ArgAtom::as_str).collect::<Vec<_>>(),
+            ["spaces stay whole", "a'\"b"]
+        );
+        assert_eq!(request.root.as_str(), "seat-a");
+        assert_eq!(request.environment.iter().count(), 1);
+        assert_eq!(request.budget.stdin.as_deref(), Some(b"input".as_slice()));
+    }
+
+    #[test]
+    fn missing_binding_refusal_timeout_cancel_and_output_bound_are_typed() {
+        let cx = test_cx();
+        assert!(
+            active_process_port(&cx)
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("no active process port")
+        );
+        let port = Arc::new(ModelPort::new(vec![
+            ProcessAttempt::NotDispatched {
+                refusal: ProcessRefusal::SpawnFailed("missing program".into()),
+            },
+            ProcessAttempt::StoppedAfterTimeout { receipt: stop() },
+            completed("too much", 0, true),
+        ]));
+        let cx = cx_with(port);
+        let request = spec("seat", "config");
+        assert!(
+            run_broker_process(&cx, &request, vec![], &ProcessCancellation::default())
+                .unwrap_err()
+                .to_string()
+                .contains("missing program")
+        );
+        assert!(
+            run_broker_process(&cx, &request, vec![], &ProcessCancellation::default())
+                .unwrap_err()
+                .to_string()
+                .contains("timed out")
+        );
+        assert!(
+            run_broker_process(&cx, &request, vec![], &ProcessCancellation::default())
+                .unwrap_err()
+                .to_string()
+                .contains("exceeded")
+        );
+        let cancelled = ProcessCancellation::default();
+        cancelled.cancel();
+        assert!(
+            run_broker_process(&cx, &request, vec![], &cancelled)
+                .unwrap_err()
+                .to_string()
+                .contains("cancelled")
+        );
+    }
+
+    #[test]
+    fn two_seats_keep_config_mounts_separate() {
+        let port = Arc::new(ModelPort::new(vec![
+            completed("a", 0, false),
+            completed("b", 0, false),
+        ]));
+        let cx = cx_with(Arc::clone(&port));
+        run_broker_process(
+            &cx,
+            &spec("root-a", "config-a"),
+            vec![],
+            &ProcessCancellation::default(),
+        )
+        .unwrap();
+        run_broker_process(
+            &cx,
+            &spec("root-b", "config-b"),
+            vec![],
+            &ProcessCancellation::default(),
+        )
+        .unwrap();
+        let requests = port.requests.lock().unwrap();
+        assert_ne!(requests[0].root, requests[1].root);
+        assert_ne!(requests[0].private_artifacts, requests[1].private_artifacts);
+    }
+
+    #[test]
+    fn framing_is_bounded_validated_and_fail_closed() {
+        assert_eq!(
+            frame_stdout(b"{\"a\":1}\n{\"b\":2}\n".to_vec(), "json-lines")
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(frame_stdout(b"not-json\n".to_vec(), "json-lines").is_err());
+        assert!(frame_stdout(vec![], "invented").is_err());
+        assert!(
+            ArgAtom::new("bad\0argument").is_err(),
+            "the delivered UTF-8 port rejects unrepresentable native argv"
+        );
     }
 }

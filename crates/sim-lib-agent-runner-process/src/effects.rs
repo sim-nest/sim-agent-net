@@ -6,9 +6,7 @@ use sim_kernel::{
 
 /// Returns the capability gating subprocess execution by a [`ProcessRunner`].
 ///
-/// Spawning `/bin/sh -c <command>` is an arbitrary host-exec operation, so the
-/// runner demands this capability before reaching the shell, mirroring the way
-/// sibling crates gate their host effects with an explicit `cx.require(...)`.
+/// The runner demands this capability before reaching the active process port.
 pub fn host_process_capability() -> CapabilityName {
     CapabilityName::new("exec")
 }
@@ -20,12 +18,12 @@ pub(super) fn resolve_process_effect<F>(
     perform: F,
 ) -> Result<ModelResponse>
 where
-    F: FnOnce(&ProcessRunner, ModelRequest) -> Result<ModelResponse>,
+    F: FnOnce(&mut Cx, &ProcessRunner, ModelRequest) -> Result<ModelResponse>,
 {
     let required_capability = process_effect_capability(cx);
     let effect = process_effect(runner, cx, &request, required_capability)?;
     let result = effect::resolve_effect(cx, effect, |cx, _effect| {
-        let response = perform(runner, request)?;
+        let response = perform(cx, runner, request)?;
         response_ref(cx, response)
     })?;
     response_from_ref(cx, &result)

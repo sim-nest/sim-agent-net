@@ -23,6 +23,7 @@ sim-kernel = { version = "0.2.1" }
 sim-lib-agent-runner-core = { version = "0.2.0", path = "../sim-lib-agent-runner-core" }
 sim-lib-agent-runner-http = { version = "0.2.0", optional = true, path = "../sim-lib-agent-runner-http" }
 sim-lib-agent-runner-process = { version = "0.1.5", optional = true, path = "../sim-lib-agent-runner-process" }
+sim-lib-exec = { version = "0.2.0", optional = true }
 sim-lib-provider = { version = "0.1.0", path = "../sim-lib-provider" }
 sim-lib-cookbook = { version = "0.1.16", optional = true, path = "../sim-lib-cookbook" }
 sim-lib-core = { version = "0.2.0" }
@@ -53,4 +54,4 @@ cookbook = ["dep:sim-lib-cookbook"]
 default = []
 runner-http = ["dep:sim-lib-agent-runner-http"]
 runner-ollama = ["dep:sim-lib-agent-runner-http"]
-runner-process = ["dep:sim-lib-agent-runner-process"]
+runner-process = ["dep:sim-lib-agent-runner-process", "dep:sim-lib-exec"]
