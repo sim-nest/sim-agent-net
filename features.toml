@@ -24,7 +24,7 @@ title = "Reusable provider control"
 summary = "Register open provider families, preserve independently selectable seats, and bind each seat to an opaque, preopened credential source."
 owner = "crate/sim-lib-provider"
 audiences = ["code", "framework"]
-guidance = "Register each ProviderAdapter with ProviderRegistry, discover every visible provider seat, and open an explicit ProviderSeatId as the existing ModelRunner. Bind SecretProvider refs before opening and resolve each seat's Secret once under ai-runner-secret; BrokerOwned and None never synthesize credential material. Families are open symbols and multiple principals or endpoints within one family remain separate seats. For provider execution that must leave the runtime thread, implement ProviderSeatExecution as plan, ProviderDispatch, and land over owned Send payloads; keep Cx in plan and land only. Compose several seats through Fanout with all, first-good, or quorum policy: it plans every seat on the Cx thread, dispatches split work through the shared WorkerPool, lands deterministic requested-order rows, serializes unsplittable seats honestly, and enforces per-seat capacity and cooldown leases with injectable time. runner/market parallel modes reuse that report engine. Keep environment, file, keyring, interactive, and remote sourcing private to the bound provider, and keep transport and inference in their owning crates."
+guidance = "Register each ProviderAdapter with ProviderRegistry, discover every visible provider seat, and open an explicit ProviderSeatId as the existing ModelRunner. For Ollama, Lemonade, and LM Studio, register LocalServiceAdapter values through register_local_service_families: every configured endpoint is a stable separate seat, endpoint metadata distinguishes loopback from network posture, and discovery never starts a daemon, loads or downloads a model, or mutates an endpoint. Ollama and Lemonade reject credentials; LM Studio may bind an opaque bearer SecretProvider ref to one seat. Bind SecretProvider refs before opening and resolve each seat's Secret once under ai-runner-secret; BrokerOwned and None never synthesize credential material. Families are open symbols and multiple principals or endpoints within one family remain separate seats. For provider execution that must leave the runtime thread, implement ProviderSeatExecution as plan, ProviderDispatch, and land over owned Send payloads; keep Cx in plan and land only. Compose several seats through Fanout with all, first-good, or quorum policy: it plans every seat on the Cx thread, dispatches split work through the shared WorkerPool, lands deterministic requested-order rows, serializes unsplittable seats honestly, and enforces per-seat capacity and cooldown leases with injectable time. runner/market parallel modes reuse that report engine. Keep environment, file, keyring, interactive, and remote sourcing private to the bound provider, and keep transport and inference in their owning crates."
 claims_anchors = [
   "anchor/crate/sim-lib-provider",
   "anchor/rustdoc/sim-lib-provider/provider-adapter",
@@ -41,6 +41,9 @@ claims_anchors = [
   "anchor/rustdoc/sim-lib-provider/provider-outcome",
   "anchor/rustdoc/sim-lib-provider/fanout",
   "anchor/rustdoc/sim-lib-provider/fanout-seat",
+  "anchor/rustdoc/sim-lib-agent-runner-http/local-service-adapter",
+  "anchor/rustdoc/sim-lib-agent-runner-http/local-service-endpoint",
+  "anchor/rustdoc/sim-lib-agent-runner-http/register_local_service_families",
 ]
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-provider/01-basics/open-seat",
@@ -52,6 +55,10 @@ claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-provider/src/fanout/tests/parallel_dispatch_is_bounded_by_slowest_seat_and_lands_in_request_order",
   "spec-test/sim-agent-net/crates/sim-lib-provider/src/fanout/tests/quota_cooldown_uses_injected_time_without_sleeping",
   "spec-test/sim-agent-net/crates/sim-lib-provider/src/fanout/tests/unsplittable_seat_is_reported_as_serialized",
+  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/local_service/tests/local_service_families_register_with_model_turn_semantics",
+  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/local_service/tests/every_endpoint_is_a_stable_separate_seat_with_honest_posture",
+  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/local_service/tests/discovery_is_inert_for_unavailable_endpoints_and_auth_is_family_specific",
+  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/local_service/tests/two_endpoints_of_one_family_answer_in_one_parallel_fanout_report",
 ]
 supports = [
   "feature/sim-agent-net/model-runner-framework",

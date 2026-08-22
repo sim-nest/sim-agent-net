@@ -39,6 +39,35 @@ pub struct ProviderConfig {
 }
 
 impl ProviderConfig {
+    /// Builds an opened seat configuration from already-admitted endpoint data.
+    ///
+    /// This path does not consult the environment or contact the endpoint.
+    pub fn for_seat(
+        profile: ProviderProfile,
+        endpoint: impl Into<String>,
+        model: impl Into<String>,
+        secret: Option<Secret>,
+    ) -> Result<Self> {
+        let endpoint = endpoint.into();
+        let endpoint_parts = endpoint_parts(&endpoint)?;
+        let locality = locality_for_endpoint(&profile, &endpoint_parts);
+        Ok(Self {
+            runner: profile.runner_symbol.clone(),
+            codec: profile.codec.clone(),
+            endpoint,
+            model: model.into(),
+            api_key_env: None,
+            secret,
+            locality,
+            timeout: profile.default_timeout,
+            stream: profile.default_stream,
+            tools: profile.default_tools,
+            max_output_bytes: profile.default_max_output_bytes,
+            grammar_dialects: profile.grammar_dialects.clone(),
+            profile,
+        })
+    }
+
     /// Builds provider config from the same option map used by the existing
     /// agent runner constructors.
     pub fn from_options(

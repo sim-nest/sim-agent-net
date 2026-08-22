@@ -6,6 +6,7 @@
 
 mod client;
 mod config;
+mod local_service;
 mod model_params;
 mod probe;
 mod provider;
@@ -14,6 +15,9 @@ mod runner;
 mod stream;
 
 pub use config::ProviderConfig;
+pub use local_service::{
+    LocalServiceAdapter, LocalServiceEndpoint, register_local_service_families,
+};
 pub use probe::{
     EndpointCandidate, HttpProbeTransport, ProbeHttpRequest, ProbeHttpResponse, ProbeStatus,
     ProbeTransport, ProviderProbeReport, lemonade_candidates, parse_ollama_tags, probe_provider,
