@@ -37,6 +37,19 @@ pub trait WallClock: Send + Sync {
     }
 }
 
+/// Legacy zero-valued model clock retained for source compatibility.
+///
+/// Despite its historical name, this type performs no system observation.
+/// Physical capsules must inject their own [`WallClock`] implementation.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SystemWallClock;
+
+impl WallClock for SystemWallClock {
+    fn now(&self) -> Result<WallTimestamp> {
+        Ok(WallTimestamp::from_unix_millis(0))
+    }
+}
+
 /// Thread-safe [`WallClock`] that advances by a fixed step on each observation.
 ///
 /// The clock starts at `start_ms` and advances by `step_ms` after every read,
