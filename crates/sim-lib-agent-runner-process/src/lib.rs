@@ -5,6 +5,7 @@
 #![allow(deprecated)]
 
 mod broker;
+mod codex;
 mod effects;
 mod json_stdio;
 mod line_text;
@@ -17,6 +18,7 @@ use sim_lib_agent_runner_core::{
 };
 
 pub use broker::BrokerSessionController;
+pub use codex::{CodexCliAdapter, register_codex_cli};
 pub use effects::host_process_capability;
 pub use process::{
     BrokerProcessSpec, StdoutFraming, active_process_port, bind_process_port, frame_stdout,
