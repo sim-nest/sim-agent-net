@@ -131,8 +131,11 @@ pub use sim_lib_agent_runner_core::{
     ModelUsage,
 };
 pub use steps::{
-    AgentStepTargetFactory, ModelTurnOptions, ModelTurnResult, execute_model_turn_once,
-    model_turn_card, tool_batch_card,
+    AgentStep, AgentStepFactory, AgentStepRegistry, AgentStepTargetFactory, DelegatedObservation,
+    ModelTurnOptions, ModelTurnResult, PhaseOptions, ReviewOutcome, admit_phase_tool,
+    complete_phase, enter_phase, execute_checkpoint, execute_component_once, execute_delegate_once,
+    execute_finish, execute_model_turn_once, execute_plan_once, execute_replan_once,
+    execute_review_once, execute_stop, model_turn_card, standard_step_cards, tool_batch_card,
 };
 pub use tool_projection::{ToolSpec, install_tool};
 pub use tools::Tool;

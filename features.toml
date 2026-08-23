@@ -48,22 +48,26 @@ requires = ["feature/sim-agent-net/agent-conduct-records"]
 [[feature]]
 id = "feature/sim-agent-net/agent-single-steps"
 title = "Effect-safe single agent steps"
-summary = "Run one checked BRIDGE model exchange or one authorized tool batch while topology conducts own every retry and repetition edge."
+summary = "Run model, tool, component, planning, phase, review, delegation, checkpoint, finish, and stop concerns as independently testable single attempts while topology conducts own every retry and repetition edge."
 owner = "crate/sim-lib-agent"
 audiences = ["code", "framework"]
-guidance = "Use run_ask_once for a typed answer-or-repair exchange, execute_model_turn_once with an explicit ProviderSeatId from ProviderRegistry, and execute_tool_batch_once as the only tool-effect boundary. Use model_turn_card and tool_batch_card when certifying conduct nodes. Budget admission precedes runner opening and effects; provider endpoint, credentials, transport, preference, hidden reasoning, and mutable run state never belong to a step factory. Keep the compatibility ASK and tool loops until the graph migration removes them."
+guidance = "Use the execute_*_once functions for one component, planning, reflection, review, or delegation attempt; use enter_phase, admit_phase_tool, and complete_phase around ordinary model/component/tool nodes; and admit public results only through execute_finish or execute_stop. Certify standard targets with standard_step_cards. Hosts extend conduct through AgentStepRegistry and AgentStepFactory keyed by Card id, without editing agent or conduct source. Budget admission precedes runner opening, delegation, and effects; child authority is diminished at the EvalFabric boundary; provider endpoint, credentials, transport, preference, hidden reasoning, mutable run state, and retry edges never belong to a step factory."
 claims_anchors = [
   "anchor/crate/sim-lib-agent",
   "anchor/crate/sim-lib-bridge",
   "anchor/rustdoc/sim-lib-agent/execute-model-turn-once",
   "anchor/rustdoc/sim-lib-agent/model-turn-card",
   "anchor/rustdoc/sim-lib-agent/tool-batch-card",
+  "anchor/rustdoc/sim-lib-agent/agent-step-registry",
+  "anchor/rustdoc/sim-lib-agent/standard-step-cards",
   "anchor/rustdoc/sim-lib-bridge/run-ask-once",
 ]
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-bridge/src/tests/ask/one-ask-attempt-returns-typed-repair-without-retrying",
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent-ai-tools/a5-phase8-fake-runner-continues-after-tool-call",
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent-ai-tools/a5-phase8-tool-turn-budget-stops-infinite-loop",
+  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard-steps/standard-cards-are-complete-and-precise",
+  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard-steps/third-party-step-registers-and-runs-without-agent-or-conduct-changes",
 ]
 requires = [
   "feature/sim-agent-net/agent-conduct-records",
