@@ -5,6 +5,124 @@ use sim_lib_exec::{
 };
 use std::{any::Any, sync::Arc, time::Duration};
 
+/// Bounded stderr consumer for a structured process exchange.
+pub trait StderrSink {
+    /// Accepts one stderr chunk. Returning an error cancels the exchange.
+    fn write_stderr(&mut self, chunk: &[u8]) -> Result<()>;
+}
+
+/// Structured terminal report for one broker child.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProcessExitReport {
+    /// Native exit status, or the portable provider sentinel.
+    pub exit_code: i32,
+    /// Capsule identity from the process receipt.
+    pub provider: String,
+    /// Provider-measured elapsed monotonic time.
+    pub elapsed_mono_ns: u64,
+}
+
+/// MCP-oriented duplex projection over a delivered [`ProcessRequest`].
+///
+/// Input chunks are bounded and joined only up to the request's shared output cap. Output and
+/// stderr are emitted incrementally in fixed-size frames after the sole [`ProcessPort`] dispatch.
+/// The platform adapter remains responsible for concurrent pipe draining and child reaping.
+#[derive(Clone, Debug)]
+pub struct ProcessProgram {
+    request: ProcessRequest,
+    frame_bytes: usize,
+}
+
+impl ProcessProgram {
+    /// Creates a structured program from the exact portable process request.
+    pub fn new(request: ProcessRequest, frame_bytes: usize) -> Result<Self> {
+        if frame_bytes == 0 || request.budget.max_output_bytes == 0 {
+            return Err(Error::Eval(
+                "process framing and output caps must be non-zero".into(),
+            ));
+        }
+        Ok(Self {
+            request,
+            frame_bytes,
+        })
+    }
+    /// Returns the literal request delivered to the process capsule.
+    #[must_use]
+    pub fn request(&self) -> &ProcessRequest {
+        &self.request
+    }
+    /// Runs through `ProcessPort`, framing both output directions without shell interpretation.
+    pub fn exchange<I, O>(
+        &self,
+        port: &dyn ProcessPort,
+        stdin: I,
+        stdout: &mut O,
+        stderr: &mut dyn StderrSink,
+        cancellation: &ProcessCancellation,
+    ) -> Result<ProcessExitReport>
+    where
+        I: IntoIterator<Item = Vec<u8>>,
+        O: FnMut(&[u8]) -> Result<()>,
+    {
+        let mut request = self.request.clone();
+        let mut input = Vec::new();
+        for chunk in stdin {
+            if cancellation.is_cancelled() {
+                return Err(Error::Eval("process exchange cancelled".into()));
+            }
+            if chunk.is_empty()
+                || chunk.len() > self.frame_bytes
+                || input.len().saturating_add(chunk.len()) > request.budget.max_output_bytes
+            {
+                return Err(Error::Eval(
+                    "process stdin exceeded its bounded framing contract".into(),
+                ));
+            }
+            input.extend_from_slice(&chunk);
+        }
+        request.budget.stdin = Some(input);
+        let receipt = match port.run(&request, cancellation) {
+            ProcessAttempt::Completed { receipt } => receipt,
+            ProcessAttempt::NotDispatched { refusal } => {
+                return Err(Error::HostError(format!(
+                    "process refused before dispatch: {refusal:?}"
+                )));
+            }
+            ProcessAttempt::StoppedAfterTimeout { .. } => {
+                return Err(Error::Eval("process exchange timed out".into()));
+            }
+            ProcessAttempt::StoppedAfterCancel { .. } => {
+                return Err(Error::Eval("process exchange cancelled".into()));
+            }
+            ProcessAttempt::UnknownAfterDispatch { evidence } => {
+                return Err(Error::HostError(format!(
+                    "process outcome unknown after {}: {}",
+                    evidence.stage, evidence.detail
+                )));
+            }
+        };
+        let captured_bytes = receipt
+            .result
+            .stdout
+            .len()
+            .saturating_add(receipt.result.stderr.len());
+        if receipt.result.truncated || captured_bytes > request.budget.max_output_bytes {
+            return Err(Error::Eval("process output cap exceeded".into()));
+        }
+        for chunk in receipt.result.stdout.as_bytes().chunks(self.frame_bytes) {
+            stdout(chunk)?;
+        }
+        for chunk in receipt.result.stderr.as_bytes().chunks(self.frame_bytes) {
+            stderr.write_stderr(chunk)?;
+        }
+        Ok(ProcessExitReport {
+            exit_code: receipt.result.exit_code,
+            provider: receipt.provider,
+            elapsed_mono_ns: receipt.elapsed_mono_ns,
+        })
+    }
+}
+
 /// Symbol of the lexical binding that carries the active process capsule.
 pub fn process_port_symbol() -> Symbol {
     Symbol::qualified("agent", "process-port")
@@ -197,6 +315,15 @@ mod tests {
     use sim_lib_exec::{ProcResult, ProcessReceipt, ProcessRefusal, StopReceipt};
     use std::sync::Mutex;
 
+    #[derive(Default)]
+    struct CapturedStderr(Vec<Vec<u8>>);
+    impl StderrSink for CapturedStderr {
+        fn write_stderr(&mut self, chunk: &[u8]) -> Result<()> {
+            self.0.push(chunk.to_vec());
+            Ok(())
+        }
+    }
+
     struct ModelPort {
         requests: Mutex<Vec<ProcessRequest>>,
         attempts: Mutex<Vec<ProcessAttempt>>,
@@ -223,6 +350,104 @@ mod tests {
             }
             self.attempts.lock().unwrap().pop().unwrap()
         }
+    }
+
+    #[test]
+    fn process_program_delivers_hostile_argv_literally_without_shell_reparsing() {
+        let spec = BrokerProcessSpec::new(
+            ProgramRef::new("mcp-fixture").unwrap(),
+            vec![ArgAtom::new("$(touch /tmp/nope); echo pwned").unwrap()],
+            ProjectRootRef::new("fixture-root").unwrap(),
+            SealedBindings::empty(),
+            vec![],
+            "mcp",
+            Duration::from_secs(1),
+            64,
+        )
+        .unwrap();
+        let port = ModelPort::new(vec![ProcessAttempt::Completed {
+            receipt: ProcessReceipt {
+                provider: "provider-4".into(),
+                elapsed_mono_ns: 7,
+                result: ProcResult {
+                    stdout: "{}\n".into(),
+                    stderr: "warn".into(),
+                    exit_code: 0,
+                    truncated: false,
+                },
+            },
+        }]);
+        let program = ProcessProgram::new(spec.request().clone(), 4).unwrap();
+        let mut output = Vec::new();
+        let mut errors = CapturedStderr::default();
+        let report = program
+            .exchange(
+                &port,
+                vec![b"{}\n".to_vec()],
+                &mut |chunk| {
+                    output.push(chunk.to_vec());
+                    Ok(())
+                },
+                &mut errors,
+                &ProcessCancellation::default(),
+            )
+            .unwrap();
+        let requests = port.requests.lock().unwrap();
+        assert_eq!(
+            requests[0].argv[0].as_str(),
+            "$(touch /tmp/nope); echo pwned"
+        );
+        assert_eq!(
+            requests[0].budget.stdin.as_deref(),
+            Some(b"{}\n".as_slice())
+        );
+        assert_eq!(output, vec![b"{}\n".to_vec()]);
+        assert_eq!(errors.0, vec![b"warn".to_vec()]);
+        assert_eq!(report.exit_code, 0);
+    }
+
+    #[test]
+    fn process_program_rejects_stdin_and_stderr_floods_at_fixed_caps() {
+        let program = ProcessProgram::new(spec("seat", "config").request().clone(), 4).unwrap();
+        let port = ModelPort::new(vec![ProcessAttempt::Completed {
+            receipt: ProcessReceipt {
+                provider: "provider-4".into(),
+                elapsed_mono_ns: 7,
+                result: ProcResult {
+                    stdout: String::new(),
+                    stderr: "x".repeat(65),
+                    exit_code: 0,
+                    truncated: false,
+                },
+            },
+        }]);
+        let mut errors = CapturedStderr::default();
+        assert!(
+            program
+                .exchange(
+                    &port,
+                    vec![b"12345".to_vec()],
+                    &mut |_| Ok(()),
+                    &mut errors,
+                    &ProcessCancellation::default()
+                )
+                .unwrap_err()
+                .to_string()
+                .contains("stdin")
+        );
+        assert!(
+            program
+                .exchange(
+                    &port,
+                    Vec::<Vec<u8>>::new(),
+                    &mut |_| Ok(()),
+                    &mut errors,
+                    &ProcessCancellation::default()
+                )
+                .unwrap_err()
+                .to_string()
+                .contains("output cap")
+        );
     }
 
     fn completed(stdout: &str, exit_code: i32, truncated: bool) -> ProcessAttempt {

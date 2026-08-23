@@ -13,6 +13,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 serde_json = { version = "1.0", optional = true }
 sim-citizen = { version = "0.2.0" }
 sim-citizen-derive = { version = "0.2.0" }
+sim-cancel = { version = "0.1.0" }
 sim-codec = { version = "0.1.8" }
 sim-codec-binary = { version = "0.2.1" }
 sim-codec-binary-base64 = { version = "0.1.5" }

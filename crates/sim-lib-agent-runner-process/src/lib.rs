@@ -25,8 +25,8 @@ pub use codex::{CodexCliAdapter, register_codex_cli};
 pub use effects::host_process_capability;
 pub use opencode::{OpenCodeCliAdapter, register_opencode_cli};
 pub use process::{
-    BrokerProcessSpec, StdoutFraming, active_process_port, bind_process_port, frame_stdout,
-    process_port_symbol, run_broker_process,
+    BrokerProcessSpec, ProcessExitReport, ProcessProgram, StderrSink, StdoutFraming,
+    active_process_port, bind_process_port, frame_stdout, process_port_symbol, run_broker_process,
 };
 
 /// Wire protocol a [`ProcessRunner`] speaks with its subprocess.

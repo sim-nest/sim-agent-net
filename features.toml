@@ -184,6 +184,26 @@ guidance = "Compose SocketPort and DnsPort for network transports and bind IpcPo
 claims_anchors = ["anchor/crate/sim-transport-ports"]
 
 [[feature]]
+id = "feature/sim-agent-net/raw-http-server-seam"
+title = "Bounded raw streaming HTTP server seam"
+summary = "Expose ordered HTTP request facts and pull/push streaming bodies with per-request cancellation, caps, deadline budgets, trailer policy, and write acknowledgement backpressure."
+owner = "crate/sim-lib-server"
+audiences = ["code", "framework"]
+guidance = "Install RawHttpServer beside the ServerFrame adapter in the existing SocketPort/DnsPort accept and parser organ. Implement RawHandler without owning sockets, clocks, executors, or an MCP-specific acceptor; connection adapters must report peer drop and injected-clock timeout through RequestScope."
+claims_anchors = ["anchor/crate/sim-lib-server"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-server/src/raw_http/tests/streaming_handler_is_backpressured_and_cancelled_on_peer_drop"]
+
+[[feature]]
+id = "feature/sim-agent-net/structured-process-program"
+title = "Structured bounded process program"
+summary = "Project a portable ProcessRequest into bounded stdin/stdout frames, a separate stderr sink, and an explicit exit report through the active ProcessPort."
+owner = "crate/sim-lib-agent-runner-process"
+audiences = ["code", "framework"]
+guidance = "Construct ProcessProgram from the already validated ProcessRequest and dispatch it only through ProcessPort. ArgAtom values are literal bytes, never shell syntax; provider adapters remain responsible for concurrent pipe draining, cancellation, and reaping."
+claims_anchors = ["anchor/crate/sim-lib-agent-runner-process"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/process/tests/process_program_delivers_hostile_argv_literally_without_shell_reparsing"]
+
+[[feature]]
 id = "feature/sim-agent-net/mcp-server"
 title = "MCP server surface"
 summary = "Serve MCP requests through the loaded sim-lib-mcp command and runtime libraries."

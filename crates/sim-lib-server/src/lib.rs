@@ -36,6 +36,7 @@ mod ops;
 mod ops_lifecycle;
 mod ops_shell;
 mod pool;
+mod raw_http;
 mod realize;
 mod registries;
 mod repl;
@@ -74,6 +75,10 @@ pub use helpers::parse_duration;
 pub use http_client::{HttpGetResponse, http_get};
 pub use isolation::{IsolationPolicy, ShareMode};
 pub use pool::{WorkerPool, default_worker_pool};
+pub use raw_http::{
+    BodyLimits, BodyReader, Header, RawConnection, RawHandler, RawHttpServer, RequestHead,
+    RequestScope, ResponseHead, ResponseWriter, TrailersPolicy,
+};
 pub use realize::{realize as realize_site_fragment, realize_stream_events};
 pub use registries::{
     AddressResolver, LineDriverFactory, ResolvedAddress, register_address_resolver,
