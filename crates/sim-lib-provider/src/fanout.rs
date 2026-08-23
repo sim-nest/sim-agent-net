@@ -399,7 +399,7 @@ fn supports_parallel(mode: &ThreadMode) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sim_kernel::{DefaultFactory, EagerPolicy, Expr, Symbol};
+    use sim_kernel::{Expr, Symbol, testing::eager_cx as cx};
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::Instant;
 
@@ -445,14 +445,6 @@ mod tests {
                 },
             ))
         }
-    }
-
-    fn cx() -> Cx {
-        Cx::new(
-            Arc::new(EagerPolicy),
-            Arc::new(DefaultFactory),
-            sim_kernel::HandleSeed::new(0x4641_4e4f),
-        )
     }
 
     #[test]

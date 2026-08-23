@@ -265,15 +265,11 @@ fn is_loopback(host: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sim_kernel::{DefaultFactory, EagerPolicy};
+    use sim_kernel::testing::eager_cx as cx;
     use sim_lib_agent_runner_core::{ModelRequest, ModelResponse};
     use sim_lib_provider::{Fanout, FanoutMode, FanoutSeat, PlannedSeat};
     use sim_lib_server::ThreadMode;
     use std::time::{Duration, Instant};
-
-    fn cx() -> Cx {
-        Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
-    }
 
     #[test]
     fn local_service_families_register_with_model_turn_semantics() {

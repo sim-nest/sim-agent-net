@@ -259,14 +259,11 @@ pub fn register_direct_api_families(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sim_kernel::{DefaultFactory, EagerPolicy};
+    use sim_kernel::testing::eager_cx as cx;
     use sim_lib_agent_runner_core::{ModelRequest, ModelResponse};
     use sim_lib_provider::{Fanout, FanoutMode, FanoutSeat, PlannedSeat};
     use sim_lib_server::ThreadMode;
 
-    fn cx() -> Cx {
-        Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
-    }
     fn reference(name: &str) -> Ref {
         Ref::Symbol(Symbol::qualified("secret", name))
     }
