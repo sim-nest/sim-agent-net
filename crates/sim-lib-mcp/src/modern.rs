@@ -152,6 +152,34 @@ pub struct SubscriptionEvent {
     pub body: Expr,
 }
 
+/// One ordered item emitted by a modern subscription.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SubscriptionMessage {
+    /// First item, confirming the exact filter accepted by the source.
+    Acknowledged {
+        /// Subscription identifier.
+        subscription_id: String,
+        /// Exact filter honored by the source.
+        honored_filter: Vec<String>,
+    },
+    /// One event carrying the subscription identifier on the wire.
+    Event {
+        /// Subscription identifier.
+        subscription_id: String,
+        /// Event supplied by the injected source.
+        event: SubscriptionEvent,
+    },
+    /// Final item, emitted for normal exhaustion or cancellation.
+    Complete {
+        /// Subscription identifier.
+        subscription_id: String,
+        /// Host-supplied completion instant in Unix milliseconds.
+        completed_at_ms: u64,
+        /// Whether cancellation caused teardown.
+        cancelled: bool,
+    },
+}
+
 /// Explicit shared event source.
 pub trait EventProvider: Send + Sync {
     /// Concurrency contract promised by this provider.
@@ -215,6 +243,34 @@ impl McpSubscription {
             return Ok(Vec::new());
         }
         source.events(&self.filter, self.maximum_events)
+    }
+
+    /// Produces the complete bounded wire sequence: acknowledgement first,
+    /// zero or more identified events, and one dated terminal item last.
+    pub fn sequence(
+        &self,
+        source: &dyn EventProvider,
+        completed_at_ms: u64,
+    ) -> Result<Vec<SubscriptionMessage>> {
+        let mut messages = vec![SubscriptionMessage::Acknowledged {
+            subscription_id: self.id.clone(),
+            honored_filter: self.filter.clone(),
+        }];
+        let cancelled = self.cancellation.is_cancelled();
+        if !cancelled {
+            messages.extend(self.read(source)?.into_iter().map(|event| {
+                SubscriptionMessage::Event {
+                    subscription_id: self.id.clone(),
+                    event,
+                }
+            }));
+        }
+        messages.push(SubscriptionMessage::Complete {
+            subscription_id: self.id.clone(),
+            completed_at_ms,
+            cancelled,
+        });
+        Ok(messages)
     }
 }
 
@@ -281,6 +337,40 @@ mod tests {
         assert_eq!(second.read(&source).unwrap().len(), 1);
         assert_ne!(first.id(), second.id());
         assert_eq!(first.honored_filter(), &["a"]);
+        let messages = first.sequence(&source, 42).unwrap();
+        assert!(matches!(
+            messages.first(),
+            Some(SubscriptionMessage::Acknowledged {
+                subscription_id,
+                honored_filter,
+            }) if subscription_id == "s1" && honored_filter == &["a"]
+        ));
+        assert!(matches!(
+            messages.get(1),
+            Some(SubscriptionMessage::Event { subscription_id, .. })
+                if subscription_id == "s1"
+        ));
+        assert!(matches!(
+            messages.last(),
+            Some(SubscriptionMessage::Complete {
+                subscription_id,
+                completed_at_ms: 42,
+                cancelled: false,
+            }) if subscription_id == "s1"
+        ));
+
+        second.cancellation().cancel();
+        assert!(matches!(
+            second.sequence(&source, 43).unwrap().as_slice(),
+            [
+                SubscriptionMessage::Acknowledged { .. },
+                SubscriptionMessage::Complete {
+                    completed_at_ms: 43,
+                    cancelled: true,
+                    ..
+                }
+            ]
+        ));
     }
 
     #[test]

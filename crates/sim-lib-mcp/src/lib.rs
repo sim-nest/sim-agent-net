@@ -91,7 +91,7 @@ pub use install::install_mcp_lib;
 pub use manifest::{McpLib, manifest_name};
 pub use modern::{
     DurableProvider, EventProvider, McpContinuation, McpProviders, McpSubscription, OperationKind,
-    ProviderConcurrency, SubscriptionEvent, validate_input_required,
+    ProviderConcurrency, SubscriptionEvent, SubscriptionMessage, validate_input_required,
 };
 pub use native::{
     McpExportFacet, McpNativeCard, NativeFacet, mcp_export_facet_name, mcp_export_operation_symbol,
