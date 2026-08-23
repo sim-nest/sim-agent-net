@@ -4,6 +4,8 @@ use crate::config::{ProviderConfig, compatibility_secret};
 use crate::model_params::attach_bridge_model_params_to_body;
 use crate::redact::redact_text;
 use crate::stream::HttpStreamDecoder;
+
+// conformance: direct and split HTTP provider paths are identical and thread-safe.
 use sim_codec_chat::{
     AnthropicRequestOptions, LemonadeRequestOptions, LmStudioRequestOptions, OllamaRequestOptions,
     OpenAiRequestOptions, decode_anthropic_response, decode_anthropic_stream,

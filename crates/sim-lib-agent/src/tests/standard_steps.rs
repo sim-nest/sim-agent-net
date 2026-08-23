@@ -12,6 +12,8 @@ use crate::{
     enter_phase, execute_checkpoint, execute_finish, execute_stop, standard_step_cards,
 };
 
+// conformance: standard and third-party agent steps remain complete, precise, and open.
+
 use super::support::eval_cx;
 
 struct Uppercase;

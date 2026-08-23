@@ -4,6 +4,8 @@ use sim_kernel::{Cx, Error, Result};
 use sim_lib_exec::ProcessCancellation;
 use sim_lib_provider::{AuthMethod, BrokerRevision, ProviderControlResult, SessionStatus};
 
+// conformance: broker login, status, logout, and version drift are typed and fail closed.
+
 /// Machine-readable session controller for a sealed broker process.
 #[derive(Clone, Debug)]
 pub struct BrokerSessionController {

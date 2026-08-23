@@ -58,7 +58,8 @@
         },
         {
           "edges": [
-            "dep:sim-lib-agent-runner-process"
+            "dep:sim-lib-agent-runner-process",
+            "dep:sim-lib-exec"
           ],
           "name": "runner-process",
           "workspace_edges": [
@@ -71,6 +72,26 @@
       ],
       "group": "workspace",
       "package": "sim-lib-agent"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-agent-conduct"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-agent-conduct-core"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-agent-conduct-core-recipe-pure-journal"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-agent-conduct-recipe-echo"
     },
     {
       "features": [],
@@ -92,7 +113,7 @@
         {
           "edges": [
             "dep:rustls",
-            "dep:rustls-native-certs"
+            "sim-lib-net-http/tls"
           ],
           "name": "tls",
           "workspace_edges": []
@@ -294,6 +315,34 @@
       "package": "sim-lib-mcp"
     },
     {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-mcp-legacy"
+    },
+    {
+      "features": [
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-mcp-legacy"
+          ],
+          "name": "legacy",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-mcp-legacy"
+            }
+          ]
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-mcp-stdio"
+    },
+    {
       "features": [
         {
           "edges": [],
@@ -317,9 +366,34 @@
       "package": "sim-lib-openai-server"
     },
     {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-provider"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-provider-cli"
+    },
+    {
       "features": [
         {
-          "edges": [],
+          "edges": [
+            "dep:sim-lib-cookbook"
+          ],
+          "name": "cookbook-web",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-cookbook"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "cookbook-web",
+            "wasm"
+          ],
           "name": "default",
           "workspace_edges": []
         },
@@ -360,6 +434,13 @@
         {
           "edges": [],
           "name": "trigger-webhook",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-wasm-abi"
+          ],
+          "name": "wasm",
           "workspace_edges": []
         }
       ],
@@ -426,7 +507,8 @@
           "edges": [
             "dep:serde_json",
             "dep:sim-lib-agent-runner-core",
-            "dep:sim-lib-agent-runner-process"
+            "dep:sim-lib-agent-runner-process",
+            "dep:sim-lib-exec"
           ],
           "name": "process",
           "workspace_edges": [
@@ -477,6 +559,11 @@
       "features": [],
       "group": "workspace",
       "package": "sim-table-remote"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-transport-ports"
     },
     {
       "features": [],

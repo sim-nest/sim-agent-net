@@ -5,6 +5,8 @@ use sim_lib_exec::{
 };
 use std::{any::Any, sync::Arc, time::Duration};
 
+// conformance: structured process programs preserve literal argv and bounded duplex framing.
+
 /// Bounded stderr consumer for a structured process exchange.
 pub trait StderrSink {
     /// Accepts one stderr chunk. Returning an error cancels the exchange.

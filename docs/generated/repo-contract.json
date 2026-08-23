@@ -1,5 +1,5 @@
 {
-  "card_count": 17,
+  "card_count": 23,
   "cards": [
     {
       "id": "browse/catalog",
@@ -12,6 +12,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-agent",
       "summary": "Agent components, memories, and offline runner descriptors."
+    },
+    {
+      "id": "cookbook/agent-conduct-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-agent-conduct-core",
+      "summary": "Pure run and journal data contracts."
     },
     {
       "id": "cookbook/agent-runner-core",
@@ -62,10 +68,22 @@
       "summary": "MCP JSON-RPC descriptors and cassette replay."
     },
     {
+      "id": "cookbook/mcp-legacy",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-legacy",
+      "summary": "Initialize-era compatibility over the stateless MCP service."
+    },
+    {
       "id": "cookbook/mcp-server",
       "kind": "cookbook-recipe",
       "owner": "sim-mcp-server",
       "summary": "Stdio MCP bootloader descriptors."
+    },
+    {
+      "id": "cookbook/mcp-stdio",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-stdio",
+      "summary": "Bounded modern and explicit legacy MCP process boundaries."
     },
     {
       "id": "cookbook/openai-gateway",
@@ -74,10 +92,22 @@
       "summary": "OpenAI-shaped gateway request descriptors and local replay."
     },
     {
+      "id": "cookbook/provider",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-provider",
+      "summary": "Discover open provider families and selectable seats."
+    },
+    {
       "id": "cookbook/server",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-server",
       "summary": "Server request descriptors and local route shapes."
+    },
+    {
+      "id": "cookbook/sim-lib-agent-conduct",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-agent-conduct",
+      "summary": ""
     },
     {
       "id": "cookbook/skill",
@@ -98,6 +128,12 @@
       "summary": "Remote table directory descriptors."
     },
     {
+      "id": "cookbook/transport-ports",
+      "kind": "cookbook-recipe",
+      "owner": "sim-transport-ports",
+      "summary": "Bind provider-neutral transport services and test network faults deterministically."
+    },
+    {
       "id": "registry/catalog",
       "kind": "browse-registry",
       "owner": "workspace",
@@ -114,6 +150,10 @@
   "groups": {
     "workspace": [
       "sim-lib-agent",
+      "sim-lib-agent-conduct",
+      "sim-lib-agent-conduct-core",
+      "sim-lib-agent-conduct-core-recipe-pure-journal",
+      "sim-lib-agent-conduct-recipe-echo",
       "sim-lib-agent-runner-core",
       "sim-lib-agent-runner-core-recipe-output-contract-repair",
       "sim-lib-agent-runner-http",
@@ -123,12 +163,17 @@
       "sim-lib-cookbook",
       "sim-lib-forge",
       "sim-lib-mcp",
+      "sim-lib-mcp-legacy",
+      "sim-lib-mcp-stdio",
       "sim-lib-openai-server",
+      "sim-lib-provider",
+      "sim-lib-provider-cli",
       "sim-lib-server",
       "sim-lib-skill",
       "sim-lib-stream-fabric",
       "sim-mcp-server",
       "sim-table-remote",
+      "sim-transport-ports",
       "xtask"
     ]
   },
@@ -139,7 +184,7 @@
       "descriptor": "agent-runner/ModelRequest",
       "file": "crates/sim-lib-agent/src/agents/model/types.rs",
       "kind": "handle",
-      "line": 75,
+      "line": 82,
       "reason": "live agent session handle; reconstruct via agent-runner/ModelRequest, server/Address, and topology/Package descriptors"
     },
     {
@@ -147,7 +192,7 @@
       "descriptor": "topology/Package",
       "file": "crates/sim-lib-agent/src/agents/model/types.rs",
       "kind": "handle",
-      "line": 96,
+      "line": 103,
       "reason": "live agent fabric handle; reconstruct via topology/Package and agent-runner/ModelCard descriptors"
     },
     {
@@ -155,7 +200,7 @@
       "descriptor": "stream/Packet",
       "file": "crates/sim-lib-agent/src/agents/model/types.rs",
       "kind": "handle",
-      "line": 132,
+      "line": 139,
       "reason": "live agent loopback stream handle; reconstruct via server/Frame and stream/Packet descriptors"
     },
     {
@@ -251,7 +296,7 @@
       "descriptor": "openai/TableStored",
       "file": "crates/sim-lib-openai-server/src/storage/table.rs",
       "kind": "marker",
-      "line": 209,
+      "line": 213,
       "reason": "OpenAI table storage wrapper; class-backed descriptor is the wrapped openai/* value"
     },
     {
@@ -283,7 +328,7 @@
       "descriptor": "server/Address",
       "file": "crates/sim-lib-server/src/server.rs",
       "kind": "handle",
-      "line": 139,
+      "line": 136,
       "reason": "live server handle; reconstruct configuration via server/Address descriptor and start ops"
     },
     {
@@ -319,7 +364,7 @@
       "reason": "live skill transport handle; transport metadata is carried by skill/Card descriptor"
     }
   ],
-  "package_count": 17,
+  "package_count": 26,
   "packages": [
     {
       "crate_name": "sim_lib_agent",
@@ -327,14 +372,21 @@
         {
           "kind": "dev",
           "optional": false,
-          "package": "sim-lib-bridge",
+          "package": "sim-lib-cookbook",
           "rename": null,
           "target": null
         },
         {
-          "kind": "dev",
+          "kind": "normal",
           "optional": false,
-          "package": "sim-lib-cookbook",
+          "package": "sim-lib-agent-conduct",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-conduct-core",
           "rename": null,
           "target": null
         },
@@ -361,8 +413,22 @@
         },
         {
           "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-bridge",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
           "optional": true,
           "package": "sim-lib-cookbook",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-provider",
           "rename": null,
           "target": null
         },
@@ -438,7 +504,8 @@
         },
         {
           "edges": [
-            "dep:sim-lib-agent-runner-process"
+            "dep:sim-lib-agent-runner-process",
+            "dep:sim-lib-exec"
           ],
           "name": "runner-process",
           "workspace_edges": [
@@ -479,6 +546,145 @@
           ],
           "name": "build-script-build",
           "src": "crates/sim-lib-agent/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_agent_conduct",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-conduct-core",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Validated agent-conduct profile over SIM topology packages.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-conduct/Cargo.toml",
+      "name": "sim-lib-agent-conduct",
+      "publish": "true",
+      "root": "crates/sim-lib-agent-conduct",
+      "rustdoc_summary": "Agent-conduct certification and topology execution adapter.",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_agent_conduct",
+          "src": "crates/sim-lib-agent-conduct/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_agent_conduct_core",
+      "dependencies": [],
+      "description": "Pure, codec-stable agent conduct records for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-conduct-core/Cargo.toml",
+      "name": "sim-lib-agent-conduct-core",
+      "publish": "true",
+      "root": "crates/sim-lib-agent-conduct-core",
+      "rustdoc_summary": "Pure, codec-stable data contracts for agent conduct.",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_agent_conduct_core",
+          "src": "crates/sim-lib-agent-conduct-core/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim-lib-agent-conduct-core-recipe-pure-journal",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-conduct-core",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Pure conduct journal cookbook recipe.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/Cargo.toml",
+      "name": "sim-lib-agent-conduct-core-recipe-pure-journal",
+      "publish": "false",
+      "root": "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal",
+      "rustdoc_summary": "Pure conduct journal cookbook recipe.",
+      "target_kinds": [
+        "bin"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "bin"
+          ],
+          "name": "sim-lib-agent-conduct-core-recipe-pure-journal",
+          "src": "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/src/main.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim-lib-agent-conduct-recipe-echo",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-conduct",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-conduct-core",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "SIM workspace package for sim lib agent conduct recipe echo.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/Cargo.toml",
+      "name": "sim-lib-agent-conduct-recipe-echo",
+      "publish": "false",
+      "root": "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct",
+      "rustdoc_summary": "SIM workspace package for sim lib agent conduct recipe echo.",
+      "target_kinds": [
+        "bin"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "bin"
+          ],
+          "name": "sim-lib-agent-conduct-recipe-echo",
+          "src": "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/src/main.rs"
         }
       ]
     },
@@ -559,6 +765,13 @@
       "crate_name": "sim_lib_agent_runner_http",
       "dependencies": [
         {
+          "kind": "dev",
+          "optional": false,
+          "package": "sim-lib-server",
+          "rename": null,
+          "target": null
+        },
+        {
           "kind": "normal",
           "optional": false,
           "package": "sim-lib-agent-runner-core",
@@ -569,6 +782,20 @@
           "kind": "normal",
           "optional": false,
           "package": "sim-lib-openai-server",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-provider",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-transport-ports",
           "rename": null,
           "target": null
         }
@@ -583,7 +810,7 @@
         {
           "edges": [
             "dep:rustls",
-            "dep:rustls-native-certs"
+            "sim-lib-net-http/tls"
           ],
           "name": "tls",
           "workspace_edges": []
@@ -748,6 +975,13 @@
           "kind": "normal",
           "optional": false,
           "package": "sim-lib-agent-runner-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-provider",
           "rename": null,
           "target": null
         }
@@ -1140,7 +1374,7 @@
       "name": "sim-lib-mcp",
       "publish": "true",
       "root": "crates/sim-lib-mcp",
-      "rustdoc_summary": "Library-only MCP surface projection for SIM.",
+      "rustdoc_summary": "Stateless MCP application service for SIM.",
       "target_kinds": [
         "custom-build",
         "lib",
@@ -1164,6 +1398,16 @@
           "kind": [
             "test"
           ],
+          "name": "modern_dependency_closure",
+          "src": "crates/sim-lib-mcp/tests/modern_dependency_closure.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "test"
+          ],
           "name": "serve_mcp",
           "src": "crates/sim-lib-mcp/tests/serve_mcp.rs"
         },
@@ -1176,6 +1420,130 @@
           ],
           "name": "build-script-build",
           "src": "crates/sim-lib-mcp/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_mcp_legacy",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-mcp",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Initialize-era MCP compatibility adapter for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-mcp-legacy/Cargo.toml",
+      "name": "sim-lib-mcp-legacy",
+      "publish": "true",
+      "root": "crates/sim-lib-mcp-legacy",
+      "rustdoc_summary": "Compatibility adapter for initialize-era MCP connections.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_mcp_legacy",
+          "src": "crates/sim-lib-mcp-legacy/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-mcp-legacy/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_mcp_stdio",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-runner-process",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-mcp",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": true,
+          "package": "sim-lib-mcp-legacy",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Bounded request-lifetime stdio adapter for stateless SIM MCP.",
+      "features": [
+        {
+          "edges": [],
+          "name": "default",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-mcp-legacy"
+          ],
+          "name": "legacy",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-mcp-legacy"
+            }
+          ]
+        }
+      ],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-mcp-stdio/Cargo.toml",
+      "name": "sim-lib-mcp-stdio",
+      "publish": "true",
+      "root": "crates/sim-lib-mcp-stdio",
+      "rustdoc_summary": "Bounded newline framing and request-owned lifetimes for MCP over stdio.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_mcp_stdio",
+          "src": "crates/sim-lib-mcp-stdio/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-mcp-stdio/build.rs"
         }
       ]
     },
@@ -1251,12 +1619,107 @@
       ]
     },
     {
-      "crate_name": "sim_lib_server",
+      "crate_name": "sim_lib_provider",
       "dependencies": [
         {
           "kind": "normal",
           "optional": false,
+          "package": "sim-lib-agent-runner-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-server",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Reusable provider identity, discovery, and seat-opening contracts for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-provider/Cargo.toml",
+      "name": "sim-lib-provider",
+      "publish": "true",
+      "root": "crates/sim-lib-provider",
+      "rustdoc_summary": "Reusable provider identity, discovery, and seat-opening contracts.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_provider",
+          "src": "crates/sim-lib-provider/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-provider/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_provider_cli",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-provider",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Loadable provider command surface for the SIM bootloader.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-provider-cli/Cargo.toml",
+      "name": "sim-lib-provider-cli",
+      "publish": "true",
+      "root": "crates/sim-lib-provider-cli",
+      "rustdoc_summary": "Loadable sim provider command surface.",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_provider_cli",
+          "src": "crates/sim-lib-provider-cli/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_server",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": true,
           "package": "sim-lib-cookbook",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-transport-ports",
           "rename": null,
           "target": null
         }
@@ -1264,7 +1727,22 @@
       "description": "Location-transparent server, transport, and eval-fabric runtime for SIM.",
       "features": [
         {
-          "edges": [],
+          "edges": [
+            "dep:sim-lib-cookbook"
+          ],
+          "name": "cookbook-web",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-cookbook"
+            }
+          ]
+        },
+        {
+          "edges": [
+            "cookbook-web",
+            "wasm"
+          ],
           "name": "default",
           "workspace_edges": []
         },
@@ -1305,6 +1783,13 @@
         {
           "edges": [],
           "name": "trigger-webhook",
+          "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-wasm-abi"
+          ],
+          "name": "wasm",
           "workspace_edges": []
         }
       ],
@@ -1433,7 +1918,8 @@
           "edges": [
             "dep:serde_json",
             "dep:sim-lib-agent-runner-core",
-            "dep:sim-lib-agent-runner-process"
+            "dep:sim-lib-agent-runner-process",
+            "dep:sim-lib-exec"
           ],
           "name": "process",
           "workspace_edges": [
@@ -1541,7 +2027,6 @@
       "root": "crates/sim-lib-stream-fabric",
       "rustdoc_summary": "Content-addressed distributed evaluation for remote stream realization.",
       "target_kinds": [
-        "bin",
         "custom-build",
         "lib",
         "test"
@@ -1562,16 +2047,6 @@
             "bin"
           ],
           "kind": [
-            "bin"
-          ],
-          "name": "sim-fabric-cadr-fixture",
-          "src": "crates/sim-lib-stream-fabric/src/bin/sim-fabric-cadr-fixture.rs"
-        },
-        {
-          "crate_types": [
-            "bin"
-          ],
-          "kind": [
             "test"
           ],
           "name": "cassette_replay",
@@ -1586,26 +2061,6 @@
           ],
           "name": "store_replay",
           "src": "crates/sim-lib-stream-fabric/tests/store_replay.rs"
-        },
-        {
-          "crate_types": [
-            "bin"
-          ],
-          "kind": [
-            "test"
-          ],
-          "name": "three_node_store",
-          "src": "crates/sim-lib-stream-fabric/tests/three_node_store.rs"
-        },
-        {
-          "crate_types": [
-            "bin"
-          ],
-          "kind": [
-            "test"
-          ],
-          "name": "two_node_cadr",
-          "src": "crates/sim-lib-stream-fabric/tests/two_node_cadr.rs"
         },
         {
           "crate_types": [
@@ -1690,6 +2145,33 @@
       ]
     },
     {
+      "crate_name": "sim_transport_ports",
+      "dependencies": [],
+      "description": "Host-neutral socket, DNS, and local IPC ports for SIM transports",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-transport-ports/Cargo.toml",
+      "name": "sim-transport-ports",
+      "publish": "true",
+      "root": "crates/sim-transport-ports",
+      "rustdoc_summary": "Narrow, host-neutral ports at SIM's connection, listener, resolver, and IPC boundary.",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_transport_ports",
+          "src": "crates/sim-transport-ports/src/lib.rs"
+        }
+      ]
+    },
+    {
       "crate_name": "xtask",
       "dependencies": [],
       "description": "Repository maintenance tasks for sim-agent-net.",
@@ -1722,10 +2204,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "af3b984d2898100cbb5c8fc2c4fcd0a9a6458759",
+    "git_commit": "161a9c0d2bcd9ea6d5bfd01774af18d8131c5b4b",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "af3b984d2898100cbb5c8fc2c4fcd0a9a6458759",
+    "source_commit": "161a9c0d2bcd9ea6d5bfd01774af18d8131c5b4b",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1738,9 +2220,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "781fbed781d77b1a",
+    "workspace_hash": "b83791105b1481c2",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 688,
+    "workspace_hash_input_count": 761,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -1901,6 +2383,7 @@
       "crates/sim-lib-agent/src/reply.rs",
       "crates/sim-lib-agent/src/roles.rs",
       "crates/sim-lib-agent/src/runner_projection.rs",
+      "crates/sim-lib-agent/src/steps.rs",
       "crates/sim-lib-agent/src/tests/agent30_recipes.rs",
       "crates/sim-lib-agent/src/tests/agent_ai_agent_runner.rs",
       "crates/sim-lib-agent/src/tests/agent_ai_anthropic.rs",
@@ -1925,6 +2408,7 @@
       "crates/sim-lib-agent/src/tests/agent_ai_tool_injection.rs",
       "crates/sim-lib-agent/src/tests/agent_ai_tools.rs",
       "crates/sim-lib-agent/src/tests/agent_cookbook.rs",
+      "crates/sim-lib-agent/src/tests/agent_manifest_conduct.rs",
       "crates/sim-lib-agent/src/tests/agent_patterns.rs",
       "crates/sim-lib-agent/src/tests/agent_r16.rs",
       "crates/sim-lib-agent/src/tests/agent_r17.rs",
@@ -1950,6 +2434,7 @@
       "crates/sim-lib-agent/src/tests/runner_core.rs",
       "crates/sim-lib-agent/src/tests/runner_fabric.rs",
       "crates/sim-lib-agent/src/tests/sandbox_r13.rs",
+      "crates/sim-lib-agent/src/tests/standard_steps.rs",
       "crates/sim-lib-agent/src/tests/support.rs",
       "crates/sim-lib-agent/src/tests/tools_memory.rs",
       "crates/sim-lib-agent/src/tests/voice_recorder_r14.rs",
@@ -1958,6 +2443,25 @@
       "crates/sim-lib-agent/src/tool_projection.rs",
       "crates/sim-lib-agent/src/tools.rs",
       "crates/sim-lib-agent/src/util.rs",
+      "crates/sim-lib-agent-conduct/Cargo.toml",
+      "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/Cargo.toml",
+      "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/recipe.toml",
+      "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/src/main.rs",
+      "crates/sim-lib-agent-conduct/recipes/book.toml",
+      "crates/sim-lib-agent-conduct/src/lib.rs",
+      "crates/sim-lib-agent-conduct/src/tests.rs",
+      "crates/sim-lib-agent-conduct-core/Cargo.toml",
+      "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/Cargo.toml",
+      "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/recipe.toml",
+      "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/src/main.rs",
+      "crates/sim-lib-agent-conduct-core/recipes/book.toml",
+      "crates/sim-lib-agent-conduct-core/src/journal.rs",
+      "crates/sim-lib-agent-conduct-core/src/lib.rs",
+      "crates/sim-lib-agent-conduct-core/src/records.rs",
+      "crates/sim-lib-agent-conduct-core/src/sha256.rs",
+      "crates/sim-lib-agent-conduct-core/src/symbols.rs",
+      "crates/sim-lib-agent-conduct-core/src/tests.rs",
+      "crates/sim-lib-agent-conduct-core/src/usage.rs",
       "crates/sim-lib-agent-runner-core/Cargo.toml",
       "crates/sim-lib-agent-runner-core/build.rs",
       "crates/sim-lib-agent-runner-core/recipes/01-basics/fake-runner-descriptor/recipe.toml",
@@ -1984,11 +2488,12 @@
       "crates/sim-lib-agent-runner-http/recipes/01-basics/ollama-config-probe-use/recipe.toml",
       "crates/sim-lib-agent-runner-http/recipes/01-basics/openai-config-probe-use/recipe.toml",
       "crates/sim-lib-agent-runner-http/recipes/book.toml",
-      "crates/sim-lib-agent-runner-http/src/client/body.rs",
       "crates/sim-lib-agent-runner-http/src/client/tests.rs",
       "crates/sim-lib-agent-runner-http/src/client.rs",
       "crates/sim-lib-agent-runner-http/src/config.rs",
+      "crates/sim-lib-agent-runner-http/src/direct_api.rs",
       "crates/sim-lib-agent-runner-http/src/lib.rs",
+      "crates/sim-lib-agent-runner-http/src/local_service.rs",
       "crates/sim-lib-agent-runner-http/src/model_params.rs",
       "crates/sim-lib-agent-runner-http/src/probe/transport.rs",
       "crates/sim-lib-agent-runner-http/src/probe.rs",
@@ -2017,10 +2522,17 @@
       "crates/sim-lib-agent-runner-process/build.rs",
       "crates/sim-lib-agent-runner-process/recipes/01-basics/json-stdio-fixture/recipe.toml",
       "crates/sim-lib-agent-runner-process/recipes/book.toml",
+      "crates/sim-lib-agent-runner-process/src/broker.rs",
+      "crates/sim-lib-agent-runner-process/src/claude/tests.rs",
+      "crates/sim-lib-agent-runner-process/src/claude.rs",
+      "crates/sim-lib-agent-runner-process/src/codex/tests.rs",
+      "crates/sim-lib-agent-runner-process/src/codex.rs",
       "crates/sim-lib-agent-runner-process/src/effects.rs",
       "crates/sim-lib-agent-runner-process/src/json_stdio.rs",
       "crates/sim-lib-agent-runner-process/src/lib.rs",
       "crates/sim-lib-agent-runner-process/src/line_text.rs",
+      "crates/sim-lib-agent-runner-process/src/opencode/tests.rs",
+      "crates/sim-lib-agent-runner-process/src/opencode.rs",
       "crates/sim-lib-agent-runner-process/src/process.rs",
       "crates/sim-lib-bridge/Cargo.toml",
       "crates/sim-lib-bridge/build.rs",
@@ -2132,6 +2644,7 @@
       "crates/sim-lib-mcp/src/methods/prompts.rs",
       "crates/sim-lib-mcp/src/methods/resources.rs",
       "crates/sim-lib-mcp/src/methods/tools.rs",
+      "crates/sim-lib-mcp/src/modern.rs",
       "crates/sim-lib-mcp/src/native.rs",
       "crates/sim-lib-mcp/src/ops.rs",
       "crates/sim-lib-mcp/src/profile.rs",
@@ -2142,6 +2655,7 @@
       "crates/sim-lib-mcp/src/sampling_tests.rs",
       "crates/sim-lib-mcp/src/schema.rs",
       "crates/sim-lib-mcp/src/serve.rs",
+      "crates/sim-lib-mcp/src/service.rs",
       "crates/sim-lib-mcp/src/session.rs",
       "crates/sim-lib-mcp/src/skill.rs",
       "crates/sim-lib-mcp/src/stdio.rs",
@@ -2153,7 +2667,22 @@
       "crates/sim-lib-mcp/src/tools_call_tests.rs",
       "crates/sim-lib-mcp/src/tools_list_tests.rs",
       "crates/sim-lib-mcp/src/uri.rs",
+      "crates/sim-lib-mcp/tests/modern_dependency_closure.rs",
       "crates/sim-lib-mcp/tests/serve_mcp.rs",
+      "crates/sim-lib-mcp-legacy/Cargo.toml",
+      "crates/sim-lib-mcp-legacy/build.rs",
+      "crates/sim-lib-mcp-legacy/recipes/01-basics/legacy-lifecycle/recipe.toml",
+      "crates/sim-lib-mcp-legacy/recipes/book.toml",
+      "crates/sim-lib-mcp-legacy/src/lib.rs",
+      "crates/sim-lib-mcp-stdio/Cargo.toml",
+      "crates/sim-lib-mcp-stdio/build.rs",
+      "crates/sim-lib-mcp-stdio/recipes/01-basics/legacy-stdio/recipe.toml",
+      "crates/sim-lib-mcp-stdio/recipes/01-basics/modern-stdio/recipe.toml",
+      "crates/sim-lib-mcp-stdio/recipes/book.toml",
+      "crates/sim-lib-mcp-stdio/src/client.rs",
+      "crates/sim-lib-mcp-stdio/src/framing.rs",
+      "crates/sim-lib-mcp-stdio/src/lib.rs",
+      "crates/sim-lib-mcp-stdio/src/server.rs",
       "crates/sim-lib-openai-server/Cargo.toml",
       "crates/sim-lib-openai-server/build.rs",
       "crates/sim-lib-openai-server/recipes/01-basics/fixture-chat/recipe.toml",
@@ -2243,6 +2772,31 @@
       "crates/sim-lib-openai-server/src/translate/mod.rs",
       "crates/sim-lib-openai-server/src/translate/tool_schema.rs",
       "crates/sim-lib-openai-server/src/translate/tools.rs",
+      "crates/sim-lib-provider/Cargo.toml",
+      "crates/sim-lib-provider/build.rs",
+      "crates/sim-lib-provider/recipes/01-basics/open-seat/recipe.toml",
+      "crates/sim-lib-provider/recipes/book.toml",
+      "crates/sim-lib-provider/src/adapter.rs",
+      "crates/sim-lib-provider/src/auth.rs",
+      "crates/sim-lib-provider/src/broker.rs",
+      "crates/sim-lib-provider/src/call.rs",
+      "crates/sim-lib-provider/src/cards.rs",
+      "crates/sim-lib-provider/src/census.rs",
+      "crates/sim-lib-provider/src/claude.rs",
+      "crates/sim-lib-provider/src/codex.rs",
+      "crates/sim-lib-provider/src/conformance.rs",
+      "crates/sim-lib-provider/src/fanout.rs",
+      "crates/sim-lib-provider/src/lib.rs",
+      "crates/sim-lib-provider/src/opencode.rs",
+      "crates/sim-lib-provider/src/ops.rs",
+      "crates/sim-lib-provider/src/principal.rs",
+      "crates/sim-lib-provider/src/registry.rs",
+      "crates/sim-lib-provider/src/seat_id.rs",
+      "crates/sim-lib-provider/src/secret.rs",
+      "crates/sim-lib-provider/src/secret_provider.rs",
+      "crates/sim-lib-provider/src/tests.rs",
+      "crates/sim-lib-provider-cli/Cargo.toml",
+      "crates/sim-lib-provider-cli/src/lib.rs",
       "crates/sim-lib-server/Cargo.toml",
       "crates/sim-lib-server/build.rs",
       "crates/sim-lib-server/recipes/01-basics/request-descriptor/recipe.toml",
@@ -2282,6 +2836,7 @@
       "crates/sim-lib-server/src/ops_lifecycle.rs",
       "crates/sim-lib-server/src/ops_shell.rs",
       "crates/sim-lib-server/src/pool.rs",
+      "crates/sim-lib-server/src/raw_http.rs",
       "crates/sim-lib-server/src/realize.rs",
       "crates/sim-lib-server/src/registries.rs",
       "crates/sim-lib-server/src/repl/drivers.rs",
@@ -2323,16 +2878,15 @@
       "crates/sim-lib-server/src/transport/framing/header.rs",
       "crates/sim-lib-server/src/transport/framing.rs",
       "crates/sim-lib-server/src/transport/http_transport.rs",
+      "crates/sim-lib-server/src/transport/port_io.rs",
       "crates/sim-lib-server/src/transport/site.rs",
       "crates/sim-lib-server/src/transport/socket.rs",
       "crates/sim-lib-server/src/transport/sse_transport.rs",
       "crates/sim-lib-server/src/transport/tests/basic.rs",
       "crates/sim-lib-server/src/transport/tests/http.rs",
       "crates/sim-lib-server/src/transport/tests/lan.rs",
-      "crates/sim-lib-server/src/transport/tests/socket_edges.rs",
       "crates/sim-lib-server/src/transport/tests/sockets.rs",
       "crates/sim-lib-server/src/transport/tests/support.rs",
-      "crates/sim-lib-server/src/transport/tests/unix.rs",
       "crates/sim-lib-server/src/transport/tests/wasm.rs",
       "crates/sim-lib-server/src/transport/tests.rs",
       "crates/sim-lib-server/src/transport/ws_transport.rs",
@@ -2392,7 +2946,6 @@
       "crates/sim-lib-stream-fabric/recipes/01-basics/content-addressed-fleet/recipe.toml",
       "crates/sim-lib-stream-fabric/recipes/01-basics/ledgered-relay/recipe.toml",
       "crates/sim-lib-stream-fabric/recipes/book.toml",
-      "crates/sim-lib-stream-fabric/src/bin/sim-fabric-cadr-fixture.rs",
       "crates/sim-lib-stream-fabric/src/cassette.rs",
       "crates/sim-lib-stream-fabric/src/content_key.rs",
       "crates/sim-lib-stream-fabric/src/control.rs",
@@ -2413,8 +2966,6 @@
       "crates/sim-lib-stream-fabric/src/tests.rs",
       "crates/sim-lib-stream-fabric/tests/cassette_replay.rs",
       "crates/sim-lib-stream-fabric/tests/store_replay.rs",
-      "crates/sim-lib-stream-fabric/tests/three_node_store.rs",
-      "crates/sim-lib-stream-fabric/tests/two_node_cadr.rs",
       "crates/sim-mcp-server/Cargo.toml",
       "crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/recipe.toml",
       "crates/sim-mcp-server/recipes/book.toml",
@@ -2428,11 +2979,15 @@
       "crates/sim-table-remote/src/remote_dir.rs",
       "crates/sim-table-remote/src/site.rs",
       "crates/sim-table-remote/src/tests.rs",
+      "crates/sim-transport-ports/Cargo.toml",
+      "crates/sim-transport-ports/recipes/book.toml",
+      "crates/sim-transport-ports/src/lib.rs",
+      "crates/sim-transport-ports/src/model.rs",
       "features.toml",
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 15,
+  "recipe_book_count": 21,
   "recipes": [
     {
       "book": "agent",
@@ -2759,6 +3314,46 @@
       "title": "Agent"
     },
     {
+      "book": "sim-lib-agent-conduct",
+      "book_toml": "crates/sim-lib-agent-conduct/recipes/book.toml",
+      "card_id": "cookbook/sim-lib-agent-conduct",
+      "group": "workspace",
+      "package": "sim-lib-agent-conduct",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "sim-lib-agent-conduct/01-basics/echo-conduct",
+          "codec": "",
+          "id": "echo-conduct",
+          "package": "sim-lib-agent-conduct",
+          "recipe_toml": "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/recipe.toml",
+          "title": "Certify and run an echo conduct"
+        }
+      ],
+      "summary": "",
+      "title": "Agent Conduct Recipes"
+    },
+    {
+      "book": "agent-conduct-core",
+      "book_toml": "crates/sim-lib-agent-conduct-core/recipes/book.toml",
+      "card_id": "cookbook/agent-conduct-core",
+      "group": "workspace",
+      "package": "sim-lib-agent-conduct-core",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "agent-conduct-core/01-basics/pure-conduct-journal",
+          "codec": "rust",
+          "id": "pure-conduct-journal",
+          "package": "sim-lib-agent-conduct-core",
+          "recipe_toml": "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/recipe.toml",
+          "title": "Pure conduct journal"
+        }
+      ],
+      "summary": "Pure run and journal data contracts.",
+      "title": "Agent Conduct Core"
+    },
+    {
       "book": "agent-runner-core",
       "book_toml": "crates/sim-lib-agent-runner-core/recipes/book.toml",
       "card_id": "cookbook/agent-runner-core",
@@ -3023,6 +3618,54 @@
       "title": "MCP"
     },
     {
+      "book": "mcp-legacy",
+      "book_toml": "crates/sim-lib-mcp-legacy/recipes/book.toml",
+      "card_id": "cookbook/mcp-legacy",
+      "group": "workspace",
+      "package": "sim-lib-mcp-legacy",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "mcp-legacy/01-basics/legacy-lifecycle",
+          "codec": "lisp",
+          "id": "legacy-lifecycle",
+          "package": "sim-lib-mcp-legacy",
+          "recipe_toml": "crates/sim-lib-mcp-legacy/recipes/01-basics/legacy-lifecycle/recipe.toml",
+          "title": "Legacy lifecycle adapter"
+        }
+      ],
+      "summary": "Initialize-era compatibility over the stateless MCP service.",
+      "title": "MCP legacy adapter"
+    },
+    {
+      "book": "mcp-stdio",
+      "book_toml": "crates/sim-lib-mcp-stdio/recipes/book.toml",
+      "card_id": "cookbook/mcp-stdio",
+      "group": "workspace",
+      "package": "sim-lib-mcp-stdio",
+      "recipe_count": 2,
+      "recipes": [
+        {
+          "card_id": "mcp-stdio/01-basics/legacy-stdio",
+          "codec": "lisp",
+          "id": "legacy-stdio",
+          "package": "sim-lib-mcp-stdio",
+          "recipe_toml": "crates/sim-lib-mcp-stdio/recipes/01-basics/legacy-stdio/recipe.toml",
+          "title": "Enable initialize-era compatibility explicitly"
+        },
+        {
+          "card_id": "mcp-stdio/01-basics/modern-stdio",
+          "codec": "lisp",
+          "id": "modern-stdio",
+          "package": "sim-lib-mcp-stdio",
+          "recipe_toml": "crates/sim-lib-mcp-stdio/recipes/01-basics/modern-stdio/recipe.toml",
+          "title": "Serve independent modern requests over stdio"
+        }
+      ],
+      "summary": "Bounded modern and explicit legacy MCP process boundaries.",
+      "title": "MCP stdio lifetime adapter"
+    },
+    {
       "book": "openai-gateway",
       "book_toml": "crates/sim-lib-openai-server/recipes/book.toml",
       "card_id": "cookbook/openai-gateway",
@@ -3041,6 +3684,26 @@
       ],
       "summary": "OpenAI-shaped gateway request descriptors and local replay.",
       "title": "OpenAI Gateway"
+    },
+    {
+      "book": "provider",
+      "book_toml": "crates/sim-lib-provider/recipes/book.toml",
+      "card_id": "cookbook/provider",
+      "group": "workspace",
+      "package": "sim-lib-provider",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "provider/01-basics/open-seat",
+          "codec": "lisp",
+          "id": "open-seat",
+          "package": "sim-lib-provider",
+          "recipe_toml": "crates/sim-lib-provider/recipes/01-basics/open-seat/recipe.toml",
+          "title": "Open provider seat"
+        }
+      ],
+      "summary": "Discover open provider families and selectable seats.",
+      "title": "Provider Control"
     },
     {
       "book": "server",
@@ -3157,6 +3820,17 @@
       ],
       "summary": "Remote table directory descriptors.",
       "title": "Table Remote"
+    },
+    {
+      "book": "transport-ports",
+      "book_toml": "crates/sim-transport-ports/recipes/book.toml",
+      "card_id": "cookbook/transport-ports",
+      "group": "workspace",
+      "package": "sim-transport-ports",
+      "recipe_count": 0,
+      "recipes": [],
+      "summary": "Bind provider-neutral transport services and test network faults deterministically.",
+      "title": "Transport ports"
     }
   ]
 }

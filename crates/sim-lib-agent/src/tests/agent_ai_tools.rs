@@ -12,6 +12,8 @@ use std::{
     },
 };
 
+// conformance: bounded agent tool turns continue once and stop at their declared budget.
+
 #[test]
 fn a5_phase8_fake_runner_continues_after_tool_call() {
     let mut cx = phase8_cx();

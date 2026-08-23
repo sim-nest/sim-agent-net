@@ -1,5 +1,5 @@
 {
-  "card_count": 17,
+  "card_count": 23,
   "cards": [
     {
       "id": "browse/catalog",
@@ -12,6 +12,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-agent",
       "summary": "Agent components, memories, and offline runner descriptors."
+    },
+    {
+      "id": "cookbook/agent-conduct-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-agent-conduct-core",
+      "summary": "Pure run and journal data contracts."
     },
     {
       "id": "cookbook/agent-runner-core",
@@ -62,10 +68,22 @@
       "summary": "MCP JSON-RPC descriptors and cassette replay."
     },
     {
+      "id": "cookbook/mcp-legacy",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-legacy",
+      "summary": "Initialize-era compatibility over the stateless MCP service."
+    },
+    {
       "id": "cookbook/mcp-server",
       "kind": "cookbook-recipe",
       "owner": "sim-mcp-server",
       "summary": "Stdio MCP bootloader descriptors."
+    },
+    {
+      "id": "cookbook/mcp-stdio",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-stdio",
+      "summary": "Bounded modern and explicit legacy MCP process boundaries."
     },
     {
       "id": "cookbook/openai-gateway",
@@ -74,10 +92,22 @@
       "summary": "OpenAI-shaped gateway request descriptors and local replay."
     },
     {
+      "id": "cookbook/provider",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-provider",
+      "summary": "Discover open provider families and selectable seats."
+    },
+    {
       "id": "cookbook/server",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-server",
       "summary": "Server request descriptors and local route shapes."
+    },
+    {
+      "id": "cookbook/sim-lib-agent-conduct",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-agent-conduct",
+      "summary": ""
     },
     {
       "id": "cookbook/skill",
@@ -96,6 +126,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-table-remote",
       "summary": "Remote table directory descriptors."
+    },
+    {
+      "id": "cookbook/transport-ports",
+      "kind": "cookbook-recipe",
+      "owner": "sim-transport-ports",
+      "summary": "Bind provider-neutral transport services and test network faults deterministically."
     },
     {
       "id": "registry/catalog",

@@ -1,0 +1,3 @@
+title = "Bounded stdio peers"
+order = 10
+summary = "Protocol-only stdout and request-owned cancellation."

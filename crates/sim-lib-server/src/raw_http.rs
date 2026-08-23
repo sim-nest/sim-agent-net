@@ -4,6 +4,8 @@ use sim_cancel::{Cancellation, CancellationReason};
 use sim_kernel::{Error, Result};
 use std::{io, sync::Mutex, time::Duration};
 
+// conformance: raw HTTP streaming is bounded, backpressured, and request-cancellable.
+
 /// One ordered HTTP header. Names retain their received spelling and duplicates retain order.
 pub type Header = (String, String);
 

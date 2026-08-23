@@ -19,6 +19,7 @@ members = [
   "crates/sim-lib-cookbook",
   "crates/sim-lib-mcp",
   "crates/sim-lib-mcp-legacy",
+  "crates/sim-lib-mcp-stdio",
   "crates/sim-lib-openai-server",
   "crates/sim-lib-server",
   "crates/sim-transport-ports",

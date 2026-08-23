@@ -9,6 +9,34 @@
       "summary": "Agent runtime surfaces for SIM: agents, tools, memory, patterns, fixtures, fairness facets, and model-fabric contract re-exports."
     },
     {
+      "crate_name": "sim_lib_agent_conduct",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-conduct/Cargo.toml",
+      "package": "sim-lib-agent-conduct",
+      "summary": "Agent-conduct certification and topology execution adapter."
+    },
+    {
+      "crate_name": "sim_lib_agent_conduct_core",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-conduct-core/Cargo.toml",
+      "package": "sim-lib-agent-conduct-core",
+      "summary": "Pure, codec-stable data contracts for agent conduct."
+    },
+    {
+      "crate_name": "sim-lib-agent-conduct-core-recipe-pure-journal",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/Cargo.toml",
+      "package": "sim-lib-agent-conduct-core-recipe-pure-journal",
+      "summary": "Pure conduct journal cookbook recipe."
+    },
+    {
+      "crate_name": "sim-lib-agent-conduct-recipe-echo",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/Cargo.toml",
+      "package": "sim-lib-agent-conduct-recipe-echo",
+      "summary": "SIM workspace package for sim lib agent conduct recipe echo."
+    },
+    {
       "crate_name": "sim_lib_agent_runner_core",
       "group": "workspace",
       "manifest": "crates/sim-lib-agent-runner-core/Cargo.toml",
@@ -69,7 +97,21 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-mcp/Cargo.toml",
       "package": "sim-lib-mcp",
-      "summary": "Library-only MCP surface projection for SIM."
+      "summary": "Stateless MCP application service for SIM."
+    },
+    {
+      "crate_name": "sim_lib_mcp_legacy",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-mcp-legacy/Cargo.toml",
+      "package": "sim-lib-mcp-legacy",
+      "summary": "Compatibility adapter for initialize-era MCP connections."
+    },
+    {
+      "crate_name": "sim_lib_mcp_stdio",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-mcp-stdio/Cargo.toml",
+      "package": "sim-lib-mcp-stdio",
+      "summary": "Bounded newline framing and request-owned lifetimes for MCP over stdio."
     },
     {
       "crate_name": "sim_lib_openai_server",
@@ -77,6 +119,20 @@
       "manifest": "crates/sim-lib-openai-server/Cargo.toml",
       "package": "sim-lib-openai-server",
       "summary": "OpenAI-shaped gateway routes for SIM."
+    },
+    {
+      "crate_name": "sim_lib_provider",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-provider/Cargo.toml",
+      "package": "sim-lib-provider",
+      "summary": "Reusable provider identity, discovery, and seat-opening contracts."
+    },
+    {
+      "crate_name": "sim_lib_provider_cli",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-provider-cli/Cargo.toml",
+      "package": "sim-lib-provider-cli",
+      "summary": "Loadable sim provider command surface."
     },
     {
       "crate_name": "sim_lib_server",
@@ -112,6 +168,13 @@
       "manifest": "crates/sim-table-remote/Cargo.toml",
       "package": "sim-table-remote",
       "summary": "Remote-backed SIM table directory."
+    },
+    {
+      "crate_name": "sim_transport_ports",
+      "group": "workspace",
+      "manifest": "crates/sim-transport-ports/Cargo.toml",
+      "package": "sim-transport-ports",
+      "summary": "Narrow, host-neutral ports at SIM's connection, listener, resolver, and IPC boundary."
     },
     {
       "crate_name": "xtask",

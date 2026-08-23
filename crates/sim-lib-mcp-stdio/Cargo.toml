@@ -1,0 +1,35 @@
+[package]
+name = "sim-lib-mcp-stdio"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Bounded request-lifetime stdio adapter for stateless SIM MCP."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+serde_json = "1"
+sim-cancel = { version = "0.1.0" }
+sim-codec-json = { version = "0.2.2" }
+sim-codec-mcp = { version = "0.1.5" }
+sim-cookbook = { version = "0.2.0" }
+sim-kernel = { version = "0.2.1" }
+sim-lib-agent-runner-process = { version = "0.1.5", path = "../sim-lib-agent-runner-process" }
+sim-lib-exec = { version = "0.2.0" }
+sim-lib-mcp = { version = "0.1.9", path = "../sim-lib-mcp" }
+sim-lib-mcp-legacy = { version = "0.1.0", path = "../sim-lib-mcp-legacy", optional = true }
+
+[build-dependencies]
+sim-cookbook-build = { version = "0.1.0" }
+
+[dev-dependencies]
+sim-kernel = { version = "0.2.1", features = ["test-support"] }
+
+[features]
+default = []
+legacy = ["dep:sim-lib-mcp-legacy"]
+
+[lints]
+workspace = true

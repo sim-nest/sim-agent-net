@@ -53,19 +53,17 @@ guidance = "Use the execute_*_once functions for one component, planning, reflec
 claims_anchors = [
   "anchor/crate/sim-lib-agent",
   "anchor/crate/sim-lib-bridge",
-  "anchor/rustdoc/sim-lib-agent/execute-model-turn-once",
-  "anchor/rustdoc/sim-lib-agent/model-turn-card",
-  "anchor/rustdoc/sim-lib-agent/tool-batch-card",
+  "anchor/rustdoc/sim-lib-agent/execute_model_turn_once",
+  "anchor/rustdoc/sim-lib-agent/model_turn_card",
+  "anchor/rustdoc/sim-lib-agent/tool_batch_card",
   "anchor/rustdoc/sim-lib-agent/agent-step-registry",
-  "anchor/rustdoc/sim-lib-agent/standard-step-cards",
-  "anchor/rustdoc/sim-lib-bridge/run-ask-once",
+  "anchor/rustdoc/sim-lib-agent/standard_step_cards",
+  "anchor/rustdoc/sim-lib-bridge/run_ask_once",
 ]
 claims_specimens = [
-  "spec-test/sim-agent-net/crates/sim-lib-bridge/src/tests/ask/one-ask-attempt-returns-typed-repair-without-retrying",
-  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent-ai-tools/a5-phase8-fake-runner-continues-after-tool-call",
-  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent-ai-tools/a5-phase8-tool-turn-budget-stops-infinite-loop",
-  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard-steps/standard-cards-are-complete-and-precise",
-  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard-steps/third-party-step-registers-and-runs-without-agent-or-conduct-changes",
+  "spec-test/sim-agent-net/crates/sim-lib-bridge/src/tests/ask",
+  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_tools",
+  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard_steps",
 ]
 depends_on = [
   "feature/sim-agent-net/agent-conduct-records",
@@ -84,7 +82,6 @@ claims_anchors = [
   "anchor/crate/sim-lib-agent",
   "anchor/export/sim-lib-agent/agent/make",
   "anchor/export/sim-lib-agent/agent/derive",
-  "anchor/export/sim-lib-agent/agent/replace",
   "anchor/export/sim-lib-agent/agent/start",
 ]
 depends_on = [
@@ -133,42 +130,6 @@ claims_anchors = [
 ]
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-provider/01-basics/open-seat",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/provider_families_and_discovered_seats_are_open",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/registry_preserves_and_opens_two_seats_for_one_family_separately",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/removing_one_adapter_does_not_change_another_family",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/two_preopened_providers_resolve_distinct_seat_credentials_in_one_process",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/secret_provider_failures_and_revocation_never_echo_material",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/auth_vocabulary_and_control_operations_are_stable_and_separate_from_inference",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/redacted_auth_metadata_round_trips_and_terms_gate_open_and_login",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/fanout/tests/parallel_dispatch_is_bounded_by_slowest_seat_and_lands_in_request_order",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/fanout/tests/quota_cooldown_uses_injected_time_without_sleeping",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/fanout/tests/unsplittable_seat_is_reported_as_serialized",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/every_provider_family_and_fictional_extension_passes_one_harness",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/unsupported_capability_refuses_before_runner_request",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/api_cli_and_daemon_answer_one_ordered_provider_fanout",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/canonical_genai_recipe_is_the_only_cross_family_source",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/census/tests/api_subscription_cli_and_local_daemon_remain_separate_census_rows",
-  "spec-test/sim-agent-net/crates/sim-lib-provider-cli/src/tests/api_subscription_cli_and_local_daemon_are_distinct_command_rows",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/census/tests/malformed_inventory_and_unredacted_evidence_fail_closed",
-  "spec-test/sim-agent-net/crates/sim-lib-provider/src/census/tests/evidence_must_use_the_seat_declared_registered_boundary",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/local_service/tests/local_service_families_register_with_model_turn_semantics",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/local_service/tests/every_endpoint_is_a_stable_separate_seat_with_honest_posture",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/local_service/tests/discovery_is_inert_for_unavailable_endpoints_and_auth_is_family_specific",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/local_service/tests/two_endpoints_of_one_family_answer_in_one_parallel_fanout_report",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/codex/tests/subscription_and_api_key_homes_are_distinct_seats_with_complete_harness_identity",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/codex/tests/login_required_version_drift_malformed_json_timeout_and_quota_refusal_fail_closed",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/codex/tests/opened_codex_runner_is_ordinary_and_executes_exact_machine_argv",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/codex/tests/two_codex_homes_and_direct_openai_can_answer_concurrently_without_identity_collapse",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/claude/tests/subscription_status_and_two_config_homes_are_distinct_complete_seats",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/claude/tests/login_required_browser_handoff_expired_token_and_unknown_schema_are_typed_or_refused",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/claude/tests/missing_machine_mode_version_drift_malformed_output_timeout_and_quota_fail_closed",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/claude/tests/forbidden_or_unacknowledged_terms_refuse_before_process_connection",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/claude/tests/two_claude_homes_answer_in_one_fanout_without_identity_collapse",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/claude/tests/claude_cli_and_anthropic_api_answer_concurrently_with_distinct_guidance",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/opencode/tests/each_config_home_and_declared_server_is_a_distinct_transport_honest_seat",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/opencode/tests/raw_and_framed_events_decode_while_malformed_and_incomplete_output_fail_closed",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/opencode/tests/provider_model_plugin_policy_and_transport_drift_are_pinned_before_inference",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/opencode/tests/timeout_process_death_server_death_and_removal_are_isolated",
 ]
 supports = [
   "feature/sim-agent-net/model-runner-framework",
@@ -191,7 +152,7 @@ owner = "crate/sim-lib-server"
 audiences = ["code", "framework"]
 guidance = "Install RawHttpServer beside the ServerFrame adapter in the existing SocketPort/DnsPort accept and parser organ. Implement RawHandler without owning sockets, clocks, executors, or an MCP-specific acceptor; connection adapters must report peer drop and injected-clock timeout through RequestScope."
 claims_anchors = ["anchor/crate/sim-lib-server"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-server/src/raw_http/tests/streaming_handler_is_backpressured_and_cancelled_on_peer_drop"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-server/src/raw_http"]
 
 [[feature]]
 id = "feature/sim-agent-net/structured-process-program"
@@ -201,7 +162,7 @@ owner = "crate/sim-lib-agent-runner-process"
 audiences = ["code", "framework"]
 guidance = "Construct ProcessProgram from the already validated ProcessRequest and dispatch it only through ProcessPort. ArgAtom values are literal bytes, never shell syntax; provider adapters remain responsible for concurrent pipe draining, cancellation, and reaping."
 claims_anchors = ["anchor/crate/sim-lib-agent-runner-process"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/process/tests/process_program_delivers_hostile_argv_literally_without_shell_reparsing"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/process"]
 
 [[feature]]
 id = "feature/sim-agent-net/mcp-server"
@@ -245,6 +206,25 @@ claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-mcp-legacy/01-basics/legacy-lifecycle",
 ]
 depends_on = ["feature/sim-agent-net/mcp-server"]
+
+[[feature]]
+id = "feature/sim-agent-net/mcp-stdio-lifetimes"
+title = "Bounded MCP stdio request lifetimes"
+summary = "Frame one bounded JSON message per newline, isolate cancellation by live request id, serialize stdout, and consume MCP peers through ProcessProgram."
+owner = "crate/sim-lib-mcp-stdio"
+audiences = ["code", "framework"]
+guidance = "Compose StdioServer with the stateless MCP service and a host dispatcher that creates a fresh Cx for every call. Enable legacy mode only at process construction. Use McpProcessClient over ProcessProgram for child peers; never put diagnostics or non-protocol bytes on stdout."
+claims_anchors = ["anchor/crate/sim-lib-mcp-stdio"]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-mcp-stdio/01-basics/modern-stdio",
+  "recipe/sim-agent-net/crates/sim-lib-mcp-stdio/01-basics/legacy-stdio",
+  "spec-test/sim-agent-net/crates/sim-lib-mcp-stdio/src/server",
+]
+depends_on = [
+  "feature/sim-agent-net/mcp-server",
+  "feature/sim-agent-net/mcp-legacy-compatibility",
+  "feature/sim-agent-net/structured-process-program",
+]
 
 [[feature]]
 id = "feature/sim-agent-net/bridge-runtime"
@@ -334,9 +314,8 @@ claims_surfaces = [
   "model/sim-lib-agent-runner-process",
 ]
 claims_specimens = [
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/broker/tests/login_browser_status_and_logout_are_typed_machine_events",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/broker/tests/version_drift_and_malformed_events_fail_closed",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/runner/tests/direct_and_split_http_paths_are_identical_and_thread_safe",
+  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/broker",
+  "spec-test/sim-agent-net/crates/sim-lib-agent-runner-http/src/runner",
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_placement_swap",
 ]
 
@@ -350,8 +329,6 @@ guidance = "Use this row when wiring an EvalFabric placement target or content-a
 claims_anchors = [
   "anchor/crate/sim-lib-stream-fabric",
   "anchor/crate/sim-table-remote",
-  "anchor/export/sim-lib-stream-fabric/codec/binary",
-  "anchor/runtime-lib/sim-lib-stream-fabric/cadr-fixture-lib",
 ]
 claims_surfaces = [
   "site/sim-lib-agent-runner-local",
@@ -388,13 +365,7 @@ owner = "crate/sim-lib-stream-fabric"
 audiences = ["user", "code"]
 guidance = "Use this row when inspecting or replaying the content-addressed fleet fixture."
 claims_anchors = [
-  "anchor/cli/sim-fabric-cadr-fixture",
-  "anchor/cli/sim-lib-stream-fabric",
-  "anchor/export/sim-lib-stream-fabric/cli/main/sim-fabric-cadr-fixture",
-]
-claims_surfaces = [
-  "cli/sim-fabric-cadr-fixture",
-  "cli/sim-lib-stream-fabric",
+  "anchor/crate/sim-lib-stream-fabric",
 ]
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-stream-fabric/tests/cassette_replay",
@@ -555,8 +526,7 @@ steps = [
   { feature = "feature/sim-agent-net/provider-control", why = "The provider organ owns open family adapters, private inventory, explicit seats, shared conformance, and ordered fan-out." },
   { feature = "feature/sim-agent-net/model-runner-framework", why = "Every opened direct API, CLI broker, local-service, or extension seat executes through ModelRunner." },
   { feature = "feature/sim-agent-net/bridge-runtime", why = "BRIDGE owns the checked request and output contract shared by every family." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/every_provider_family_and_fictional_extension_passes_one_harness", why = "Every shipped family plus a registry-free fictional extension passes the same card-and-runner harness." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-provider/src/tests/api_cli_and_daemon_answer_one_ordered_provider_fanout", why = "API-key, subscription CLI, and daemon seats answer together with distinct identities and ordered rows." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-provider/01-basics/open-seat", why = "The checked recipe opens a provider seat through the same registry and card contract used by shipped and third-party families." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/01-basics/genai-assembly", why = "The unchanged checked GENAI recipe remains the canonical request source." },
 ]
 
