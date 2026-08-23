@@ -217,6 +217,14 @@ fn phase0_agent_tool_calls_still_route_through_tool_call_values() {
 
     let source = include_str!("../components/runtime/runner_tools.rs");
     assert!(source.contains("tool.call_values(cx, args)?"));
+    let declared = source
+        .find("was not declared on the model request")
+        .unwrap();
+    let phase = source.find("current phase denied tool").unwrap();
+    let privacy = source.find("privacy policy denied tool").unwrap();
+    let isolation = source.find("isolation policy denied tool").unwrap();
+    let effect = source.find("effect::resolve_effect(cx, effect").unwrap();
+    assert!(declared < effect && phase < effect && privacy < effect && isolation < effect);
 }
 
 #[test]

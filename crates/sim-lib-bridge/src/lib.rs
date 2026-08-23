@@ -73,7 +73,8 @@ mod warrant;
 mod tests;
 
 pub use ask::{
-    ask_default_codec, ask_packet, ask_packet_with_model_params, run_ask, run_ask_with_policy,
+    AskAttempt, ask_default_codec, ask_packet, ask_packet_with_model_params, run_ask, run_ask_once,
+    run_ask_with_policy,
 };
 pub use brief::{bridge_brief, render_brief_sentences};
 pub use collab::{MergePolicy, merge_bridge_replies};

@@ -11,7 +11,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
 sim-kernel = { version = "0.2.1" }
-sim-lib-agent-conduct-core = { version = "0.1.0", path = "../sim-lib-agent-conduct-core" }
+sim-lib-agent-conduct-core = { version = "0.1.1", path = "../sim-lib-agent-conduct-core" }
 sim-lib-topology = { version = "0.1.5" }
 
 [dev-dependencies]

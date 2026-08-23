@@ -57,7 +57,7 @@ where
                 ),
             ));
         }
-        match run_tool_round(cx, component, &response, tool_calls, &mut state, None)? {
+        match execute_tool_batch_once(cx, component, &response, tool_calls, &mut state, None)? {
             ToolRound::Continue(messages) => {
                 request.expr = append_tool_messages(request.expr, messages)?;
                 state.rounds_used += 1;
@@ -105,7 +105,7 @@ where
                 events,
             );
         }
-        match run_tool_round(
+        match execute_tool_batch_once(
             cx,
             component,
             &response_expr,
@@ -128,12 +128,16 @@ where
 #[derive(Clone)]
 struct ToolLoopState {
     declared_tools: Option<BTreeSet<Symbol>>,
+    phase_tools: Option<BTreeSet<Symbol>>,
     seen_calls: BTreeSet<String>,
     privacy_policy: PrivacyPolicy,
     submit_shape: Option<ShapeRef>,
     allow_repeated: bool,
     max_rounds: u32,
     rounds_used: u32,
+    max_calls: Option<u64>,
+    calls_used: u64,
+    isolation_admitted: bool,
 }
 
 impl ToolLoopState {
@@ -150,12 +154,16 @@ impl ToolLoopState {
         }
         Ok(Self {
             declared_tools: declared,
+            phase_tools: symbol_set_field(&request.expr, "phase-tools")?,
             seen_calls: BTreeSet::new(),
             privacy_policy: PrivacyPolicy::from_request_expr(&request.expr)?,
             submit_shape,
             allow_repeated: bool_field(&request.expr, "allow-repeated-tool-calls").unwrap_or(false),
             max_rounds: max_tool_rounds(&request.expr)?,
             rounds_used: 0,
+            max_calls: nested_u64_field(&request.expr, "budget", "max-tool-calls")?,
+            calls_used: 0,
+            isolation_admitted: bool_field(&request.expr, "tool-isolation").unwrap_or(true),
         })
     }
 }
@@ -166,7 +174,11 @@ enum ToolRound {
     Fatal(String),
 }
 
-fn run_tool_round(
+/// Executes exactly one already-parsed model tool-call batch.
+///
+/// All final authorization remains inside this boundary immediately before
+/// effect resolution. The surrounding compatibility functions own repetition.
+pub(super) fn execute_tool_batch_once(
     cx: &mut Cx,
     component: &AgentComponent,
     response: &Expr,
@@ -177,6 +189,12 @@ fn run_tool_round(
     let mut messages = Vec::new();
     let model = response_model(response).unwrap_or_else(|| component.symbol.to_string());
     for call in tool_calls {
+        if state
+            .max_calls
+            .is_some_and(|limit| state.calls_used >= limit)
+        {
+            return Ok(ToolRound::Fatal("budget-exhausted".to_owned()));
+        }
         if call.name == submit_shape_tool() {
             let Some(shape) = state.submit_shape.as_ref() else {
                 return Ok(ToolRound::Fatal(
@@ -214,6 +232,22 @@ fn run_tool_round(
                 call.name
             )));
         }
+        if state
+            .phase_tools
+            .as_ref()
+            .is_some_and(|tools| !tools.contains(&call.name))
+        {
+            return Ok(ToolRound::Fatal(format!(
+                "current phase denied tool {}",
+                call.name
+            )));
+        }
+        if !state.isolation_admitted {
+            return Ok(ToolRound::Fatal(format!(
+                "isolation policy denied tool {}",
+                call.name
+            )));
+        }
         let fingerprint = tool_call_fingerprint(&call);
         if !state.allow_repeated && !state.seen_calls.insert(fingerprint) {
             return Ok(ToolRound::Fatal(format!(
@@ -238,6 +272,7 @@ fn run_tool_round(
                 )));
             }
         };
+        state.calls_used += 1;
         let outcome = call_tool(cx, &tool, &call);
         if let Some(sink) = events.as_deref_mut() {
             sink.emit(tool_result_event(component, &model, &call, &outcome))?;
@@ -245,6 +280,55 @@ fn run_tool_round(
         messages.push(tool_result_message(&call, &outcome)?);
     }
     Ok(ToolRound::Continue(messages))
+}
+
+fn symbol_set_field(expr: &Expr, name: &str) -> Result<Option<BTreeSet<Symbol>>> {
+    let Expr::Map(entries) = expr else {
+        return Ok(None);
+    };
+    let Some(value) = entries.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if symbol.name.as_ref().replace('_', "-") == name)
+            .then_some(value)
+    }) else {
+        return Ok(None);
+    };
+    let (Expr::List(items) | Expr::Vector(items)) = value else {
+        return Err(Error::Eval(format!("{name} must be a symbol list")));
+    };
+    items
+        .iter()
+        .map(|item| match item {
+            Expr::Symbol(symbol) => Ok(symbol.clone()),
+            _ => Err(Error::Eval(format!("{name} must contain only symbols"))),
+        })
+        .collect::<Result<BTreeSet<_>>>()
+        .map(Some)
+}
+
+fn nested_u64_field(expr: &Expr, outer: &str, inner: &str) -> Result<Option<u64>> {
+    let Expr::Map(entries) = expr else {
+        return Ok(None);
+    };
+    let Some(Expr::Map(budget)) = entries.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if symbol.name.as_ref().replace('_', "-") == outer)
+            .then_some(value)
+    }) else {
+        return Ok(None);
+    };
+    let Some(value) = budget.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if symbol.name.as_ref().replace('_', "-") == inner)
+            .then_some(value)
+    }) else {
+        return Ok(None);
+    };
+    let Expr::Number(number) = value else {
+        return Err(Error::Eval(format!("{outer} {inner} must be an integer")));
+    };
+    number
+        .canonical
+        .parse::<u64>()
+        .map(Some)
+        .map_err(|_| Error::Eval(format!("{outer} {inner} must be a non-negative integer")))
 }
 
 fn call_tool(cx: &mut Cx, tool: &crate::Tool, call: &ToolCall) -> ToolOutcome {

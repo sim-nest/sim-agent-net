@@ -68,6 +68,22 @@ impl AgentRunState {
     pub fn entries(&self) -> &[(Symbol, Expr)] {
         &self.entries
     }
+    /// Inserts or replaces one checked state entry.
+    pub fn upsert(&mut self, key: Symbol, value: Expr) -> Result<()> {
+        let mut entries = self.entries.clone();
+        entries.retain(|(candidate, _)| candidate != &key);
+        entries.push((key, value));
+        state_entries::validate(&entries)?;
+        entries.sort_by_key(|(key, _)| key.to_string());
+        self.entries = entries;
+        Ok(())
+    }
+    /// Returns one state entry by exact symbol.
+    pub fn get(&self, key: &Symbol) -> Option<&Expr> {
+        self.entries
+            .iter()
+            .find_map(|(candidate, value)| (candidate == key).then_some(value))
+    }
 }
 impl Default for AgentRunState {
     fn default() -> Self {

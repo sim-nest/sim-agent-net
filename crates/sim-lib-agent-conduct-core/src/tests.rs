@@ -73,6 +73,20 @@ fn run_state_requires_standard_entries_and_qualified_extensions() {
 }
 
 #[test]
+fn run_state_upsert_replaces_only_namespaced_observations() {
+    let mut state = AgentRunState::standard();
+    let key = Symbol::qualified("agent.provider", "seat");
+    state
+        .upsert(key.clone(), Expr::String("seat:a#one".into()))
+        .unwrap();
+    state
+        .upsert(key.clone(), Expr::String("seat:a#two".into()))
+        .unwrap();
+    assert_eq!(state.get(&key), Some(&Expr::String("seat:a#two".into())));
+    assert!(state.upsert(Symbol::new("secret"), Expr::Nil).is_err());
+}
+
+#[test]
 fn usage_is_integer_unit_qualified_and_budget_layers_narrow_pointwise() {
     let turns = symbols::usage::MODEL_TURN();
     let tools = symbols::usage::TOOL_CALL();

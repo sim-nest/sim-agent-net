@@ -33,6 +33,7 @@ mod planning;
 mod reply;
 mod roles;
 mod runner_projection;
+mod steps;
 /// Cookbook recipes for this lib, embedded at build time.
 pub static RECIPES: sim_cookbook::EmbeddedDir =
     include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
@@ -128,6 +129,10 @@ pub use runner_projection::{ExternalRunnerSpec, external_runner_value};
 pub use sim_lib_agent_runner_core::{
     ModelBid, ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
     ModelUsage,
+};
+pub use steps::{
+    AgentStepTargetFactory, ModelTurnOptions, ModelTurnResult, execute_model_turn_once,
+    model_turn_card, tool_batch_card,
 };
 pub use tool_projection::{ToolSpec, install_tool};
 pub use tools::Tool;

@@ -116,17 +116,12 @@ pub fn run_ask_with_policy(
     let book = BridgeBook::standard();
     let max_retries = policy.retries();
     for attempt in 0..=max_retries {
-        let checked = prepare_packet(cx, &book, &packet)?;
-        let request = eval_request_for_checked_packet(cx, &book, &checked)?;
-        let caps = effective_caps(cx, &checked)?;
-        let reply = cx.with_capabilities(caps, |cx| target.realize(cx, request))?;
-        let response = ModelResponse::try_from(reply.value.object().as_expr(cx)?)?;
-        match answer_packet(cx, &book, &checked, &response)? {
-            Ok(answer) => return Ok(answer),
-            Err(failure) if attempt < max_retries => {
+        match run_ask_once(cx, target, packet)? {
+            AskAttempt::Answer(answer) => return Ok(answer),
+            AskAttempt::RepairNeeded { checked, failure } if attempt < max_retries => {
                 packet = repair_packet_for_failure(cx, &checked, &failure, attempt + 1)?;
             }
-            Err(failure) => {
+            AskAttempt::RepairNeeded { failure, .. } => {
                 return Err(sim_kernel::Error::Eval(format!(
                     "bridge ask failed after {} attempt(s): {}",
                     attempt + 1,
@@ -136,6 +131,42 @@ pub fn run_ask_with_policy(
         }
     }
     unreachable!("bounded ASK loop always returns inside the retry range")
+}
+
+/// Result of one checked ASK exchange, with repair kept as typed control flow.
+#[derive(Clone, Debug, PartialEq)]
+pub enum AskAttempt {
+    /// The single exchange produced a checked BRIDGE reply packet.
+    Answer(BridgePacket),
+    /// The model replied, but decoding or the declared return Shape requires repair.
+    RepairNeeded {
+        /// Exact checked request packet that the repair must parent.
+        checked: BridgePacket,
+        /// Typed failure used to construct a bounded repair request.
+        failure: AskFailure,
+    },
+}
+
+/// Performs exactly one ASK exchange: TX checks, one model call, and RX checks.
+///
+/// This function never retries. Callers that own repetition can use the typed
+/// [`AskAttempt::RepairNeeded`] result; [`run_ask_with_policy`] remains the
+/// compatibility wrapper that owns the existing bounded loop.
+pub fn run_ask_once(
+    cx: &mut Cx,
+    target: &dyn EvalFabric,
+    packet: BridgePacket,
+) -> Result<AskAttempt> {
+    let book = BridgeBook::standard();
+    let checked = prepare_packet(cx, &book, &packet)?;
+    let request = eval_request_for_checked_packet(cx, &book, &checked)?;
+    let caps = effective_caps(cx, &checked)?;
+    let reply = cx.with_capabilities(caps, |cx| target.realize(cx, request))?;
+    let response = ModelResponse::try_from(reply.value.object().as_expr(cx)?)?;
+    match answer_packet(cx, &book, &checked, &response)? {
+        Ok(answer) => Ok(AskAttempt::Answer(answer)),
+        Err(failure) => Ok(AskAttempt::RepairNeeded { checked, failure }),
+    }
 }
 
 pub(crate) fn pack_argument(
