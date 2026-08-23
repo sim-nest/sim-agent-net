@@ -1,0 +1,14 @@
+id = "oauth-verify-token"
+title = "Verify a rotated resource-bound token"
+summary = "Select one allowlisted algorithm and kid, then bind issuer, audience, resource, scope, expiry, and JWK generation."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["oauth", "jose", "jwt"]
+requires = ["oauth-jose"]
+
+[[expect]]
+form = 0
+result = "(verified-principal (token redacted) (authority exact) (key-generation current))"

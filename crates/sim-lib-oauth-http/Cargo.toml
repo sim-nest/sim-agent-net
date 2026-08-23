@@ -1,0 +1,24 @@
+[package]
+name = "sim-lib-oauth-http"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Bounded OAuth metadata and JWK retrieval over SIM HTTP"
+readme = "README.md"
+publish = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sim-cookbook = "0.2.0"
+sim-lib-net-http = "0.1.0"
+sim-lib-oauth-core = { path = "../sim-lib-oauth-core", version = "0.1.0" }
+sim-lib-oauth-jose = { path = "../sim-lib-oauth-jose", version = "0.1.0" }
+
+[build-dependencies]
+sim-cookbook-build = "0.1.0"
+
+[lints]
+workspace = true

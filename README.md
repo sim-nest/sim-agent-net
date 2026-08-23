@@ -96,7 +96,15 @@ Skills, tools, and gateways:
   transport, and callable execution layer on top behind features.
 - `sim-lib-mcp-http` -- final-protocol Streamable HTTP server/client boundary:
   exact endpoint, Origin and projection checks, bounded JSON/SSE delivery,
-  request-owned cancellation, and no session semantics.
+  request-owned cancellation, reusable OAuth authentication before request
+  context construction, and no MCP session semantics.
+- `sim-lib-oauth-core` -- effect-free protected-resource/authorization metadata,
+  PKCE authorization-code state, challenges, registrations, and immutable
+  verified-principal contracts.
+- `sim-lib-oauth-jose` -- local JWT verification against injected rotating JWK
+  sets with explicit algorithm, issuer, audience/resource, scope, and clock policy.
+- `sim-lib-oauth-http` -- bounded discovery and JWK refresh over the shared
+  `sim-lib-net-http` policy; redirects and refresh are explicit.
 - `sim-lib-openai-server` -- OpenAI-shaped gateway routes: health route, OpenAI
   JSON transcript codec, model discovery, supported chat, response, and
   embedding request flows, fixture/subset file, audio, image, and vector-store

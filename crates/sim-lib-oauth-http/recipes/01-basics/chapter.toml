@@ -1,0 +1,4 @@
+chapter = "01-basics"
+title = "Bounded discovery"
+order = 10
+recipes = ["metadata-refresh"]

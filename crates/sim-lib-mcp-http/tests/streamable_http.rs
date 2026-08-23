@@ -10,11 +10,11 @@ use std::{
 
 use sim_cancel::Cancellation;
 use sim_codec_mcp::McpEnvelope;
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, HandleSeed, Result};
+use sim_kernel::{Cx, DefaultFactory, EagerPolicy, HandleSeed, Result, capability::CapabilitySet};
 use sim_lib_mcp::{Principal, RequestContext};
 use sim_lib_mcp_http::{
-    HttpClock, IdentityProvider, McpDispatch, McpHttpHandler, OriginPolicy, RequestIdentity,
-    ServerPolicy,
+    AuthRejection, HttpClock, IdentityProvider, McpDispatch, McpHttpHandler, OriginPolicy,
+    RequestIdentity, ServerPolicy,
 };
 use sim_lib_server::{
     BodyReader, RawHandler, RequestHead, RequestScope, ResponseHead, ResponseWriter,
@@ -22,9 +22,10 @@ use sim_lib_server::{
 
 struct Identity;
 impl IdentityProvider for Identity {
-    fn identify(&self, _head: &RequestHead) -> Result<RequestIdentity> {
+    fn identify(&self, _head: &RequestHead) -> std::result::Result<RequestIdentity, AuthRejection> {
         Ok(RequestIdentity {
             principal: Principal::new("integration-principal"),
+            grants: CapabilitySet::new(),
         })
     }
 }
@@ -108,12 +109,7 @@ fn scope() -> RequestScope {
 fn method_and_origin_policy_reject_before_body_or_dispatch() {
     let dispatches = Arc::new(AtomicUsize::new(0));
     let handler = McpHttpHandler::new(
-        ServerPolicy::new(
-            "/mcp",
-            OriginPolicy::Exact(vec!["https://allowed.example".into()]),
-            4096,
-        )
-        .unwrap(),
+        ServerPolicy::remote("/mcp", vec!["https://allowed.example".into()], 4096, true).unwrap(),
         Dispatch(dispatches.clone()),
         Identity,
         Clock,

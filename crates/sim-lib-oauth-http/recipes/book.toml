@@ -1,0 +1,5 @@
+book = "oauth-http"
+title = "OAuth bounded HTTP retrieval"
+summary = "Retrieve discovery and JWK documents through the shared HTTP policy."
+order = 352
+chapters = ["01-basics"]

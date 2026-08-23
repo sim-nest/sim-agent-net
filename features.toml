@@ -195,12 +195,45 @@ claims_specimens = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/oauth-state-machines"
+title = "Effect-free OAuth resource and client state"
+summary = "Validate authority metadata and run resource-bound PKCE authorization-code transitions with injected effects."
+owner = "crate/sim-lib-oauth-core"
+audiences = ["code", "framework"]
+guidance = "Compose this pure package with sim-lib-oauth-http for retrieval and host-provided randomness, consent, browser, and token storage. Preserve exact issuer/resource/scopes through every transition; prefer configured or client-metadata registration and gate deprecated dynamic registration explicitly."
+claims_anchors = ["anchor/crate/sim-lib-oauth-core"]
+claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-oauth-core/01-basics/authorization-code"]
+depends_on = ["feature/sim-agent-net/mcp-streamable-http"]
+
+[[feature]]
+id = "feature/sim-agent-net/oauth-local-jose"
+title = "Rotation-aware local OAuth token verification"
+summary = "Verify JWT access tokens locally against injected JWK generations and return immutable authority facts."
+owner = "crate/sim-lib-oauth-jose"
+audiences = ["code", "framework"]
+guidance = "Allowlist algorithms and bind kid, issuer, audience, resource, scopes, expiry, skew, and key generation. Compose opaque-token introspection behind the same AccessTokenVerifier trait; never place token bytes in diagnostics or identity facts."
+claims_anchors = ["anchor/crate/sim-lib-oauth-jose"]
+claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-oauth-jose/01-basics/verify-token"]
+depends_on = ["feature/sim-agent-net/oauth-state-machines"]
+
+[[feature]]
+id = "feature/sim-agent-net/oauth-bounded-http"
+title = "Bounded OAuth discovery and JWK refresh"
+summary = "Retrieve metadata and keys through the shared HTTP policy while pure core and JOSE layers perform no I/O."
+owner = "crate/sim-lib-oauth-http"
+audiences = ["code", "framework"]
+guidance = "Inject a DocumentTransport implemented over sim-lib-net-http, keep ambient credentials/proxies/cookies off, cap documents, disable redirects by default, and inject refresh time."
+claims_anchors = ["anchor/crate/sim-lib-oauth-http"]
+claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-oauth-http/01-basics/metadata-refresh"]
+depends_on = ["feature/sim-agent-net/oauth-state-machines", "feature/sim-agent-net/oauth-local-jose"]
+
+[[feature]]
 id = "feature/sim-agent-net/mcp-streamable-http"
 title = "Stateless MCP Streamable HTTP"
 summary = "Serve and call final-protocol MCP over bounded, stateless Streamable HTTP."
 owner = "crate/sim-lib-mcp-http"
 audiences = ["code", "framework"]
-guidance = "Compose sim-lib-mcp-http with the existing raw server and net-http organs. Configure one exact modern POST endpoint and an exact Origin allow-list for browser-reachable service; attach legacy behavior only at a distinct explicit endpoint. The adapter never owns sockets, TLS, OAuth policy, or MCP sessions."
+guidance = "Compose sim-lib-mcp-http with the existing raw server, net-http, and OAuth organs. Non-loopback service requires ServerPolicy::remote with exact Origins and a configured verifier; anonymous development is explicit loopback-only. Authentication precedes RequestContext construction and only verified scopes map to diminished grants."
 claims_anchors = ["anchor/crate/sim-lib-mcp-http"]
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-mcp-http/01-basics/http-server",

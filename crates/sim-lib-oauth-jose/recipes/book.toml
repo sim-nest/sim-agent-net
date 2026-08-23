@@ -1,0 +1,5 @@
+book = "oauth-jose"
+title = "OAuth local JOSE verification"
+summary = "Verify resource-bound access tokens against injected rotating JWK sets."
+order = 351
+chapters = ["01-basics"]

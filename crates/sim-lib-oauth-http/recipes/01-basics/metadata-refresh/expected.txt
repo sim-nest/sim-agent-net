@@ -1,0 +1,1 @@
+(oauth-discovery (https required) (redirect off) (bytes bounded) (refresh explicit))

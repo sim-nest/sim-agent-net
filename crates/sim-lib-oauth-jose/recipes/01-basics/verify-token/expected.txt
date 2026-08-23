@@ -1,0 +1,1 @@
+(verified-principal (token redacted) (authority exact) (key-generation current))
