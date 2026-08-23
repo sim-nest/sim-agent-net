@@ -1,5 +1,5 @@
 {
-  "card_count": 25,
+  "card_count": 29,
   "cards": [
     {
       "id": "browse/catalog",
@@ -68,6 +68,12 @@
       "summary": "MCP JSON-RPC descriptors and cassette replay."
     },
     {
+      "id": "cookbook/mcp-client",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-client",
+      "summary": "Checked HTTP, stdio, legacy, MRTR, and subscription composition."
+    },
+    {
       "id": "cookbook/mcp-http",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-mcp-http",
@@ -90,6 +96,24 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-mcp-stdio",
       "summary": "Bounded modern and explicit legacy MCP process boundaries."
+    },
+    {
+      "id": "cookbook/oauth-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-oauth-core",
+      "summary": "Effect-free resource-bound authorization-code composition."
+    },
+    {
+      "id": "cookbook/oauth-http",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-oauth-http",
+      "summary": "Retrieve discovery and JWK documents through the shared HTTP policy."
+    },
+    {
+      "id": "cookbook/oauth-jose",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-oauth-jose",
+      "summary": "Verify resource-bound access tokens against injected rotating JWK sets."
     },
     {
       "id": "cookbook/openai-gateway",

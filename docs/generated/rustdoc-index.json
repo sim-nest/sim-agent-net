@@ -100,6 +100,13 @@
       "summary": "Stateless MCP application service for SIM."
     },
     {
+      "crate_name": "sim_lib_mcp_client",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-mcp-client/Cargo.toml",
+      "package": "sim-lib-mcp-client",
+      "summary": "Modern-first, transport-neutral MCP client."
+    },
+    {
       "crate_name": "sim_lib_mcp_http",
       "group": "workspace",
       "manifest": "crates/sim-lib-mcp-http/Cargo.toml",
@@ -119,6 +126,27 @@
       "manifest": "crates/sim-lib-mcp-stdio/Cargo.toml",
       "package": "sim-lib-mcp-stdio",
       "summary": "Bounded newline framing and request-owned lifetimes for MCP over stdio."
+    },
+    {
+      "crate_name": "sim_lib_oauth_core",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-oauth-core/Cargo.toml",
+      "package": "sim-lib-oauth-core",
+      "summary": "Effect-free OAuth 2.1 resource/client state and authority facts."
+    },
+    {
+      "crate_name": "sim_lib_oauth_http",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-oauth-http/Cargo.toml",
+      "package": "sim-lib-oauth-http",
+      "summary": "Policy-bounded OAuth metadata and JWK retrieval over sim-lib-net-http."
+    },
+    {
+      "crate_name": "sim_lib_oauth_jose",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-oauth-jose/Cargo.toml",
+      "package": "sim-lib-oauth-jose",
+      "summary": "Local JWT/JWK-set verification with no I/O and no algorithm inference."
     },
     {
       "crate_name": "sim_lib_openai_server",

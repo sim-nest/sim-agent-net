@@ -256,6 +256,27 @@ claims_specimens = [
 depends_on = ["feature/sim-agent-net/mcp-server"]
 
 [[feature]]
+id = "feature/sim-agent-net/mcp-modern-first-client"
+title = "Modern-first dual-era MCP client"
+summary = "Consume final and delivered legacy MCP over HTTP or stdio without replaying application behavior."
+owner = "crate/sim-lib-mcp-client"
+audiences = ["code", "framework"]
+guidance = "Compose Client over the existing sim-lib-mcp-http or sim-lib-mcp-stdio binding through BindingPeer. Use EndpointIdentity without credentials, import the canonical SkillCard projection, and invoke only through McpCallable. Probe server/discover while the era is unknown; accept only pinned binding-specific legacy classification before initialize and never replay an application operation to switch eras. Inject principal scope, InputBroker, ledger, cancellation, deadlines, and persistent cache policy from the host."
+claims_anchors = ["anchor/crate/sim-lib-mcp-client"]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/http-client",
+  "recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/stdio-client",
+  "recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/legacy-fallback",
+  "recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/mrtr-input",
+  "recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/subscription",
+]
+depends_on = [
+  "feature/sim-agent-net/mcp-streamable-http",
+  "feature/sim-agent-net/mcp-legacy-compatibility",
+  "feature/sim-agent-net/mcp-stdio-lifetimes",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/mcp-stdio-lifetimes"
 title = "Bounded MCP stdio request lifetimes"
 summary = "Frame one bounded JSON message per newline, isolate cancellation by live request id, serialize stdout, and consume MCP peers through ProcessProgram."

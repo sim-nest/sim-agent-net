@@ -311,6 +311,11 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-mcp-client"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-mcp-http"
     },
     {
@@ -340,6 +345,21 @@
       ],
       "group": "workspace",
       "package": "sim-lib-mcp-stdio"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-oauth-core"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-oauth-http"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-oauth-jose"
     },
     {
       "features": [

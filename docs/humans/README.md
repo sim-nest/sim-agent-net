@@ -26,8 +26,12 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-agent-net/raw-http-server-seam` | `crate/sim-lib-server` | 1 | Expose ordered HTTP request facts and pull/push streaming bodies with per-request cancellation, caps, deadline budgets, trailer policy, and write acknowledgement backpressure. |
 | `feature/sim-agent-net/structured-process-program` | `crate/sim-lib-agent-runner-process` | 1 | Project a portable ProcessRequest into bounded stdin/stdout frames, a separate stderr sink, and an explicit exit report through the active ProcessPort. |
 | `feature/sim-agent-net/mcp-server` | `crate/sim-lib-mcp` | 1 | Serve MCP requests through the loaded sim-lib-mcp command and runtime libraries. |
+| `feature/sim-agent-net/oauth-state-machines` | `crate/sim-lib-oauth-core` | 1 | Validate authority metadata and run resource-bound PKCE authorization-code transitions with injected effects. |
+| `feature/sim-agent-net/oauth-local-jose` | `crate/sim-lib-oauth-jose` | 1 | Verify JWT access tokens locally against injected JWK generations and return immutable authority facts. |
+| `feature/sim-agent-net/oauth-bounded-http` | `crate/sim-lib-oauth-http` | 1 | Retrieve metadata and keys through the shared HTTP policy while pure core and JOSE layers perform no I/O. |
 | `feature/sim-agent-net/mcp-streamable-http` | `crate/sim-lib-mcp-http` | 3 | Serve and call final-protocol MCP over bounded, stateless Streamable HTTP. |
 | `feature/sim-agent-net/mcp-legacy-compatibility` | `crate/sim-lib-mcp-legacy` | 1 | Retain initialize, initialized notification, negotiated connection facts, and shutdown behavior outside the canonical stateless MCP service. |
+| `feature/sim-agent-net/mcp-modern-first-client` | `crate/sim-lib-mcp-client` | 5 | Consume final and delivered legacy MCP over HTTP or stdio without replaying application behavior. |
 | `feature/sim-agent-net/mcp-stdio-lifetimes` | `crate/sim-lib-mcp-stdio` | 3 | Frame one bounded JSON message per newline, isolate cancellation by live request id, serialize stdout, and consume MCP peers through ProcessProgram. |
 | `feature/sim-agent-net/bridge-runtime` | `crate/sim-lib-agent` | 1 | Transmit, receive, check, and route symmetric human-model packets with agent and bridge runtime support. |
 | `feature/sim-agent-net/model-runner-framework` | `crate/sim-lib-agent-runner-core` | 3 | Run GenAI requests through provider-neutral runner contracts, named direct-API families, HTTP profiles, process adapters, and loadable model sites. |
@@ -67,6 +71,24 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 
 ## Recipes
 
+- `.sim/oauth-check/crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/expected.txt`
+- `.sim/oauth-check/crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/purpose.md`
+- `.sim/oauth-check/crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/recipe.toml`
+- `.sim/oauth-check/crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/setup.siml`
+- `.sim/oauth-check/crates/sim-lib-oauth-core/recipes/01-basics/chapter.toml`
+- `.sim/oauth-check/crates/sim-lib-oauth-core/recipes/book.toml`
+- `.sim/oauth-check/crates/sim-lib-oauth-http/recipes/01-basics/chapter.toml`
+- `.sim/oauth-check/crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/expected.txt`
+- `.sim/oauth-check/crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/purpose.md`
+- `.sim/oauth-check/crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/recipe.toml`
+- `.sim/oauth-check/crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/setup.siml`
+- `.sim/oauth-check/crates/sim-lib-oauth-http/recipes/book.toml`
+- `.sim/oauth-check/crates/sim-lib-oauth-jose/recipes/01-basics/chapter.toml`
+- `.sim/oauth-check/crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/expected.txt`
+- `.sim/oauth-check/crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/purpose.md`
+- `.sim/oauth-check/crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/recipe.toml`
+- `.sim/oauth-check/crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/setup.siml`
+- `.sim/oauth-check/crates/sim-lib-oauth-jose/recipes/book.toml`
 - `crates/sim-lib-agent-conduct-core/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/Cargo.toml`
 - `crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/README.md`
@@ -313,6 +335,28 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-forge/recipes/01-basics/forge-cli/recipe.toml`
 - `crates/sim-lib-forge/recipes/01-basics/forge-cli/setup.siml`
 - `crates/sim-lib-forge/recipes/book.toml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/http-client/expected.txt`
+- `crates/sim-lib-mcp-client/recipes/01-basics/http-client/purpose.md`
+- `crates/sim-lib-mcp-client/recipes/01-basics/http-client/recipe.toml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/http-client/setup.siml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/legacy-fallback/expected.txt`
+- `crates/sim-lib-mcp-client/recipes/01-basics/legacy-fallback/purpose.md`
+- `crates/sim-lib-mcp-client/recipes/01-basics/legacy-fallback/recipe.toml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/legacy-fallback/setup.siml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/mrtr-input/expected.txt`
+- `crates/sim-lib-mcp-client/recipes/01-basics/mrtr-input/purpose.md`
+- `crates/sim-lib-mcp-client/recipes/01-basics/mrtr-input/recipe.toml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/mrtr-input/setup.siml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/stdio-client/expected.txt`
+- `crates/sim-lib-mcp-client/recipes/01-basics/stdio-client/purpose.md`
+- `crates/sim-lib-mcp-client/recipes/01-basics/stdio-client/recipe.toml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/stdio-client/setup.siml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/subscription/expected.txt`
+- `crates/sim-lib-mcp-client/recipes/01-basics/subscription/purpose.md`
+- `crates/sim-lib-mcp-client/recipes/01-basics/subscription/recipe.toml`
+- `crates/sim-lib-mcp-client/recipes/01-basics/subscription/setup.siml`
+- `crates/sim-lib-mcp-client/recipes/book.toml`
 - `crates/sim-lib-mcp-http/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-mcp-http/recipes/01-basics/http-client/expected.txt`
 - `crates/sim-lib-mcp-http/recipes/01-basics/http-client/purpose.md`
@@ -344,6 +388,24 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-mcp/recipes/01-basics/cassette-tools-list/setup.siml`
 - `crates/sim-lib-mcp/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-mcp/recipes/book.toml`
+- `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/expected.txt`
+- `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/purpose.md`
+- `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/recipe.toml`
+- `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/setup.siml`
+- `crates/sim-lib-oauth-core/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-oauth-core/recipes/book.toml`
+- `crates/sim-lib-oauth-http/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/expected.txt`
+- `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/purpose.md`
+- `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/recipe.toml`
+- `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/setup.siml`
+- `crates/sim-lib-oauth-http/recipes/book.toml`
+- `crates/sim-lib-oauth-jose/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/expected.txt`
+- `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/purpose.md`
+- `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/recipe.toml`
+- `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/setup.siml`
+- `crates/sim-lib-oauth-jose/recipes/book.toml`
 - `crates/sim-lib-openai-server/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-openai-server/recipes/01-basics/fixture-chat/purpose.md`
 - `crates/sim-lib-openai-server/recipes/01-basics/fixture-chat/recipe.toml`
@@ -2892,6 +2954,75 @@ fn any_shape(name: &str) -> ShapeRef {
 use sim_value::build::entry as field;
 ```
 
+### `feature/sim-agent-net/oauth-state-machines`
+
+Specimen `recipe/sim-agent-net/crates/sim-lib-oauth-core/01-basics/authorization-code` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/recipe.toml`:
+
+```toml
+id = "oauth-authorization-code"
+title = "Build a resource-bound authorization request"
+summary = "Compose injected entropy, consent, browser, storage, PKCE S256, state, issuer, least scopes, and one exact resource."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["oauth", "pkce", "client"]
+requires = ["oauth-core"]
+
+[[expect]]
+form = 0
+result = "(oauth-code (pkce S256) (state unpredictable) (resource exact) (effects injected))"
+```
+
+### `feature/sim-agent-net/oauth-local-jose`
+
+Specimen `recipe/sim-agent-net/crates/sim-lib-oauth-jose/01-basics/verify-token` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/recipe.toml`:
+
+```toml
+id = "oauth-verify-token"
+title = "Verify a rotated resource-bound token"
+summary = "Select one allowlisted algorithm and kid, then bind issuer, audience, resource, scope, expiry, and JWK generation."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["oauth", "jose", "jwt"]
+requires = ["oauth-jose"]
+
+[[expect]]
+form = 0
+result = "(verified-principal (token redacted) (authority exact) (key-generation current))"
+```
+
+### `feature/sim-agent-net/oauth-bounded-http`
+
+Specimen `recipe/sim-agent-net/crates/sim-lib-oauth-http/01-basics/metadata-refresh` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/recipe.toml`:
+
+```toml
+id = "oauth-metadata-refresh"
+title = "Retrieve bounded discovery and rotating keys"
+summary = "Use the shared HTTP policy with HTTPS, byte caps, redirects off, and an explicit refresh clock."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["oauth", "http", "discovery"]
+requires = ["oauth-http", "net-http"]
+
+[[expect]]
+form = 0
+result = "(oauth-discovery (https required) (redirect off) (bytes bounded) (refresh explicit))"
+```
+
 ### `feature/sim-agent-net/mcp-streamable-http`
 
 Specimen `recipe/sim-agent-net/crates/sim-lib-mcp-http/01-basics/http-server` is checked by `xtask check-recipes`.
@@ -2953,11 +3084,11 @@ use std::{
 
 use sim_cancel::Cancellation;
 use sim_codec_mcp::McpEnvelope;
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, HandleSeed, Result};
+use sim_kernel::{Cx, DefaultFactory, EagerPolicy, HandleSeed, Result, capability::CapabilitySet};
 use sim_lib_mcp::{Principal, RequestContext};
 use sim_lib_mcp_http::{
-    HttpClock, IdentityProvider, McpDispatch, McpHttpHandler, OriginPolicy, RequestIdentity,
-    ServerPolicy,
+    AuthRejection, HttpClock, IdentityProvider, McpDispatch, McpHttpHandler, OriginPolicy,
+    RequestIdentity, ServerPolicy,
 };
 use sim_lib_server::{
     BodyReader, RawHandler, RequestHead, RequestScope, ResponseHead, ResponseWriter,
@@ -2965,9 +3096,10 @@ use sim_lib_server::{
 
 struct Identity;
 impl IdentityProvider for Identity {
-    fn identify(&self, _head: &RequestHead) -> Result<RequestIdentity> {
+    fn identify(&self, _head: &RequestHead) -> std::result::Result<RequestIdentity, AuthRejection> {
         Ok(RequestIdentity {
             principal: Principal::new("integration-principal"),
+            grants: CapabilitySet::new(),
         })
     }
 }
@@ -3051,12 +3183,7 @@ fn scope() -> RequestScope {
 fn method_and_origin_policy_reject_before_body_or_dispatch() {
     let dispatches = Arc::new(AtomicUsize::new(0));
     let handler = McpHttpHandler::new(
-        ServerPolicy::new(
-            "/mcp",
-            OriginPolicy::Exact(vec!["https://allowed.example".into()]),
-            4096,
-        )
-        .unwrap(),
+        ServerPolicy::remote("/mcp", vec!["https://allowed.example".into()], 4096, true).unwrap(),
         Dispatch(dispatches.clone()),
         Identity,
         Clock,
@@ -3136,6 +3263,113 @@ requires = ["mcp"]
 [[expect]]
 form = 0
 result = "(mcp-legacy (initialize 2025-03-26) (context fresh-per-request) (service stateless) (shutdown adapter-owned))"
+```
+
+### `feature/sim-agent-net/mcp-modern-first-client`
+
+Specimen `recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/http-client` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-mcp-client/recipes/01-basics/http-client/recipe.toml`:
+
+```toml
+id = "mcp-client-http"
+title = "Compose a loopback HTTP peer"
+summary = "Adapt sim-lib-mcp-http to BindingPeer and let Client probe before one call."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["mcp", "client", "http"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:endpoint \"http://127.0.0.1:8080/mcp\" :probe \"server/discover\" :calls 1)"
+```
+
+Specimen `recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/stdio-client` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-mcp-client/recipes/01-basics/stdio-client/recipe.toml`:
+
+```toml
+id = "mcp-client-stdio"
+title = "Compose a structured stdio peer"
+summary = "Adapt McpProcessClient and use one identity for one child lifetime."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 20
+tags = ["mcp", "client", "stdio"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:endpoint \"process:child-1\" :probe \"server/discover\" :calls 1)"
+```
+
+Specimen `recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/legacy-fallback` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-mcp-client/recipes/01-basics/legacy-fallback/recipe.toml`:
+
+```toml
+id = "mcp-client-legacy"
+title = "Classify legacy before application traffic"
+summary = "Recognize only the pinned discovery refusal, initialize, then call once."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 30
+tags = ["mcp", "client", "legacy"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:sequence (\"server/discover\" \"initialize\" \"tools/call\") :application-calls 1)"
+```
+
+Specimen `recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/mrtr-input` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-mcp-client/recipes/01-basics/mrtr-input/recipe.toml`:
+
+```toml
+id = "mcp-client-mrtr"
+title = "Answer bounded input_required"
+summary = "Validate capabilities and retry with exact requestState and a fresh id."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 40
+tags = ["mcp", "client", "mrtr"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:input-capabilities (\"input.confirm\") :maximum-rounds 3 :fresh-ids true)"
+```
+
+Specimen `recipe/sim-agent-net/crates/sim-lib-mcp-client/01-basics/subscription` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-mcp-client/recipes/01-basics/subscription/recipe.toml`:
+
+```toml
+id = "mcp-client-subscription"
+title = "Consume a checked subscription"
+summary = "Verify acknowledgement, every id, backpressured events, and dated terminal."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 50
+tags = ["mcp", "client", "subscription"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:sequence (\"acknowledged\" \"event\" \"complete\") :backpressure true)"
 ```
 
 ### `feature/sim-agent-net/mcp-stdio-lifetimes`
