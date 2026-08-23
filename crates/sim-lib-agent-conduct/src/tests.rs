@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use sim_kernel::{
-    Args, CORE_FUNCTION_CLASS_ID, Callable, ClassRef, Cx, DefaultFactory, Expr, NoopEvalPolicy,
-    Object, Result, Symbol,
+    Args, CORE_FUNCTION_CLASS_ID, Callable, ClassRef, Cx, Expr, Object, Result, Symbol,
 };
 use sim_lib_agent_conduct_core::AgentStepCard;
 use sim_lib_topology::{TopologyProgress, parse_package, topology_run_capability};
@@ -73,12 +72,8 @@ fn cards() -> Vec<AgentStepCard> {
 fn conduct() -> AgentConduct {
     validate_agent_conduct(parse_package(PACKAGE).unwrap(), &cards()).unwrap()
 }
-fn cx() -> Cx {
-    let mut cx = Cx::new(
-        Arc::new(NoopEvalPolicy),
-        Arc::new(DefaultFactory),
-        sim_kernel::HandleSeed::new(1),
-    );
+fn conduct_context() -> Cx {
+    let mut cx = sim_kernel::testing::bare_cx();
     cx.grant(topology_run_capability());
     let predicate = cx.factory().opaque(Arc::new(Echo)).unwrap();
     cx.registry_mut()
@@ -108,7 +103,7 @@ fn three_node_conduct_validates_runs_pauses_resumes_reflects_and_diagrams() {
     assert_eq!(conduct.required_roles, vec![Symbol::new("runner")]);
     assert_eq!(conduct.browse_summary.call_nodes, 2);
     let input = run_frame_shape();
-    let mut context = cx();
+    let mut context = conduct_context();
     let bound = bindings(&mut context, &conduct);
     let first = conduct
         .step(&mut context, input.clone(), None, bound)
@@ -168,7 +163,7 @@ fn validation_rejects_card_role_route_terminal_and_binding_disagreement() {
     let direct = PACKAGE.replace("wire finish -> out", "wire echo -> out");
     assert!(validate_agent_conduct(parse_package(&direct).unwrap(), &cards()).is_err());
     let conduct = conduct();
-    let context = cx();
+    let context = conduct_context();
     let echo = context.factory().opaque(Arc::new(Echo)).unwrap();
     let error = bind_agent_conduct(
         &conduct,

@@ -1,17 +1,7 @@
-use std::sync::Arc;
-
 use sim_citizen::{CitizenRegistry, run_registry_conformance_expecting};
-use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, Symbol};
+use sim_kernel::{Expr, Symbol, testing::bare_cx as cx};
 
 use crate::*;
-
-fn cx() -> Cx {
-    Cx::new(
-        Arc::new(NoopEvalPolicy),
-        Arc::new(DefaultFactory),
-        sim_kernel::HandleSeed::new(1),
-    )
-}
 
 #[test]
 fn every_public_record_has_shape_and_general_codec_round_trip() {

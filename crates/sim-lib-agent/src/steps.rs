@@ -11,6 +11,7 @@ use sim_lib_agent_conduct_core::{
 use sim_lib_agent_runner_core::{ModelResponse, ModelRunner};
 use sim_lib_bridge::{AskAttempt, run_ask_once};
 use sim_lib_provider::{ProviderRegistry, ProviderSeatId};
+use sim_value::build::entry as field;
 
 use crate::util::value_from_expr;
 use crate::{Component, ComponentKind, PlanningOutput, PlanningTask, planning};
@@ -128,10 +129,6 @@ pub struct DelegatedObservation {
 
 fn event(kind: &str, fields: Vec<(Expr, Expr)>) -> AgentEvent {
     AgentEvent::new(Symbol::qualified("agent.event", kind), Expr::Map(fields))
-}
-
-fn field(name: &str, value: Expr) -> (Expr, Expr) {
-    (Expr::Symbol(Symbol::new(name)), value)
 }
 
 /// Calls exactly one bound component and records reference-only provenance.
