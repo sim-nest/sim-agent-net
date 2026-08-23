@@ -31,6 +31,7 @@ mod agent_ai_tool_injection;
 mod agent_ai_tools;
 #[cfg(feature = "cookbook")]
 mod agent_cookbook;
+mod agent_manifest_conduct;
 mod agent_patterns;
 mod agent_r16;
 mod agent_r17;

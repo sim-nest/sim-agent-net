@@ -19,7 +19,11 @@ use std::{
 pub(super) use crate::install_agent_lib;
 
 pub(super) fn eval_cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    )
 }
 
 pub(super) fn install_test_codec(cx: &mut Cx) {

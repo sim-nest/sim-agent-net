@@ -8,7 +8,7 @@ mod trace;
 pub(crate) use driver::agent_line_driver_factory;
 pub(crate) use helpers::{
     build_agent_runtime_site, collect_agent_components, component_kind_matches, component_name,
-    first_codec,
+    conduct_id, first_codec, graph_fingerprint, required_roles_from_expr,
 };
 #[cfg(test)]
 #[allow(unused_imports)]

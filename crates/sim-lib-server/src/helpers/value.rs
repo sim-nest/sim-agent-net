@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::{Connection, Server};
-use sim_kernel::{Args, CapabilityName, Cx, Error, Expr, Result, Value};
+use sim_kernel::{Args, CapabilityName, Cx, Error, Expr, HandleSeed, Result, Value};
 use sim_value::capability_names_from_expr;
 
 pub(crate) fn symbol_from_value(
@@ -76,7 +76,7 @@ pub(crate) fn capability_names_from_value(
 }
 
 pub(crate) fn clone_server_cx(seed: &Cx) -> Cx {
-    seed.fork_from_seed()
+    seed.fork_from_seed(HandleSeed::new(1))
 }
 
 pub(crate) fn coerce_result_shape(

@@ -34,6 +34,7 @@ pub(crate) fn agent_make_value(cx: &mut Cx, args: Args) -> Result<Value> {
         None => sim_lib_server::IsolationPolicy::default(),
     };
     let manifest = AgentManifest {
+        conduct: optional_value(&options, "conduct"),
         runners: values_option(cx, &options, "runners")?,
         tools: values_option(cx, &options, "tools")?,
         memories: values_option(cx, &options, "memories")?,
@@ -46,6 +47,15 @@ pub(crate) fn agent_make_value(cx: &mut Cx, args: Args) -> Result<Value> {
         recorders: values_option(cx, &options, "recorders")?,
         voice: optional_value(&options, "voice"),
         topology: optional_value(&options, "topology"),
+        budget: options
+            .get("budget")
+            .map(|value| {
+                stringish_from_value(cx, value.clone(), "agent/make :budget expects an integer")?
+                    .parse::<usize>()
+                    .map_err(|_| Error::Eval("agent/make :budget expects an integer".to_owned()))
+            })
+            .transpose()?,
+        result_shape: optional_value(&options, "result-shape"),
         extras: BTreeMap::new(),
     };
     let capabilities = capabilities_option(cx, &options, "capable")?;
@@ -270,6 +280,8 @@ pub(crate) fn agent_replace_value(cx: &mut Cx, args: Args) -> Result<Value> {
             "sandbox" => manifest.sandbox = Some(replacement.clone()),
             "voice" => manifest.voice = Some(replacement.clone()),
             "topology" => manifest.topology = Some(replacement.clone()),
+            "conduct" => manifest.conduct = Some(replacement.clone()),
+            "result-shape" => manifest.result_shape = Some(replacement.clone()),
             "tools" | "tool" => manifest.tools = vec![replacement.clone()],
             "memories" | "memory" => manifest.memories = vec![replacement.clone()],
             "retrievers" | "retriever" => manifest.retrievers = vec![replacement.clone()],
@@ -304,6 +316,23 @@ pub(crate) fn agent_derive_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let mut manifest = source.manifest_clone()?;
     if let Some(persona) = options.get("persona") {
         manifest.persona = Some(persona.clone());
+    }
+    if let Some(conduct) = options.get("conduct") {
+        manifest.conduct = Some(conduct.clone());
+    }
+    if let Some(result_shape) = options.get("result-shape") {
+        manifest.result_shape = Some(result_shape.clone());
+    }
+    if let Some(budget) = options.get("budget") {
+        manifest.budget = Some(
+            stringish_from_value(
+                cx,
+                budget.clone(),
+                "agent/derive :budget expects an integer",
+            )?
+            .parse::<usize>()
+            .map_err(|_| Error::Eval("agent/derive :budget expects an integer".to_owned()))?,
+        );
     }
     let name = match options.get("name") {
         Some(value) => symbol_from_value(cx, value.clone(), "agent/derive :name expects a symbol")?,

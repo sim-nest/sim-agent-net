@@ -90,6 +90,10 @@ pub(super) fn agent_make_expr(cx: &mut Cx, agent: &Agent) -> Result<Expr> {
         Expr::Symbol(Symbol::new(":name")),
         Expr::Symbol(agent.name.clone()),
     ];
+    if let Some(conduct) = &manifest.conduct {
+        args.push(Expr::Symbol(Symbol::new(":conduct")));
+        args.push(component_to_expr(cx, conduct)?);
+    }
     if !manifest.runners.is_empty() {
         args.push(Expr::Symbol(Symbol::new(":runners")));
         args.push(Expr::List(

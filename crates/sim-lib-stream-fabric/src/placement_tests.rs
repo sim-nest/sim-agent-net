@@ -268,7 +268,11 @@ fn server_profiles_declare_preview_and_render_latency() {
 }
 
 fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
     let codec_id = cx.registry_mut().fresh_codec_id();
     cx.load_lib(&sim_codec_lisp::LispCodecLib::new(codec_id).unwrap())
         .unwrap();
@@ -280,7 +284,11 @@ fn cx() -> Cx {
 }
 
 fn cx_without_placement_run_grant() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
     let codec_id = cx.registry_mut().fresh_codec_id();
     cx.load_lib(&sim_codec_lisp::LispCodecLib::new(codec_id).unwrap())
         .unwrap();

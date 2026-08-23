@@ -233,7 +233,11 @@ fn task_expr(id: &str, prompt: &str) -> Expr {
 }
 
 fn eval_cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    )
 }
 
 fn install_roundtrip_codecs(cx: &mut Cx) {

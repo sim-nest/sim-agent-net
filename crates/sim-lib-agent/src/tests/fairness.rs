@@ -25,6 +25,7 @@ fn attribution_card_reports_event_and_effect_evidence() {
     let mut effects = EffectLedger::with_run(run.clone());
     let mut store = BTreeDatumStore::new();
     let effect = Effect::new(
+        sim_kernel::HandleSeed::new(1).sequence().next_handle(),
         Symbol::qualified("fixture", "lookup"),
         trace,
         Ref::Symbol(Symbol::qualified("fixture", "input")),

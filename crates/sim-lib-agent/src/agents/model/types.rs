@@ -36,6 +36,9 @@ pub struct Budget {
 /// The set of components composing an agent, grouped by role.
 #[derive(Clone, Default)]
 pub struct AgentManifest {
+    /// Loadable conduct that defines the agent's execution graph. When absent,
+    /// the built-in compatibility conduct preserves the historical pipeline.
+    pub conduct: Option<ComponentRef>,
     /// Model runners available to the agent.
     pub runners: Vec<ComponentRef>,
     /// Tools the agent may invoke.
@@ -60,6 +63,10 @@ pub struct AgentManifest {
     pub voice: Option<ComponentRef>,
     /// Optional topology describing the agent network.
     pub topology: Option<ComponentRef>,
+    /// Default per-run answer budget, narrowed (never widened) by callers.
+    pub budget: Option<usize>,
+    /// Default result Shape, narrowed (never replaced with a weaker contract) by callers.
+    pub result_shape: Option<ComponentRef>,
     /// Additional named components keyed by symbol.
     pub extras: BTreeMap<Symbol, ComponentRef>,
 }
@@ -199,7 +206,6 @@ impl Agent {
     ) -> Self {
         let default_codec = first_codec(&codecs);
         let site = Arc::new(AgentEvalSite {
-            name: name.clone(),
             manifest: manifest.clone(),
             codecs: codecs.clone(),
             capabilities: capabilities.clone(),

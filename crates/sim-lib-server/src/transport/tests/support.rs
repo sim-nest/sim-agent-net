@@ -6,7 +6,11 @@ use sim_codec_lisp::LispCodecLib;
 use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Symbol};
 
 pub(crate) fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
     let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
     let json = JsonCodecLib::new(cx.registry_mut().fresh_codec_id());

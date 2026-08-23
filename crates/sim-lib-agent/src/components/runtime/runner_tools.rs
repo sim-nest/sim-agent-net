@@ -126,7 +126,7 @@ where
 }
 
 #[derive(Clone)]
-struct ToolLoopState {
+pub(super) struct ToolLoopState {
     declared_tools: Option<BTreeSet<Symbol>>,
     phase_tools: Option<BTreeSet<Symbol>>,
     seen_calls: BTreeSet<String>,
@@ -168,7 +168,7 @@ impl ToolLoopState {
     }
 }
 
-enum ToolRound {
+pub(super) enum ToolRound {
     Continue(Vec<Expr>),
     Submitted(Expr),
     Fatal(String),
@@ -368,6 +368,7 @@ fn tool_call_effect(cx: &mut Cx, tool: &crate::Tool, call: &ToolCall) -> Result<
         None => core_any_ref(),
     };
     Effect::new(
+        cx.fresh_handle(),
         tool_call_effect_kind(),
         Ref::Symbol(tool.symbol.clone()),
         input_ref,

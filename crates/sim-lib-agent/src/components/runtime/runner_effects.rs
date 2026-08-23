@@ -111,6 +111,7 @@ fn model_infer_effect_for_expr(
         None => core_any_ref(),
     };
     Effect::new(
+        cx.fresh_handle(),
         model_infer_effect_kind(),
         Ref::Symbol(Symbol::qualified("agent", "model-infer")),
         input,

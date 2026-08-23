@@ -481,7 +481,11 @@ fn cx() -> Cx {
 }
 
 fn cx_without_remote_network() -> Cx {
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
     let codec_id = cx.registry_mut().fresh_codec_id();
     cx.load_lib(&sim_codec_lisp::LispCodecLib::new(codec_id).unwrap())
         .unwrap();

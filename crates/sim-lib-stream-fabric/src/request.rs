@@ -1,6 +1,5 @@
 use sim_kernel::{
-    Datum, DatumStore, Error, Event, Expr, HandleId, ObserveMode, RealizeRequest, Ref, Result,
-    Symbol, Term,
+    Datum, DatumStore, Error, Event, Expr, ObserveMode, RealizeRequest, Ref, Result, Symbol, Term,
 };
 use sim_lib_server::Site;
 use sim_lib_stream_core::{PlacedFragment, StreamEnvelope, StreamValue};
@@ -31,7 +30,7 @@ pub fn realize_stream_events(
             "stream realization requires ObserveMode::Events".to_owned(),
         ));
     }
-    let run = Ref::Handle(HandleId::fresh());
+    let run = Ref::Handle(cx.fresh_handle());
     let request_ref = realize_request_ref(cx, request)?;
     let mut events = vec![Event::started(run.clone(), 0, request_ref)?];
     let mut seq = 1u64;

@@ -113,7 +113,6 @@ pub fn run_ask_with_policy(
     mut packet: BridgePacket,
     policy: RepairPolicy,
 ) -> Result<BridgePacket> {
-    let book = BridgeBook::standard();
     let max_retries = policy.retries();
     for attempt in 0..=max_retries {
         match run_ask_once(cx, target, packet)? {

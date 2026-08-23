@@ -22,13 +22,21 @@ pub(crate) use crate::wasm::lookup_wasm_region;
 pub(crate) static NEXT_TEST_VALUE_ID: AtomicU64 = AtomicU64::new(1);
 
 pub(crate) fn cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
     install_codecs(&mut cx);
     cx
 }
 
 pub(crate) fn strict_name_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(StrictNames(EagerPolicy)), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(StrictNames(EagerPolicy)),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
     install_codecs(&mut cx);
     cx
 }

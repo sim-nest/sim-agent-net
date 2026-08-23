@@ -76,6 +76,26 @@ requires = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/manifest-selected-conduct"
+title = "Manifest-selected agent conduct"
+summary = "Select one loadable conduct in AgentManifest and execute it identically before start, after start, and after runtime replacement or restart."
+owner = "crate/sim-lib-agent"
+audiences = ["code", "framework"]
+guidance = "Use AgentManifest as the sole assembly center: bind a conduct separately from the existing topology component slot, name provider seats (Provider_4 is the durable compatibility seat), and let each call narrow manifest budget and result-Shape defaults. Omit conduct only for the explicit compatibility conduct. Reflection exposes the conduct id, graph fingerprint, required roles, capabilities, budget, and result contract; unresolved roles fail before execution."
+claims_anchors = [
+  "anchor/crate/sim-lib-agent",
+  "anchor/export/sim-lib-agent/agent/make",
+  "anchor/export/sim-lib-agent/agent/derive",
+  "anchor/export/sim-lib-agent/agent/replace",
+  "anchor/export/sim-lib-agent/agent/start",
+]
+requires = [
+  "feature/sim-agent-net/agent-conduct-topology-profile",
+  "feature/sim-agent-net/agent-single-steps",
+  "feature/sim-agent-net/provider-control",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/provider-control"
 title = "Reusable provider control"
 summary = "Register open provider families, preserve independently selectable seats, validate them through one conformance harness, and compose them in ordered fan-out."

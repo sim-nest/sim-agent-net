@@ -6,7 +6,11 @@ use std::sync::Arc;
 
 #[test]
 fn stable_cache_key_includes_output_shape() {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
     let expr = Expr::Map(vec![
         (Expr::Symbol(Symbol::new("model-request")), Expr::Bool(true)),
         (

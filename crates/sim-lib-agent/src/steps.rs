@@ -403,17 +403,23 @@ pub struct ModelTurnOptions {
 pub enum ModelTurnResult {
     /// A checked final BRIDGE packet and its redacted journal event.
     Final {
+        /// Checked reply packet accepted as the final model result.
         packet: BridgePacket,
+        /// Redacted event recorded for this model turn.
         event: AgentEvent,
     },
     /// A checked reply asks the graph to execute tool calls next.
     ToolCalls {
+        /// Checked reply packet carrying the requested tool calls.
         packet: BridgePacket,
+        /// Redacted event recorded for this model turn.
         event: AgentEvent,
     },
     /// The reply requires a later graph-owned repair step.
     RepairNeeded {
+        /// Bounded ASK failure that the graph can route to repair.
         failure: sim_lib_bridge::AskFailure,
+        /// Redacted event recorded for this model turn.
         event: AgentEvent,
     },
     /// Admission refused before opening or invoking the provider seat.

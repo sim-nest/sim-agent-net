@@ -185,7 +185,11 @@ fn votes_for_target(base_cid: &str, replies: &[BridgePacket], target: &str) -> R
 
 fn check_merged_reply(base: &BridgePacket, merged: &BridgePacket) -> Result<()> {
     let book = BridgeBook::standard();
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
     let report = rx_check(&mut cx, &book, merged, Some(base))?;
     if report.accepted() {
         return Ok(());

@@ -218,6 +218,7 @@ fn model_placement_effect(
         ],
     })?);
     Effect::new(
+        cx.fresh_handle(),
         model_placement_effect_kind(),
         Ref::Symbol(placement_key_symbol(key.as_str())),
         input,
