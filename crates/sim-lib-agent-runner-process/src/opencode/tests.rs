@@ -81,6 +81,7 @@ fn policy(allowed: bool, kind: AuthMethod) -> OpenCodeTermsPolicy {
         acknowledgement: Some(TermsAcknowledgement {
             terms_id: "vendor-a-terms".into(),
             revision: "2026-08".into(),
+            acknowledged_by: "operator-fixture".into(),
         }),
     }
 }
@@ -191,16 +192,17 @@ fn provider_model_plugin_policy_and_transport_drift_are_pinned_before_inference(
         Reply::Text(r#"{"digest":"sha256:catalog"}"#),
     ]);
     let mut runtime = cx(port);
-    let adapter = adapter(vec![config("main", OpenCodeTransport::Process)]);
-    let mut seat = adapter.discover(&mut runtime, Expr::Nil).unwrap().remove(0);
+    let process_adapter = adapter(vec![config("main", OpenCodeTransport::Process)]);
+    let mut seat = process_adapter
+        .discover(&mut runtime, Expr::Nil)
+        .unwrap()
+        .remove(0);
     seat.endpoint.transport = Symbol::new("local-server");
-    assert!(
-        adapter
-            .open(&mut runtime, &seat, Expr::Nil)
-            .unwrap_err()
-            .to_string()
-            .contains("implicit fallback")
-    );
+    let drift_error = match process_adapter.open(&mut runtime, &seat, Expr::Nil) {
+        Ok(_) => panic!("transport drift must refuse open"),
+        Err(error) => error,
+    };
+    assert!(drift_error.to_string().contains("implicit fallback"));
 
     let mut forbidden = config("subscription", OpenCodeTransport::Process);
     forbidden.terms_policy = policy(false, AuthMethod::Subscription);
@@ -240,10 +242,12 @@ fn timeout_process_death_server_death_and_removal_are_isolated() {
     let mut runtime = cx(FixturePort::new(Vec::new()));
     let adapter = adapter(vec![server]);
     let seat = adapter.discover(&mut runtime, Expr::Nil).unwrap().remove(0);
+    let open_error = match adapter.open(&mut runtime, &seat, Expr::Nil) {
+        Ok(_) => panic!("server death must not fall back to a process transport"),
+        Err(error) => error,
+    };
     assert!(
-        adapter
-            .open(&mut runtime, &seat, Expr::Nil)
-            .unwrap_err()
+        open_error
             .to_string()
             .contains("process fallback is forbidden")
     );
