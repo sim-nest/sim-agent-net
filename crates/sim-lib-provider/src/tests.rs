@@ -9,7 +9,56 @@ use sim_kernel::{
     Symbol,
 };
 use sim_lib_agent_runner_core::ModelRunner;
+use sim_lib_agent_runner_core::{ModelRequest, ModelResponse, ModelUsage};
 use std::sync::Arc;
+
+struct ConformingRunner {
+    identity: &'static str,
+    calls: Arc<std::sync::atomic::AtomicUsize>,
+}
+
+impl ModelRunner for ConformingRunner {
+    fn card(&self) -> sim_lib_agent_runner_core::ModelCard {
+        sim_lib_agent_runner_core::ModelCard::default()
+    }
+
+    fn infer(&self, _cx: &mut Cx, request: ModelRequest) -> Result<ModelResponse> {
+        self.calls
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let case = request.extra.iter().find_map(|(key, value)| {
+            (key == &Expr::Symbol(Symbol::qualified("provider", "conformance-case")))
+                .then_some(value)
+        });
+        match case {
+            Some(Expr::Symbol(case)) if case.name.as_ref() == "error" => {
+                Err(Error::Eval("fixture-error".to_owned()))
+            }
+            Some(Expr::Symbol(case)) if case.name.as_ref() == "cancel" => {
+                Err(Error::Eval("cancelled-before-effect".to_owned()))
+            }
+            _ => {
+                let mut response = ModelResponse::new(
+                    Symbol::qualified("runner", self.identity),
+                    "conformance-model",
+                    vec![Expr::String("checked-answer".to_owned())],
+                    Symbol::new("stop"),
+                );
+                response.usage = Some(ModelUsage::default());
+                response.extra.extend([
+                    (
+                        Expr::Symbol(Symbol::qualified("provider", "tool-call")),
+                        Expr::Bool(true),
+                    ),
+                    (
+                        Expr::Symbol(Symbol::qualified("provider", "workspace-effect")),
+                        Expr::Bool(true),
+                    ),
+                ]);
+                Ok(response)
+            }
+        }
+    }
+}
 
 enum FakeSecretResult {
     Material(&'static str),
@@ -93,6 +142,130 @@ fn provider_families_and_discovered_seats_are_open() {
         seats[0].seat.to_string(),
         "seat:nebula-relay#violet-seat-47"
     );
+}
+
+fn conforming_seat(family: &str, label: &str, principal: &str) -> ProviderSeatCard {
+    let mut seat = seat_card_named(family, label);
+    seat.principal.label = principal.to_owned();
+    seat.extra.push((
+        crate::provider_capabilities_key(),
+        Expr::List(
+            [
+                "streaming",
+                "tools",
+                "structured-output",
+                "usage",
+                "workspace-effects",
+            ]
+            .into_iter()
+            .map(|name| Expr::Symbol(Symbol::new(name)))
+            .collect(),
+        ),
+    ));
+    seat
+}
+
+#[test]
+fn every_provider_family_and_fictional_extension_passes_one_harness() {
+    let cases = [
+        ("openai-api", "api-key", "key-principal"),
+        ("anthropic-api", "api-key", "anthropic-principal"),
+        ("codex-cli", "subscription", "codex-home"),
+        ("claude-cli", "subscription", "claude-home"),
+        ("opencode-cli", "broker", "opencode-home"),
+        ("ollama", "daemon", "local-ollama"),
+        ("lemonade", "daemon", "local-lemonade"),
+        ("lm-studio", "daemon", "local-lm-studio"),
+        ("nebula-extra", "extension", "fictional-principal"),
+    ];
+    let mut cx = test_cx_with_secret_capability();
+    for (family, label, principal) in cases {
+        let seat = conforming_seat(family, label, principal);
+        let runner = ConformingRunner {
+            identity: family,
+            calls: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        };
+        let report = crate::ProviderConformanceHarness::new(&seat, &runner)
+            .run(&mut cx)
+            .unwrap();
+        assert_eq!(report.seat, seat.seat.to_string());
+        assert!(report.stream_events > 0);
+    }
+}
+
+#[test]
+fn unsupported_capability_refuses_before_runner_request() {
+    let seat = seat_card_named("limited", "plain");
+    let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let runner = ConformingRunner {
+        identity: "limited",
+        calls: calls.clone(),
+    };
+    let error = crate::ProviderConformanceHarness::new(&seat, &runner)
+        .run(&mut test_cx_with_secret_capability())
+        .unwrap_err();
+    assert!(error.to_string().contains("does not support streaming"));
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 0);
+}
+
+#[test]
+fn api_cli_and_daemon_answer_one_ordered_provider_fanout() {
+    struct HarnessSeat {
+        card: ProviderSeatCard,
+        runner: Arc<ConformingRunner>,
+    }
+    impl crate::FanoutSeat for HarnessSeat {
+        fn seat_id(&self) -> &str {
+            self.card.principal.label.as_str()
+        }
+        fn plan(&self, _cx: &mut Cx, request: ModelRequest) -> Result<crate::PlannedSeat> {
+            let runner = self.runner.clone();
+            Ok(crate::PlannedSeat::parallel(
+                move || Ok(request),
+                move |cx, request| runner.infer(cx, request),
+            ))
+        }
+    }
+    let seats = [
+        ("openai-api", "key", "api-key-identity"),
+        ("codex-cli", "subscription", "cli-subscription-identity"),
+        ("ollama", "daemon", "local-daemon-identity"),
+    ]
+    .map(|(family, label, principal)| HarnessSeat {
+        card: conforming_seat(family, label, principal),
+        runner: Arc::new(ConformingRunner {
+            identity: family,
+            calls: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        }),
+    });
+    let report = crate::Fanout::default().execute(
+        &mut test_cx_with_secret_capability(),
+        &[&seats[0], &seats[1], &seats[2]],
+        crate::FanoutMode::All,
+        sim_lib_server::ThreadMode::Pool,
+        ModelRequest::new(Expr::String("checked provider request".to_owned()), vec![]),
+    );
+    assert_eq!(
+        report
+            .rows
+            .iter()
+            .map(|row| row.seat.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "api-key-identity",
+            "cli-subscription-identity",
+            "local-daemon-identity"
+        ]
+    );
+    assert!(report.rows.iter().all(|row| row.result.is_ok()));
+    assert_eq!(report.selected, Some(0));
+}
+
+#[test]
+fn canonical_genai_recipe_is_the_only_cross_family_source() {
+    let canonical = include_str!("../../sim-lib-agent/recipes/01-basics/genai-assembly/setup.siml");
+    assert!(canonical.contains("bridge/run-ask"));
+    assert!(!include_str!("../recipes/book.toml").contains("genai-assembly"));
 }
 
 #[test]

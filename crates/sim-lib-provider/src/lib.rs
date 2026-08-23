@@ -15,6 +15,7 @@ mod cards;
 mod census;
 mod claude;
 mod codex;
+mod conformance;
 mod fanout;
 mod opencode;
 mod ops;
@@ -39,6 +40,10 @@ pub use census::{
 };
 pub use claude::{ClaudeCliConfigHome, ClaudeCliProbe, ClaudeCliTermsPolicy, claude_cli_family};
 pub use codex::{CodexCliConfigHome, CodexCliProbe, codex_cli_family};
+pub use conformance::{
+    ProviderCapability, ProviderConformanceHarness, ProviderConformanceReport,
+    provider_capabilities_key,
+};
 pub use fanout::{
     Fanout, FanoutClock, FanoutMode, FanoutReport, FanoutRow, FanoutSeat, FanoutStatus,
     ManualFanoutClock, PlannedSeat, SystemFanoutClock,

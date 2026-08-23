@@ -3,6 +3,11 @@ parts. The host places a model target at `model-site:genai`; the recipe builds a
 BRIDGE ASK packet, sends it through the late-bound placement, requires a JSON
 answer, and admits only a `core/String` reply.
 
+This is the canonical cross-family provider specimen. Its source stays
+unchanged for direct API seats, subscription CLI broker seats, local daemon
+seats, and extension adapters; only seat data, wire, redacted principal, and
+declared capability expectations vary at the host boundary.
+
 Hosts can change the target without changing this recipe. A local adapter can
 cross a subprocess boundary:
 
