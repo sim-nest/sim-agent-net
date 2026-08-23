@@ -19,6 +19,18 @@ major_entrypoints = "advisory"
 frameworks = "advisory"
 
 [[feature]]
+id = "feature/sim-agent-net/agent-conduct-records"
+title = "Pure agent conduct records"
+summary = "Describe agent run frames, open lifecycle vocabulary, exact domain budgets, step Cards, and canonical hash-linked journals without loading execution behavior."
+owner = "crate/sim-lib-agent-conduct-core"
+audiences = ["code", "framework"]
+guidance = "Use AgentRunFrame as the one packet passed through conduct steps, AgentStepCard to declare an extension step's Shapes and open outcomes, AgentUsageBudget::narrow for caller/agent/conduct limits, and AgentJournal to append or verify redacted canonical records. Register all Citizens through register_citizens for constructor Shapes and general-purpose codec round trips. This crate is data-only: compose execution separately and never put model, tool, topology, runner, bridge, storage, provider, server, or host dependencies below this boundary."
+claims_anchors = ["anchor/crate/sim-lib-agent-conduct-core"]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-agent-conduct-core/01-basics/pure-journal",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/provider-control"
 title = "Reusable provider control"
 summary = "Register open provider families, preserve independently selectable seats, validate them through one conformance harness, and compose them in ordered fan-out."

@@ -1,0 +1,13 @@
+id = "pure-conduct-journal"
+title = "Pure conduct journal"
+codec = "rust"
+setup = "src/main.rs"
+purpose = "README.md"
+expected = "expected.txt"
+order = 10
+tags = ["agent", "conduct", "journal", "pure", "rust"]
+requires = ["sim-lib-agent-conduct-core"]
+
+[[expect]]
+form = 0
+result = "verified journal records: 2"

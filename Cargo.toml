@@ -2,6 +2,8 @@
 [workspace]
 resolver = "3"
 members = [
+  "crates/sim-lib-agent-conduct-core",
+  "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal",
   "crates/sim-lib-agent",
   "crates/sim-lib-agent-runner-core",
   "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair",
