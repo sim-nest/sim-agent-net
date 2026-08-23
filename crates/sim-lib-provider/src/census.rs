@@ -407,12 +407,12 @@ config_home_ref = "config-home/codex-primary"
 terms_acknowledgement = "codex-cli/2026-01"
 provider_probe = "probe/codex-cli-primary"
 [[seat]]
-id = "ollama-uggla"
+id = "ollama-local-primary"
 family = "ollama"
 auth = "none"
 principal_ref = "principal/local-none"
-endpoint_label = "ollama-uggla"
-resource_job = "resource/ollama-uggla-health"
+endpoint_label = "ollama-local-primary"
+resource_job = "resource/ollama-local-primary-health"
 "#;
 
     #[test]
@@ -477,7 +477,7 @@ resource_job = "resource/ollama-uggla-health"
     fn evidence_must_use_the_seat_declared_registered_boundary() {
         let inventory = ProviderInventory::from_toml(INVENTORY).unwrap();
         let wrong = CensusEvidence {
-            seat_id: "ollama-uggla".into(),
+            seat_id: "ollama-local-primary".into(),
             source: EvidenceSource::ProviderProbe,
             state: CensusState::Ready,
             reason: "exit-code-zero".into(),
