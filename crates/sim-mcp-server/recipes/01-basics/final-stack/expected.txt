@@ -1,0 +1,1 @@
+(mcp-final-recipes (stdio server client) (http authenticated server client) (legacy modern-to-legacy probe) (mrtr protected) (subscription concurrent) (cancellation explicit) (table explicit-shared) (extension custom))

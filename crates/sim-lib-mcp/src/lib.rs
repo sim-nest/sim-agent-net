@@ -106,8 +106,8 @@ pub use sampling::{
 pub use schema::shape_to_json_schema;
 #[cfg(feature = "serve")]
 pub use serve::{
-    CliOptions, McpServeLib, Transport, configure_mcp_bootloader, mcp_bootloader,
-    mcp_serve_entrypoint_symbol,
+    CliOptions, HttpLauncher, McpServeLib, Transport, configure_mcp_bootloader,
+    install_http_launcher, mcp_bootloader, mcp_serve_entrypoint_symbol,
 };
 pub use service::{
     CachePolicy, McpService, NegotiatedExtensions, Principal, RequestContext, RequestCxFactory,

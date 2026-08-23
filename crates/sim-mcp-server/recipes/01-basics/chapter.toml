@@ -1,3 +1,4 @@
 title = "Basics"
 order = 10
 summary = "Describe the stdio MCP server boot path."
+recipes = ["stdio-bootloader", "final-stack"]

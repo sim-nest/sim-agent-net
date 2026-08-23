@@ -89,7 +89,7 @@
       "id": "cookbook/mcp-server",
       "kind": "cookbook-recipe",
       "owner": "sim-mcp-server",
-      "summary": "Stdio MCP bootloader descriptors."
+      "summary": "Final stdio and configured Streamable HTTP MCP product descriptors."
     },
     {
       "id": "cookbook/mcp-stdio",

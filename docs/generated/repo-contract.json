@@ -89,7 +89,7 @@
       "id": "cookbook/mcp-server",
       "kind": "cookbook-recipe",
       "owner": "sim-mcp-server",
-      "summary": "Stdio MCP bootloader descriptors."
+      "summary": "Final stdio and configured Streamable HTTP MCP product descriptors."
     },
     {
       "id": "cookbook/mcp-stdio",
@@ -2397,9 +2397,37 @@
           "package": "sim-lib-mcp",
           "rename": null,
           "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-mcp-http",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-mcp-legacy",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-oauth-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-server",
+          "rename": null,
+          "target": null
         }
       ],
-      "description": "Stdio MCP server bootloader for SIM.",
+      "description": "Final stdio and Streamable HTTP MCP server bootloader for SIM.",
       "features": [],
       "group": "workspace",
       "manifest": "crates/sim-mcp-server/Cargo.toml",
@@ -2518,10 +2546,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "3a0a8307439ba99341c675c78815c0f766fe430d",
+    "git_commit": "190d673262f6cd837072c5f1d6c61ab5bc722e7d",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "3a0a8307439ba99341c675c78815c0f766fe430d",
+    "source_commit": "190d673262f6cd837072c5f1d6c61ab5bc722e7d",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -2534,9 +2562,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "9a858d9814e212c3",
+    "workspace_hash": "e08496a35e9a6057",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 799,
+    "workspace_hash_input_count": 801,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -3318,8 +3346,10 @@
       "crates/sim-lib-stream-fabric/tests/cassette_replay.rs",
       "crates/sim-lib-stream-fabric/tests/store_replay.rs",
       "crates/sim-mcp-server/Cargo.toml",
+      "crates/sim-mcp-server/recipes/01-basics/final-stack/recipe.toml",
       "crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/recipe.toml",
       "crates/sim-mcp-server/recipes/book.toml",
+      "crates/sim-mcp-server/src/http.rs",
       "crates/sim-mcp-server/src/main.rs",
       "crates/sim-table-remote/Cargo.toml",
       "crates/sim-table-remote/recipes/01-basics/remote-dir-descriptor/recipe.toml",
@@ -4299,8 +4329,16 @@
       "card_id": "cookbook/mcp-server",
       "group": "workspace",
       "package": "sim-mcp-server",
-      "recipe_count": 1,
+      "recipe_count": 2,
       "recipes": [
+        {
+          "card_id": "mcp-server/01-basics/final-stack",
+          "codec": "lisp",
+          "id": "final-stack",
+          "package": "sim-mcp-server",
+          "recipe_toml": "crates/sim-mcp-server/recipes/01-basics/final-stack/recipe.toml",
+          "title": "Final MCP product combinations"
+        },
         {
           "card_id": "mcp-server/01-basics/stdio-bootloader",
           "codec": "lisp",
@@ -4310,7 +4348,7 @@
           "title": "Stdio MCP bootloader"
         }
       ],
-      "summary": "Stdio MCP bootloader descriptors.",
+      "summary": "Final stdio and configured Streamable HTTP MCP product descriptors.",
       "title": "MCP Server"
     },
     {

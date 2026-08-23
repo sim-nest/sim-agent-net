@@ -115,8 +115,9 @@ Skills, tools, and gateways:
 
 Binary:
 
-- `sim-mcp-server` -- a stdio MCP server binary. HTTP transport is disabled in
-  this binary.
+- `sim-mcp-server` -- a stdio-by-default MCP server binary. Streamable HTTP is
+  selected explicitly with fail-closed bind, origin, verifier, key-ring, body,
+  timeout, legacy-endpoint, cache, and diagnostics configuration.
 
 ## Model fabric contract
 

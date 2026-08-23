@@ -372,6 +372,10 @@
 {"kind":"recipe","path":"crates/sim-lib-stream-fabric/recipes/01-basics/ledgered-relay/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-stream-fabric/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-mcp-server/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-mcp-server/recipes/01-basics/final-stack/expected.txt"}
+{"kind":"recipe","path":"crates/sim-mcp-server/recipes/01-basics/final-stack/purpose.md"}
+{"kind":"recipe","path":"crates/sim-mcp-server/recipes/01-basics/final-stack/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-mcp-server/recipes/01-basics/final-stack/setup.siml"}
 {"kind":"recipe","path":"crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/expected.txt"}
 {"kind":"recipe","path":"crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/purpose.md"}
 {"kind":"recipe","path":"crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/recipe.toml"}

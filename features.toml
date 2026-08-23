@@ -167,10 +167,10 @@ claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent-runner-process
 [[feature]]
 id = "feature/sim-agent-net/mcp-server"
 title = "MCP server surface"
-summary = "Serve MCP requests through the loaded sim-lib-mcp command and runtime libraries."
+summary = "Serve final MCP over stdio by default or explicitly configured Streamable HTTP through one bootloader composition."
 owner = "crate/sim-lib-mcp"
 audiences = ["user", "code"]
-guidance = "Use sim-lib-mcp for stateless request service behavior. Compose sim-lib-mcp-legacy only at an initialize-era connection boundary; the dependency remains one-way so deleting compatibility leaves the modern service intact."
+guidance = "Use sim-lib-mcp for stateless request service behavior and sim-lib-mcp-http for final endpoint policy. The sim-mcp-server product installs the native binding launcher and fails closed unless non-loopback HTTP has explicit origin, verifier, and protected-state key-ring configuration. Compose sim-lib-mcp-legacy only at a distinct initialize-era endpoint."
 claims_anchors = [
   "anchor/cli/mcp",
   "anchor/cli/sim-mcp-server",
@@ -192,6 +192,7 @@ claims_surfaces = [
 ]
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-mcp/tests/serve_mcp",
+  "recipe/sim-agent-net/crates/sim-mcp-server/01-basics/final-stack",
 ]
 
 [[feature]]
@@ -556,7 +557,7 @@ task = "Serve over MCP"
 audiences = ["user", "code"]
 steps = [
   { feature = "feature/sim-agent-net/mcp-server", why = "The MCP row owns the command surface and loaded server libraries." },
-  { specimen = "recipe/sim-agent-net/crates/sim-mcp-server/01-basics/stdio-bootloader", why = "The stdio bootloader recipe shows the server entry point." },
+  { specimen = "recipe/sim-agent-net/crates/sim-mcp-server/01-basics/final-stack", why = "The final product recipe routes stdio, authenticated HTTP, compatibility, protected state, subscriptions, cancellation, shared Table, and extensions through one composition." },
 ]
 
 [[route]]
