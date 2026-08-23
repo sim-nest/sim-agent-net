@@ -12,6 +12,7 @@ mod auth;
 mod broker;
 mod call;
 mod cards;
+mod census;
 mod claude;
 mod codex;
 mod fanout;
@@ -32,6 +33,9 @@ pub use call::{ProviderCall, ProviderDispatch, ProviderOutcome, ProviderSeatExec
 pub use cards::{
     EndpointCard, HarnessCard, PrincipalCard, ProviderFamilyCard, ProviderSeatCard,
     ProviderSeatLimits,
+};
+pub use census::{
+    CensusEvidence, CensusRow, CensusState, EvidenceSource, ProviderInventory, ProviderSeatConfig,
 };
 pub use claude::{ClaudeCliConfigHome, ClaudeCliProbe, ClaudeCliTermsPolicy, claude_cli_family};
 pub use codex::{CodexCliConfigHome, CodexCliProbe, codex_cli_family};
