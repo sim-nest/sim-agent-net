@@ -195,6 +195,21 @@ claims_specimens = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/mcp-streamable-http"
+title = "Stateless MCP Streamable HTTP"
+summary = "Serve and call final-protocol MCP over bounded, stateless Streamable HTTP."
+owner = "crate/sim-lib-mcp-http"
+audiences = ["code", "framework"]
+guidance = "Compose sim-lib-mcp-http with the existing raw server and net-http organs. Configure one exact modern POST endpoint and an exact Origin allow-list for browser-reachable service; attach legacy behavior only at a distinct explicit endpoint. The adapter never owns sockets, TLS, OAuth policy, or MCP sessions."
+claims_anchors = ["anchor/crate/sim-lib-mcp-http"]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-mcp-http/01-basics/http-server",
+  "recipe/sim-agent-net/crates/sim-lib-mcp-http/01-basics/http-client",
+  "spec-test/sim-agent-net/crates/sim-lib-mcp-http/tests/streamable_http",
+]
+depends_on = ["feature/sim-agent-net/mcp-server"]
+
+[[feature]]
 id = "feature/sim-agent-net/mcp-legacy-compatibility"
 title = "Removable initialize-era MCP compatibility"
 summary = "Retain initialize, initialized notification, negotiated connection facts, and shutdown behavior outside the canonical stateless MCP service."

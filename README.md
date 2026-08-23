@@ -94,6 +94,9 @@ Skills, tools, and gateways:
 - `sim-lib-mcp` -- library-only MCP projection. Projects native browse Cards and
   optional `SkillCard` records into redacted `McpSurfaceCard` rows; routing,
   transport, and callable execution layer on top behind features.
+- `sim-lib-mcp-http` -- final-protocol Streamable HTTP server/client boundary:
+  exact endpoint, Origin and projection checks, bounded JSON/SSE delivery,
+  request-owned cancellation, and no session semantics.
 - `sim-lib-openai-server` -- OpenAI-shaped gateway routes: health route, OpenAI
   JSON transcript codec, model discovery, supported chat, response, and
   embedding request flows, fixture/subset file, audio, image, and vector-store

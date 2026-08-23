@@ -47,7 +47,6 @@ sim-lib-skill = { version = "0.2.1", features = ["agent", "openai"], path = "../
 cassette = []
 client = ["skill"]
 default = []
-http = ["progress", "dep:sim-lib-server", "sim-lib-server/server-net-http"]
 progress = ["stream"]
 sampling = ["dep:sim-lib-agent-runner-core"]
 serve = ["stdio", "dep:sim-run-core"]

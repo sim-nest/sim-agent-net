@@ -234,24 +234,6 @@
         },
         {
           "edges": [
-            "progress",
-            "dep:sim-lib-server",
-            "sim-lib-server/server-net-http"
-          ],
-          "name": "http",
-          "workspace_edges": [
-            {
-              "feature": null,
-              "package": "sim-lib-server"
-            },
-            {
-              "feature": "server-net-http",
-              "package": "sim-lib-server"
-            }
-          ]
-        },
-        {
-          "edges": [
             "stream"
           ],
           "name": "progress",
@@ -276,6 +258,18 @@
           ],
           "name": "serve",
           "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-server"
+          ],
+          "name": "sim-lib-server",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-server"
+            }
+          ]
         },
         {
           "edges": [
@@ -313,6 +307,11 @@
       ],
       "group": "workspace",
       "package": "sim-lib-mcp"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-mcp-http"
     },
     {
       "features": [],

@@ -4,3 +4,6 @@ summary = "Load one agent/conduct-v1 topology, bind its Card, and run it through
 language = "rust"
 entry = "src/main.rs"
 expected = "expected.txt"
+
+[[expect]]
+result = "completed"

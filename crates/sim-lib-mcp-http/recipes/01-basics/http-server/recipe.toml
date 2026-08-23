@@ -1,0 +1,14 @@
+id = "mcp-http-server"
+title = "Serve one stateless endpoint"
+summary = "Configure exact endpoint, origin, limits, and principal projection before attaching the raw HTTP seam."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["mcp", "http", "server", "sandbox-descriptor"]
+requires = ["mcp", "server"]
+
+[[expect]]
+form = 0
+result = "(mcp-http-server (endpoint exact) (origin checked) (body bounded) (dispatch raw-http))"

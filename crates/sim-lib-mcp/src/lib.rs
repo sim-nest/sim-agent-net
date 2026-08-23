@@ -16,8 +16,6 @@ mod cassette;
 mod client;
 mod content;
 mod exec;
-#[cfg(feature = "http")]
-mod http;
 mod install;
 mod manifest;
 mod methods;
@@ -51,8 +49,6 @@ mod cassette_tests;
 mod client_tests;
 #[cfg(all(test, feature = "skill"))]
 mod coexistence_tests;
-#[cfg(all(test, feature = "http"))]
-mod http_tests;
 #[cfg(test)]
 mod prompts_tests;
 #[cfg(test)]
@@ -85,8 +81,6 @@ pub use client::{
 pub use exec::{
     mcp_prompts_get_capability, mcp_resources_read_capability, mcp_tools_call_capability,
 };
-#[cfg(feature = "http")]
-pub use http::{McpHttpAdapter, mcp_http_capability};
 pub use install::install_mcp_lib;
 pub use manifest::{McpLib, manifest_name};
 pub use modern::{

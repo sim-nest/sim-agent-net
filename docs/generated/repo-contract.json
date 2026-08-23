@@ -1,5 +1,5 @@
 {
-  "card_count": 23,
+  "card_count": 25,
   "cards": [
     {
       "id": "browse/catalog",
@@ -68,6 +68,12 @@
       "summary": "MCP JSON-RPC descriptors and cassette replay."
     },
     {
+      "id": "cookbook/mcp-http",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-http",
+      "summary": "Checked server and client assembly for final-protocol MCP HTTP."
+    },
+    {
       "id": "cookbook/mcp-legacy",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-mcp-legacy",
@@ -96,6 +102,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-provider",
       "summary": "Discover open provider families and selectable seats."
+    },
+    {
+      "id": "cookbook/provider-cli",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-provider-cli",
+      "summary": "Expose provider inventory and seat selection through the loadable SIM command surface."
     },
     {
       "id": "cookbook/server",
@@ -163,6 +175,7 @@
       "sim-lib-cookbook",
       "sim-lib-forge",
       "sim-lib-mcp",
+      "sim-lib-mcp-http",
       "sim-lib-mcp-legacy",
       "sim-lib-mcp-stdio",
       "sim-lib-openai-server",
@@ -364,7 +377,7 @@
       "reason": "live skill transport handle; transport metadata is carried by skill/Card descriptor"
     }
   ],
-  "package_count": 26,
+  "package_count": 27,
   "packages": [
     {
       "crate_name": "sim_lib_agent",
@@ -1292,24 +1305,6 @@
         },
         {
           "edges": [
-            "progress",
-            "dep:sim-lib-server",
-            "sim-lib-server/server-net-http"
-          ],
-          "name": "http",
-          "workspace_edges": [
-            {
-              "feature": null,
-              "package": "sim-lib-server"
-            },
-            {
-              "feature": "server-net-http",
-              "package": "sim-lib-server"
-            }
-          ]
-        },
-        {
-          "edges": [
             "stream"
           ],
           "name": "progress",
@@ -1334,6 +1329,18 @@
           ],
           "name": "serve",
           "workspace_edges": []
+        },
+        {
+          "edges": [
+            "dep:sim-lib-server"
+          ],
+          "name": "sim-lib-server",
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-server"
+            }
+          ]
         },
         {
           "edges": [
@@ -1420,6 +1427,77 @@
           ],
           "name": "build-script-build",
           "src": "crates/sim-lib-mcp/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_mcp_http",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-mcp",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-mcp-legacy",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-server",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Final-protocol Streamable HTTP adapter for SIM MCP services.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-mcp-http/Cargo.toml",
+      "name": "sim-lib-mcp-http",
+      "publish": "true",
+      "root": "crates/sim-lib-mcp-http",
+      "rustdoc_summary": "Final-protocol Streamable HTTP adapter for stateless MCP.",
+      "target_kinds": [
+        "custom-build",
+        "lib",
+        "test"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_mcp_http",
+          "src": "crates/sim-lib-mcp-http/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "test"
+          ],
+          "name": "streamable_http",
+          "src": "crates/sim-lib-mcp-http/tests/streamable_http.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-mcp-http/build.rs"
         }
       ]
     },
@@ -2204,10 +2282,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "161a9c0d2bcd9ea6d5bfd01774af18d8131c5b4b",
+    "git_commit": "e9c4306df9f022bfb48e5927e16ba0a569820444",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "161a9c0d2bcd9ea6d5bfd01774af18d8131c5b4b",
+    "source_commit": "e9c4306df9f022bfb48e5927e16ba0a569820444",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -2220,9 +2298,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "b83791105b1481c2",
+    "workspace_hash": "5e8366c57c02dd95",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 761,
+    "workspace_hash_input_count": 769,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -2634,8 +2712,6 @@
       "crates/sim-lib-mcp/src/coexistence_tests.rs",
       "crates/sim-lib-mcp/src/content.rs",
       "crates/sim-lib-mcp/src/exec.rs",
-      "crates/sim-lib-mcp/src/http.rs",
-      "crates/sim-lib-mcp/src/http_tests.rs",
       "crates/sim-lib-mcp/src/install.rs",
       "crates/sim-lib-mcp/src/lib.rs",
       "crates/sim-lib-mcp/src/manifest.rs",
@@ -2669,6 +2745,13 @@
       "crates/sim-lib-mcp/src/uri.rs",
       "crates/sim-lib-mcp/tests/modern_dependency_closure.rs",
       "crates/sim-lib-mcp/tests/serve_mcp.rs",
+      "crates/sim-lib-mcp-http/Cargo.toml",
+      "crates/sim-lib-mcp-http/build.rs",
+      "crates/sim-lib-mcp-http/recipes/01-basics/http-client/recipe.toml",
+      "crates/sim-lib-mcp-http/recipes/01-basics/http-server/recipe.toml",
+      "crates/sim-lib-mcp-http/recipes/book.toml",
+      "crates/sim-lib-mcp-http/src/lib.rs",
+      "crates/sim-lib-mcp-http/tests/streamable_http.rs",
       "crates/sim-lib-mcp-legacy/Cargo.toml",
       "crates/sim-lib-mcp-legacy/build.rs",
       "crates/sim-lib-mcp-legacy/recipes/01-basics/legacy-lifecycle/recipe.toml",
@@ -2796,6 +2879,8 @@
       "crates/sim-lib-provider/src/secret_provider.rs",
       "crates/sim-lib-provider/src/tests.rs",
       "crates/sim-lib-provider-cli/Cargo.toml",
+      "crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/recipe.toml",
+      "crates/sim-lib-provider-cli/recipes/book.toml",
       "crates/sim-lib-provider-cli/src/lib.rs",
       "crates/sim-lib-server/Cargo.toml",
       "crates/sim-lib-server/build.rs",
@@ -2980,6 +3065,7 @@
       "crates/sim-table-remote/src/site.rs",
       "crates/sim-table-remote/src/tests.rs",
       "crates/sim-transport-ports/Cargo.toml",
+      "crates/sim-transport-ports/recipes/01-basics/transport-port-descriptor/recipe.toml",
       "crates/sim-transport-ports/recipes/book.toml",
       "crates/sim-transport-ports/src/lib.rs",
       "crates/sim-transport-ports/src/model.rs",
@@ -2987,7 +3073,7 @@
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 21,
+  "recipe_book_count": 23,
   "recipes": [
     {
       "book": "agent",
@@ -3618,6 +3704,34 @@
       "title": "MCP"
     },
     {
+      "book": "mcp-http",
+      "book_toml": "crates/sim-lib-mcp-http/recipes/book.toml",
+      "card_id": "cookbook/mcp-http",
+      "group": "workspace",
+      "package": "sim-lib-mcp-http",
+      "recipe_count": 2,
+      "recipes": [
+        {
+          "card_id": "mcp-http/01-basics/mcp-http-client",
+          "codec": "lisp",
+          "id": "mcp-http-client",
+          "package": "sim-lib-mcp-http",
+          "recipe_toml": "crates/sim-lib-mcp-http/recipes/01-basics/http-client/recipe.toml",
+          "title": "Call a stateless endpoint"
+        },
+        {
+          "card_id": "mcp-http/01-basics/mcp-http-server",
+          "codec": "lisp",
+          "id": "mcp-http-server",
+          "package": "sim-lib-mcp-http",
+          "recipe_toml": "crates/sim-lib-mcp-http/recipes/01-basics/http-server/recipe.toml",
+          "title": "Serve one stateless endpoint"
+        }
+      ],
+      "summary": "Checked server and client assembly for final-protocol MCP HTTP.",
+      "title": "MCP Streamable HTTP"
+    },
+    {
       "book": "mcp-legacy",
       "book_toml": "crates/sim-lib-mcp-legacy/recipes/book.toml",
       "card_id": "cookbook/mcp-legacy",
@@ -3704,6 +3818,26 @@
       ],
       "summary": "Discover open provider families and selectable seats.",
       "title": "Provider Control"
+    },
+    {
+      "book": "provider-cli",
+      "book_toml": "crates/sim-lib-provider-cli/recipes/book.toml",
+      "card_id": "cookbook/provider-cli",
+      "group": "workspace",
+      "package": "sim-lib-provider-cli",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "provider-cli/01-basics/provider-cli-descriptor",
+          "codec": "lisp",
+          "id": "provider-cli-descriptor",
+          "package": "sim-lib-provider-cli",
+          "recipe_toml": "crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/recipe.toml",
+          "title": "Describe provider CLI"
+        }
+      ],
+      "summary": "Expose provider inventory and seat selection through the loadable SIM command surface.",
+      "title": "Provider CLI"
     },
     {
       "book": "server",
@@ -3827,8 +3961,17 @@
       "card_id": "cookbook/transport-ports",
       "group": "workspace",
       "package": "sim-transport-ports",
-      "recipe_count": 0,
-      "recipes": [],
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "transport-ports/01-basics/transport-port-descriptor",
+          "codec": "lisp",
+          "id": "transport-port-descriptor",
+          "package": "sim-transport-ports",
+          "recipe_toml": "crates/sim-transport-ports/recipes/01-basics/transport-port-descriptor/recipe.toml",
+          "title": "Describe transport ports"
+        }
+      ],
       "summary": "Bind provider-neutral transport services and test network faults deterministically.",
       "title": "Transport ports"
     }

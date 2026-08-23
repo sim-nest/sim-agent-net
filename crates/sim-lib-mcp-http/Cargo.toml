@@ -1,0 +1,31 @@
+[package]
+name = "sim-lib-mcp-http"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Final-protocol Streamable HTTP adapter for SIM MCP services."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sim-cancel = "0.1.0"
+sim-codec = "0.1.8"
+sim-codec-mcp = "0.1.5"
+sim-cookbook = "0.2.0"
+sim-kernel = "0.2.1"
+sim-lib-mcp = { version = "0.1.9", path = "../sim-lib-mcp" }
+sim-lib-mcp-legacy = { version = "0.1.0", path = "../sim-lib-mcp-legacy" }
+sim-lib-net-http = "0.1.0"
+sim-lib-server = { version = "0.1.12", path = "../sim-lib-server", features = ["server-net-http"] }
+
+[build-dependencies]
+sim-cookbook-build = "0.1.0"
+
+[dev-dependencies]
+sim-codec-mcp = "0.1.5"
+sim-kernel = { version = "0.2.1", features = ["test-support"] }
+
+[lints]
+workspace = true

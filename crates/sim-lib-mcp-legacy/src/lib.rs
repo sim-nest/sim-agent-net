@@ -7,7 +7,7 @@
 #![deny(missing_docs)]
 
 use sim_codec_mcp::{McpEnvelope, McpNotification, McpRequest, McpResponse};
-use sim_kernel::{Cx, Error, Expr, Result};
+use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_mcp::{CachePolicy, McpService, NegotiatedExtensions, Principal, RequestContext};
 
 /// Cookbook recipes for the compatibility adapter.
@@ -204,7 +204,6 @@ impl LegacyConnection {
 
 fn map_key(key: &Expr) -> Option<String> {
     match key {
-        Expr::Keyword(value) => Some(value.as_str().to_owned()),
         Expr::String(value) => Some(value.clone()),
         Expr::Symbol(value) => Some(value.to_string()),
         _ => None,
@@ -221,8 +220,7 @@ fn request_key(id: &Expr) -> String {
 }
 
 fn initialize_result(protocol_version: &str, name: &str, version: &str) -> Expr {
-    use sim_kernel::Keyword;
-    let field = |name: &str, value| (Expr::Keyword(Keyword::new(name)), value);
+    let field = |name: &str, value| (Expr::Symbol(Symbol::new(name)), value);
     Expr::Map(vec![
         field("protocolVersion", Expr::String(protocol_version.to_owned())),
         field(
@@ -246,7 +244,6 @@ fn initialize_result(protocol_version: &str, name: &str, version: &str) -> Expr 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sim_kernel::Keyword;
     use sim_lib_mcp::{McpProfile, ServerDescription};
 
     fn request(id: &str, method: &str, params: Expr) -> McpRequest {
@@ -366,20 +363,15 @@ mod tests {
             McpProfile::all(),
         ));
         let mut adapter = LegacyConnection::new(service, "legacy", Principal::new("client"));
+        let field = |name: &str, value| (Expr::Symbol(Symbol::new(name)), value);
         let params = Expr::Map(vec![
+            field("protocolVersion", Expr::String("2025-03-26".to_owned())),
             (
-                Expr::Keyword(Keyword::new("protocolVersion")),
-                Expr::String("2025-03-26".to_owned()),
+                Expr::Symbol(Symbol::new("capabilities")),
+                Expr::Map(vec![field("sampling", Expr::Map(Vec::new()))]),
             ),
-            (
-                Expr::Keyword(Keyword::new("capabilities")),
-                Expr::Map(vec![(
-                    Expr::Keyword(Keyword::new("sampling")),
-                    Expr::Map(Vec::new()),
-                )]),
-            ),
-            (
-                Expr::Keyword(Keyword::new("grants")),
+            field(
+                "grants",
                 Expr::Vector(vec![Expr::String("tools.call".to_owned())]),
             ),
         ]);

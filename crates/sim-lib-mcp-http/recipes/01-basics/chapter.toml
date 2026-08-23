@@ -1,0 +1,4 @@
+title = "Basics"
+order = 10
+summary = "Stateless server and client boundaries for final-protocol MCP HTTP."
+recipes = ["http-server", "http-client"]
