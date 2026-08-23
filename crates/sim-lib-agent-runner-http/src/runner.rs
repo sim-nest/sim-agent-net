@@ -755,6 +755,7 @@ impl HttpRunner {
         };
         let input = Ref::Content(cx.datum_store_mut().intern(input)?);
         Effect::new(
+            cx.fresh_handle(),
             network_effect_kind(),
             Ref::Symbol(self.runner.clone()),
             input,

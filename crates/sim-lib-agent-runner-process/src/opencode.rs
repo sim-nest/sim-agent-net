@@ -137,7 +137,7 @@ impl ProviderAdapter for OpenCodeCliAdapter {
             .find(|c| c.label == seat.seat.label)
             .ok_or_else(|| Error::Eval("OpenCode seat is no longer declared".into()))?;
         config.terms_policy.enforce()?;
-        if seat.endpoint.transport.as_str() != config.transport.name() {
+        if seat.endpoint.transport.name.as_ref() != config.transport.name() {
             return Err(Error::Eval(
                 "OpenCode transport mismatch; implicit fallback is forbidden".into(),
             ));

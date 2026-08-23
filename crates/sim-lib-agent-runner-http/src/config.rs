@@ -481,7 +481,11 @@ mod tests {
     }
 
     fn test_cx() -> Cx {
-        Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+        Cx::new(
+            Arc::new(EagerPolicy),
+            Arc::new(DefaultFactory),
+            sim_kernel::HandleSeed::new(1),
+        )
     }
 
     fn insert(cx: &mut Cx, options: &mut HashMap<String, Value>, key: &str, expr: Expr) {

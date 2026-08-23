@@ -1,6 +1,6 @@
 //! Named direct-API provider families and independently authenticated seats.
 
-use crate::{HttpRunner, ProviderAuth, ProviderConfig, ProviderProfile, provider_profiles};
+use crate::{HttpRunner, ProviderConfig, ProviderProfile, provider_profiles};
 use sim_kernel::{Cx, Error, Expr, Ref, Result, Symbol};
 use sim_lib_agent_runner_core::ModelRunner;
 use sim_lib_provider::{
@@ -301,7 +301,7 @@ mod tests {
             seats
                 .iter()
                 .filter(|s| s.family == Symbol::qualified("provider", "openai-api"))
-                .map(|s| wire(s))
+                .map(wire)
                 .collect::<Vec<_>>(),
             vec!["openai-chat", "openai-responses"]
         );

@@ -14,7 +14,6 @@ path = "src/lib.rs"
 
 [dependencies]
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"], optional = true }
-rustls-native-certs = { version = "0.8", optional = true }
 serde_json = "1"
 sim-codec-chat = { version = "0.2.1" }
 sim-codec-json = { version = "0.2.1" }
@@ -22,6 +21,7 @@ sim-cookbook = { version = "0.2.0" }
 sim-kernel = { version = "0.2.0" }
 sim-lib-agent-runner-core = { version = "0.2.0", path = "../sim-lib-agent-runner-core" }
 sim-lib-provider = { version = "0.1.0", path = "../sim-lib-provider" }
+sim-lib-net-http = { version = "0.1.0" }
 sim-lib-net-core = { version = "0.2.0" }
 sim-lib-openai-server = { version = "0.3.0", path = "../sim-lib-openai-server" }
 sim-shape = { version = "0.2.1" }
@@ -35,7 +35,7 @@ sim-lib-server = { version = "0.1.12", path = "../sim-lib-server" }
 
 [features]
 default = []
-tls = ["dep:rustls", "dep:rustls-native-certs"]
+tls = ["dep:rustls", "sim-lib-net-http/tls"]
 
 [lints]
 workspace = true
