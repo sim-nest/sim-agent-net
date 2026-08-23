@@ -153,7 +153,11 @@ impl AgentJournal {
 }
 
 fn context() -> Cx {
-    Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    )
 }
 
 fn record_hash(record: &AgentJournalRecord) -> String {

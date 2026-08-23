@@ -1,0 +1,13 @@
+graph:
+topology echo-conduct
+node in verb=in output=agent/RunFrame
+node echo verb=call target=agent.step/echo role=runner
+node finish verb=call target=agent.step/finish
+node out verb=out input=agent/RunFrame
+wire in -> echo
+wire echo -> finish
+wire finish -> out
+
+metadata:
+profile=agent/conduct-v1
+requires-roles=[runner]

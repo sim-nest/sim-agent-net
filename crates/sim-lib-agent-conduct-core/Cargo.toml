@@ -15,7 +15,7 @@ path = "src/lib.rs"
 [dependencies]
 sim-citizen = { version = "0.2.0" }
 sim-citizen-derive = { version = "0.2.0" }
-sim-kernel = { version = "0.2.0" }
+sim-kernel = { version = "0.2.1" }
 sim-value = { version = "0.2.0" }
 sim-shape = { version = "0.2.0" }
 

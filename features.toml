@@ -31,6 +31,21 @@ claims_specimens = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/agent-conduct-topology-profile"
+title = "Validated topology-backed agent conducts"
+summary = "Certify delivered topology packages as agent/conduct-v1 workflows, bind their step Cards explicitly, and run or resume them through the topology engine."
+owner = "crate/sim-lib-agent-conduct"
+audiences = ["code", "framework"]
+guidance = "Use validate_agent_conduct for the strict RunFrame boundary, Card/outcome-route coverage, derived roles, capabilities, and finish-or-stop admission. Use bind_agent_conduct for exact node/Card bindings, then AgentConduct run or step for topology-owned execution and continuation. The projection retains the original TopologyEntry and never creates another graph, parser, registry, or scheduler."
+claims_anchors = ["anchor/crate/sim-lib-agent-conduct"]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-agent-conduct/01-basics/echo-conduct",
+  "spec-test/sim-agent-net/crates/sim-lib-agent-conduct/src/tests/three_node_conduct_validates_runs_pauses_resumes_reflects_and_diagrams",
+  "spec-test/sim-agent-net/crates/sim-lib-agent-conduct/src/tests/dependency_and_source_guards_keep_the_adapter_narrow",
+]
+requires = ["feature/sim-agent-net/agent-conduct-records"]
+
+[[feature]]
 id = "feature/sim-agent-net/provider-control"
 title = "Reusable provider control"
 summary = "Register open provider families, preserve independently selectable seats, validate them through one conformance harness, and compose them in ordered fan-out."
