@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, Result, Symbol, Value};
+use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, Result, Symbol, Value};
 use sim_lib_agent_runner_core::ModelEvent;
 use sim_shape::{
     ExprKind, ExprKindShape, FieldShape, FieldSpec, ListShape, NumberValueShape, shape_value,
@@ -136,7 +136,11 @@ impl SkillEventSink for CollectingSink {
 }
 
 fn skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0003),
+    );
     install_skill_lib(&mut cx).unwrap();
     cx
 }

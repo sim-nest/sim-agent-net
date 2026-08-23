@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, Symbol, Value};
+use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, Symbol, Value};
 
 use crate::{
     FixtureBehavior, FixtureMcpTransport, McpCallParams, McpToolDescriptor, SkillRole,
@@ -85,7 +85,11 @@ fn skill_mcp_call_executes_the_same_skill_callable_as_skill_call() {
 }
 
 fn skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0005),
+    );
     install_skill_lib(&mut cx).unwrap();
     cx
 }

@@ -4,9 +4,13 @@ use std::{
 };
 
 use sim_kernel::{Cx, Error, Result};
+
+#[cfg(feature = "wasm")]
 use sim_wasm_abi::{Frame as WasmFrame, WasmFrameLimits};
 
-use crate::{EvalSite, ServerAddress, ServerFrame, wasm::lookup_wasm_region};
+#[cfg(feature = "wasm")]
+use crate::wasm::lookup_wasm_region;
+use crate::{EvalSite, ServerAddress, ServerFrame};
 
 use super::framing::endpoint_key;
 use super::{
@@ -272,11 +276,13 @@ impl ConnectionTransport for RegistryTransport {
     }
 }
 
+#[cfg(feature = "wasm")]
 pub struct WasmConnectionTransport {
     region: String,
     pending: Option<ServerFrame>,
 }
 
+#[cfg(feature = "wasm")]
 impl WasmConnectionTransport {
     pub fn connect(address: &ServerAddress) -> Result<Self> {
         let ServerAddress::Wasm { region } = address else {
@@ -292,6 +298,7 @@ impl WasmConnectionTransport {
     }
 }
 
+#[cfg(feature = "wasm")]
 impl ConnectionTransport for WasmConnectionTransport {
     fn send_frame(&mut self, _cx: &mut Cx, frame: ServerFrame) -> Result<()> {
         let region = lookup_wasm_region(&self.region)?;
@@ -325,6 +332,7 @@ impl ConnectionTransport for WasmConnectionTransport {
     }
 }
 
+#[cfg(feature = "wasm")]
 pub(super) fn enforce_wasm_transport_limit(bytes: &[u8], message: &str) -> Result<()> {
     if bytes.len() > WasmFrameLimits::default().max_frame_bytes {
         return Err(Error::HostError(message.to_owned()));
@@ -332,6 +340,7 @@ pub(super) fn enforce_wasm_transport_limit(bytes: &[u8], message: &str) -> Resul
     Ok(())
 }
 
+#[cfg(feature = "wasm")]
 pub(super) fn enforce_wasm_frame_limit(frame: &WasmFrame, message: &str) -> Result<()> {
     let frame_ref = frame.as_ref()?;
     if usize::try_from(frame_ref.len).unwrap_or(usize::MAX)
@@ -340,4 +349,37 @@ pub(super) fn enforce_wasm_frame_limit(frame: &WasmFrame, message: &str) -> Resu
         return Err(Error::HostError(message.to_owned()));
     }
     Ok(())
+}
+
+#[cfg(not(feature = "wasm"))]
+pub struct WasmConnectionTransport;
+
+#[cfg(not(feature = "wasm"))]
+impl WasmConnectionTransport {
+    pub fn connect(_address: &ServerAddress) -> Result<Self> {
+        Err(Error::Eval("server wasm feature disabled".to_owned()))
+    }
+}
+
+#[cfg(not(feature = "wasm"))]
+impl ConnectionTransport for WasmConnectionTransport {
+    fn send_frame(&mut self, _cx: &mut Cx, _frame: ServerFrame) -> Result<()> {
+        Err(Error::Eval("server wasm feature disabled".to_owned()))
+    }
+
+    fn recv_frame(
+        &mut self,
+        _cx: &mut Cx,
+        _timeout: Option<std::time::Duration>,
+    ) -> Result<Option<ServerFrame>> {
+        Err(Error::Eval("server wasm feature disabled".to_owned()))
+    }
+
+    fn close(&mut self, _cx: &mut Cx) -> Result<()> {
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }

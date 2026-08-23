@@ -40,10 +40,8 @@ guidance = "Use validate_agent_conduct for the strict RunFrame boundary, Card/ou
 claims_anchors = ["anchor/crate/sim-lib-agent-conduct"]
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-agent-conduct/01-basics/echo-conduct",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-conduct/src/tests/three_node_conduct_validates_runs_pauses_resumes_reflects_and_diagrams",
-  "spec-test/sim-agent-net/crates/sim-lib-agent-conduct/src/tests/dependency_and_source_guards_keep_the_adapter_narrow",
 ]
-requires = ["feature/sim-agent-net/agent-conduct-records"]
+depends_on = ["feature/sim-agent-net/agent-conduct-records"]
 
 [[feature]]
 id = "feature/sim-agent-net/agent-single-steps"
@@ -69,7 +67,7 @@ claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard-steps/standard-cards-are-complete-and-precise",
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard-steps/third-party-step-registers-and-runs-without-agent-or-conduct-changes",
 ]
-requires = [
+depends_on = [
   "feature/sim-agent-net/agent-conduct-records",
   "feature/sim-agent-net/agent-conduct-topology-profile",
   "feature/sim-agent-net/provider-control",
@@ -89,7 +87,7 @@ claims_anchors = [
   "anchor/export/sim-lib-agent/agent/replace",
   "anchor/export/sim-lib-agent/agent/start",
 ]
-requires = [
+depends_on = [
   "feature/sim-agent-net/agent-conduct-topology-profile",
   "feature/sim-agent-net/agent-single-steps",
   "feature/sim-agent-net/provider-control",
@@ -410,7 +408,7 @@ claims_specimens = [
 [[feature]]
 id = "feature/sim-agent-net/agent-server-tools"
 title = "Agent server tools"
-summary = "Expose agent-facing server, skill, and OpenAI gateway libraries for model-connected hosts."
+summary = "Expose agent-facing server, skill, and OpenAI gateway libraries for model-connected hosts using the shared authoritative Draft 2020-12 schema organ."
 owner = "crate/sim-lib-server"
 audiences = ["code", "framework"]
 guidance = "Use this row when connecting a model-serving host to reusable agent tools."

@@ -41,7 +41,11 @@ impl TableGatewayStore {
     /// Returns an error only if SIM table creation fails, which does not happen
     /// for the in-memory tables used here.
     pub fn new() -> Result<Self> {
-        let cx = Mutex::new(Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory)));
+        let cx = Mutex::new(Cx::new(
+            Arc::new(NoopEvalPolicy),
+            Arc::new(DefaultFactory),
+            sim_kernel::HandleSeed::new(0x570A_E001),
+        ));
         Ok(Self {
             requests: new_table()?,
             runs: new_table()?,

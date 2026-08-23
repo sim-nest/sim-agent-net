@@ -218,7 +218,11 @@ where
     S: GatewayStore + GatewayResponseObjectStore + GatewayStateStore,
     C: WallClock,
 {
-    let (mut cx, seat) = Cx::new_seated(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xBA7C_0001),
+    );
     grant_capability_set(&seat, &mut cx, capabilities).map_err(OpenAiRouteError::internal)?;
     let mut cache = OpenAiPlanCache::new();
     let mut result = BatchRunResult {

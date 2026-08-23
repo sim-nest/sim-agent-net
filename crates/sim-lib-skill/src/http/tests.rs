@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Error, Expr, Result, Symbol, Value};
+use sim_kernel::{
+    Args, Cx, DefaultFactory, EagerPolicy, Error, Expr, HandleSeed, Result, Symbol, Value,
+};
 
 use super::FixtureHttpTransport;
 use crate::{
@@ -96,7 +98,11 @@ fn live_openapi_discovery_smoke_is_opt_in() {
 }
 
 fn skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0002),
+    );
     install_skill_lib(&mut cx).unwrap();
     cx
 }

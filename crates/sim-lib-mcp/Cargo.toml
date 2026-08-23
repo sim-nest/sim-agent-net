@@ -10,9 +10,11 @@ repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
+serde_json = "1"
 sim-citizen = { version = "0.2.0" }
 sim-citizen-derive = { version = "0.2.0" }
 sim-codec = { optional = true, version = "0.1.8" }
+sim-codec-json = { version = "0.2.2" }
 sim-codec-mcp = { version = "0.1.5" }
 sim-cookbook = { version = "0.2.0" }
 sim-kernel = { version = "0.2.1" }

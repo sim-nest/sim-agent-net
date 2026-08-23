@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use sim_kernel::{
-    Args, ClaimPattern, Cx, DefaultFactory, EagerPolicy, Error, Expr, Ref, Symbol, Value,
+    Args, ClaimPattern, Cx, DefaultFactory, EagerPolicy, Error, Expr, HandleSeed, Ref, Symbol,
+    Value,
 };
 use sim_shape::{AnyShape, ListShape, NumberValueShape, shape_value};
 use sim_value::build::entry;
@@ -413,7 +414,11 @@ fn skill_audit_redacts_raw_payloads() {
 }
 
 fn skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0001),
+    );
     install_skill_lib(&mut cx).unwrap();
     cx
 }

@@ -19,6 +19,7 @@ pub(crate) use options::{
 };
 pub(crate) use value::{
     bool_from_value, capability_names_from_value, clone_server_cx, coerce_result_shape,
-    connection_arg, server_arg, string_like_from_value, symbol_from_value, symbol_list_from_value,
-    wasm_module_bytes_from_value,
+    connection_arg, server_arg, symbol_from_value, symbol_list_from_value,
 };
+#[cfg(feature = "wasm")]
+pub(crate) use value::{string_like_from_value, wasm_module_bytes_from_value};

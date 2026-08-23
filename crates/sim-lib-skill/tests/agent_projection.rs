@@ -3,7 +3,9 @@
 use std::sync::Arc;
 
 use sim_codec_binary::BinaryCodecLib;
-use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, ShapeRef, Symbol, Value};
+use sim_kernel::{
+    Args, Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, ShapeRef, Symbol, Value,
+};
 use sim_lib_skill::{
     FixtureBehavior, FixtureSkillSpec, FixtureTransport, SkillCard, SkillRole, install_skill_lib,
     skill_as_tool_symbol, skill_call_capability, skill_install_capability, skill_install_symbol,
@@ -67,7 +69,11 @@ fn privacy_allow_tools_denies_skill_tool_before_execution() {
 }
 
 fn agent_skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0008),
+    );
     let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&binary).unwrap();
     install_skill_lib(&mut cx).unwrap();

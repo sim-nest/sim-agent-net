@@ -160,10 +160,7 @@ pub fn start_server_transport(server: &Server) -> Result<()> {
                 }
             }
         }
-        ServerAddress::Wasm { region } => {
-            let _ = crate::wasm::lookup_wasm_region(region)?;
-            Ok(())
-        }
+        ServerAddress::Wasm { region } => require_wasm_region(region),
         _ => register_endpoint(TransportEndpoint {
             address: server.address().clone(),
             site: server.site().clone(),
@@ -453,10 +450,7 @@ pub fn open_server_transport(address: ServerAddress) -> Result<Option<Arc<dyn Se
         ServerAddress::InProcess { .. } => Ok(Some(
             Arc::new(RegistryTransport::new(address)) as Arc<dyn ServerTransport>
         )),
-        ServerAddress::Wasm { region } => {
-            let _ = crate::wasm::lookup_wasm_region(region)?;
-            Ok(None)
-        }
+        ServerAddress::Wasm { region } => require_wasm_region(region).map(|()| None),
         ServerAddress::Http { .. } => open_http_server_transport(address),
         ServerAddress::Sse { .. } => open_sse_server_transport(address),
         ServerAddress::Ws { .. } => open_ws_server_transport(address),
@@ -476,6 +470,17 @@ pub(crate) fn transport_kind(address: &ServerAddress) -> &'static str {
         ServerAddress::Ws { .. } => "ws",
         _ => "transport",
     }
+}
+
+#[cfg(feature = "wasm")]
+fn require_wasm_region(region: &str) -> Result<()> {
+    let _ = crate::wasm::lookup_wasm_region(region)?;
+    Ok(())
+}
+
+#[cfg(not(feature = "wasm"))]
+fn require_wasm_region(_region: &str) -> Result<()> {
+    Err(Error::Eval("server wasm feature disabled".to_owned()))
 }
 
 #[cfg(not(feature = "server-net-http"))]

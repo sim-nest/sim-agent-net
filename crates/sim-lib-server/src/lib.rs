@@ -17,7 +17,9 @@ mod cli;
 mod clock;
 mod codecio;
 mod connection;
+#[cfg(feature = "cookbook-web")]
 mod cookbook_web;
+#[cfg(feature = "cookbook-web")]
 mod cookbook_web_json;
 mod coroutine;
 mod cron;
@@ -45,6 +47,7 @@ mod stream_support;
 mod transport;
 mod trigger;
 mod voice;
+#[cfg(feature = "wasm")]
 mod wasm;
 
 pub use address::ServerAddress;
@@ -55,6 +58,7 @@ pub use citizen::{
 pub use clock::{DeterministicWallClock, SystemWallClock, WallClock, WallTimestamp};
 pub use codecio::{decode_frame_payload, encode_frame_payload};
 pub use connection::{Connection, Session};
+#[cfg(feature = "cookbook-web")]
 pub use cookbook_web::{CookbookWebResponse, CookbookWebState};
 pub use coroutine::{Coroutine, CoroutineStatus};
 pub use device_edge::{
@@ -81,6 +85,7 @@ pub use router::FrameRouter;
 pub use runtime::ServerRuntime;
 pub use server::{Server, ServerStatus, ThreadMode};
 pub use sim_cookbook::EmbeddedDir;
+#[cfg(feature = "cookbook-web")]
 pub use sim_lib_cookbook::CookbookCapabilityProfile;
 pub use site::{
     CoroutineEvalSite, EvalSite, FabricEvalSite, LocalEvalSite, LoopEvalSite, PipelineEvalSite,
@@ -101,6 +106,7 @@ pub use voice::{
     ModeledAsrFabric, XR_MIC_CHUNK_KIND, XR_MIC_CHUNK_NAMESPACE, modeled_asr_site,
     modeled_glasses_asr_site,
 };
+#[cfg(feature = "wasm")]
 pub use wasm::register_wasm_region;
 
 use crate::isolation::IsolatedEvalSite;

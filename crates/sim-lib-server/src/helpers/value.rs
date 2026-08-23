@@ -1,3 +1,4 @@
+#[cfg(feature = "wasm")]
 use std::fs;
 
 use crate::{Connection, Server};
@@ -15,6 +16,7 @@ pub(crate) fn symbol_from_value(
     }
 }
 
+#[cfg(feature = "wasm")]
 pub(crate) fn string_like_from_value(
     cx: &mut Cx,
     value: Value,
@@ -27,6 +29,7 @@ pub(crate) fn string_like_from_value(
     }
 }
 
+#[cfg(feature = "wasm")]
 pub(crate) fn wasm_module_bytes_from_value(
     cx: &mut Cx,
     value: Value,

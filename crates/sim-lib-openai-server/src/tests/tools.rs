@@ -231,38 +231,20 @@ fn invalid_tool_arguments_are_structured_tool_results() {
 }
 
 #[test]
-fn unsupported_tool_schema_keywords_are_rejected_at_descriptor_boundary() {
-    for (keyword, value) in unsupported_schema_keywords() {
-        let mut descriptors = echo_tool_descriptor();
-        descriptors[0]["function"]["parameters"]["properties"]["text"][keyword] = value;
-
-        let error = OpenAiTool::from_openai_descriptor(&descriptors[0]).unwrap_err();
-
-        assert!(
-            format!("{error}").contains(keyword),
-            "error should name unsupported keyword {keyword}: {error}"
-        );
-    }
-}
-
-#[test]
-fn object_schema_keywords_require_explicit_object_type() {
+fn draft_schema_keywords_are_accepted_at_descriptor_boundary() {
     let mut descriptors = echo_tool_descriptor();
-    descriptors[0]["function"]["parameters"]
-        .as_object_mut()
-        .unwrap()
-        .remove("type");
+    descriptors[0]["function"]["parameters"]["properties"]["text"]["enum"] = json!(["allowed"]);
+    descriptors[0]["function"]["parameters"]["properties"]["text"]["pattern"] = json!("^[a-z]+$");
+    descriptors[0]["function"]["parameters"]["properties"]["text"]["minLength"] = json!(3);
+    descriptors[0]["function"]["parameters"]["properties"]["count"] =
+        json!({"type":"integer","minimum":1,"maximum":10});
+    descriptors[0]["function"]["parameters"]["required"] = json!(["text"]);
 
-    let error = OpenAiTool::from_openai_descriptor(&descriptors[0]).unwrap_err();
-
-    assert!(
-        format!("{error}").contains("requires type object"),
-        "object-only keywords should require type object: {error}"
-    );
+    OpenAiTool::from_openai_descriptor(&descriptors[0]).unwrap();
 }
 
 #[test]
-fn unsupported_tool_schema_request_is_rejected_before_tool_execution() {
+fn invalid_tool_schema_arguments_are_rejected_without_tool_execution() {
     let calls = Arc::new(AtomicUsize::new(0));
     let mut cx = tool_cx();
     register_echo_tool(&mut cx, calls.clone());
@@ -275,15 +257,16 @@ fn unsupported_tool_schema_request_is_rejected_before_tool_execution() {
 
     let execution = execute_response_request(&mut cx, &mut store, &mut ids, &mut clock, &request);
     let json = response_json(execution.response());
+    let result = event_payload(execution.events(), "tool-result");
 
-    assert_eq!(execution.response().status(), 400);
-    assert_eq!(json["error"]["code"], "invalid_model");
+    assert_eq!(execution.response().status(), 200);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
+    assert!(format!("{result:?}").contains("invalid-arguments"));
     assert!(
-        json["error"]["message"]
+        json["output_text"]
             .as_str()
             .unwrap()
-            .contains("unsupported json schema keyword enum")
+            .contains("invalid-arguments")
     );
 }
 
@@ -390,27 +373,6 @@ fn echo_tool_descriptor() -> Value {
             }
         }
     }])
-}
-
-fn unsupported_schema_keywords() -> Vec<(&'static str, Value)> {
-    vec![
-        ("enum", json!(["hello"])),
-        ("minimum", json!(1)),
-        ("maximum", json!(10)),
-        ("exclusiveMinimum", json!(1)),
-        ("multipleOf", json!(2)),
-        ("pattern", json!("^hello")),
-        ("minLength", json!(1)),
-        ("maxLength", json!(10)),
-        ("items", json!({"type": "string"})),
-        ("minItems", json!(1)),
-        ("maxItems", json!(3)),
-        ("additionalProperties", json!(false)),
-        ("oneOf", json!([{"type": "string"}])),
-        ("anyOf", json!([{"type": "string"}])),
-        ("allOf", json!([{"type": "string"}])),
-        ("not", json!({"type": "null"})),
-    ]
 }
 
 fn response_json(response: &crate::GatewayResponse) -> Value {

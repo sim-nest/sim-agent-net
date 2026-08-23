@@ -60,7 +60,11 @@ pub fn handle_chat_completions(
     let mut clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
     let mut ids = ResponseIdGenerators::deterministic(seed);
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(seed),
+    );
     match state.store().lock() {
         Ok(mut store) => match state
             .keys()

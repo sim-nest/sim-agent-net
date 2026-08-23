@@ -5,8 +5,8 @@ use std::sync::{
 
 use sim_codec_binary::BinaryCodecLib;
 use sim_kernel::{
-    Args, Consistency, Cx, DefaultFactory, EvalMode, EvalRequest, Expr, Result, ShapeRef, Symbol,
-    Value,
+    Args, Consistency, Cx, DefaultFactory, EvalMode, EvalRequest, Expr, HandleSeed, Result,
+    ShapeRef, Symbol, Value,
 };
 use sim_lib_agent::{
     ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
@@ -239,7 +239,11 @@ impl SkillTransport for EventTransport {
 }
 
 fn skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(sim_kernel::EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(sim_kernel::EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0006),
+    );
     let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&binary).unwrap();
     install_skill_lib(&mut cx).unwrap();

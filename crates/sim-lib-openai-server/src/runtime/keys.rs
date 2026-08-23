@@ -139,7 +139,11 @@ impl OpenAiKeyTable {
 
     /// Returns an empty key table whose unauthenticated requests get `anonymous`.
     pub fn with_anonymous(anonymous: CapabilitySet) -> Result<Self> {
-        let cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+        let cx = Cx::new(
+            Arc::new(NoopEvalPolicy),
+            Arc::new(DefaultFactory),
+            sim_kernel::HandleSeed::new(0x0A11_CE01),
+        );
         let keys = cx.factory().table(Vec::new())?;
         Ok(Self {
             inner: Arc::new(OpenAiKeyTableInner {
