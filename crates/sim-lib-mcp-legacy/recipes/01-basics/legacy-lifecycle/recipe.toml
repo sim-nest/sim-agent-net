@@ -1,0 +1,9 @@
+id = "legacy-lifecycle"
+title = "Legacy lifecycle adapter"
+summary = "Initialize an old MCP connection and dispatch through the stateless service."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["mcp", "legacy", "compatibility", "sandbox-descriptor"]
+requires = ["mcp"]

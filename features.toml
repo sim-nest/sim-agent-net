@@ -189,7 +189,7 @@ title = "MCP server surface"
 summary = "Serve MCP requests through the loaded sim-lib-mcp command and runtime libraries."
 owner = "crate/sim-lib-mcp"
 audiences = ["user", "code"]
-guidance = "Use this row when exposing SIM behavior over MCP."
+guidance = "Use sim-lib-mcp for stateless request service behavior. Compose sim-lib-mcp-legacy only at an initialize-era connection boundary; the dependency remains one-way so deleting compatibility leaves the modern service intact."
 claims_anchors = [
   "anchor/cli/mcp",
   "anchor/cli/sim-mcp-server",
@@ -212,6 +212,19 @@ claims_surfaces = [
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-mcp/tests/serve_mcp",
 ]
+
+[[feature]]
+id = "feature/sim-agent-net/mcp-legacy-compatibility"
+title = "Removable initialize-era MCP compatibility"
+summary = "Retain initialize, initialized notification, negotiated connection facts, and shutdown behavior outside the canonical stateless MCP service."
+owner = "crate/sim-lib-mcp-legacy"
+audiences = ["code", "framework"]
+guidance = "Compose LegacyConnection only at a boundary serving initialize-era peers. It retains explicit connection facts and constructs a complete RequestContext for each ordinary request before calling sim-lib-mcp; new integrations use McpService directly."
+claims_anchors = ["anchor/crate/sim-lib-mcp-legacy"]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-mcp-legacy/01-basics/legacy-lifecycle",
+]
+depends_on = ["feature/sim-agent-net/mcp-server"]
 
 [[feature]]
 id = "feature/sim-agent-net/bridge-runtime"

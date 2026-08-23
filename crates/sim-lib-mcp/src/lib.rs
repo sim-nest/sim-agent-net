@@ -1,8 +1,11 @@
-//! Library-only MCP surface projection for SIM.
+//! Stateless MCP application service for SIM.
 //!
-//! This crate projects native browse Cards and optional `SkillCard` records
-//! into redacted `McpSurfaceCard` rows. Routing, transport, and callable
-//! execution are implemented by later MCP layers.
+//! [`McpService`] keeps only an immutable [`ServerDescription`]. A hosting
+//! boundary supplies a fresh [`Cx`](sim_kernel::Cx), a complete
+//! [`RequestContext`], and one decoded request. Native Cards and optional
+//! `SkillCard` records still share the canonical projection, lookup, Shape
+//! validation, execution, content validation, and result-mapping paths.
+//! Initialize-era connection behavior belongs in `sim-lib-mcp-legacy`.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -27,6 +30,7 @@ mod sampling;
 mod schema;
 #[cfg(feature = "serve")]
 mod serve;
+mod service;
 mod session;
 #[cfg(feature = "skill")]
 mod skill;
@@ -105,6 +109,10 @@ pub use schema::shape_to_json_schema;
 pub use serve::{
     CliOptions, McpServeLib, Transport, configure_mcp_bootloader, mcp_bootloader,
     mcp_serve_entrypoint_symbol,
+};
+pub use service::{
+    CachePolicy, McpService, NegotiatedExtensions, Principal, RequestContext, ServerDescription,
+    ServiceResponseStream,
 };
 pub use session::McpSession;
 #[cfg(feature = "skill")]

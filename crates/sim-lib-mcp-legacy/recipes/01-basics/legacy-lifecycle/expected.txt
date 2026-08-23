@@ -1,0 +1,1 @@
+(mcp-legacy (initialize 2025-03-26) (context fresh-per-request) (service stateless) (shutdown adapter-owned))

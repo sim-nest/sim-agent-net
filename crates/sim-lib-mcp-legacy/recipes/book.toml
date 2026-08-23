@@ -1,0 +1,5 @@
+book = "mcp-legacy"
+title = "MCP legacy adapter"
+summary = "Initialize-era compatibility over the stateless MCP service."
+order = 347
+chapters = ["01-basics"]

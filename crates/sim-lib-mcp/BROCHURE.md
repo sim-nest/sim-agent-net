@@ -1,17 +1,18 @@
 # sim-lib-mcp
 
-In one line: The piece that turns SIM's own tools and skills into safe listings other assistants can discover.
+In one line: A stateless MCP service that turns SIM's tools and skills into safe protocol operations.
 
 ## What it gives you
 
-The Model Context Protocol is a common way for assistants to find out what tools and resources are available to them. This crate takes SIM's internal catalog, its browse cards and its skill descriptions, and presents each one as a tidy, protocol-shaped listing. As it does so it strips out details that should not be shared, so what goes out is a redacted, presentable summary rather than raw internals. The result is a clean inventory of what SIM can offer to an outside assistant, described in terms that assistant already understands, without exposing the machinery behind each entry.
+The Model Context Protocol is a common way for assistants to discover and invoke tools and resources. This crate takes SIM's internal catalog, browse cards, and skill descriptions and presents them through one immutable application service. Each decoded request arrives with a fresh execution context and complete caller, negotiation, and cache facts. The same canonical path performs lookup, argument Shape checking, execution, content validation, and result mapping without retaining connection state.
 
 ## Why you will be glad
 
 - SIM's tools and skills become visible to any assistant that speaks this common protocol.
 - Sensitive internals are filtered out before anything is shared, keeping private details private.
 - You describe your capabilities once in SIM and they appear in a standard, discoverable form.
+- One service value can safely handle independent requests because connection lifecycle and mutable request state stay outside it.
 
 ## Where it fits
 
-This crate is the presentation layer for SIM's protocol-facing catalog. It focuses on one job: turning native cards and skills into redacted, standard listings. The work of routing calls, carrying them over a transport, and actually running the chosen tool belongs to the protocol layers built on top; this piece prepares the menu they hand out.
+Use this crate as the canonical application boundary for modern MCP. A host decodes transport frames and supplies `RequestContext`; initialize-era peers compose the removable `sim-lib-mcp-legacy` adapter. HTTP, sockets, processes, OAuth stores, and global executors do not belong in the modern service's default dependency closure.
