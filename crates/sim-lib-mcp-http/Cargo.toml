@@ -19,6 +19,7 @@ sim-lib-mcp = { version = "0.1.9", path = "../sim-lib-mcp" }
 sim-lib-mcp-legacy = { version = "0.1.0", path = "../sim-lib-mcp-legacy" }
 sim-lib-net-http = "0.1.0"
 sim-lib-server = { version = "0.1.12", path = "../sim-lib-server", features = ["server-net-http"] }
+sim-value = "0.2.0"
 
 [build-dependencies]
 sim-cookbook-build = "0.1.0"

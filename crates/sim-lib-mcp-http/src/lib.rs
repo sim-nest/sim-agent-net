@@ -529,23 +529,10 @@ fn check_projection(
     Ok(())
 }
 fn expr_field<'a>(expr: &'a Expr, wanted: &str) -> Option<&'a str> {
-    let Expr::Map(fields) = expr else { return None };
-    fields.iter().find_map(|(k, v)| {
-        let key = match k {
-            Expr::String(s) => s.as_str(),
-            Expr::Symbol(s) if s.namespace.is_none() => s.name.as_ref(),
-            _ => return None,
-        };
-        (key == wanted)
-            .then(|| {
-                if let Expr::String(s) = v {
-                    Some(s.as_str())
-                } else {
-                    None
-                }
-            })
-            .flatten()
-    })
+    match sim_value::access::field_any(expr, wanted) {
+        Some(Expr::String(value)) => Some(value),
+        _ => None,
+    }
 }
 fn safe_projection(value: &str) -> bool {
     value.strip_prefix(":base64:").map_or_else(
