@@ -1,8 +1,8 @@
-schema = "sim.recipe/v1"
 id = "no-network-observatory"
 title = "Replay the complete model observatory without provider contact"
-kind = "model-test-conformance"
-entrypoint = "setup.siml"
-
-[evidence]
-command = "cargo test -p sim-lib-model-test --test product"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 20
+tags = ["model", "test", "observatory", "offline", "replay"]
+requires = ["core", "codec/lisp"]
