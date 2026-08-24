@@ -7,6 +7,7 @@
 
 mod candidate;
 mod census;
+mod economics;
 mod executor;
 mod identity;
 mod privacy;
@@ -17,6 +18,7 @@ pub use candidate::{
     RouteSemantics,
 };
 pub use census::{CandidateCensus, CandidatePresence, CandidateRecord, IdentityObservation};
+pub use economics::*;
 pub use executor::*;
 pub use identity::{IdentityMismatch, IdentityVerification, verify_observed_identity};
 pub use privacy::{OfflineSnapshot, SnapshotError};

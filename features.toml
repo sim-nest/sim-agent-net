@@ -150,6 +150,21 @@ claims_anchors = [
 depends_on = ["feature/sim-agent-net/provider-control"]
 
 [[feature]]
+id = "feature/sim-agent-net/model-resource-economics"
+title = "Replayable model resource economics"
+summary = "Seal open resource axes, immutable price revisions, per-attempt attribution, exposure bounds, and exact provider reconciliation before generic study decisions consume them."
+owner = "crate/sim-lib-model-test"
+audiences = ["code", "framework"]
+guidance = "Record model-domain facts with DecisionAxis, PriceObservation, AttemptResourceEvent, ExposureSeal, and reconcile_provider_usage. Prefer measured energy to an explicitly sourced declared power profile; treat missing or expired prices and unreconciled provider usage as unavailable. Feed generic_event into sim-lib-study attribution and its sole cost-per-accepted projection. Keep actual accounts, prices, forecasts, role policy, model inventory, and executable scoring outside this public crate."
+claims_anchors = [
+  "anchor/crate/sim-lib-model-test",
+  "anchor/rustdoc/sim-lib-model-test/decision-axis",
+  "anchor/rustdoc/sim-lib-model-test/exposure-seal",
+  "anchor/rustdoc/sim-lib-model-test/reconcile_provider_usage",
+]
+depends_on = ["feature/sim-agent-net/model-candidate-identity"]
+
+[[feature]]
 id = "feature/sim-agent-net/model-task-protocols"
 title = "Loadable self-checking model task protocols"
 summary = "Prepare immutable public trials and grade linked facets through open protocols with repository closure, discrete generation, privacy, and calibrated-judge evidence."
