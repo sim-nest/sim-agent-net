@@ -2,4 +2,4 @@ book = "agent"
 title = "Agent"
 summary = "Agent components, memories, and offline runner descriptors."
 order = 340
-chapters = ["01-basics", "30-agents", "40-atelier"]
+chapters = ["01-basics", "30-agents", "40-atelier", "50-conducts"]

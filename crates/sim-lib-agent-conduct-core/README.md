@@ -12,3 +12,5 @@ Every public record is a Citizen and therefore has a checked constructor Shape
 and the standard general-purpose expression codec round trip.
 
 See `recipes/01-basics/pure-journal` for an entirely local two-record chain.
+The public Cards describe every lifecycle record, and the agent conduct recipes
+demonstrate suspension, effect-free replay, and authority-checked forks.

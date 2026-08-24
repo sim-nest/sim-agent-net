@@ -18,6 +18,7 @@ pub mod atelier;
 mod capabilities;
 mod cli;
 mod components;
+mod conduct_functions;
 mod config_probe;
 #[cfg(feature = "cookbook")]
 mod cookbook_tools;

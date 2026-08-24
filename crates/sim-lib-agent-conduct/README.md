@@ -15,3 +15,6 @@ packages. `load_agent_conduct_catalog` reads them through table-backed package
 sources, registers them with `TopologyRegistry`, and applies the conduct
 profile. A new kind is one `.simtopo` package with an embedded test, not a new
 Rust loop, type, or function.
+The shipped catalog contains default, ReAct, plan-act-replan, phased,
+verify-retry, router-crew, and triage packages. The agent CLI and Lisp surfaces
+reuse this crate's reflection, diagram, certification, and report APIs.

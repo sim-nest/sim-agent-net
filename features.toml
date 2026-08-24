@@ -116,6 +116,35 @@ depends_on = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/agent-conduct-product-surfaces"
+title = "Agent conduct CLI, Lisp, Cards, and recipes"
+summary = "Discover, explain, run, suspend, resume, replay, fork, and extend topology-backed agent conducts through the existing agent command and Lisp library."
+owner = "crate/sim-lib-agent"
+audiences = ["user", "code", "framework"]
+guidance = "Use `sim agent conduct list|show|explain|run` for bounded command access and agent.conduct/list|show|explain|run from Lisp. Use agent.run/inspect|suspend|resume|replay|fork for the same lifecycle projection. Show and explain retain topology reflection and add only derived Cards, roles, authority, budget, result Shape, and replay policy. Command results are bounded expression maps, identifiers are validated, replay exposes no live effect target, and recipes use fake runners, cassettes, fixture tools, and modeled effects."
+claims_anchors = [
+  "anchor/cli/sim-lib-agent/agent",
+  "anchor/export/sim-lib-agent/agent.conduct/list",
+  "anchor/export/sim-lib-agent/agent.conduct/show",
+  "anchor/export/sim-lib-agent/agent.run/replay",
+]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-default",
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-react",
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-plan-act-replan",
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-phased",
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-verify-retry",
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-router-crew",
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-suspend-resume",
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-effect-free-replay",
+  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/conduct-third-party-step",
+]
+depends_on = [
+  "feature/sim-agent-net/manifest-selected-conduct",
+  "feature/sim-agent-net/agent-conduct-topology-profile",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/provider-control"
 title = "Reusable provider control"
 summary = "Register open provider families, preserve independently selectable seats, validate them through one conformance harness, and compose them in ordered fan-out."

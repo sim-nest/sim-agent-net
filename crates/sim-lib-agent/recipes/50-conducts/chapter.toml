@@ -1,0 +1,19 @@
+title = "Agent conducts"
+[[recipe]]
+path = "default/recipe.toml"
+[[recipe]]
+path = "react/recipe.toml"
+[[recipe]]
+path = "plan-act-replan/recipe.toml"
+[[recipe]]
+path = "phased/recipe.toml"
+[[recipe]]
+path = "verify-retry/recipe.toml"
+[[recipe]]
+path = "router-crew/recipe.toml"
+[[recipe]]
+path = "suspend-resume/recipe.toml"
+[[recipe]]
+path = "effect-free-replay/recipe.toml"
+[[recipe]]
+path = "third-party-step/recipe.toml"

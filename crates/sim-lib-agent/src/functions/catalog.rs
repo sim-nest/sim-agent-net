@@ -48,6 +48,39 @@ pub(super) static AGENT_FUNCTIONS: LazyLock<Vec<(Symbol, AgentFnKind)>> = LazyLo
             AgentFnKind::RecipeResult,
         ),
         (
+            Symbol::qualified("agent.conduct", "list"),
+            AgentFnKind::ConductList,
+        ),
+        (
+            Symbol::qualified("agent.conduct", "show"),
+            AgentFnKind::ConductShow,
+        ),
+        (
+            Symbol::qualified("agent.conduct", "explain"),
+            AgentFnKind::ConductExplain,
+        ),
+        (
+            Symbol::qualified("agent.conduct", "run"),
+            AgentFnKind::ConductRun,
+        ),
+        (
+            Symbol::qualified("agent.run", "inspect"),
+            AgentFnKind::RunInspect,
+        ),
+        (
+            Symbol::qualified("agent.run", "suspend"),
+            AgentFnKind::RunSuspend,
+        ),
+        (
+            Symbol::qualified("agent.run", "resume"),
+            AgentFnKind::RunResume,
+        ),
+        (
+            Symbol::qualified("agent.run", "replay"),
+            AgentFnKind::RunReplay,
+        ),
+        (Symbol::qualified("agent.run", "fork"), AgentFnKind::RunFork),
+        (
             Symbol::qualified("memory", "working"),
             AgentFnKind::MemoryWorking,
         ),
