@@ -18,6 +18,8 @@ sim-kernel = { path = "../../../../sim-kernel" }
 sim-lib-net-core = { path = "../../../../sim-foundation/crates/sim-lib-net-core" }
 sim-codec = { path = "../../../../sim-codecs/crates/sim-codec" }
 sim-codec-binary = { path = "../../../../sim-codecs/crates/sim-codec-binary" }
+sim-codec-config = { path = "../../../../sim-codecs/crates/sim-codec-config" }
+sim-codec-doc = { path = "../../../../sim-codecs/crates/sim-codec-doc" }
 sim-cookbook = { path = "../../../../sim-foundation/crates/sim-cookbook" }
 sim-cookbook-build = { path = "../../../../sim-foundation/crates/sim-cookbook-build" }
 sim-shape = { path = "../../../../sim-shape" }

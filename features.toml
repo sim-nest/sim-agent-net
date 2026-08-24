@@ -1,6 +1,24 @@
 schema = "sim.features"
 
 [[feature]]
+id = "feature/sim-agent-net/native-roadmap-document-adapter"
+title = "Strict v3 roadmap document adapter"
+summary = "Import legacy v3 Markdown and typed catalogs into observation-separated native roadmap documents, then render native recursive Markdown or a precise flat-v3 loss report."
+owner = "crate/sim-lib-roadmap"
+audiences = ["code", "framework"]
+guidance = "Construct V3Importer with caller-owned referenced-document bytes. Import observes Markdown only through sim-codec-doc, content-pins every origin, keeps lifecycle state outside semantic identity, and marks legacy prose and snippets ungrounded. Decode proof and policy catalogs with import_catalogs so command fields remain argv. Prefer render_native; call render_v3 only when the caller can handle every returned loss path."
+claims_anchors = ["anchor/crate/sim-lib-roadmap"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap/src/tests"]
+
+[enforcement.audience]
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+framework = "strict"
+code = "strict"
+
+[[feature]]
 id = "feature/sim-agent-net/certified-roadmap-refinement"
 title = "Certified immutable roadmap refinement"
 summary = "Replace one grounded roadmap leaf with a bounded finite tree only when every child has a strictly lower derived rank and parent acceptance remains completely covered."

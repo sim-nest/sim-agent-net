@@ -200,7 +200,7 @@ fn every_declared_kind_has_a_shape_symbol() {
 }
 
 #[test]
-fn crate_has_no_effectful_or_document_ingestion_modules() {
+fn crate_has_no_effectful_ingestion_dependencies() {
     let manifest = include_str!("../Cargo.toml");
     let sources = [
         include_str!("lib.rs"),
@@ -217,10 +217,8 @@ fn crate_has_no_effectful_or_document_ingestion_modules() {
         "std::process",
         "reqwest",
         "tokio",
-        "model",
         "scanner",
         "journal",
-        "parser",
     ] {
         assert!(
             !sources.contains(forbidden),
@@ -231,4 +229,98 @@ fn crate_has_no_effectful_or_document_ingestion_modules() {
             "forbidden dependency marker: {forbidden}"
         );
     }
+}
+
+#[test]
+fn v3_import_separates_observations_and_preserves_spans() {
+    let referenced = b"### [ ] OTHER.1 - Source\n".to_vec();
+    let documents = BTreeMap::from([("source.md".to_owned(), referenced)]);
+    let source = "# Plan\n\nSTATE: ACTIVE\nNEXT: P.1\n\n### [ ] P.1 - Build it\nSOURCE_PHASE: source.md#OTHER.1\nDEPENDS_ON: P.0\nStatus: active\n\nTasks:\n\n- [x] parsed task\n\nSome legacy prose.\n\n```sh\necho visible\n```\n";
+    let imported = V3Importer::new(&documents)
+        .import("plan.md", source)
+        .unwrap();
+    assert_eq!(imported.observation.state.as_deref(), Some("ACTIVE"));
+    assert_eq!(imported.observation.next.as_deref(), Some("P.1"));
+    assert_eq!(imported.observation.checked_tasks["P.1"], vec![1]);
+    let phase = &imported.roadmap.root.children[0];
+    assert_eq!(phase.dependencies[0].target, "P.0");
+    assert_eq!(phase.checkpoints[0].text, "parsed task");
+    assert!(phase.span.end > phase.span.start);
+    assert!(phase.guides.iter().all(|guide| !guide.grounded));
+    assert!(
+        phase
+            .guides
+            .iter()
+            .any(|guide| guide.language.as_deref() == Some("sh"))
+    );
+    let before = imported.roadmap.semantic_id();
+    let mut changed = imported;
+    changed.observation.state = Some("DONE".into());
+    changed.observation.checked_tasks.clear();
+    assert_eq!(before, changed.roadmap.semantic_id());
+    changed.roadmap.root.children[0].title.push('!');
+    assert_ne!(before, changed.roadmap.semantic_id());
+}
+
+#[test]
+fn references_are_caller_owned_content_pinned_and_fail_closed() {
+    let docs = BTreeMap::from([("source.md".to_owned(), b"source".to_vec())]);
+    let base = "# Plan\n\n### [ ] P.1 - Build\nSOURCE_PHASE: {}\n";
+    let imported = V3Importer::new(&docs)
+        .import("plan.md", &base.replace("{}", "source.md#S.1"))
+        .unwrap();
+    assert!(
+        imported.roadmap.root.children[0].origins[0]
+            .content_id
+            .starts_with("fnv1a64:")
+    );
+    for reference in ["../source.md#S.1", "/source.md#S.1", "missing.md#S.1"] {
+        assert!(
+            V3Importer::new(&docs)
+                .import("plan.md", &base.replace("{}", reference))
+                .is_err()
+        );
+    }
+    assert!(
+        V3Importer::new(&docs)
+            .import(
+                "plan.md",
+                &base.replace("{}", "source.md@fnv1a64:0000000000000000#S.1"),
+            )
+            .is_err()
+    );
+    let duplicate = "# Plan\n\n### [ ] P.1 - Build\nSOURCE_PHASE: source.md#S.1, source.md#S.1\n";
+    assert!(V3Importer::new(&docs).import("plan.md", duplicate).is_err());
+}
+
+#[test]
+fn catalogs_use_config_shape_and_require_argv_commands() {
+    let ok = "name = \"workspace\"\ncommand = [\"cargo\", \"test\"]\n";
+    assert!(import_catalogs(ok, ok, ok, ok).is_ok());
+    let shell = "command = \"cargo test && publish\"\n";
+    assert!(import_catalogs(shell, ok, ok, ok).is_err());
+}
+
+#[test]
+fn native_render_is_stable_visible_and_v3_reports_all_loss_paths() {
+    let docs = BTreeMap::new();
+    let source = "# Plan\n\n### [ ] P.1 - Build\n\nProse.\n";
+    let imported = V3Importer::new(&docs).import("plan.md", source).unwrap();
+    let native = render_native(&imported.roadmap);
+    assert_eq!(native, render_native(&imported.roadmap));
+    assert!(native.contains("UNGROUNDED LEGACY GUIDE"));
+    assert!(!native.contains("Status:") && !native.contains("STATE:"));
+    assert!(render_v3(&imported.roadmap).is_ok());
+    let mut recursive = imported.roadmap;
+    let child = recursive.root.children[0].clone();
+    recursive.root.children[0].children.push(child);
+    recursive.root.children[0].guides[0].grounded = true;
+    let losses = render_v3(&recursive).unwrap_err();
+    assert_eq!(losses.losses.len(), 2);
+    assert!(
+        losses
+            .losses
+            .iter()
+            .all(|loss| loss.path.starts_with("root.phases"))
+    );
 }
