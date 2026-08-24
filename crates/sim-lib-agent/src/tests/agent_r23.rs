@@ -9,12 +9,15 @@ use crate::agents::topology_data::{
     build_ring_data_graph_connection, build_speculate_verify_data_graph_connection,
     build_star_data_graph_connection,
 };
-use sim_kernel::{Args, Cx, Expr, Symbol};
+use sim_kernel::{Args, CapabilitySet, Consistency, Cx, EvalMode, EvalRequest, Expr, Symbol};
+use sim_lib_agent_conduct_core::{AgentRunFrame, AgentUsageBudget, UsageQuantity};
 use sim_lib_server::Connection;
 use sim_lib_topology::topology_run_capability;
 
+use crate::execute_delegate_once;
+
 #[test]
-fn r23_topology_ring_data_graph_matches_public_constructor() {
+fn public_ring_constructor_matches_normalized_graph_record() {
     let mut cx = topology_cx();
     register_connection(
         &mut cx,
@@ -56,7 +59,7 @@ fn r23_topology_ring_data_graph_matches_public_constructor() {
 }
 
 #[test]
-fn r23_topology_star_data_graph_matches_public_constructor() {
+fn public_star_constructor_matches_normalized_graph_record() {
     let mut cx = topology_cx();
     register_connection(
         &mut cx,
@@ -99,7 +102,7 @@ fn r23_topology_star_data_graph_matches_public_constructor() {
 }
 
 #[test]
-fn r23_topology_mesh_data_graph_matches_public_constructor() {
+fn public_mesh_constructor_matches_normalized_graph_record() {
     let mut cx = topology_cx();
     register_connection(
         &mut cx,
@@ -140,7 +143,7 @@ fn r23_topology_mesh_data_graph_matches_public_constructor() {
 }
 
 #[test]
-fn r23_topology_market_data_graph_matches_public_constructor() {
+fn public_market_constructor_matches_normalized_graph_record() {
     let mut cx = topology_cx();
     let _cheap = register_bid_worker(
         &mut cx,
@@ -173,7 +176,7 @@ fn r23_topology_market_data_graph_matches_public_constructor() {
 }
 
 #[test]
-fn r23_topology_debate_data_graph_matches_public_constructor() {
+fn public_debate_constructor_matches_normalized_graph_record() {
     let mut cx = topology_cx();
     let judge = rubric_judge(&mut cx, "pro wins evidence");
     register_connection(
@@ -204,7 +207,7 @@ fn r23_topology_debate_data_graph_matches_public_constructor() {
 }
 
 #[test]
-fn r23_topology_speculate_verify_data_graph_matches_public_constructor() {
+fn public_speculate_verify_constructor_matches_normalized_graph_record() {
     let mut cx = topology_cx();
     register_connection(
         &mut cx,
@@ -240,7 +243,7 @@ fn r23_topology_speculate_verify_data_graph_matches_public_constructor() {
 }
 
 #[test]
-fn r23_topology_open_claw_data_graph_matches_public_constructor() {
+fn public_open_claw_constructor_matches_normalized_graph_record() {
     let mut cx = topology_cx();
     register_connection(
         &mut cx,
@@ -268,6 +271,100 @@ fn r23_topology_open_claw_data_graph_matches_public_constructor() {
     assert_eq!(data_expr, rust_expr);
     assert!(flatten_text(&data_expr).contains("a:none"));
     assert!(flatten_text(&data_expr).contains("b:none"));
+}
+
+#[test]
+fn parent_conduct_delegates_debate_and_market_under_one_child_budget() {
+    let mut cx = topology_cx();
+    let judge = rubric_judge(&mut cx, "pro wins evidence");
+    register_connection(
+        &mut cx,
+        Symbol::qualified("test", "debate-pro"),
+        fixed_reply_connection("pro wins evidence"),
+    );
+    register_connection(
+        &mut cx,
+        Symbol::qualified("test", "debate-con"),
+        fixed_reply_connection("con loses"),
+    );
+    let debate = rust_debate(&mut cx, judge);
+    let _worker = register_bid_worker(
+        &mut cx,
+        Symbol::qualified("test", "nested-market-worker"),
+        1.0,
+        "market typed result",
+    );
+    let router = bid_router(&mut cx);
+    let market_value = cx
+        .resolve_value(&Symbol::qualified("test", "nested-market-worker"))
+        .unwrap();
+    let market = build_market_data_graph_connection(&mut cx, vec![market_value], router).unwrap();
+
+    let unit = Symbol::qualified("agent.usage", "child-run");
+    let charge = UsageQuantity {
+        unit: unit.clone(),
+        amount: 1,
+    };
+    let budget = AgentUsageBudget::new(vec![UsageQuantity {
+        unit: unit.clone(),
+        amount: 2,
+    }])
+    .unwrap();
+    let mut parent = AgentRunFrame::standard(
+        Symbol::qualified("run", "parent-conduct"),
+        Expr::String("choose".into()),
+    );
+    let allowed = CapabilitySet::new().grant(topology_run_capability());
+    let debate_result = execute_delegate_once(
+        &mut cx,
+        &mut parent,
+        &debate,
+        Symbol::qualified("child", "debate"),
+        allowed.clone(),
+        charge.clone(),
+        &budget,
+        request(Expr::String("topic".into())),
+    )
+    .unwrap();
+    let market_result = execute_delegate_once(
+        &mut cx,
+        &mut parent,
+        market.as_ref(),
+        Symbol::qualified("child", "market"),
+        allowed,
+        charge,
+        &budget,
+        request(Expr::String("route".into())),
+    )
+    .unwrap();
+
+    assert!(map_expr_field(&debate_result.output, "winner").is_some());
+    assert!(map_expr_field(&debate_result.output, "verdict").is_some());
+    assert!(map_expr_field(&market_result.output, "winner").is_some());
+    assert_eq!(parent.usage.amount(&unit), 2);
+    assert_eq!(
+        debate_result.correlation,
+        Symbol::qualified("child", "debate")
+    );
+    assert_eq!(
+        market_result.correlation,
+        Symbol::qualified("child", "market")
+    );
+}
+
+fn request(expr: Expr) -> EvalRequest {
+    EvalRequest {
+        expr,
+        mode: EvalMode::Eval,
+        result_shape: None,
+        answer_limit: None,
+        stream: false,
+        stream_buffer: None,
+        required_capabilities: Vec::new(),
+        deadline: None,
+        consistency: Consistency::LocalFirst,
+        trace: false,
+    }
 }
 
 fn topology_cx() -> Cx {

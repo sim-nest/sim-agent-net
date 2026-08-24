@@ -1,42 +1,34 @@
-use super::topology_helpers::{
-    debate_state, judge_expr, judge_score, local_address, mesh_state, reply_state, ring_state,
-    side_case,
-};
+use super::topology_helpers::{judge_expr, judge_score, local_address, reply_state, side_case};
 use super::topology_runtime::{
-    DebateSession, MeshSession, RingSession, evaluate_connection, is_stream_passthrough_frame,
-    number_expr, reply_expr,
+    evaluate_connection, is_stream_passthrough_frame, map_field, number_expr, reply_expr,
 };
 use sim_kernel::{Cx, Error, Expr, Result, Symbol, Value};
 use sim_lib_server::{EvalSite, ServerAddress, ServerFrame};
-use std::{
-    any::Any,
-    sync::{Arc, Mutex},
-};
+use std::any::Any;
 
 #[derive(Clone)]
 pub(super) struct RingTurnSite {
-    pub(super) session: Arc<Mutex<RingSession>>,
     pub(super) agents: Vec<sim_lib_server::Connection>,
     pub(super) role_cycle: Vec<Symbol>,
+    pub(super) max_turns: u32,
 }
 
 #[derive(Clone)]
 pub(super) struct MeshRoundSite {
-    pub(super) session: Arc<Mutex<MeshSession>>,
     pub(super) agents: Vec<sim_lib_server::Connection>,
     pub(super) judge: Value,
+    pub(super) max_rounds: u32,
 }
 
 #[derive(Clone)]
 pub(super) struct DebateTurnSite {
-    pub(super) session: Arc<Mutex<DebateSession>>,
     pub(super) pro: sim_lib_server::Connection,
     pub(super) con: sim_lib_server::Connection,
+    pub(super) max_turns: u32,
 }
 
 #[derive(Clone)]
 pub(super) struct DebateJudgeSite {
-    pub(super) session: Arc<Mutex<DebateSession>>,
     pub(super) judge: Value,
 }
 
@@ -57,26 +49,13 @@ impl EvalSite for RingTurnSite {
         if is_stream_passthrough_frame(cx, &frame)? {
             return Ok(frame);
         }
-        let (current, agent_index, role_index, turns_used, max_turns, done) = {
-            let mut session = self
-                .session
-                .lock()
-                .map_err(|_| Error::PoisonedLock("ring session"))?;
-            if session.turns_used == 0 && matches!(session.current, Expr::Nil) {
-                session.current = sim_lib_server::eval_request_from_frame(cx, &frame)?.expr;
-            }
-            (
-                session.current.clone(),
-                session.agent_index,
-                session.role_index,
-                session.turns_used,
-                session.max_turns,
-                session.done,
-            )
-        };
-        if done {
-            return reply_state(cx, &frame, ring_state(&self.session)?);
-        }
+        let input = sim_lib_server::eval_request_from_frame(cx, &frame)?.expr;
+        let turns_used = u32_field(&input, "turns-used").unwrap_or(0);
+        let mut transcript = list_field(&input, "transcript");
+        let current = map_field(&input, "result").cloned().unwrap_or(input);
+        // A state frame owns every scheduling cursor. No site-local session is retained.
+        let agent_index = usize::try_from(turns_used).unwrap_or(usize::MAX);
+        let role_index = agent_index;
         let agent = &self.agents[agent_index % self.agents.len()];
         let role = self
             .role_cycle
@@ -85,30 +64,38 @@ impl EvalSite for RingTurnSite {
             .unwrap_or_else(|| Symbol::new("worker"));
         let reply = evaluate_connection(cx, agent, current, Some(role.clone()), &frame.envelope)?;
         let result = reply_expr(cx, &reply)?;
-        {
-            let mut session = self
-                .session
-                .lock()
-                .map_err(|_| Error::PoisonedLock("ring session"))?;
-            session.current = result.clone();
-            session.turns_used = session.turns_used.saturating_add(1);
-            session.agent_index = session.agent_index.saturating_add(1);
-            session.role_index = session.role_index.saturating_add(1);
-            session.transcript.push(Expr::Map(vec![
+        let next_turn = turns_used.saturating_add(1);
+        transcript.push(Expr::Map(vec![
+            (
+                Expr::Symbol(Symbol::new("turn")),
+                number_expr(turns_used + 1),
+            ),
+            (
+                Expr::Symbol(Symbol::new("agent")),
+                Expr::String(agent.address().kind_symbol().to_string()),
+            ),
+            (Expr::Symbol(Symbol::new("role")), Expr::Symbol(role)),
+            (Expr::Symbol(Symbol::new("value")), result.clone()),
+        ]));
+        reply_state(
+            cx,
+            &frame,
+            Expr::Map(vec![
                 (
-                    Expr::Symbol(Symbol::new("turn")),
-                    number_expr(turns_used + 1),
+                    Expr::Symbol(Symbol::new("done")),
+                    Expr::Bool(next_turn >= self.max_turns),
+                ),
+                (Expr::Symbol(Symbol::new("result")), result),
+                (
+                    Expr::Symbol(Symbol::new("transcript")),
+                    Expr::List(transcript),
                 ),
                 (
-                    Expr::Symbol(Symbol::new("agent")),
-                    Expr::String(agent.address().kind_symbol().to_string()),
+                    Expr::Symbol(Symbol::new("turns-used")),
+                    number_expr(next_turn),
                 ),
-                (Expr::Symbol(Symbol::new("role")), Expr::Symbol(role)),
-                (Expr::Symbol(Symbol::new("value")), result),
-            ]));
-            session.done = session.turns_used >= max_turns;
-        }
-        reply_state(cx, &frame, ring_state(&self.session)?)
+            ]),
+        )
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -133,19 +120,11 @@ impl EvalSite for MeshRoundSite {
         if is_stream_passthrough_frame(cx, &frame)? {
             return Ok(frame);
         }
-        let candidate = {
-            let mut session = self
-                .session
-                .lock()
-                .map_err(|_| Error::PoisonedLock("mesh session"))?;
-            if session.rounds_used == 0 && matches!(session.candidate, Expr::Nil) {
-                session.candidate = sim_lib_server::eval_request_from_frame(cx, &frame)?.expr;
-            }
-            if session.done {
-                return reply_state(cx, &frame, mesh_state(&self.session)?);
-            }
-            session.candidate.clone()
-        };
+        let input = sim_lib_server::eval_request_from_frame(cx, &frame)?.expr;
+        let rounds_used = u32_field(&input, "rounds-used").unwrap_or(0);
+        let previous_score = float_field(&input, "score");
+        let mut transcript = list_field(&input, "transcript");
+        let candidate = map_field(&input, "candidate").cloned().unwrap_or(input);
 
         let mut scored = Vec::with_capacity(self.agents.len());
         for (index, agent) in self.agents.iter().enumerate() {
@@ -173,42 +152,48 @@ impl EvalSite for MeshRoundSite {
             })
             .cloned()
             .ok_or_else(|| Error::Eval("mesh round had no candidates".to_owned()))?;
-        {
-            let mut session = self
-                .session
-                .lock()
-                .map_err(|_| Error::PoisonedLock("mesh session"))?;
-            let improved = session.best_score.is_none_or(|score| best.2 > score);
-            session.rounds_used = session.rounds_used.saturating_add(1);
-            let round = session.rounds_used;
-            session.best_score = Some(best.2);
-            session.candidate = best.1.clone();
-            session.transcript.push(Expr::Map(vec![
-                (Expr::Symbol(Symbol::new("round")), number_expr(round)),
-                (
-                    Expr::Symbol(Symbol::new("candidates")),
-                    Expr::List(
-                        scored
-                            .iter()
-                            .map(|(role, value, score)| {
-                                Expr::Map(vec![
-                                    (
-                                        Expr::Symbol(Symbol::new("role")),
-                                        Expr::Symbol(role.clone()),
-                                    ),
-                                    (Expr::Symbol(Symbol::new("value")), value.clone()),
-                                    (Expr::Symbol(Symbol::new("score")), number_expr(*score)),
-                                ])
-                            })
-                            .collect(),
-                    ),
+        let improved = previous_score.is_none_or(|score| best.2 > score);
+        let round = rounds_used.saturating_add(1);
+        transcript.push(Expr::Map(vec![
+            (Expr::Symbol(Symbol::new("round")), number_expr(round)),
+            (
+                Expr::Symbol(Symbol::new("candidates")),
+                Expr::List(
+                    scored
+                        .iter()
+                        .map(|(role, value, score)| {
+                            Expr::Map(vec![
+                                (
+                                    Expr::Symbol(Symbol::new("role")),
+                                    Expr::Symbol(role.clone()),
+                                ),
+                                (Expr::Symbol(Symbol::new("value")), value.clone()),
+                                (Expr::Symbol(Symbol::new("score")), number_expr(*score)),
+                            ])
+                        })
+                        .collect(),
                 ),
-                (Expr::Symbol(Symbol::new("selected")), best.1.clone()),
+            ),
+            (Expr::Symbol(Symbol::new("selected")), best.1.clone()),
+            (Expr::Symbol(Symbol::new("score")), number_expr(best.2)),
+        ]));
+        reply_state(
+            cx,
+            &frame,
+            Expr::Map(vec![
+                (
+                    Expr::Symbol(Symbol::new("done")),
+                    Expr::Bool(round >= self.max_rounds || !improved),
+                ),
+                (Expr::Symbol(Symbol::new("candidate")), best.1),
                 (Expr::Symbol(Symbol::new("score")), number_expr(best.2)),
-            ]));
-            session.done = session.rounds_used >= session.max_rounds || !improved;
-        }
-        reply_state(cx, &frame, mesh_state(&self.session)?)
+                (
+                    Expr::Symbol(Symbol::new("transcript")),
+                    Expr::List(transcript),
+                ),
+                (Expr::Symbol(Symbol::new("rounds-used")), number_expr(round)),
+            ]),
+        )
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -233,24 +218,13 @@ impl EvalSite for DebateTurnSite {
         if is_stream_passthrough_frame(cx, &frame)? {
             return Ok(frame);
         }
-        let (task, pro_turn, turns_used, done) = {
-            let mut session = self
-                .session
-                .lock()
-                .map_err(|_| Error::PoisonedLock("debate session"))?;
-            if session.turns_used == 0 && matches!(session.task, Expr::Nil) {
-                session.task = sim_lib_server::eval_request_from_frame(cx, &frame)?.expr;
-            }
-            (
-                session.task.clone(),
-                session.pro_turn,
-                session.turns_used,
-                session.done,
-            )
-        };
-        if done {
-            return reply_state(cx, &frame, debate_state(&self.session)?);
-        }
+        let input = sim_lib_server::eval_request_from_frame(cx, &frame)?.expr;
+        let turns_used = u32_field(&input, "turns-used").unwrap_or(0);
+        let task = map_field(&input, "task")
+            .cloned()
+            .unwrap_or_else(|| input.clone());
+        let mut transcript = list_field(&input, "transcript");
+        let pro_turn = turns_used % 2 == 0;
         let (side, role, connection) = if pro_turn {
             ("pro", Symbol::new("worker"), &self.pro)
         } else {
@@ -258,39 +232,46 @@ impl EvalSite for DebateTurnSite {
         };
         let context = Expr::Map(vec![
             (Expr::Symbol(Symbol::new("task")), task.clone()),
-            (Expr::Symbol(Symbol::new("transcript")), {
-                let session = self
-                    .session
-                    .lock()
-                    .map_err(|_| Error::PoisonedLock("debate session"))?;
-                Expr::List(session.transcript.clone())
-            }),
+            (
+                Expr::Symbol(Symbol::new("transcript")),
+                Expr::List(transcript.clone()),
+            ),
         ]);
         let reply =
             evaluate_connection(cx, connection, context, Some(role.clone()), &frame.envelope)?;
         let contribution = reply_expr(cx, &reply)?;
-        {
-            let mut session = self
-                .session
-                .lock()
-                .map_err(|_| Error::PoisonedLock("debate session"))?;
-            session.turns_used = session.turns_used.saturating_add(1);
-            session.pro_turn = !session.pro_turn;
-            session.transcript.push(Expr::Map(vec![
+        let next_turn = turns_used.saturating_add(1);
+        transcript.push(Expr::Map(vec![
+            (
+                Expr::Symbol(Symbol::new("turn")),
+                number_expr(turns_used + 1),
+            ),
+            (
+                Expr::Symbol(Symbol::new("side")),
+                Expr::String(side.to_owned()),
+            ),
+            (Expr::Symbol(Symbol::new("role")), Expr::Symbol(role)),
+            (Expr::Symbol(Symbol::new("value")), contribution),
+        ]));
+        reply_state(
+            cx,
+            &frame,
+            Expr::Map(vec![
                 (
-                    Expr::Symbol(Symbol::new("turn")),
-                    number_expr(turns_used + 1),
+                    Expr::Symbol(Symbol::new("done")),
+                    Expr::Bool(next_turn >= self.max_turns),
+                ),
+                (Expr::Symbol(Symbol::new("task")), task),
+                (
+                    Expr::Symbol(Symbol::new("transcript")),
+                    Expr::List(transcript),
                 ),
                 (
-                    Expr::Symbol(Symbol::new("side")),
-                    Expr::String(side.to_owned()),
+                    Expr::Symbol(Symbol::new("turns-used")),
+                    number_expr(next_turn),
                 ),
-                (Expr::Symbol(Symbol::new("role")), Expr::Symbol(role)),
-                (Expr::Symbol(Symbol::new("value")), contribution),
-            ]));
-            session.done = session.turns_used >= session.max_turns;
-        }
-        reply_state(cx, &frame, debate_state(&self.session)?)
+            ]),
+        )
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -315,13 +296,8 @@ impl EvalSite for DebateJudgeSite {
         if is_stream_passthrough_frame(cx, &frame)? {
             return Ok(frame);
         }
-        let transcript = {
-            let session = self
-                .session
-                .lock()
-                .map_err(|_| Error::PoisonedLock("debate session"))?;
-            session.transcript.clone()
-        };
+        let state = sim_lib_server::eval_request_from_frame(cx, &frame)?.expr;
+        let transcript = list_field(&state, "transcript");
         let pro_case = side_case(&transcript, "pro");
         let con_case = side_case(&transcript, "con");
         let pro_score = judge_score(cx, &self.judge, pro_case.clone(), &frame.envelope)?;
@@ -353,4 +329,22 @@ impl EvalSite for DebateJudgeSite {
     fn as_any(&self) -> &dyn Any {
         self
     }
+}
+
+fn list_field(expr: &Expr, name: &str) -> Vec<Expr> {
+    match map_field(expr, name) {
+        Some(Expr::List(values)) => values.clone(),
+        _ => Vec::new(),
+    }
+}
+
+fn float_field(expr: &Expr, name: &str) -> Option<f64> {
+    match map_field(expr, name) {
+        Some(Expr::Number(number)) => number.canonical.parse().ok(),
+        _ => None,
+    }
+}
+
+fn u32_field(expr: &Expr, name: &str) -> Option<u32> {
+    float_field(expr, name).and_then(|value| u32::try_from(value as u64).ok())
 }

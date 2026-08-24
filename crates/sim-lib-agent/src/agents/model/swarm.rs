@@ -1,17 +1,10 @@
 use super::lookup::connection_from_value;
-use super::swarm_sites::{SwarmFinalizeSite, SwarmMemberSite, SwarmPlannerSite};
-use super::swarm_support::{
-    default_member_role, first_codec_for_swarm, number_expr, planner_strategy, session_status,
-    session_transcript_expr, state_expr, until_value, update_registry_status,
-};
+use super::swarm_support::{default_member_role, next_role, reply_cost};
 use super::types::{AgentFabric, SwarmRunRecord};
 use crate::agents::ops::shared::agent_connection_for_value;
-use crate::{AgentRole, installed_codecs, value_from_expr};
+use crate::{AgentRole, value_from_expr};
 use sim_kernel::{Cx, Error, Expr, Result, Symbol, Value};
-use sim_lib_server::{
-    Connection, EvalSite, LoopEvalSite, PipelineEvalSite, ServerAddress, eval_reply_from_frame,
-};
-use std::sync::{Arc, Mutex};
+use sim_lib_server::{Connection, eval_reply_from_frame, server_frame_from_request};
 
 #[derive(Clone)]
 pub(super) struct SwarmMember {
@@ -27,7 +20,7 @@ pub(super) struct SwarmRoundRecord {
 }
 
 #[derive(Clone)]
-pub(super) struct SwarmLoopSession {
+pub(super) struct SwarmRunState {
     pub(super) task_id: String,
     pub(super) current: Expr,
     pub(super) planner: SwarmPlannerState,
@@ -35,7 +28,6 @@ pub(super) struct SwarmLoopSession {
     pub(super) max_cost: Option<f64>,
     pub(super) transcript: Vec<SwarmRoundRecord>,
     pub(super) last_round: Vec<SwarmRoundRecord>,
-    pub(super) round_records: Vec<SwarmRoundRecord>,
     pub(super) turns_used: u32,
     pub(super) cost_used: f64,
     pub(super) budget_exhausted: bool,
@@ -46,7 +38,6 @@ pub(super) struct SwarmLoopSession {
 
 #[derive(Clone)]
 pub(super) struct SwarmPlannerState {
-    pub(super) strategy: Symbol,
     pub(super) available_roles: Vec<Symbol>,
     pub(super) pending_role: Option<Symbol>,
 }
@@ -75,11 +66,10 @@ pub(crate) fn swarm_realize_expr(cx: &mut Cx, fabric: &AgentFabric, expr: Expr) 
         .as_ref()
         .and_then(|budget| budget.max_turns)
         .unwrap_or_else(|| u32::try_from(available_roles.len().max(1)).unwrap_or(u32::MAX));
-    let session = Arc::new(Mutex::new(SwarmLoopSession {
+    let mut state = SwarmRunState {
         task_id: task_id.clone(),
         current: expr.clone(),
         planner: SwarmPlannerState {
-            strategy: planner_strategy(fabric.planner.as_ref()),
             available_roles,
             pending_role: None,
         },
@@ -87,65 +77,26 @@ pub(crate) fn swarm_realize_expr(cx: &mut Cx, fabric: &AgentFabric, expr: Expr) 
         max_cost: fabric.budget.as_ref().and_then(|budget| budget.max_cost),
         transcript: Vec::new(),
         last_round: Vec::new(),
-        round_records: Vec::new(),
         turns_used: 0,
         cost_used: 0.0,
         budget_exhausted: false,
         done: false,
         active: true,
         last_value: expr,
-    }));
-    update_registry_status(&fabric.runs, &session)?;
+    };
 
-    let mut steps = Vec::with_capacity(members.len() + 2);
-    steps.push(Connection::new(
-        ServerAddress::Local,
-        first_codec_for_swarm(cx),
-        installed_codecs(cx),
-        Arc::new(SwarmPlannerSite {
-            session: session.clone(),
-        }),
-    )?);
-    for member in members {
-        let role = member.role.clone();
-        steps.push(Connection::with_session(
-            ServerAddress::Local,
-            member.connection.default_codec().clone(),
-            member.connection.supported_codecs().to_vec(),
-            Arc::new(SwarmMemberSite {
-                session: session.clone(),
-                member,
-            }),
-            Some(role),
-            sim_lib_server::IsolationPolicy::default(),
-        )?);
-    }
-    steps.push(Connection::new(
-        ServerAddress::Local,
-        first_codec_for_swarm(cx),
-        installed_codecs(cx),
-        Arc::new(SwarmFinalizeSite {
-            session: session.clone(),
-            blackboard: fabric.blackboard.clone(),
-            registry: fabric.runs.clone(),
-        }),
-    )?);
-
-    let loop_site = LoopEvalSite::new(
-        ServerAddress::Pipeline {
-            steps: steps.iter().map(|step| step.address().clone()).collect(),
-        },
-        installed_codecs(cx),
-        steps,
-        usize::try_from(max_turns).unwrap_or(usize::MAX),
-        until_value(cx)?,
-    );
-    let codec = first_codec_for_swarm(cx);
-    let request = sim_lib_server::server_frame_from_request(
-        cx,
-        &codec,
-        sim_kernel::EvalRequest {
-            expr: state_expr(&session)?,
+    while !state.done {
+        state.planner.pending_role = next_role(&state.planner.available_roles, &state.last_round);
+        let Some(role) = state.planner.pending_role.clone() else {
+            state.done = true;
+            break;
+        };
+        let member = members
+            .iter()
+            .find(|member| member.role == role)
+            .ok_or_else(|| Error::Eval(format!("swarm role {role} has no bound member")))?;
+        let request = sim_kernel::EvalRequest {
+            expr: state.current.clone(),
             mode: sim_kernel::EvalMode::Eval,
             result_shape: None,
             answer_limit: None,
@@ -155,19 +106,48 @@ pub(crate) fn swarm_realize_expr(cx: &mut Cx, fabric: &AgentFabric, expr: Expr) 
             deadline: None,
             consistency: sim_kernel::Consistency::LocalFirst,
             trace: false,
-        },
-    )?;
-    let reply = loop_site.answer(cx, request)?;
-    let result = eval_reply_from_frame(cx, &reply)?
-        .value
-        .object()
-        .as_expr(cx)?;
+        };
+        let mut member_frame =
+            server_frame_from_request(cx, member.connection.default_codec(), request)?;
+        member_frame.envelope.role = Some(role.clone());
+        let reply = member.connection.site().answer(cx, member_frame)?;
+        let value = eval_reply_from_frame(cx, &reply)?
+            .value
+            .object()
+            .as_expr(cx)?;
+        state.turns_used = state.turns_used.saturating_add(1);
+        state.cost_used += reply_cost(&value);
+        let record = SwarmRoundRecord {
+            turn: state.turns_used,
+            role: reply.envelope.role.clone().unwrap_or(role),
+            value: value.clone(),
+        };
+        state.current = value.clone();
+        state.last_value = value;
+        state.last_round = vec![record.clone()];
+        state.transcript.push(record.clone());
+        if let Some(blackboard) = &fabric.blackboard {
+            let memory = crate::memory::resolve_memory_backend(blackboard)?;
+            let record_value = value_from_expr(cx, &record.expr())?;
+            memory.append(cx, record_value)?;
+        }
+        state.budget_exhausted = state.max_cost.is_some_and(|limit| state.cost_used >= limit);
+        state.done = state.turns_used >= state.max_turns || state.budget_exhausted;
+    }
+    state.active = false;
+    let result = state.last_value.clone();
 
     let mut registry = fabric
         .runs
         .lock()
         .map_err(|_| Error::PoisonedLock("swarm registry"))?;
-    let transcript = session_transcript_expr(&session)?;
+    let transcript = Expr::List(
+        state
+            .transcript
+            .iter()
+            .map(SwarmRoundRecord::expr)
+            .collect(),
+    );
     registry.last_task_id = Some(task_id.clone());
     registry.last_run = Some(result.clone());
     registry.history.insert(
@@ -176,16 +156,7 @@ pub(crate) fn swarm_realize_expr(cx: &mut Cx, fabric: &AgentFabric, expr: Expr) 
             transcript: transcript.clone(),
         },
     );
-    registry.status = session_status(&session)?;
-    registry.status.active = false;
-    drop(registry);
-
-    {
-        let mut state = session
-            .lock()
-            .map_err(|_| Error::PoisonedLock("swarm loop session"))?;
-        state.active = false;
-    }
+    registry.status = state.status();
 
     Ok(result)
 }
@@ -268,19 +239,32 @@ impl SwarmRoundRecord {
     }
 }
 
+impl SwarmRunState {
+    fn status(&self) -> super::types::SwarmStatus {
+        super::types::SwarmStatus {
+            active: self.active,
+            task_id: Some(self.task_id.clone()),
+            turns_used: self.turns_used,
+            turns_remaining: Some(self.max_turns.saturating_sub(self.turns_used)),
+            cost_used: self.cost_used,
+            cost_remaining: self.max_cost.map(|limit| (limit - self.cost_used).max(0.0)),
+            budget_exhausted: self.budget_exhausted,
+            last_value: self.last_value.clone(),
+        }
+    }
+}
+
 fn swarm_members(_cx: &mut Cx, fabric: &AgentFabric) -> Result<Vec<SwarmMember>> {
     if let Some(topology) = &fabric.topology
         && let Some(connection) = connection_from_value(topology)
     {
-        return topology_members(connection).or_else(|_| {
-            Ok(vec![SwarmMember {
-                role: connection
-                    .role()
-                    .cloned()
-                    .unwrap_or_else(|| AgentRole::Worker.as_symbol()),
-                connection: connection.clone(),
-            }])
-        });
+        return Ok(vec![SwarmMember {
+            role: connection
+                .role()
+                .cloned()
+                .unwrap_or_else(|| AgentRole::Worker.as_symbol()),
+            connection: connection.clone(),
+        }]);
     }
 
     fabric
@@ -300,39 +284,6 @@ fn swarm_members(_cx: &mut Cx, fabric: &AgentFabric) -> Result<Vec<SwarmMember>>
                 base.site().clone(),
                 Some(role.clone()),
                 base.session().isolation.clone(),
-            )?;
-            Ok(SwarmMember { connection, role })
-        })
-        .collect()
-}
-
-fn topology_members(connection: &Connection) -> Result<Vec<SwarmMember>> {
-    let Some(pipeline) = connection
-        .site()
-        .as_any()
-        .downcast_ref::<PipelineEvalSite>()
-    else {
-        return Err(Error::TypeMismatch {
-            expected: "pipeline topology",
-            found: "non-pipeline topology",
-        });
-    };
-    pipeline
-        .steps()
-        .iter()
-        .enumerate()
-        .map(|(index, step)| {
-            let role = step
-                .role()
-                .cloned()
-                .unwrap_or_else(|| default_member_role(index));
-            let connection = Connection::with_session(
-                step.address().clone(),
-                step.default_codec().clone(),
-                step.supported_codecs().to_vec(),
-                step.site().clone(),
-                Some(role.clone()),
-                step.session().isolation.clone(),
             )?;
             Ok(SwarmMember { connection, role })
         })

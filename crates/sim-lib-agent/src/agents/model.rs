@@ -1,7 +1,6 @@
 mod lookup;
 mod runtime;
 mod swarm;
-mod swarm_sites;
 mod swarm_support;
 mod types;
 

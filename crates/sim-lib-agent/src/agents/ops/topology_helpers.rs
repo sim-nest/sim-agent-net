@@ -1,11 +1,10 @@
 use super::topology_runtime::{
-    DebateSession, MeshSession, RingSession, evaluate_connection, map_field, number_expr,
-    number_field, reply_expr, text_label,
+    evaluate_connection, map_field, number_field, reply_expr, text_label,
 };
 use crate::{memory::flatten_expr_text, value_from_expr};
 use sim_kernel::{Cx, Error, EvalReply, Expr, Result, Symbol, Value};
 use sim_lib_server::{FrameEnvelope, ServerAddress, ServerFrame, server_frame_from_reply};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::OnceLock;
 
 pub(super) fn reply_state(cx: &mut Cx, frame: &ServerFrame, state: Expr) -> Result<ServerFrame> {
     reply_expr_value(cx, frame, state)
@@ -28,67 +27,6 @@ pub(super) fn reply_expr_value(
         },
         frame.envelope.consistency,
     )
-}
-
-pub(super) fn ring_state(session: &Arc<Mutex<RingSession>>) -> Result<Expr> {
-    let session = session
-        .lock()
-        .map_err(|_| Error::PoisonedLock("ring session"))?;
-    Ok(Expr::Map(vec![
-        (Expr::Symbol(Symbol::new("done")), Expr::Bool(session.done)),
-        (Expr::Symbol(Symbol::new("result")), session.current.clone()),
-        (
-            Expr::Symbol(Symbol::new("transcript")),
-            Expr::List(session.transcript.clone()),
-        ),
-        (
-            Expr::Symbol(Symbol::new("turns-used")),
-            number_expr(session.turns_used),
-        ),
-    ]))
-}
-
-pub(super) fn mesh_state(session: &Arc<Mutex<MeshSession>>) -> Result<Expr> {
-    let session = session
-        .lock()
-        .map_err(|_| Error::PoisonedLock("mesh session"))?;
-    Ok(Expr::Map(vec![
-        (Expr::Symbol(Symbol::new("done")), Expr::Bool(session.done)),
-        (
-            Expr::Symbol(Symbol::new("candidate")),
-            session.candidate.clone(),
-        ),
-        (
-            Expr::Symbol(Symbol::new("score")),
-            number_expr(session.best_score.unwrap_or(0.0)),
-        ),
-        (
-            Expr::Symbol(Symbol::new("transcript")),
-            Expr::List(session.transcript.clone()),
-        ),
-        (
-            Expr::Symbol(Symbol::new("rounds-used")),
-            number_expr(session.rounds_used),
-        ),
-    ]))
-}
-
-pub(super) fn debate_state(session: &Arc<Mutex<DebateSession>>) -> Result<Expr> {
-    let session = session
-        .lock()
-        .map_err(|_| Error::PoisonedLock("debate session"))?;
-    Ok(Expr::Map(vec![
-        (Expr::Symbol(Symbol::new("done")), Expr::Bool(session.done)),
-        (Expr::Symbol(Symbol::new("task")), session.task.clone()),
-        (
-            Expr::Symbol(Symbol::new("transcript")),
-            Expr::List(session.transcript.clone()),
-        ),
-        (
-            Expr::Symbol(Symbol::new("turns-used")),
-            number_expr(session.turns_used),
-        ),
-    ]))
 }
 
 pub(super) fn judge_expr(
