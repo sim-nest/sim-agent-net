@@ -1,5 +1,5 @@
 {
-  "card_count": 29,
+  "card_count": 31,
   "cards": [
     {
       "id": "browse/catalog",
@@ -132,6 +132,18 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-provider-cli",
       "summary": "Expose provider inventory and seat selection through the loadable SIM command surface."
+    },
+    {
+      "id": "cookbook/search",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-search",
+      "summary": "Deterministic claims, capture, selectors, and replay."
+    },
+    {
+      "id": "cookbook/search-http",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-search-http",
+      "summary": "Provider-neutral bounded search execution."
     },
     {
       "id": "cookbook/server",

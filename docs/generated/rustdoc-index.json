@@ -128,6 +128,20 @@
       "summary": "Bounded newline framing and request-owned lifetimes for MCP over stdio."
     },
     {
+      "crate_name": "sim_lib_model_test",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-model-test/Cargo.toml",
+      "package": "sim-lib-model-test",
+      "summary": "Immutable-enough identities for model products observed through provider seats."
+    },
+    {
+      "crate_name": "sim_lib_model_test_packs",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-model-test-packs/Cargo.toml",
+      "package": "sim-lib-model-test-packs",
+      "summary": "Frozen, validated model-test task packs."
+    },
+    {
       "crate_name": "sim_lib_oauth_core",
       "group": "workspace",
       "manifest": "crates/sim-lib-oauth-core/Cargo.toml",
@@ -170,6 +184,20 @@
       "summary": "Loadable sim provider command surface."
     },
     {
+      "crate_name": "sim_lib_search",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-search/Cargo.toml",
+      "package": "sim-lib-search",
+      "summary": "Deterministic federation of provider-neutral search skills."
+    },
+    {
+      "crate_name": "sim_lib_search_http",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-search-http/Cargo.toml",
+      "package": "sim-lib-search-http",
+      "summary": "Provider-neutral HTTP execution for SearchWireCodec implementations."
+    },
+    {
       "crate_name": "sim_lib_server",
       "group": "workspace",
       "manifest": "crates/sim-lib-server/Cargo.toml",
@@ -189,6 +217,13 @@
       "manifest": "crates/sim-lib-stream-fabric/Cargo.toml",
       "package": "sim-lib-stream-fabric",
       "summary": "Content-addressed distributed evaluation for remote stream realization."
+    },
+    {
+      "crate_name": "sim_lib_web_fetch",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-web-fetch/Cargo.toml",
+      "package": "sim-lib-web-fetch",
+      "summary": "Policy-gated, content-addressed web capture."
     },
     {
       "crate_name": "sim-mcp-server",

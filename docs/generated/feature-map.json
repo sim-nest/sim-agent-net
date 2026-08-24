@@ -5,13 +5,19 @@
       "features": [
         {
           "edges": [
-            "sim-lib-server/server-net-http"
+            "sim-lib-server/server-net-http",
+            "dep:sim-lib-web-fetch",
+            "dep:sim-lib-net-http"
           ],
           "name": "agent-net",
           "workspace_edges": [
             {
               "feature": "server-net-http",
               "package": "sim-lib-server"
+            },
+            {
+              "feature": null,
+              "package": "sim-lib-web-fetch"
             }
           ]
         },
@@ -254,10 +260,17 @@
         {
           "edges": [
             "stdio",
-            "dep:sim-run-core"
+            "skill",
+            "dep:sim-run-core",
+            "dep:sim-lib-search"
           ],
           "name": "serve",
-          "workspace_edges": []
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-search"
+            }
+          ]
         },
         {
           "edges": [
@@ -349,6 +362,16 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-model-test"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-model-test-packs"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-oauth-core"
     },
     {
@@ -393,6 +416,16 @@
       "features": [],
       "group": "workspace",
       "package": "sim-lib-provider-cli"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-search"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-search-http"
     },
     {
       "features": [
@@ -568,6 +601,11 @@
       "features": [],
       "group": "workspace",
       "package": "sim-lib-stream-fabric"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-web-fetch"
     },
     {
       "features": [],

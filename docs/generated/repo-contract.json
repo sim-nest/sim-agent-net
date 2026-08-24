@@ -1,5 +1,5 @@
 {
-  "card_count": 29,
+  "card_count": 31,
   "cards": [
     {
       "id": "browse/catalog",
@@ -134,6 +134,18 @@
       "summary": "Expose provider inventory and seat selection through the loadable SIM command surface."
     },
     {
+      "id": "cookbook/search",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-search",
+      "summary": "Deterministic claims, capture, selectors, and replay."
+    },
+    {
+      "id": "cookbook/search-http",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-search-http",
+      "summary": "Provider-neutral bounded search execution."
+    },
+    {
       "id": "cookbook/server",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-server",
@@ -203,15 +215,20 @@
       "sim-lib-mcp-http",
       "sim-lib-mcp-legacy",
       "sim-lib-mcp-stdio",
+      "sim-lib-model-test",
+      "sim-lib-model-test-packs",
       "sim-lib-oauth-core",
       "sim-lib-oauth-http",
       "sim-lib-oauth-jose",
       "sim-lib-openai-server",
       "sim-lib-provider",
       "sim-lib-provider-cli",
+      "sim-lib-search",
+      "sim-lib-search-http",
       "sim-lib-server",
       "sim-lib-skill",
       "sim-lib-stream-fabric",
+      "sim-lib-web-fetch",
       "sim-mcp-server",
       "sim-table-remote",
       "sim-transport-ports",
@@ -405,7 +422,7 @@
       "reason": "live skill transport handle; transport metadata is carried by skill/Card descriptor"
     }
   ],
-  "package_count": 31,
+  "package_count": 36,
   "packages": [
     {
       "crate_name": "sim_lib_agent",
@@ -486,19 +503,32 @@
           "package": "sim-lib-stream-fabric",
           "rename": null,
           "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": true,
+          "package": "sim-lib-web-fetch",
+          "rename": null,
+          "target": null
         }
       ],
       "description": "Agent runtime surfaces for SIM.",
       "features": [
         {
           "edges": [
-            "sim-lib-server/server-net-http"
+            "sim-lib-server/server-net-http",
+            "dep:sim-lib-web-fetch",
+            "dep:sim-lib-net-http"
           ],
           "name": "agent-net",
           "workspace_edges": [
             {
               "feature": "server-net-http",
               "package": "sim-lib-server"
+            },
+            {
+              "feature": null,
+              "package": "sim-lib-web-fetch"
             }
           ]
         },
@@ -1068,6 +1098,13 @@
         {
           "kind": "normal",
           "optional": false,
+          "package": "sim-lib-agent-conduct",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
           "package": "sim-lib-agent-runner-core",
           "rename": null,
           "target": null
@@ -1293,6 +1330,13 @@
         {
           "kind": "normal",
           "optional": true,
+          "package": "sim-lib-search",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": true,
           "package": "sim-lib-server",
           "rename": null,
           "target": null
@@ -1353,10 +1397,17 @@
         {
           "edges": [
             "stdio",
-            "dep:sim-run-core"
+            "skill",
+            "dep:sim-run-core",
+            "dep:sim-lib-search"
           ],
           "name": "serve",
-          "workspace_edges": []
+          "workspace_edges": [
+            {
+              "feature": null,
+              "package": "sim-lib-search"
+            }
+          ]
         },
         {
           "edges": [
@@ -1725,6 +1776,97 @@
       ]
     },
     {
+      "crate_name": "sim_lib_model_test",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-provider",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Loadable self-checking model tasks and honest candidate identity for SIM studies.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-model-test/Cargo.toml",
+      "name": "sim-lib-model-test",
+      "publish": "true",
+      "root": "crates/sim-lib-model-test",
+      "rustdoc_summary": "Immutable-enough identities for model products observed through provider seats.",
+      "target_kinds": [
+        "lib",
+        "test"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_model_test",
+          "src": "crates/sim-lib-model-test/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "test"
+          ],
+          "name": "legacy_import",
+          "src": "crates/sim-lib-model-test/tests/legacy_import.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "test"
+          ],
+          "name": "product",
+          "src": "crates/sim-lib-model-test/tests/product.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_model_test_packs",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-model-test",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Immutable public and private-local task packs for SIM model tests.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-model-test-packs/Cargo.toml",
+      "name": "sim-lib-model-test-packs",
+      "publish": "true",
+      "root": "crates/sim-lib-model-test-packs",
+      "rustdoc_summary": "Frozen, validated model-test task packs.",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_model_test_packs",
+          "src": "crates/sim-lib-model-test-packs/src/lib.rs"
+        }
+      ]
+    },
+    {
       "crate_name": "sim_lib_oauth_core",
       "dependencies": [],
       "description": "Effect-free OAuth 2.1 resource and client state machines for SIM",
@@ -2017,6 +2159,105 @@
           ],
           "name": "sim_lib_provider_cli",
           "src": "crates/sim-lib-provider-cli/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_search",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-runner-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-skill",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Deterministic, policy-bounded federation and research bundles for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-search/Cargo.toml",
+      "name": "sim-lib-search",
+      "publish": "true",
+      "root": "crates/sim-lib-search",
+      "rustdoc_summary": "Deterministic federation of provider-neutral search skills.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_search",
+          "src": "crates/sim-lib-search/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-search/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_search_http",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-skill",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Provider-neutral, policy-bounded HTTP transport for SIM search codecs.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-search-http/Cargo.toml",
+      "name": "sim-lib-search-http",
+      "publish": "true",
+      "root": "crates/sim-lib-search-http",
+      "rustdoc_summary": "Provider-neutral HTTP execution for SearchWireCodec implementations.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_search_http",
+          "src": "crates/sim-lib-search-http/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-search-http/build.rs"
         }
       ]
     },
@@ -2389,6 +2630,52 @@
       ]
     },
     {
+      "crate_name": "sim_lib_web_fetch",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-runner-core",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Policy-gated immutable web capture for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-web-fetch/Cargo.toml",
+      "name": "sim-lib-web-fetch",
+      "publish": "true",
+      "root": "crates/sim-lib-web-fetch",
+      "rustdoc_summary": "Policy-gated, content-addressed web capture.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_web_fetch",
+          "src": "crates/sim-lib-web-fetch/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-web-fetch/build.rs"
+        }
+      ]
+    },
+    {
       "crate_name": "sim-mcp-server",
       "dependencies": [
         {
@@ -2546,10 +2833,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "190d673262f6cd837072c5f1d6c61ab5bc722e7d",
+    "git_commit": "cc25d8ac669907fa4e6ae6dd002303ad87a5aa30",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "190d673262f6cd837072c5f1d6c61ab5bc722e7d",
+    "source_commit": "cc25d8ac669907fa4e6ae6dd002303ad87a5aa30",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -2562,9 +2849,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "e08496a35e9a6057",
+    "workspace_hash": "7d97e45b3f96d70d",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 801,
+    "workspace_hash_input_count": 875,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -2608,13 +2895,21 @@
       "crates/sim-lib-agent/recipes/40-atelier/atelier-radar-standard-crate/recipe.toml",
       "crates/sim-lib-agent/recipes/40-atelier/atelier-runtime-operation/recipe.toml",
       "crates/sim-lib-agent/recipes/40-atelier/atelier-shape-query-cache/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/default/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/effect-free-replay/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/phased/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/plan-act-replan/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/react/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/router-crew/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/suspend-resume/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/third-party-step/recipe.toml",
+      "crates/sim-lib-agent/recipes/50-conducts/verify-retry/recipe.toml",
       "crates/sim-lib-agent/recipes/book.toml",
       "crates/sim-lib-agent/src/agents/driver.rs",
       "crates/sim-lib-agent/src/agents/helpers.rs",
       "crates/sim-lib-agent/src/agents/model/lookup.rs",
       "crates/sim-lib-agent/src/agents/model/runtime.rs",
       "crates/sim-lib-agent/src/agents/model/swarm.rs",
-      "crates/sim-lib-agent/src/agents/model/swarm_sites.rs",
       "crates/sim-lib-agent/src/agents/model/swarm_support.rs",
       "crates/sim-lib-agent/src/agents/model/types.rs",
       "crates/sim-lib-agent/src/agents/model.rs",
@@ -2700,9 +2995,11 @@
       "crates/sim-lib-agent/src/components/runtime/workflow/router.rs",
       "crates/sim-lib-agent/src/components/runtime/workflow.rs",
       "crates/sim-lib-agent/src/components/runtime.rs",
+      "crates/sim-lib-agent/src/conduct_functions.rs",
       "crates/sim-lib-agent/src/config_probe.rs",
       "crates/sim-lib-agent/src/cookbook_tools.rs",
       "crates/sim-lib-agent/src/core_tools.rs",
+      "crates/sim-lib-agent/src/durable_memory.rs",
       "crates/sim-lib-agent/src/embed.rs",
       "crates/sim-lib-agent/src/fairness.rs",
       "crates/sim-lib-agent/src/functions/catalog.rs",
@@ -2799,6 +3096,7 @@
       "crates/sim-lib-agent-conduct-core/recipes/book.toml",
       "crates/sim-lib-agent-conduct-core/src/journal.rs",
       "crates/sim-lib-agent-conduct-core/src/lib.rs",
+      "crates/sim-lib-agent-conduct-core/src/lifecycle.rs",
       "crates/sim-lib-agent-conduct-core/src/records.rs",
       "crates/sim-lib-agent-conduct-core/src/sha256.rs",
       "crates/sim-lib-agent-conduct-core/src/symbols.rs",
@@ -3045,6 +3343,45 @@
       "crates/sim-lib-mcp-stdio/src/framing.rs",
       "crates/sim-lib-mcp-stdio/src/lib.rs",
       "crates/sim-lib-mcp-stdio/src/server.rs",
+      "crates/sim-lib-model-test/Cargo.toml",
+      "crates/sim-lib-model-test/focused-tests/Cargo.toml",
+      "crates/sim-lib-model-test/focused-tests/harness.rs",
+      "crates/sim-lib-model-test/product-focused/Cargo.toml",
+      "crates/sim-lib-model-test/product-focused/product.rs",
+      "crates/sim-lib-model-test/recipes/01-basics/honest-candidate/recipe.toml",
+      "crates/sim-lib-model-test/recipes/02-product/no-network-observatory/recipe.toml",
+      "crates/sim-lib-model-test/src/candidate.rs",
+      "crates/sim-lib-model-test/src/census.rs",
+      "crates/sim-lib-model-test/src/economics.rs",
+      "crates/sim-lib-model-test/src/executor.rs",
+      "crates/sim-lib-model-test/src/identity.rs",
+      "crates/sim-lib-model-test/src/legacy_import.rs",
+      "crates/sim-lib-model-test/src/lib.rs",
+      "crates/sim-lib-model-test/src/privacy.rs",
+      "crates/sim-lib-model-test/src/product.rs",
+      "crates/sim-lib-model-test/src/projection.rs",
+      "crates/sim-lib-model-test/src/protocol.rs",
+      "crates/sim-lib-model-test/src/protocol_tests.rs",
+      "crates/sim-lib-model-test/src/tests.rs",
+      "crates/sim-lib-model-test/tests/legacy_import.rs",
+      "crates/sim-lib-model-test/tests/product.rs",
+      "crates/sim-lib-model-test-packs/Cargo.toml",
+      "crates/sim-lib-model-test-packs/focused-tests/Cargo.toml",
+      "crates/sim-lib-model-test-packs/focused-tests/harness.rs",
+      "crates/sim-lib-model-test-packs/recipes/01-basics/public-conformance/recipe.toml",
+      "crates/sim-lib-model-test-packs/src/assistance.rs",
+      "crates/sim-lib-model-test-packs/src/domain.rs",
+      "crates/sim-lib-model-test-packs/src/epoch.rs",
+      "crates/sim-lib-model-test-packs/src/external.rs",
+      "crates/sim-lib-model-test-packs/src/generated.rs",
+      "crates/sim-lib-model-test-packs/src/lib.rs",
+      "crates/sim-lib-model-test-packs/src/manifest.rs",
+      "crates/sim-lib-model-test-packs/src/privacy.rs",
+      "crates/sim-lib-model-test-packs/src/registry.rs",
+      "crates/sim-lib-model-test-packs/src/roadmap.rs",
+      "crates/sim-lib-model-test-packs/src/selection.rs",
+      "crates/sim-lib-model-test-packs/src/tests.rs",
+      "crates/sim-lib-model-test-packs/src/work_unit.rs",
       "crates/sim-lib-oauth-core/Cargo.toml",
       "crates/sim-lib-oauth-core/build.rs",
       "crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/recipe.toml",
@@ -3176,6 +3513,20 @@
       "crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/recipe.toml",
       "crates/sim-lib-provider-cli/recipes/book.toml",
       "crates/sim-lib-provider-cli/src/lib.rs",
+      "crates/sim-lib-search/Cargo.toml",
+      "crates/sim-lib-search/build.rs",
+      "crates/sim-lib-search/recipes/01-fixture/cli-mcp-parity/recipe.toml",
+      "crates/sim-lib-search/recipes/01-fixture/fixture-research/recipe.toml",
+      "crates/sim-lib-search/recipes/book.toml",
+      "crates/sim-lib-search/src/lib.rs",
+      "crates/sim-lib-search/src/product.rs",
+      "crates/sim-lib-search/src/tests.rs",
+      "crates/sim-lib-search-http/Cargo.toml",
+      "crates/sim-lib-search-http/build.rs",
+      "crates/sim-lib-search-http/recipes/01-basics/fixture-site/recipe.toml",
+      "crates/sim-lib-search-http/recipes/book.toml",
+      "crates/sim-lib-search-http/src/lib.rs",
+      "crates/sim-lib-search-http/src/tests.rs",
       "crates/sim-lib-server/Cargo.toml",
       "crates/sim-lib-server/build.rs",
       "crates/sim-lib-server/recipes/01-basics/request-descriptor/recipe.toml",
@@ -3345,6 +3696,16 @@
       "crates/sim-lib-stream-fabric/src/tests.rs",
       "crates/sim-lib-stream-fabric/tests/cassette_replay.rs",
       "crates/sim-lib-stream-fabric/tests/store_replay.rs",
+      "crates/sim-lib-web-fetch/Cargo.toml",
+      "crates/sim-lib-web-fetch/build.rs",
+      "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/Cargo.toml",
+      "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/recipe.toml",
+      "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/src/main.rs",
+      "crates/sim-lib-web-fetch/src/engine.rs",
+      "crates/sim-lib-web-fetch/src/lib.rs",
+      "crates/sim-lib-web-fetch/src/projection.rs",
+      "crates/sim-lib-web-fetch/src/store.rs",
+      "crates/sim-lib-web-fetch/src/tests.rs",
       "crates/sim-mcp-server/Cargo.toml",
       "crates/sim-mcp-server/recipes/01-basics/final-stack/recipe.toml",
       "crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/recipe.toml",
@@ -3369,7 +3730,7 @@
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 27,
+  "recipe_book_count": 29,
   "recipes": [
     {
       "book": "agent",
@@ -3377,7 +3738,7 @@
       "card_id": "cookbook/agent",
       "group": "workspace",
       "package": "sim-lib-agent",
-      "recipe_count": 39,
+      "recipe_count": 48,
       "recipes": [
         {
           "card_id": "agent/01-basics/core-tool-projection",
@@ -3690,6 +4051,78 @@
           "package": "sim-lib-agent",
           "recipe_toml": "crates/sim-lib-agent/recipes/40-atelier/atelier-shape-query-cache/recipe.toml",
           "title": "Cached ShapeQuery retrieval"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-default",
+          "codec": "lisp",
+          "id": "conduct-default",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/default/recipe.toml",
+          "title": "default conduct"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-effect-free-replay",
+          "codec": "lisp",
+          "id": "conduct-effect-free-replay",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/effect-free-replay/recipe.toml",
+          "title": "effect-free-replay conduct"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-phased",
+          "codec": "lisp",
+          "id": "conduct-phased",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/phased/recipe.toml",
+          "title": "phased conduct"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-plan-act-replan",
+          "codec": "lisp",
+          "id": "conduct-plan-act-replan",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/plan-act-replan/recipe.toml",
+          "title": "plan-act-replan conduct"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-react",
+          "codec": "lisp",
+          "id": "conduct-react",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/react/recipe.toml",
+          "title": "react conduct"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-router-crew",
+          "codec": "lisp",
+          "id": "conduct-router-crew",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/router-crew/recipe.toml",
+          "title": "router-crew conduct"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-suspend-resume",
+          "codec": "lisp",
+          "id": "conduct-suspend-resume",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/suspend-resume/recipe.toml",
+          "title": "suspend-resume conduct"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-third-party-step",
+          "codec": "lisp",
+          "id": "conduct-third-party-step",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/third-party-step/recipe.toml",
+          "title": "third-party-step conduct"
+        },
+        {
+          "card_id": "agent/50-conducts/conduct-verify-retry",
+          "codec": "lisp",
+          "id": "conduct-verify-retry",
+          "package": "sim-lib-agent",
+          "recipe_toml": "crates/sim-lib-agent/recipes/50-conducts/verify-retry/recipe.toml",
+          "title": "verify-retry conduct"
         }
       ],
       "summary": "Agent components, memories, and offline runner descriptors.",
@@ -4246,6 +4679,54 @@
       ],
       "summary": "Expose provider inventory and seat selection through the loadable SIM command surface.",
       "title": "Provider CLI"
+    },
+    {
+      "book": "search",
+      "book_toml": "crates/sim-lib-search/recipes/book.toml",
+      "card_id": "cookbook/search",
+      "group": "workspace",
+      "package": "sim-lib-search",
+      "recipe_count": 2,
+      "recipes": [
+        {
+          "card_id": "search/01-fixture/cli-mcp-parity",
+          "codec": "",
+          "id": "cli-mcp-parity",
+          "package": "sim-lib-search",
+          "recipe_toml": "crates/sim-lib-search/recipes/01-fixture/cli-mcp-parity/recipe.toml",
+          "title": "Run one canonical search through CLI and MCP"
+        },
+        {
+          "card_id": "search/01-fixture/fixture-research",
+          "codec": "lisp",
+          "id": "fixture-research",
+          "package": "sim-lib-search",
+          "recipe_toml": "crates/sim-lib-search/recipes/01-fixture/fixture-research/recipe.toml",
+          "title": "Replay a bounded federated research run"
+        }
+      ],
+      "summary": "Deterministic claims, capture, selectors, and replay.",
+      "title": "Federated Research"
+    },
+    {
+      "book": "search-http",
+      "book_toml": "crates/sim-lib-search-http/recipes/book.toml",
+      "card_id": "cookbook/search-http",
+      "group": "workspace",
+      "package": "sim-lib-search-http",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "search-http/01-basics/fixture-site",
+          "codec": "lisp",
+          "id": "fixture-site",
+          "package": "sim-lib-search-http",
+          "recipe_toml": "crates/sim-lib-search-http/recipes/01-basics/fixture-site/recipe.toml",
+          "title": "Provider-neutral fixture search site"
+        }
+      ],
+      "summary": "Provider-neutral bounded search execution.",
+      "title": "HTTP Search Transport"
     },
     {
       "book": "server",
