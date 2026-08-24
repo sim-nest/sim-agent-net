@@ -23,10 +23,13 @@ fn main() -> Result<(), Failure> {
         owners: OwnerEnvelope::default(),
         resources: ResourceEnvelope::default(),
         effects: EffectEnvelope::default(),
+        capabilities: CapabilityEnvelope::default(),
+        changes: ChangeEnvelope::default(),
         acceptance: AcceptanceContract {
             policy: ProofPolicy::All,
             statements: BTreeMap::new(),
         },
+        coverage: vec![],
         outputs: BTreeMap::new(),
         guide: ImplementationGuide {
             uses: vec![anchor.clone(), excerpt.clone()],
@@ -76,10 +79,13 @@ fn main() -> Result<(), Failure> {
         owners: OwnerEnvelope::default(),
         resources: ResourceEnvelope::default(),
         effects: EffectEnvelope::default(),
+        capabilities: CapabilityEnvelope::default(),
+        changes: ChangeEnvelope::default(),
         acceptance: AcceptanceContract {
             policy: ProofPolicy::All,
             statements: BTreeMap::new(),
         },
+        coverage: vec![],
         outputs: BTreeMap::new(),
         guide: ImplementationGuide::default(),
         origin: PhaseOrigin::Authored,

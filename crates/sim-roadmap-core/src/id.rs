@@ -39,6 +39,7 @@ text_id!(ProfileId);
 text_id!(OwnerId);
 text_id!(ResourceId);
 text_id!(EffectId);
+text_id!(CapabilityId);
 text_id!(ChangeId);
 text_id!(SchemaId);
 

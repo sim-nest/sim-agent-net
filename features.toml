@@ -1,6 +1,24 @@
 schema = "sim.features"
 
 [[feature]]
+id = "feature/sim-agent-net/roadmap-refinement-admission"
+title = "Bounded roadmap refinement admission"
+summary = "Admit roadmap decompositions only when they form one bounded tree, narrow every inherited authority envelope, preserve parent acceptance, and make aggregate obligation coverage unambiguous."
+owner = "crate/sim-roadmap-core"
+audiences = ["code", "framework"]
+guidance = "Construct authored PhaseSpec values, then call RoadmapSpec::admit before consuming their decomposition. Read effective envelopes from AdmittedPhase while retaining the authored fields for review. Composite phases must explicitly map every parent obligation to a child contribution or retain it at the parent; supporting child obligations must trace back, and aggregate dependencies may not target self or descendants. Handle the structured Failure path instead of reconstructing graph diagnostics. This is roadmap policy admission, not a scheduler or generic graph worklist."
+claims_anchors = ["anchor/crate/sim-roadmap-core"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-core/focused-tests/src/lib"]
+
+[enforcement.audience]
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+framework = "strict"
+code = "strict"
+
+[[feature]]
 id = "feature/sim-agent-net/immutable-source-decks"
 title = "Immutable bounded source decks"
 summary = "Ground exact SIM Index declarations, source excerpts, and checked specimens in a portable content-addressed value with explicit limits and limitations."

@@ -8,6 +8,14 @@ use sim_source_deck::SourceQuery;
 
 mod id;
 pub use id::*;
+mod admit;
+mod completion;
+mod inheritance;
+mod path;
+mod tree;
+pub use admit::{AdmittedPhase, AdmittedRoadmap};
+pub use completion::{AggregateAcceptance, ObligationDisposition};
+pub use path::CausalPath;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Limits {
@@ -18,6 +26,9 @@ pub struct Limits {
     pub imports: usize,
     pub outputs_per_phase: usize,
     pub checkpoints_per_phase: usize,
+    pub children_per_phase: usize,
+    pub tree_depth: usize,
+    pub causal_path: usize,
     pub guide_queries: usize,
     pub guide_targets: usize,
     pub guide_promises: usize,
@@ -35,6 +46,9 @@ impl Limits {
         imports: 128,
         outputs_per_phase: 128,
         checkpoints_per_phase: 256,
+        children_per_phase: 256,
+        tree_depth: 64,
+        causal_path: 64,
         guide_queries: 128,
         guide_targets: 128,
         guide_promises: 128,
@@ -71,6 +85,30 @@ pub enum Failure {
     UnpinnedImport(ImportId),
     ClaimedRevisionMismatch,
     Canonical(String),
+    Tree {
+        rule: &'static str,
+        path: CausalPath,
+        phase: PhaseId,
+        related: Option<PhaseId>,
+    },
+    Widening {
+        ancestor: PhaseId,
+        phase: PhaseId,
+        field: &'static str,
+        value: String,
+        path: CausalPath,
+    },
+    Coverage {
+        rule: &'static str,
+        phase: PhaseId,
+        obligation: ObligationId,
+        path: CausalPath,
+    },
+    CircularCompletion {
+        phase: PhaseId,
+        dependency: PhaseId,
+        path: CausalPath,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -127,6 +165,14 @@ pub struct ResourceEnvelope {
 pub struct EffectEnvelope {
     pub effects: BTreeSet<EffectId>,
 }
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CapabilityEnvelope {
+    pub capabilities: BTreeSet<CapabilityId>,
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ChangeEnvelope {
+    pub targets: BTreeSet<ChangeId>,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProofPolicy {
@@ -160,6 +206,18 @@ impl AcceptanceStatement {
 pub struct AcceptanceContract {
     pub policy: ProofPolicy,
     pub statements: BTreeMap<ObligationId, AcceptanceStatement>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ObligationCoverage {
+    Contributes {
+        parent: ObligationId,
+        phase: PhaseId,
+        child: ObligationId,
+    },
+    RetainedAtParent {
+        parent: ObligationId,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -280,7 +338,10 @@ pub struct PhaseSpec {
     pub owners: OwnerEnvelope,
     pub resources: ResourceEnvelope,
     pub effects: EffectEnvelope,
+    pub capabilities: CapabilityEnvelope,
+    pub changes: ChangeEnvelope,
     pub acceptance: AcceptanceContract,
+    pub coverage: Vec<ObligationCoverage>,
     pub outputs: BTreeMap<OutputId, OutputContract>,
     pub guide: ImplementationGuide,
     pub origin: PhaseOrigin,
@@ -356,9 +417,14 @@ impl RoadmapRevision {
     }
 }
 
+impl RoadmapSpec {
+    pub fn admit(&self) -> Result<AdmittedRoadmap, Failure> {
+        AdmittedRoadmap::compile(self)
+    }
+}
+
 fn validate_spec(spec: &RoadmapSpec) -> Result<(), Failure> {
     let l = spec.limits;
-    bounded("phases", spec.phases.len(), l.phases)?;
     bounded("imports", spec.imports.len(), l.imports)?;
     validate_prose("charter title", &spec.charter.title, l.prose_bytes)?;
     validate_prose("charter intent", &spec.charter.intent, l.document_bytes)?;
@@ -368,6 +434,7 @@ fn validate_spec(spec: &RoadmapSpec) -> Result<(), Failure> {
             id: spec.root.to_string(),
         });
     }
+    AdmittedRoadmap::compile(spec)?;
     for (key, phase) in &spec.phases {
         if key != &phase.id {
             return Err(Failure::Duplicate {
@@ -394,15 +461,21 @@ fn validate_phase(phase: &PhaseSpec, spec: &RoadmapSpec) -> Result<(), Failure> 
         phase.outputs.len(),
         l.outputs_per_phase,
     )?;
-    if let PhaseBody::Leaf { checkpoints } = &phase.body {
-        bounded(
-            "checkpoints_per_phase",
-            checkpoints.len(),
-            l.checkpoints_per_phase,
-        )?;
-        unique(checkpoints.iter().map(|x| x.id.to_string()), "checkpoint")?;
-        for c in checkpoints {
-            validate_prose("checkpoint", &c.statement, l.prose_bytes)?;
+    match &phase.body {
+        PhaseBody::Leaf { checkpoints } => {
+            bounded(
+                "checkpoints_per_phase",
+                checkpoints.len(),
+                l.checkpoints_per_phase,
+            )?;
+            unique(checkpoints.iter().map(|x| x.id.to_string()), "checkpoint")?;
+            for c in checkpoints {
+                validate_prose("checkpoint", &c.statement, l.prose_bytes)?;
+            }
+        }
+        PhaseBody::Composite { children } => {
+            bounded("children_per_phase", children.len(), l.children_per_phase)?;
+            unique(children.iter().map(ToString::to_string), "child")?;
         }
     }
     validate_guide(&phase.guide, l)?;
@@ -620,7 +693,10 @@ fn phase_datum(p: &PhaseSpec) -> Datum {
                         &p.owners,
                         &p.resources,
                         &p.effects,
+                        &p.capabilities,
+                        &p.changes,
                         &p.acceptance,
+                        &p.coverage,
                         &p.outputs,
                         &p.guide,
                         &p.origin

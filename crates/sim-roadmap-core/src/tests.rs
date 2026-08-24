@@ -55,10 +55,13 @@ fn phase(id_text: &str, guide: ImplementationGuide) -> PhaseSpec {
         owners: OwnerEnvelope::default(),
         resources: ResourceEnvelope::default(),
         effects: EffectEnvelope::default(),
+        capabilities: CapabilityEnvelope::default(),
+        changes: ChangeEnvelope::default(),
         acceptance: AcceptanceContract {
             policy: ProofPolicy::All,
             statements: BTreeMap::new(),
         },
+        coverage: vec![],
         outputs: BTreeMap::new(),
         guide,
         origin: PhaseOrigin::Authored,
@@ -83,9 +86,12 @@ fn spec(phases: impl IntoIterator<Item = PhaseSpec>) -> RoadmapSpec {
 
 #[test]
 fn insertion_order_does_not_change_revision_identity() {
-    let root = phase("root", ImplementationGuide::default());
+    let mut root = phase("root", ImplementationGuide::default());
     let mut leaf = phase("leaf", guide());
     leaf.parent = Some(root.id.clone());
+    root.body = PhaseBody::Composite {
+        children: vec![leaf.id.clone()],
+    };
     let change = RevisionChange {
         id: ChangeId::new("initial").unwrap(),
         rationale: "Initial authored revision".into(),

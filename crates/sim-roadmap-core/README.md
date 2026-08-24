@@ -10,5 +10,13 @@ bindings are checked, limits are enforced, then a schema-versioned canonical
 values with exact supporting references, while proof and completion policy stay
 explicitly in this domain.
 
+`RoadmapSpec::admit` validates exactly one bounded, connected, acyclic
+parent/child tree and compiles each leaf's effective owner, resource,
+capability, effect, and change-target envelopes. Authored patches remain
+separate from compiled values, every non-empty patch must narrow its parent,
+and failures carry deterministic bounded root-to-subject paths. Composite
+acceptance retains the parent's contract byte-for-byte, requires explicit
+obligation coverage, and rejects self/descendant completion dependencies.
+
 See `examples/two_phase.rs` for a root and leaf whose guide binds one public
 anchor, one exact source excerpt, one promise, and a short Rust sketch.
