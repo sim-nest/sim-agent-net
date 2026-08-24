@@ -1,0 +1,28 @@
+[package]
+name = "sim-lib-search"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Deterministic, policy-bounded federation and research bundles for SIM."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sim-cookbook = "0.2.1"
+sim-kernel = "0.2.1"
+sim-lib-agent-runner-core = { version = "0.2.0", path = "../sim-lib-agent-runner-core" }
+sim-lib-rank = "0.1.4"
+sim-lib-search-core = "0.1.0"
+sim-lib-skill = { version = "0.2.1", path = "../sim-lib-skill" }
+sim-lib-web-core = "0.1.0"
+
+[build-dependencies]
+sim-cookbook-build = "0.1.0"
+
+[dev-dependencies]
+sim-shape = "0.2.3"
+
+[lints]
+workspace = true

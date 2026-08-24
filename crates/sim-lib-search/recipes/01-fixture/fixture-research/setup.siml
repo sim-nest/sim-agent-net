@@ -1,0 +1,3 @@
+; The checked Rust specimen in src/tests.rs executes this complete fixture path:
+; intent -> immutable plan -> claims -> aliases -> RRF -> capture -> selectors -> replay.
+'search/fixture-research

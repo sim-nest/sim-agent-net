@@ -33,6 +33,7 @@ members = [
   "crates/sim-transport-ports",
   "crates/sim-lib-skill",
   "crates/sim-lib-search-http",
+  "crates/sim-lib-search",
   "crates/sim-lib-stream-fabric",
   "crates/sim-table-remote",
   "crates/sim-mcp-server",

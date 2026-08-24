@@ -826,3 +826,28 @@ steps = [
   { feature = "feature/sim-agent-net/provider-neutral-http-search", why = "Configure the codec behind the bounded shared HTTP skill transport." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-search-http/01-basics/fixture-site", why = "The fixture proves live and cassette execution without a provider-specific transport." },
 ]
+
+[[feature]]
+id = "feature/sim-agent-net/reproducible-federated-research"
+title = "Reproducible federated search and research bundles"
+summary = "Immutable plans compose authorized Retriever cards, deterministic partial federation, conservative alias evidence, shared RRF, independently authorized capture, and verified selectors."
+owner = "crate/sim-lib-search"
+audiences = ["user", "code", "framework"]
+guidance = "Compose sim-lib-search with skill discovery, provider-neutral search transports, web-fetch, rank, and local EmbeddingIndex implementations. Keep provider wire fields, fetch policy, rank mathematics, codecs, and answer generation in their existing owners."
+relationships = [
+  { feature = "feature/sim-agent-net/provider-neutral-http-search", kind = "uses", why = "Provider calls remain ordinary Retriever skills behind the bounded HTTP transport." },
+  { feature = "feature/sim-foundation/search-evidence-core", kind = "uses", why = "Provider claims, pages, alias evidence, citations, and bundles retain their foundation-owned semantics." },
+]
+claims_anchors = ["anchor/crate/sim-lib-search"]
+claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-search/01-fixture/fixture-research", "spec-test/sim-agent-net/crates/sim-lib-search/src/tests"]
+
+[[route]]
+id = "route/reproducible-federated-research"
+task = "Run reproducible federated research"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/reproducible-federated-research", why = "Freeze intent, authority, sites, concurrency, budgets, and revisions before provider dispatch." },
+  { feature = "feature/sim-agent-net/provider-neutral-http-search", why = "Collect provider claims and typed partial failures through provider-neutral Retriever cards." },
+  { feature = "feature/sim-agent-net/reproducible-federated-research", why = "Cluster only evidenced aliases, fuse via shared RRF, capture selected pages under independent policy, verify selectors, and retain replay receipts." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-search/01-fixture/fixture-research", why = "The all-fixture recipe demonstrates intent through claims, capture, selectors, and replay without network access." },
+]
