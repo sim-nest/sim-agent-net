@@ -50,10 +50,11 @@ impl InjectionFence {
 /// deterministic content-id fence label.
 pub fn fenced_data_text(label: &str, body: &str, content: &Expr) -> Result<String> {
     let content_id = Datum::try_from(content.clone())?.content_id()?;
-    Ok(fenced_data_text_for_content_id(label, body, &content_id))
+    Ok(fenced_data_text_for_id(label, body, &content_id))
 }
 
-fn fenced_data_text_for_content_id(label: &str, body: &str, content_id: &ContentId) -> String {
+/// Renders untrusted data with an already established immutable content id.
+pub fn fenced_data_text_for_id(label: &str, body: &str, content_id: &ContentId) -> String {
     let fence = InjectionFence::for_content(content_id);
     let label = format!("{label}:{}", content_id_label(content_id));
     format!("{FENCE_DATA_RULE}\n{}", fence.wrap(&label, body))

@@ -7,6 +7,7 @@ members = [
   "crates/sim-lib-agent-conduct",
   "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct",
   "crates/sim-lib-agent",
+  "crates/sim-lib-web-fetch",
   "crates/sim-lib-agent-runner-core",
   "crates/sim-lib-agent-runner-core/recipes/01-basics/output-contract-repair",
   "crates/sim-lib-bridge",

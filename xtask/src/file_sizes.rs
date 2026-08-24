@@ -10,6 +10,10 @@ const ENTRYPOINT_HARD_LIMIT: usize = 250;
 
 const SOFT_EXEMPTIONS: &[SoftExemption] = &[
     SoftExemption {
+        path: "crates/sim-lib-web-fetch/src/engine.rs",
+        reason: "capture state machine keeps capability, cache, redirect, robots, rate, and immutable commit ordering visible together",
+    },
+    SoftExemption {
         path: "crates/sim-lib-agent-runner-http/src/probe.rs",
         reason: "provider probe matrix keeps shared timeout, transport, and profile fixtures together",
     },

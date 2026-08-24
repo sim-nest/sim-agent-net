@@ -35,6 +35,8 @@ sim-lib-core = { version = "0.2.0" }
 sim-lib-numbers-stats = { version = "0.4.0" }
 sim-lib-rank = { version = "0.1.4" }
 sim-lib-server = { version = "0.1.12", path = "../sim-lib-server" }
+sim-lib-web-fetch = { version = "0.1.0", optional = true, path = "../sim-lib-web-fetch" }
+sim-lib-net-http = { version = "0.1.0", optional = true }
 sim-lib-stream-fabric = { version = "0.2.1", path = "../sim-lib-stream-fabric" }
 sim-lib-stream-core = { version = "0.1.4" }
 sim-shape = { version = "0.2.3" }
@@ -52,7 +54,7 @@ sim-lib-cookbook = { version = "0.1.16", path = "../sim-lib-cookbook" }
 wat = "1.245.1"
 
 [features]
-agent-net = ["sim-lib-server/server-net-http"]
+agent-net = ["sim-lib-server/server-net-http", "dep:sim-lib-web-fetch", "dep:sim-lib-net-http"]
 cookbook = ["dep:sim-lib-cookbook"]
 default = []
 runner-http = ["dep:sim-lib-agent-runner-http"]

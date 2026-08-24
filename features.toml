@@ -19,6 +19,30 @@ major_entrypoints = "advisory"
 frameworks = "advisory"
 
 [[feature]]
+id = "feature/sim-agent-net/immutable-web-capture"
+title = "Policy-gated immutable web capture"
+summary = "Capture landing pages through separate egress and robots decisions into caller-owned content-addressed evidence, with explicit cache modes and fenced model rendering."
+owner = "crate/sim-lib-web-fetch"
+audiences = ["user", "code", "framework"]
+guidance = "Use WebFetcher with an injected HTTP executor, CaptureDir, and EgressPolicy. Choose Live, PreferCache, Offline, or Revalidate explicitly; Offline names a capture ContentId and performs no network effect. Consume normalized text only through the codec-derived WebRepresentation and fenced_text. RetrieverBackend::Web is a compatibility projection over this owner, not a second capture path."
+claims_anchors = [
+  "anchor/crate/sim-lib-web-fetch",
+  "anchor/rustdoc/sim-lib-web-fetch/web-fetcher",
+]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-web-fetch/01-basics/offline-capture",
+]
+
+[[route]]
+id = "route/capture-web-evidence"
+task = "Capture and replay immutable web evidence"
+audiences = ["user", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/immutable-web-capture", why = "The web/fetch owner composes legacy retrieval with explicit policy and immutable evidence." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-web-fetch/01-basics/offline-capture", why = "The network-free fixture proves identical offline replay and versioned re-extraction." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/agent-conduct-records"
 title = "Pure agent conduct records"
 summary = "Describe agent run frames, open lifecycle vocabulary, exact domain budgets, step Cards, and canonical hash-linked journals without loading execution behavior."

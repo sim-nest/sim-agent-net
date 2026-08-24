@@ -1,0 +1,13 @@
+id = "offline-capture"
+title = "Replay immutable web evidence offline"
+codec = "rust"
+setup = "src/main.rs"
+purpose = "README.md"
+expected = "expected.txt"
+order = 10
+tags = ["web", "fetch", "offline", "evidence", "robots", "fixture", "rust"]
+requires = ["sim-lib-web-fetch", "sim-lib-web-core", "sim-lib-net-http"]
+
+[[expect]]
+form = 0
+result = "scripted live capture -> identical offline evidence -> versioned re-extraction"

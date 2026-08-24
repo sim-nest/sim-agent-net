@@ -1,0 +1,8 @@
+[package]
+name = "sim-recipe-web-fetch-offline"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[workspace]
+[dependencies]
+sim-lib-web-fetch = { path = "../../.." }
