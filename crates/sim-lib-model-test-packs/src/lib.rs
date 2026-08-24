@@ -9,12 +9,14 @@ mod epoch;
 mod manifest;
 mod privacy;
 mod registry;
+mod roadmap;
 mod selection;
 
 pub use epoch::*;
 pub use manifest::*;
 pub use privacy::*;
 pub use registry::*;
+pub use roadmap::*;
 pub use selection::*;
 
 #[cfg(test)]

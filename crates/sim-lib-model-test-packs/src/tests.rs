@@ -259,3 +259,166 @@ fn text(root: &std::path::Path, args: &[&str]) -> String {
     .trim()
     .into()
 }
+
+fn roadmap_task(context: ContextKind) -> RoadmapTask {
+    RoadmapTask {
+        schema: ROADMAP_TASK_SCHEMA.into(),
+        id: format!("roadmap-{context:?}"),
+        pair_id: "pair-001".into(),
+        context,
+        goal: "add a synthetic query surface".into(),
+        conflicting_constraints: vec!["reuse indexed owner".into(), "do not widen kernel".into()],
+        active_predecessor: "mini.01 delivered parser".into(),
+        candidates: vec![
+            SourceCandidate {
+                anchor: "card/query".into(),
+                owner: "sim-mini".into(),
+                kind: ContextKind::Card,
+            },
+            SourceCandidate {
+                anchor: "api/query::run".into(),
+                owner: "sim-mini".into(),
+                kind: ContextKind::Rustdoc,
+            },
+            SourceCandidate {
+                anchor: "recipe/query".into(),
+                owner: "sim-mini".into(),
+                kind: ContextKind::Recipe,
+            },
+            SourceCandidate {
+                anchor: "route/add-query".into(),
+                owner: "sim-mini".into(),
+                kind: ContextKind::IndexRoute,
+            },
+        ],
+        output_contract: "one v3 phase with proof and deferred delivery".into(),
+        frozen_epoch: "sha256:miniature-public-epoch".into(),
+        input_digest: "sha256:equal-bytes-except-context".into(),
+    }
+}
+fn truthful_phase() -> ProposedPhase {
+    ProposedPhase {
+        standalone_intent: true,
+        resolved_predecessor: true,
+        source_anchors: vec!["card/query".into()],
+        reuse_anchors: vec!["route/add-query".into()],
+        owners: vec!["sim-mini".into()],
+        dependencies_safe: true,
+        executable_steps: vec!["compose existing query owner".into()],
+        proof_metadata: Some("workspace".into()),
+        delivery_metadata: Some("deferred".into()),
+        claimed_apis: vec!["api/query::run".into()],
+        dangling_cursor: false,
+        closeout_owner: Some("sim-mini".into()),
+    }
+}
+#[test]
+fn roadmap_task_is_bounded_frozen_and_has_v3_contract() {
+    let t = roadmap_task(ContextKind::None);
+    t.validate().unwrap();
+    assert_eq!(t.conflicting_constraints.len(), 2);
+    assert_eq!(t.candidates.len(), 4)
+}
+#[test]
+fn source_false_fluent_roadmap_fails_before_judge() {
+    let t = roadmap_task(ContextKind::IndexRoute);
+    let mut p = truthful_phase();
+    p.owners = vec!["sim-kernel".into()];
+    p.claimed_apis = vec!["api/query::magic".into()];
+    let g = grade_deterministic(&t, &p);
+    assert!(
+        g.failures
+            .contains(&RoadmapFailure::Source("false ownership"))
+    );
+    assert_eq!(
+        calibrated_review(
+            &g,
+            &[BlindedReview {
+                reviewer: "a".into(),
+                anchor_set: "fixed-v1".into(),
+                decision: ReviewDecision::Pass
+            }]
+        )
+        .decision,
+        ReviewDecision::Fail
+    )
+}
+#[test]
+fn adversaries_and_calibrated_disagreement_are_visible() {
+    let t = roadmap_task(ContextKind::Card);
+    let mut p = truthful_phase();
+    p.dependencies_safe = false;
+    p.dangling_cursor = true;
+    p.closeout_owner = None;
+    p.proof_metadata = None;
+    let g = grade_deterministic(&t, &p);
+    assert!(!g.facets[&RoadmapFacet::Structure]);
+    let r = calibrated_review(
+        &g,
+        &[
+            BlindedReview {
+                reviewer: "a".into(),
+                anchor_set: "fixed-v1".into(),
+                decision: ReviewDecision::Pass,
+            },
+            BlindedReview {
+                reviewer: "b".into(),
+                anchor_set: "fixed-v1".into(),
+                decision: ReviewDecision::Fail,
+            },
+            BlindedReview {
+                reviewer: "c".into(),
+                anchor_set: "fixed-v1".into(),
+                decision: ReviewDecision::Abstain,
+            },
+        ],
+    );
+    assert!(r.disagreement);
+    assert_eq!(r.abstentions, 1)
+}
+#[test]
+fn cross_play_and_intact_pair_uplift_measure_downstream_truth() {
+    let x = CrossPlayResult {
+        task_id: "roadmap-IndexRoute".into(),
+        calibrator: "fixed-implementer-a".into(),
+        completed: true,
+        ambiguity_count: 0,
+        repair_steps: 1,
+        scope_escapes: 0,
+        final_semantics_digest: "sha256:semantic-result".into(),
+    };
+    assert!(x.valid());
+    let pairs = [
+        PairOutcome {
+            pair_id: "pair-001".into(),
+            baseline: 4,
+            treatment: 8,
+            intact: true,
+        },
+        PairOutcome {
+            pair_id: "pair-002".into(),
+            baseline: 0,
+            treatment: 100,
+            intact: false,
+        },
+    ];
+    assert_eq!(paired_context_uplift(&pairs), Some(4.0));
+    for c in [
+        ContextKind::None,
+        ContextKind::Card,
+        ContextKind::Rustdoc,
+        ContextKind::Recipe,
+        ContextKind::IndexRoute,
+    ] {
+        assert_eq!(
+            roadmap_task(c).input_digest,
+            "sha256:equal-bytes-except-context"
+        )
+    }
+}
+#[test]
+fn frozen_tasks_refuse_live_roadmaps() {
+    let mut t = roadmap_task(ContextKind::None);
+    t.frozen_epoch = "docs/workbench/active".into();
+    assert!(t.validate().is_err())
+}
