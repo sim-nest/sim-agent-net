@@ -1,5 +1,15 @@
 schema = "sim.features"
 
+[[feature]]
+id = "feature/sim-agent-net/immutable-source-decks"
+title = "Immutable bounded source decks"
+summary = "Ground exact SIM Index declarations, source excerpts, and checked specimens in a portable content-addressed value with explicit limits and limitations."
+owner = "crate/sim-source-deck"
+audiences = ["code", "framework"]
+guidance = "Use sim-source-deck when a caller already holds fragment, certificate, source, and specimen bytes. Decode fragments with a caller-owned FragmentDecoder, then build once; validation is exact and fail-closed. The crate never fetches, scans, parses, or generates artifacts, and SyntaxBound or scanner evidence remains an explicit Limitation."
+claims_anchors = ["anchor/crate/sim-source-deck"]
+claims_specimens = ["spec-example/sim-agent-net/crates/sim-source-deck/grounded-declaration"]
+
 [enforcement.audience]
 user = "strict"
 framework = "strict"
