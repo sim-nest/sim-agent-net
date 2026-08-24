@@ -9,6 +9,7 @@ mod candidate;
 mod census;
 mod identity;
 mod privacy;
+mod protocol;
 
 pub use candidate::{
     ArtifactEvidence, CandidateRevision, IdentityConfidence, ModelLimits, ModelRoute,
@@ -17,6 +18,9 @@ pub use candidate::{
 pub use census::{CandidateCensus, CandidatePresence, CandidateRecord, IdentityObservation};
 pub use identity::{IdentityMismatch, IdentityVerification, verify_observed_identity};
 pub use privacy::{OfflineSnapshot, SnapshotError};
+pub use protocol::*;
 
+#[cfg(test)]
+mod protocol_tests;
 #[cfg(test)]
 mod tests;

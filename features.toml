@@ -150,6 +150,23 @@ claims_anchors = [
 depends_on = ["feature/sim-agent-net/provider-control"]
 
 [[feature]]
+id = "feature/sim-agent-net/model-task-protocols"
+title = "Loadable self-checking model task protocols"
+summary = "Prepare immutable public trials and grade linked facets through open protocols with repository closure, discrete generation, privacy, and calibrated-judge evidence."
+owner = "crate/sim-lib-model-test"
+audiences = ["code", "framework"]
+guidance = "Implement ModelTaskProtocol for a new task family and register it through ProtocolRegistry. Seal every visible, hidden, parser, grader, calibration, tool, toolchain, seed, and repository-closure input into TaskRevision; use discrete receipts for generated packs; keep deterministic failure authoritative over calibrated judging; and export only content ids and provenance, never hidden task bytes. Reuse the scalar, generated, judged-document, and workspace-mutation fake protocols for conformance."
+claims_anchors = [
+  "anchor/crate/sim-lib-model-test",
+  "anchor/rustdoc/sim-lib-model-test/model-task-protocol",
+  "anchor/rustdoc/sim-lib-model-test/protocol-registry",
+  "anchor/rustdoc/sim-lib-model-test/task-revision",
+]
+depends_on = [
+  "feature/sim-agent-net/model-candidate-identity",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/transport-ports"
 title = "Provider-neutral transport ports"
 summary = "Keep socket, DNS, and local IPC mechanics behind narrow byte-stream ports while protocol framing and session policy remain unchanged."
