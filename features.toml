@@ -802,3 +802,27 @@ steps = [
   { feature = "feature/sim-foundation/host-primitives", why = "The shared foundation row owns platform wall/monotonic/timer values, deterministic behavior, and explicit bindings." },
   { feature = "feature/sim-agent-net/server-wall-clock", why = "The server row documents consumption and compatibility re-exports without claiming time ownership." },
 ]
+
+[[feature]]
+id = "feature/sim-agent-net/provider-neutral-http-search"
+title = "Provider-neutral HTTP search skill transport"
+summary = "A bounded HTTP effect owner turns any SearchWireCodec into ordinary Retriever and Tool cards."
+owner = "crate/sim-lib-search-http"
+audiences = ["user", "code", "framework"]
+guidance = "Compose HttpSearchTransport with sim-config, the net/http membrane, the skill registry, and an operator-selected SearchWireCodec. Provider fields, ranking, landing-page fetch, and credentials remain outside the transport."
+relationships = [
+  { feature = "feature/sim-foundation/search-evidence-core", kind = "uses", why = "The foundation-owned SearchWireCodec and SearchPage records remain the pure provider-neutral boundary." },
+  { feature = "feature/sim-agent-net/agent-server-tools", kind = "uses", why = "Cards, registry dispatch, cache, cassette, policy, and audit remain owned by the ordinary skill runtime." },
+]
+claims_anchors = ["anchor/crate/sim-lib-search-http"]
+claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-search-http/01-basics/fixture-site", "spec-test/sim-agent-net/crates/sim-lib-search-http/src/tests"]
+
+[[route]]
+id = "route/add-http-search-site"
+task = "Add a provider-neutral HTTP search site"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-foundation/search-evidence-core", why = "Implement only provider wire syntax as SearchWireCodec." },
+  { feature = "feature/sim-agent-net/provider-neutral-http-search", why = "Configure the codec behind the bounded shared HTTP skill transport." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-search-http/01-basics/fixture-site", why = "The fixture proves live and cassette execution without a provider-specific transport." },
+]

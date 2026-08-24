@@ -1,0 +1,5 @@
+book = "search-http"
+title = "HTTP Search Transport"
+summary = "Provider-neutral bounded search execution."
+order = 380
+chapters = ["01-basics"]
