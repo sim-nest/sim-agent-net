@@ -1,6 +1,32 @@
 schema = "sim.features"
 
 [[feature]]
+id = "feature/sim-agent-net/loadable-roadmap-command"
+title = "Loadable pure roadmap operations"
+summary = "Ground, plan, compare, refine, render, and explain bounded roadmap values through one capability-free loaded command library."
+owner = "crate/sim-lib-roadmap"
+audiences = ["user", "code", "framework"]
+guidance = "Load RoadmapLib and call the roadmap/* operations with already admitted caller-owned values. Use cli/main/roadmap only as the standard bootloader handoff. Keep source acquisition, codecs, execution, journals, mutation, models, and outward effects in separately loaded organs; a refinement result is a successor certificate or a typed refusal, never an edited input."
+claims_anchors = ["anchor/crate/sim-lib-roadmap", "anchor/export/sim-lib-roadmap/cli/main/roadmap"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap/src/tests"]
+
+[enforcement.audience]
+user = "strict"
+code = "strict"
+framework = "strict"
+
+[enforcement.specimen]
+user = "strict"
+code = "strict"
+framework = "strict"
+
+[[route]]
+id = "route/operate-on-roadmap-intent"
+task = "Ground and refine roadmap intent without execution authority"
+features = ["feature/sim-agent-net/loadable-roadmap-command", "feature/sim-agent-net/native-roadmap-document-adapter", "feature/sim-agent-net/certified-roadmap-refinement"]
+specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap/src/tests"]
+
+[[feature]]
 id = "feature/sim-agent-net/native-roadmap-document-adapter"
 title = "Strict v3 roadmap document adapter"
 summary = "Import legacy v3 Markdown and typed catalogs into observation-separated native roadmap documents, then render native recursive Markdown or a precise flat-v3 loss report."

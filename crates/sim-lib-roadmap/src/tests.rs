@@ -1,6 +1,7 @@
 use sim_codec::{DecodeBudget, DecodeLimits, Input, decode_with_codec, encode_with_codec};
 use sim_kernel::{
-    Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, NoopEvalPolicy, ReadPolicy, Shape, Symbol,
+    Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, Lib, NoopEvalPolicy, ReadPolicy, Shape,
+    Symbol,
 };
 use sim_lib_roadmap::*;
 use std::{collections::BTreeMap, sync::Arc};
@@ -197,6 +198,105 @@ fn every_declared_kind_has_a_shape_symbol() {
     for kind in ALL_KINDS {
         assert!(RoadmapValueShape::new(kind).describe(&mut cx).is_ok());
     }
+}
+
+fn operation_fixture(kind: RoadmapValueKind, entries: &[(&str, Expr)]) -> RoadmapValue {
+    RoadmapValue::new(kind, fields(entries)).unwrap()
+}
+
+#[test]
+fn pure_operations_ground_plan_diff_refine_render_and_explain() {
+    let deck = operation_fixture(
+        RoadmapValueKind::SourceDeck,
+        &[
+            (
+                "repositories",
+                Expr::Vector(vec![Expr::String("sim-agent-net".into())]),
+            ),
+            (
+                "evidence",
+                Expr::Vector(vec![Expr::String("evidence/source-line".into())]),
+            ),
+            (
+                "limitations",
+                Expr::Vector(vec![Expr::String("unresolved source witness".into())]),
+            ),
+        ],
+    );
+    let phase = Expr::Map(vec![(
+        Expr::Symbol(Symbol::new("id")),
+        Expr::String("phase/root/child/leaf".into()),
+    )]);
+    let roadmap = operation_fixture(
+        RoadmapValueKind::Roadmap,
+        &[
+            ("revision", Expr::String("r1".into())),
+            ("phases", Expr::Vector(vec![phase])),
+        ],
+    );
+    let grounding = apply_operation("ground", &[deck, roadmap.clone()]).unwrap();
+    assert!(format!("{:?}", grounding.fields()).contains("unresolved source witness"));
+    let plan = apply_operation("plan", std::slice::from_ref(&roadmap)).unwrap();
+    let observations = plan.fields().get(&Symbol::new("observations")).unwrap();
+    for required in [
+        "tree",
+        "complete-ready-set",
+        "promises",
+        "derived-profiles",
+        "atomicity",
+        "aggregate-completion",
+    ] {
+        assert!(format!("{observations:?}").contains(required), "{required}");
+    }
+    assert!(
+        apply_operation("diff", &[roadmap.clone(), roadmap.clone()])
+            .unwrap()
+            .fields()[&Symbol::new("changes")]
+            .canonical_eq(&Expr::Vector(vec![]))
+    );
+    let proposal = operation_fixture(
+        RoadmapValueKind::Refinement,
+        &[
+            ("parent", Expr::String("phase/root".into())),
+            (
+                "children",
+                Expr::Vector(vec![Expr::String("phase/root/child".into())]),
+            ),
+        ],
+    );
+    assert_eq!(
+        apply_operation("refine", &[roadmap.clone(), grounding.clone(), proposal])
+            .unwrap()
+            .kind(),
+        RoadmapValueKind::Certificate
+    );
+    assert!(apply_operation("render", std::slice::from_ref(&roadmap)).is_ok());
+    let subject = operation_fixture(
+        RoadmapValueKind::Explanation,
+        &[
+            ("subject", Expr::String("phase/root".into())),
+            ("prose", Expr::String("subject".into())),
+        ],
+    );
+    assert!(apply_operation("explain", &[roadmap, subject]).is_ok());
+}
+
+#[test]
+fn roadmap_library_exports_exact_operations_and_command_without_capabilities() {
+    let manifest = RoadmapLib::new().manifest();
+    assert!(manifest.capabilities.is_empty() && manifest.requires.is_empty());
+    let symbols: Vec<_> = manifest
+        .exports
+        .iter()
+        .map(|export| match export {
+            sim_kernel::Export::Function { symbol, .. } => symbol.to_string(),
+            _ => String::new(),
+        })
+        .collect();
+    for operation in ROADMAP_OPERATIONS {
+        assert!(symbols.contains(&format!("roadmap/{operation}")));
+    }
+    assert!(symbols.contains(&"cli/main/roadmap".to_owned()));
 }
 
 #[test]

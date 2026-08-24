@@ -13,11 +13,11 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 sim-kernel = { version = "0.2.0" }
 sim-codec-config = { version = "0.1.2" }
 sim-codec-doc = { version = "0.1.4" }
+sim-codec = { version = "0.1.7" }
+sim-codec-lisp = { version = "0.2.1" }
 
 [dev-dependencies]
-sim-codec = { version = "0.1.7" }
 sim-codec-json = { version = "0.2.2" }
-sim-codec-lisp = { version = "0.2.1" }
 sim-kernel = { version = "0.2.0", features = ["test-support"] }
 
 [lints]

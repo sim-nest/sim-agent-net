@@ -1,0 +1,6 @@
+id = "roadmap-operations"
+title = "Ground and refine a bounded roadmap"
+summary = "Six fail-closed specimens for pure roadmap operations."
+level = "basics"
+tags = ["roadmap", "grounding", "refinement", "diff", "v3"]
+requires = ["sim-lib-roadmap"]

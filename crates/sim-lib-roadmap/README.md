@@ -9,6 +9,16 @@ from caller-owned maps, and keeps imported lifecycle observations outside the
 native roadmap identity. It contains no line or TOML parser, scanner, journal,
 filesystem access, model access, process launch, or outward operation.
 
+The loadable `RoadmapLib` exports `roadmap/read`, `validate`, `deck-check`,
+`ground`, `plan`, `diff`, `refine`, `render`, and `explain`, plus the standard
+`cli/main/roadmap` entrypoint. Operations accept admitted caller-owned values;
+they never open a file, discover a control plane, execute a phase, or mutate a
+roadmap. `ground` retains all witnesses and limitations, `plan` exposes the
+recursive tree and its complete decision facts, and `refine` checks the exact
+base/grounding/proposal triple before minting a certificate. CLI values use the
+general-purpose Lisp expression codec and must be passed inline; arguments are
+never interpreted as paths.
+
 `V3Importer` turns top-level legacy phases into children of one native root,
 typed dependencies into edges, tasks into checkpoints, and prose or fenced
 snippets into visibly ungrounded guides. `render_native` is the stable recursive
