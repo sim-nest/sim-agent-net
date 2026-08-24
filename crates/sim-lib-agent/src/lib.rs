@@ -22,6 +22,7 @@ mod config_probe;
 #[cfg(feature = "cookbook")]
 mod cookbook_tools;
 mod core_tools;
+mod durable_memory;
 mod embed;
 mod fairness;
 mod functions;
@@ -107,6 +108,7 @@ pub use config_probe::{
     AgentModelConfigProbe, AgentModelProviderPresence, agent_model_config_probe_symbol,
     model_defaults_config_lib_symbol,
 };
+pub use durable_memory::MemoryJournalStore;
 pub(crate) use embed::{cosine, embed};
 pub use fairness::*;
 use functions::{agent_exports, register_agent_functions};
@@ -126,6 +128,10 @@ pub use planning::{
 };
 pub use roles::{AgentRole, stamp_envelope_role, stamp_frame_role};
 pub use runner_projection::{ExternalRunnerSpec, external_runner_value};
+pub use sim_lib_agent_conduct_core::{
+    Counterfactual, DurableAgentRun, DurableRunHandle, EffectRecovery, LifecycleError,
+    MissionJournalRow, ModelExchange, ParentJournalRef, SuspendReason,
+};
 pub use sim_lib_agent_runner_core::{
     ModelBid, ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
     ModelUsage,

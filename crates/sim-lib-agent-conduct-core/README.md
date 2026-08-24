@@ -1,7 +1,10 @@
 # sim-lib-agent-conduct-core
 
 Pure Citizen records for describing an agent run, its open lifecycle vocabulary,
-domain usage budgets, step Cards, and a canonical hash-linked journal.
+domain usage budgets, step Cards, and a canonical hash-linked journal. The
+`DurableAgentRun` coordinator appends every completed production step, verifies
+resume and receipt replay, reconciles uncertain effects without repeating them,
+and creates authority-checked checkpoint forks through an injected journal store.
 
 The crate deliberately cannot execute an agent, model, tool, graph, or host
 effect. It depends only on SIM's kernel, value, Shape, and Citizen data layers.

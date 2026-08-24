@@ -7,12 +7,18 @@
 #![deny(missing_docs)]
 
 mod journal;
+mod lifecycle;
 mod records;
 mod sha256;
 pub mod symbols;
 mod usage;
 
 pub use journal::{AgentJournal, JournalError};
+pub use lifecycle::{
+    AgentJournalStore, Counterfactual, DurableAgentRun, DurableRunHandle, EffectRecovery,
+    InMemoryJournalStore, LifecycleError, MissionJournalRow, ModelExchange, ParentJournalRef,
+    SuspendReason,
+};
 pub use records::{
     AgentConductContract, AgentEvent, AgentJournalHead, AgentJournalRecord, AgentOutcome,
     AgentRunFrame, AgentRunState, AgentStepCard, AgentStop,

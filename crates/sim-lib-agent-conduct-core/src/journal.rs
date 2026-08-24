@@ -16,6 +16,11 @@ pub struct AgentJournal {
 /// Journal chain integrity error.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum JournalError {
+    /// A record belongs to a different graph or binding manifest.
+    Fingerprint {
+        /// Sequence carrying the drifted identity.
+        sequence: u64,
+    },
     /// A record skipped or reused a sequence number.
     Sequence {
         /// Required next sequence.
@@ -44,6 +49,12 @@ pub enum JournalError {
 impl fmt::Display for JournalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Fingerprint { sequence } => {
+                write!(
+                    f,
+                    "journal graph or binding fingerprint drift at {sequence}"
+                )
+            }
             Self::Sequence { expected, actual } => {
                 write!(f, "journal sequence gap: expected {expected}, got {actual}")
             }
@@ -73,6 +84,25 @@ impl AgentJournal {
     /// Returns committed records.
     pub fn records(&self) -> &[AgentJournalRecord] {
         &self.records
+    }
+    /// Reconstructs and verifies a journal loaded from durable storage.
+    pub fn from_records(
+        graph_fingerprint: impl Into<String>,
+        binding_fingerprint: impl Into<String>,
+        records: impl IntoIterator<Item = AgentJournalRecord>,
+    ) -> Result<Self, JournalError> {
+        let mut journal = Self::new(graph_fingerprint, binding_fingerprint);
+        for record in records {
+            if record.graph_fingerprint != journal.graph_fingerprint
+                || record.binding_fingerprint != journal.binding_fingerprint
+            {
+                return Err(JournalError::Fingerprint {
+                    sequence: record.sequence,
+                });
+            }
+            journal.insert(record)?;
+        }
+        Ok(journal)
     }
     /// Appends a canonical record.
     pub fn append(
