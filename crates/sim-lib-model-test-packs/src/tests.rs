@@ -416,6 +416,71 @@ fn cross_play_and_intact_pair_uplift_measure_downstream_truth() {
         )
     }
 }
+
+#[test]
+fn domain_portfolio_generation_reporting_guards_and_external_exchange_are_closed() {
+    let bounds = GenerationBounds {
+        max_depth: 4,
+        max_entities: 4,
+        max_operations: 3,
+        max_prompt_bytes: 256,
+    };
+    for family in [
+        GeneratedFamily::SymbolicTree,
+        GeneratedFamily::StateTrace,
+        GeneratedFamily::ConstraintPlan,
+        GeneratedFamily::CausalDebug,
+    ] {
+        let (target, control) = generate_pair(family, 17, bounds.clone()).unwrap();
+        assert_eq!(
+            generate_pair(family, 17, bounds.clone()).unwrap(),
+            (target.clone(), control.clone())
+        );
+        assert!(target.verify(&target.expected_answer));
+        assert!(!target.verify("mutated"));
+        assert_eq!(target.facts, control.facts);
+        assert_eq!(target.operations, control.operations);
+        assert_eq!(target.entities, control.entities);
+        assert_eq!(target.answer_schema, control.answer_schema);
+        assert_eq!(target.renderer, control.renderer);
+        assert_eq!(target.prompt_bytes, control.prompt_bytes);
+        assert_ne!(target.dependency_wiring, control.dependency_wiring);
+    }
+    let trials = vec![
+        PairTrial {
+            family: GeneratedFamily::SymbolicTree,
+            pair_id: "a".into(),
+            depth: 2,
+            target: TrialState::Fail,
+            control: TrialState::Pass,
+        },
+        PairTrial {
+            family: GeneratedFamily::SymbolicTree,
+            pair_id: "b".into(),
+            depth: 3,
+            target: TrialState::Pass,
+            control: TrialState::Fail,
+        },
+    ];
+    let report = capability_by_family(&trials, 0.5);
+    assert_eq!(report.len(), 1);
+    assert_eq!(report[&GeneratedFamily::SymbolicTree].inversions, 1);
+    assert_eq!(report[&GeneratedFamily::SymbolicTree].threshold, Some(3));
+    assert!(guard_language_pack("reason through installed codec values").is_ok());
+    assert!(guard_language_pack("build a replacement parser").is_err());
+    let bundle = ExternalEvaluatorBundle::seal(
+        ExternalFormat::EvalPlus,
+        "evalplus/v0.3".into(),
+        vec![ExternalCase {
+            id: "humaneval/0".into(),
+            input_digest: "sha256:in".into(),
+            expected_digest: "sha256:out".into(),
+        }],
+    )
+    .unwrap();
+    assert!(!bundle.isolation_trusted);
+    bundle.validate().unwrap();
+}
 #[test]
 fn frozen_tasks_refuse_live_roadmaps() {
     let mut t = roadmap_task(ContextKind::None);

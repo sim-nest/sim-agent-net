@@ -5,6 +5,10 @@ edition = "2024"
 publish = false
 
 [lib]
-path = "../src/assistance.rs"
+path = "harness.rs"
+
+[dependencies]
+sha2 = "0.10"
+sim-study-core = { path = "../../../../sim-foundation/crates/sim-study-core" }
 
 [workspace]

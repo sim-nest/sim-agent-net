@@ -184,10 +184,10 @@ depends_on = [
 [[feature]]
 id = "feature/sim-agent-net/model-test-packs"
 title = "Frozen public and private-local model-test packs"
-summary = "Rebuild validated task packs from pinned Git objects into immutable epochs, grade bounded roadmap implementation and responsive coding-assistance roles semantically, and keep private task bytes behind a control-plane loader."
+summary = "Rebuild validated task packs from pinned Git objects into immutable epochs, compose open domain portfolios and paired generated capability evidence, and keep private task bytes and active selections behind control-plane loaders."
 owner = "crate/sim-lib-model-test-packs"
 audiences = ["code", "framework"]
-guidance = "Describe tasks with PackManifest, bind complete licensed source closure and exact smoke, screen, confirmation, and full-reproduction selections, then import FixtureEpoch from Git objects and register it. Use WorkUnitTask, WorkUnitReceipt, and grade_implementation for one narrow v3 implementation unit. Use AssistanceSession and grade_assistance for short diagnosis, explanation, minimal-edit, completion, review, and test-selection interactions; grade correctness, steering, restraint, usefulness, and resource facets independently, and treat latency as service evidence unless a role declares a ceiling. Implement PrivatePackLoader and interaction policy only in the private control plane; public exports carry digests, never hidden task, grader, roadmap, host, price, or policy bytes."
+guidance = "Describe tasks with PackManifest and domains with DomainMetadata; load the active DomainPortfolio through the private control plane. Generate bounded target/control pairs from one seed, retain family-specific capability curves, reject language packs that smuggle replacement runtimes or source reparsing, and seal external evaluator bundles by content without treating them as isolation. Implement private loaders and interaction policy only in the control plane; public exports carry digests, never hidden bytes."
 claims_anchors = [
   "anchor/crate/sim-lib-model-test-packs",
   "anchor/rustdoc/sim-lib-model-test-packs/pack-manifest",

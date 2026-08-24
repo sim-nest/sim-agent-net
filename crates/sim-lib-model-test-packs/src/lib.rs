@@ -6,7 +6,10 @@
 #![forbid(unsafe_code)]
 
 mod assistance;
+mod domain;
 mod epoch;
+mod external;
+mod generated;
 mod manifest;
 mod privacy;
 mod registry;
@@ -15,7 +18,10 @@ mod selection;
 mod work_unit;
 
 pub use assistance::*;
+pub use domain::*;
 pub use epoch::*;
+pub use external::*;
+pub use generated::*;
 pub use manifest::*;
 pub use privacy::*;
 pub use registry::*;
