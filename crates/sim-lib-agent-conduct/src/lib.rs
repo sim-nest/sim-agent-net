@@ -13,9 +13,102 @@ use sim_kernel::{
 use sim_lib_agent_conduct_core::{AgentConductContract, AgentStepCard};
 use sim_lib_topology::{
     CompiledGraph, NodeId, TopologyBindingDescriptor, TopologyBindings, TopologyContinuation,
-    TopologyEntry, TopologyPackage, TopologyProgress, TopologyRunReport, compile_graph,
-    topology_reflect, topology_reflect_graph,
+    TopologyEntry, TopologyPackage, TopologyPackageSource, TopologyProgress, TopologyRegistry,
+    TopologyRunReport, compile_graph, parse_package, topology_reflect, topology_reflect_graph,
 };
+
+/// One immutable package shipped in the standard agent-kind catalog.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AgentConductCatalogSource {
+    /// Public package identity and graph name.
+    pub id: &'static str,
+    /// Complete `.simtopo` package text.
+    pub source: &'static str,
+}
+
+/// A catalog package loaded through the topology registry and certified as a conduct.
+#[derive(Clone, Debug)]
+pub struct AgentConductCatalogEntry {
+    /// Public package identity.
+    pub id: Symbol,
+    /// Certified conduct projection.
+    pub conduct: AgentConduct,
+    /// Number of deterministic tests embedded in the package.
+    pub embedded_tests: usize,
+}
+
+const CATALOG: &[AgentConductCatalogSource] = &[
+    AgentConductCatalogSource {
+        id: "agent/default-v1",
+        source: include_str!("../catalog/default-v1.simtopo"),
+    },
+    AgentConductCatalogSource {
+        id: "agent/react-v1",
+        source: include_str!("../catalog/react-v1.simtopo"),
+    },
+    AgentConductCatalogSource {
+        id: "agent/plan-act-replan-v1",
+        source: include_str!("../catalog/plan-act-replan-v1.simtopo"),
+    },
+    AgentConductCatalogSource {
+        id: "agent/phased-v1",
+        source: include_str!("../catalog/phased-v1.simtopo"),
+    },
+    AgentConductCatalogSource {
+        id: "agent/verify-retry-v1",
+        source: include_str!("../catalog/verify-retry-v1.simtopo"),
+    },
+    AgentConductCatalogSource {
+        id: "agent/router-crew-v1",
+        source: include_str!("../catalog/router-crew-v1.simtopo"),
+    },
+    AgentConductCatalogSource {
+        id: "agent/triage-v1",
+        source: include_str!("../catalog/triage-v1.simtopo"),
+    },
+];
+
+/// Returns the shipped data sources in stable public-id order.
+pub fn agent_conduct_catalog_sources() -> &'static [AgentConductCatalogSource] {
+    CATALOG
+}
+
+/// Loads every catalog package through a table-backed topology source and registry, then
+/// certifies the `agent/conduct-v1` profile against the supplied Card catalog.
+pub fn load_agent_conduct_catalog(
+    cx: &mut Cx,
+    registry: &mut TopologyRegistry,
+    step_cards: &[AgentStepCard],
+) -> Result<Vec<AgentConductCatalogEntry>> {
+    let rows = CATALOG
+        .iter()
+        .map(|item| {
+            Ok((
+                Symbol::new(item.id),
+                cx.factory().string(item.source.to_owned())?,
+            ))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let table = cx.new_table(rows)?;
+    CATALOG
+        .iter()
+        .map(|item| {
+            let key = Symbol::new(item.id);
+            registry.load_source(
+                cx,
+                TopologyPackageSource::table_entry(table.clone(), key.clone()),
+            )?;
+            let package = parse_package(item.source)?;
+            let embedded_tests = package.tests.len();
+            let conduct = validate_agent_conduct(package, step_cards)?;
+            Ok(AgentConductCatalogEntry {
+                id: key,
+                conduct,
+                embedded_tests,
+            })
+        })
+        .collect()
+}
 
 /// Required package profile.
 pub const AGENT_CONDUCT_PROFILE: &str = "agent/conduct-v1";

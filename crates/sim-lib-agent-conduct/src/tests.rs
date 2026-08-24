@@ -69,6 +69,42 @@ fn cards() -> Vec<AgentStepCard> {
         },
     ]
 }
+
+fn catalog_cards() -> Vec<AgentStepCard> {
+    let specs: &[(&str, &[&str], &[&str])] = &[
+        ("component", &["component"], &["continue", "error"]),
+        ("delegate", &["delegate"], &["continue", "error"]),
+        ("finish", &[], &["finished", "error"]),
+        ("model-turn", &["runner"], &["tool-calls", "final", "error"]),
+        ("plan", &["runner"], &["created", "error"]),
+        (
+            "replan",
+            &["runner"],
+            &["keep", "replace", "done", "stop", "error"],
+        ),
+        (
+            "review",
+            &["reviewer"],
+            &["accept", "revise", "reject", "error"],
+        ),
+        ("stop", &[], &["stopped"]),
+        ("tool-batch", &["tools"], &["continue", "final", "error"]),
+    ];
+    specs
+        .iter()
+        .map(|(id, roles, outcomes)| AgentStepCard {
+            step_id: Symbol::qualified("agent.step", *id),
+            input_shape: run_frame_shape(),
+            output_shape: run_frame_shape(),
+            roles: roles.iter().map(|role| Symbol::new(*role)).collect(),
+            outcomes: outcomes
+                .iter()
+                .map(|outcome| Symbol::new(*outcome))
+                .collect(),
+            ..Default::default()
+        })
+        .collect()
+}
 fn conduct() -> AgentConduct {
     validate_agent_conduct(parse_package(PACKAGE).unwrap(), &cards()).unwrap()
 }
@@ -214,4 +250,56 @@ fn dependency_and_source_guards_keep_the_adapter_narrow() {
             "forbidden implementation marker {duplicate}"
         );
     }
+}
+
+#[test]
+fn data_catalog_loads_through_registry_and_normalizes_to_distinct_reports() {
+    let mut cx = sim_kernel::testing::bare_cx();
+    cx.grant(sim_lib_topology::topology_write_capability());
+    let mut registry = TopologyRegistry::new();
+    let entries = load_agent_conduct_catalog(&mut cx, &mut registry, &catalog_cards()).unwrap();
+    assert_eq!(entries.len(), 7);
+    assert_eq!(registry.list().len(), 7);
+    assert!(entries.iter().all(|entry| entry.embedded_tests == 1));
+    let reports = entries
+        .iter()
+        .map(|entry| {
+            let graph = &entry.conduct.topology.graph;
+            format!(
+                "{}|{}|{}|{}|{:?}",
+                entry.id,
+                graph.nodes.len(),
+                graph.edges.len(),
+                graph.budget.max_steps,
+                entry.conduct.required_roles
+            )
+        })
+        .collect::<BTreeSet<_>>();
+    assert_eq!(reports.len(), 7);
+}
+
+#[test]
+fn every_catalog_package_has_embedded_contract_data() {
+    assert_eq!(
+        agent_conduct_catalog_sources().last().unwrap().id,
+        "agent/triage-v1"
+    );
+    for item in agent_conduct_catalog_sources() {
+        let package = parse_package(item.source).unwrap();
+        for field in ["profile", "result_shape", "domain_budget", "diagram"] {
+            assert!(
+                package
+                    .metadata
+                    .iter()
+                    .any(|(key, _)| key.name.as_ref() == field),
+                "{} missing {field}",
+                item.id
+            );
+        }
+        assert_eq!(package.tests.len(), 1);
+        assert!(package.graph.budget.max_steps > 0);
+    }
+    let implementation = include_str!("lib.rs");
+    assert!(!implementation.contains("struct Triage"));
+    assert!(!implementation.contains("fn triage"));
 }

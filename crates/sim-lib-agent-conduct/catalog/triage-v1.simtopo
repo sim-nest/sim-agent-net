@@ -1,0 +1,27 @@
+graph:
+topology agent/triage-v1
+node in verb=in output=agent/RunFrame
+node classify verb=call target=agent.step/component role=component
+node answer verb=call target=agent.step/model-turn role=runner
+node finish verb=call target=agent.step/finish
+node stop verb=call target=agent.step/stop
+node out verb=out input=agent/RunFrame
+wire in -> classify
+wire classify -> answer when=agent/outcome-continue
+wire classify -> stop when=agent/outcome-error
+wire answer -> finish when=agent/outcome-final
+wire answer -> finish when=agent/outcome-tool-calls
+wire answer -> stop when=agent/outcome-error
+wire finish -> out
+wire stop -> out
+budget max-steps=14 max-node-visits=4 max-edge-visits=3
+
+metadata:
+profile=agent/conduct-v1
+requires-roles=[component,runner]
+result-shape=agent/RunFrame
+domain-budget="classifications=1 model-turns=1"
+diagram="classify -> answer -> finish|stop"
+
+tests:
+normalized input=agent/test-frame expect=agent/triage-v1

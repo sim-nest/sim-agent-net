@@ -1,0 +1,29 @@
+graph:
+topology agent/verify-retry-v1
+node in verb=in output=agent/RunFrame
+node act verb=call target=agent.step/model-turn role=runner
+node verify verb=call target=agent.step/review role=reviewer
+node finish verb=call target=agent.step/finish
+node stop verb=call target=agent.step/stop
+node out verb=out input=agent/RunFrame
+wire in -> act
+wire act -> verify when=agent/outcome-final
+wire act -> verify when=agent/outcome-tool-calls
+wire act -> stop when=agent/outcome-error
+wire verify -> finish when=agent/outcome-accept
+wire verify -> act when=agent/outcome-revise max-visits=3
+wire verify -> stop when=agent/outcome-reject
+wire verify -> stop when=agent/outcome-error
+wire finish -> out
+wire stop -> out
+budget max-steps=24 max-node-visits=7 max-edge-visits=4
+
+metadata:
+profile=agent/conduct-v1
+requires-roles=[reviewer,runner]
+result-shape=agent/RunFrame
+domain-budget="attempts=4 verifies=4 retries=3"
+diagram="act -> verify -> finish; verify -> act (bounded)"
+
+tests:
+normalized input=agent/test-frame expect=agent/verify-retry-v1

@@ -57,13 +57,14 @@ claims_specimens = [
 [[feature]]
 id = "feature/sim-agent-net/agent-conduct-topology-profile"
 title = "Validated topology-backed agent conducts"
-summary = "Certify delivered topology packages as agent/conduct-v1 workflows, bind their step Cards explicitly, and run or resume them through the topology engine."
+summary = "Certify delivered topology packages as agent/conduct-v1 workflows, browse the standard data-only agent-kind catalog, bind step Cards explicitly, and run or resume through the topology engine."
 owner = "crate/sim-lib-agent-conduct"
 audiences = ["code", "framework"]
-guidance = "Use validate_agent_conduct for the strict RunFrame boundary, Card/outcome-route coverage, derived roles, capabilities, and finish-or-stop admission. Use bind_agent_conduct for exact node/Card bindings, then AgentConduct run or step for topology-owned execution and continuation. The projection retains the original TopologyEntry and never creates another graph, parser, registry, or scheduler."
+guidance = "Use load_agent_conduct_catalog with the standard step Cards to load agent/default-v1, react-v1, plan-act-replan-v1, phased-v1, verify-retry-v1, router-crew-v1, and triage-v1 through table-backed topology package sources and the ordinary TopologyRegistry path. Use validate_agent_conduct for the strict RunFrame boundary, Card/outcome-route coverage, metadata-derived roles, capabilities, budgets, and finish-or-stop admission. Use bind_agent_conduct for exact node/Card bindings, then AgentConduct run or step for topology-owned execution and continuation. Add a new kind as a tested .simtopo package; never add a kind-specific Rust loop or type. The projection retains the original TopologyEntry and never creates another graph, parser, registry, or scheduler."
 claims_anchors = ["anchor/crate/sim-lib-agent-conduct"]
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-agent-conduct/01-basics/echo-conduct",
+  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard_steps",
 ]
 depends_on = ["feature/sim-agent-net/agent-conduct-records"]
 
