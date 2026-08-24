@@ -1,0 +1,19 @@
+[package]
+name = "sim-model-test-product-focused"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sim-kernel = { path = "../../../../sim-kernel" }
+
+[[test]]
+name = "product"
+path = "product.rs"
+
+[patch.crates-io]
+sim-kernel = { path = "../../../../sim-kernel" }

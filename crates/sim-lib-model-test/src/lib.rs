@@ -12,6 +12,7 @@ mod executor;
 mod identity;
 mod legacy_import;
 mod privacy;
+pub mod product;
 mod projection;
 mod protocol;
 

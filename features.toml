@@ -233,6 +233,27 @@ claims_specimens = [
 depends_on = ["feature/sim-agent-net/model-task-protocols"]
 
 [[feature]]
+id = "feature/sim-agent-net/model-test-product"
+title = "Bootloader-loaded model observatory"
+summary = "Expose the complete model-test observatory as one loadable command while generic lifecycle and decisions remain delegated to study and provider authority remains separate."
+owner = "crate/sim-lib-model-test"
+audiences = ["user", "framework", "code"]
+guidance = "Enter through sim model-test, use --machine for the strict v1 envelope, and reserve provider contact for census --refresh, run, and resume. Reuse sim study for lifecycle and decisions, sim provider/model-access for access, and simctl model-test only for private configuration resolution. Export is a deterministic secret-free evidence bundle, not a filesystem backup."
+claims_anchors = [
+  "anchor/crate/sim-lib-model-test",
+  "anchor/rustdoc/sim-lib-model-test/model-test-lib",
+  "anchor/rustdoc/sim-lib-model-test/run_command",
+]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-model-test/02-product/no-network-observatory",
+]
+depends_on = [
+  "feature/sim-agent-net/model-test-packs",
+  "feature/sim-agent-net/model-verdict-picks",
+  "feature/sim-agent-net/provider-control",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/transport-ports"
 title = "Provider-neutral transport ports"
 summary = "Keep socket, DNS, and local IPC mechanics behind narrow byte-stream ports while protocol framing and session policy remain unchanged."

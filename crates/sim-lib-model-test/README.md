@@ -16,6 +16,15 @@ Pure identity and census records for models tested through SIM provider seats.
 The crate hashes canonical, redacted candidate facts into opaque study subject
 revisions. It performs no discovery, authentication, transport, or inference.
 
+The loadable `sim model-test` product exposes `census`, `packs`, `plan`,
+`seal`, `run`, `resume`, `cancel`, `status`, `verify`, `show`, `report`,
+`compare`, `decide`, `verdict`, `disposition`, `cost`, `pick`, `export`, and
+`import-legacy`. Generic lifecycle and decision verbs delegate to `sim study`;
+provider login and credentials are absent. Read-only projections never contact
+a provider, while only `census --refresh`, `run`, and `resume` may use an
+explicitly configured resource. `export` writes a deterministic secret-free
+evidence bundle, not a filesystem backup.
+
 ## Legacy evidence cutover
 
 `import_legacy_batch` is the sole replacement boundary for historical
