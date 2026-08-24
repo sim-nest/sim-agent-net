@@ -16,6 +16,7 @@ members = [
   "crates/sim-lib-agent-runner-process",
   "crates/sim-lib-provider",
   "crates/sim-lib-model-test",
+  "crates/sim-lib-model-test-packs",
   "crates/sim-lib-provider-cli",
   "crates/sim-lib-cookbook",
   "crates/sim-lib-mcp",

@@ -167,6 +167,24 @@ depends_on = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/model-test-packs"
+title = "Frozen public and private-local model-test packs"
+summary = "Rebuild validated task packs from pinned Git objects into immutable epochs while keeping private task bytes behind a control-plane loader."
+owner = "crate/sim-lib-model-test-packs"
+audiences = ["code", "framework"]
+guidance = "Describe tasks with PackManifest, bind complete licensed source closure and exact smoke, screen, confirmation, and full-reproduction selections, then import FixtureEpoch from Git objects and register it. Implement PrivatePackLoader only in the private control plane; never place private bytes, roadmaps, hosts, prices, or policies in this crate or its public records."
+claims_anchors = [
+  "anchor/crate/sim-lib-model-test-packs",
+  "anchor/rustdoc/sim-lib-model-test-packs/pack-manifest",
+  "anchor/rustdoc/sim-lib-model-test-packs/fixture-epoch",
+  "anchor/rustdoc/sim-lib-model-test-packs/private-pack-loader",
+]
+claims_specimens = [
+  "recipe/sim-agent-net/crates/sim-lib-model-test-packs/01-basics/public-conformance",
+]
+depends_on = ["feature/sim-agent-net/model-task-protocols"]
+
+[[feature]]
 id = "feature/sim-agent-net/transport-ports"
 title = "Provider-neutral transport ports"
 summary = "Keep socket, DNS, and local IPC mechanics behind narrow byte-stream ports while protocol framing and session policy remain unchanged."

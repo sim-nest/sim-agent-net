@@ -1,0 +1,6 @@
+; Public metadata only. No provider, private task, or hidden grader is loaded.
+(model-test-pack
+  :id "public/conformance"
+  :revision "sha256:fixture-epoch-r1"
+  :families '(deterministic generated judged workspace)
+  :selections '(smoke-r1 screen-r1 confirmation-r1 full-reproduction-r1))

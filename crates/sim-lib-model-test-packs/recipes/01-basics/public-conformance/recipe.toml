@@ -1,0 +1,8 @@
+schema = "sim.recipe/v1"
+id = "public-conformance"
+title = "Freeze and select a public model-test pack"
+entrypoint = "setup.siml"
+
+[checks]
+kind = "model-test-pack-conformance"
+provider_required = false
