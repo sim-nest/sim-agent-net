@@ -165,6 +165,20 @@ claims_anchors = [
 depends_on = ["feature/sim-agent-net/model-candidate-identity"]
 
 [[feature]]
+id = "feature/sim-agent-net/model-verdict-picks"
+title = "Expiring model verdict and pick projections"
+summary = "Project generic study decisions and their sole selection into evidence-preserving model verdicts, portfolio dispositions, and expiring read-only picks."
+owner = "crate/sim-lib-model-test"
+audiences = ["code", "framework"]
+guidance = "Use project_verdict without altering its retained SubjectDecision, then emit_pick from the existing sim-lib-study Selection. Unfit requires failed hard gates across the declared independent-epoch floor; too-expensive requires reconciled cost and a price revision. Treat every named PickRefusal as a missing fact, retain uniquely capable costly candidates as specialists, and leave driver application to the maintainer."
+claims_anchors = [
+  "anchor/crate/sim-lib-model-test",
+  "anchor/rustdoc/sim-lib-model-test/model-pick",
+  "anchor/rustdoc/sim-lib-model-test/project-verdict",
+]
+depends_on = ["feature/sim-agent-net/model-resource-economics"]
+
+[[feature]]
 id = "feature/sim-agent-net/model-task-protocols"
 title = "Loadable self-checking model task protocols"
 summary = "Prepare immutable public trials and grade linked facets through open protocols with repository closure, discrete generation, privacy, and calibrated-judge evidence."

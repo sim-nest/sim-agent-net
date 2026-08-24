@@ -11,6 +11,7 @@ mod economics;
 mod executor;
 mod identity;
 mod privacy;
+mod projection;
 mod protocol;
 
 pub use candidate::{
@@ -22,6 +23,7 @@ pub use economics::*;
 pub use executor::*;
 pub use identity::{IdentityMismatch, IdentityVerification, verify_observed_identity};
 pub use privacy::{OfflineSnapshot, SnapshotError};
+pub use projection::*;
 pub use protocol::*;
 
 #[cfg(test)]
