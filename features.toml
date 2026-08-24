@@ -851,3 +851,24 @@ steps = [
   { feature = "feature/sim-agent-net/reproducible-federated-research", why = "Cluster only evidenced aliases, fuse via shared RRF, capture selected pages under independent policy, verify selectors, and retain replay receipts." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-search/01-fixture/fixture-research", why = "The all-fixture recipe demonstrates intent through claims, capture, selectors, and replay without network access." },
 ]
+
+[[feature]]
+id = "feature/sim-agent-net/search-product"
+title = "Uniform CLI and MCP search product"
+summary = "Execute query, fetch, research, and store-only show once and project the same canonical search record through CLI and MCP."
+owner = "crate/sim-lib-search"
+audiences = ["user", "code", "framework"]
+guidance = "Install SearchProduct through SearchCommandLib or its exact Skill Cards. MCP must use the ordinary Skill projection and net/http capability rather than a provider-specific tool or transport."
+claims_anchors = ["anchor/crate/sim-lib-search"]
+claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-search/01-fixture/cli-mcp-parity", "spec-test/sim-agent-net/crates/sim-lib-search/src/product/tests"]
+depends_on = ["feature/sim-agent-net/reproducible-federated-research", "feature/sim-agent-net/mcp-server"]
+
+[[route]]
+id = "route/research-web-through-cli-or-mcp"
+task = "Research the web through CLI or MCP"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/search-product", why = "One product owns canonical configuration, execution, records, and stable ids." },
+  { feature = "feature/sim-agent-net/mcp-server", why = "The existing Skill projection derives MCP schemas, capability checks, execution, and audit." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-search/01-fixture/cli-mcp-parity", why = "The checked fixture demonstrates identical CLI and MCP behavior without ambient network access." },
+]

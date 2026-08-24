@@ -139,6 +139,10 @@ impl Callable for McpServeEntrypoint {
         // The bootloader already loaded the `codec/mcp` boot codec; install the MCP
         // method surface so the router can dispatch protocol calls.
         install_mcp_lib(cx)?;
+        // Search remains an ordinary Skill: MCP derives the exact Cards,
+        // Shapes, capability checks, execution, and audit path.
+        sim_lib_skill::install_skill_lib(cx)?;
+        sim_lib_search::install_search_skill(cx, sim_lib_search::SearchProduct::default())?;
 
         let mut session =
             McpSession::new("stdio", opts.profile).with_granted_capability(mcp_stdio_capability());

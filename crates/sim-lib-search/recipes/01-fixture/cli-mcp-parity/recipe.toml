@@ -1,0 +1,5 @@
+id = "cli-mcp-parity"
+title = "Run one canonical search through CLI and MCP"
+purpose = "Proves both projections execute the same SearchProduct and return one stable search/Run identity without ambient network access."
+setup = "setup.siml"
+expected = "expected.txt"

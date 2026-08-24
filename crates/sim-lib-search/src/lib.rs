@@ -4,6 +4,13 @@
 //! omission and policy decision. It never owns provider syntax, HTTP policy,
 //! rank mathematics, page decoding, or prose answer generation.
 #![forbid(unsafe_code)]
+mod product;
+
+pub use product::{
+    SEARCH_CAPABILITY, SEARCH_VERB, SearchCommandLib, SearchConfig, SearchMode, SearchOperation,
+    SearchProduct, SearchProductError, SearchRecord, install_search_skill, search_input_shape,
+    search_output_shape,
+};
 
 use sim_kernel::{CapabilityName, ContentId, Datum, ShapeRef};
 use sim_lib_agent_runner_core::fenced_data_text_for_id;

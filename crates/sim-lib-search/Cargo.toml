@@ -17,12 +17,11 @@ sim-lib-rank = "0.1.4"
 sim-lib-search-core = "0.1.0"
 sim-lib-skill = { version = "0.2.1", path = "../sim-lib-skill" }
 sim-lib-web-core = "0.1.0"
+sim-shape = "0.2.3"
+sim-run-core = "0.3.2"
 
 [build-dependencies]
 sim-cookbook-build = "0.1.0"
-
-[dev-dependencies]
-sim-shape = "0.2.3"
 
 [lints]
 workspace = true
