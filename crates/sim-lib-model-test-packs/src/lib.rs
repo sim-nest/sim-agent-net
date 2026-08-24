@@ -5,6 +5,7 @@
 
 #![forbid(unsafe_code)]
 
+mod assistance;
 mod epoch;
 mod manifest;
 mod privacy;
@@ -13,6 +14,7 @@ mod roadmap;
 mod selection;
 mod work_unit;
 
+pub use assistance::*;
 pub use epoch::*;
 pub use manifest::*;
 pub use privacy::*;

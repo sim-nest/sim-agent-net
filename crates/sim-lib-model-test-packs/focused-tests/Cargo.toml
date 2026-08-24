@@ -1,0 +1,10 @@
+[package]
+name = "sim-model-test-assistance-focused"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "../src/assistance.rs"
+
+[workspace]
