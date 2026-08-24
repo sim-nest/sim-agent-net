@@ -5,6 +5,7 @@ members = [
   "crates/sim-source-deck",
   "crates/sim-roadmap-core",
   "crates/sim-roadmap-refine",
+  "crates/sim-roadmap-plan",
   "crates/sim-roadmap-refine/recipes/01-basics/certified-descent",
   "crates/sim-lib-agent-conduct-core",
   "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal",
