@@ -184,10 +184,10 @@ depends_on = [
 [[feature]]
 id = "feature/sim-agent-net/model-test-packs"
 title = "Frozen public and private-local model-test packs"
-summary = "Rebuild validated task packs from pinned Git objects into immutable epochs while keeping private task bytes behind a control-plane loader."
+summary = "Rebuild validated task packs from pinned Git objects into immutable epochs, grade one bounded roadmap implementation work unit semantically, and keep private task bytes behind a control-plane loader."
 owner = "crate/sim-lib-model-test-packs"
 audiences = ["code", "framework"]
-guidance = "Describe tasks with PackManifest, bind complete licensed source closure and exact smoke, screen, confirmation, and full-reproduction selections, then import FixtureEpoch from Git objects and register it. Implement PrivatePackLoader only in the private control plane; never place private bytes, roadmaps, hosts, prices, or policies in this crate or its public records."
+guidance = "Describe tasks with PackManifest, bind complete licensed source closure and exact smoke, screen, confirmation, and full-reproduction selections, then import FixtureEpoch from Git objects and register it. Use WorkUnitTask, WorkUnitReceipt, and grade_implementation to measure one narrow v3 implementation unit, resume without repeating effects, and let hidden semantics overrule plausible public-test success. Implement PrivatePackLoader only in the private control plane; never place private bytes, roadmaps, hosts, prices, or policies in this crate or its public records."
 claims_anchors = [
   "anchor/crate/sim-lib-model-test-packs",
   "anchor/rustdoc/sim-lib-model-test-packs/pack-manifest",

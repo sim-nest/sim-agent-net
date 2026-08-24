@@ -11,6 +11,7 @@ mod privacy;
 mod registry;
 mod roadmap;
 mod selection;
+mod work_unit;
 
 pub use epoch::*;
 pub use manifest::*;
@@ -18,6 +19,7 @@ pub use privacy::*;
 pub use registry::*;
 pub use roadmap::*;
 pub use selection::*;
+pub use work_unit::*;
 
 #[cfg(test)]
 mod tests;
