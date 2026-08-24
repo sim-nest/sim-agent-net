@@ -424,3 +424,74 @@ fn native_render_is_stable_visible_and_v3_reports_all_loss_paths() {
             .all(|loss| loss.path.starts_with("root.phases"))
     );
 }
+
+#[test]
+fn public_v3_corpus_covers_all_legacy_shapes_and_is_observation_stable() {
+    let ordinary = include_str!("../qualification/v3/ordinary.md");
+    let source = include_str!("../qualification/v3/source.md");
+    let review = include_str!("../qualification/v3/review.md");
+    let resource = include_str!("../qualification/v3/resource.md");
+    let closeout = include_str!("../qualification/v3/merged-closeout.md");
+    let completed = include_str!("../qualification/v3/completed.md");
+    let malformed = include_str!("../qualification/v3/malformed.md");
+    let documents = BTreeMap::from([
+        ("ordinary.md".into(), ordinary.as_bytes().to_vec()),
+        ("source.md".into(), source.as_bytes().to_vec()),
+        ("review.md".into(), review.as_bytes().to_vec()),
+    ]);
+    let importer = V3Importer::new(&documents);
+    for (path, text) in [
+        ("ordinary.md", ordinary),
+        ("source.md", source),
+        ("review.md", review),
+        ("resource.md", resource),
+        ("merged-closeout.md", closeout),
+        ("completed.md", completed),
+    ] {
+        let imported = importer.import(path, text).unwrap();
+        assert_eq!(
+            imported.roadmap.semantic_id(),
+            imported.roadmap.semantic_id()
+        );
+        assert!(
+            imported
+                .roadmap
+                .root
+                .children
+                .iter()
+                .all(|p| p.span.end <= text.len())
+        );
+    }
+    assert!(importer.import("malformed.md", malformed).is_err());
+
+    let imported = importer.import("completed.md", completed).unwrap();
+    let id = imported.roadmap.semantic_id();
+    let active = completed
+        .replace("COMPLETE", "ACTIVE")
+        .replace("[x]", "[ ]");
+    assert_eq!(
+        id,
+        importer
+            .import("completed.md", &active)
+            .unwrap()
+            .roadmap
+            .semantic_id()
+    );
+
+    let oversized = format!("# Bomb\n\n### [ ] B.1 - Bomb\n\n{}", "x".repeat(1_000_001));
+    assert!(importer.import("bomb.md", &oversized).is_err());
+}
+
+#[test]
+fn native_three_level_corpus_is_public_and_python_independent() {
+    let corpus = include_str!("../qualification/v3/native-three-level.md");
+    assert!(corpus.contains("level-1") && corpus.contains("level-2") && corpus.contains("level-3"));
+    for forbidden in [
+        "docs/workbench",
+        "sim-private",
+        "roadmap_engine_3",
+        "python",
+    ] {
+        assert!(!corpus.to_ascii_lowercase().contains(forbidden));
+    }
+}

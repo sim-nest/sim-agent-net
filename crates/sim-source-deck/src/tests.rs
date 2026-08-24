@@ -155,3 +155,49 @@ fn certificate_digest_mismatch_is_rejected() {
         Err(Failure::CertificateDigestMismatch(_))
     ));
 }
+
+#[test]
+fn public_qualification_corpus_tracks_changes_moves_truncation_and_private_witnesses() {
+    let a = include_bytes!("../../sim-lib-roadmap/qualification/source/revision-a.rs");
+    let b = include_bytes!("../../sim-lib-roadmap/qualification/source/revision-b.rs");
+    let truncated = include_bytes!("../../sim-lib-roadmap/qualification/source/truncated.rs");
+    let collision = include_bytes!("../../sim-lib-roadmap/qualification/source/collision.rs");
+    let specimen = include_bytes!("../../sim-lib-roadmap/qualification/source/specimen.txt");
+    assert_ne!(ByteContentId::of(a).unwrap(), ByteContentId::of(b).unwrap());
+    assert!(
+        a.windows(b"fn private_helper".len())
+            .any(|w| w == b"fn private_helper")
+    );
+    assert!(
+        b.windows(b"pub mod moved".len())
+            .any(|w| w == b"pub mod moved")
+    );
+    assert!(truncated.ends_with(b"->\n"));
+    assert_eq!(
+        collision
+            .windows(b"pub fn public_api".len())
+            .filter(|w| *w == b"pub fn public_api")
+            .count(),
+        2
+    );
+    assert!(
+        specimen
+            .windows(b"exact source excerpt".len())
+            .any(|w| w == b"exact source excerpt")
+    );
+}
+
+#[test]
+fn formatting_changes_preserve_declared_evidence_but_semantic_bytes_invalidate_exactly() {
+    let base = b"pub fn declaration() {}";
+    let formatted = b"pub fn declaration() { }";
+    let a = build(fixture(b"fragment-a", base)).unwrap();
+    let b = build(fixture(b"fragment-a", formatted)).unwrap();
+    assert_ne!(
+        a.id(),
+        b.id(),
+        "exact source decks must invalidate on byte changes"
+    );
+    assert_eq!(a.evidence().len(), b.evidence().len());
+    assert_eq!(a.limitations(), b.limitations());
+}

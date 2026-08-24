@@ -1,0 +1,2 @@
+public_api(1) == 2
+private_helper requires an exact source excerpt

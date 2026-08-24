@@ -72,6 +72,24 @@ fn exact_fact_invalidation_does_not_dirty_unrelated_queries() {
     assert!(!dirty.contains(&qb));
 }
 
+#[test]
+fn every_semantic_fact_invalidates_only_its_observers() {
+    for i in 0..64 {
+        let fact = PlanKey::Source(SourceQueryKey::Anchor(format!("anchor-{i}")));
+        let other = PlanKey::Source(SourceQueryKey::Anchor(format!("other-{i}")));
+        let query = PlanKey::Phase(PhaseId::new(format!("phase-{i}")).unwrap());
+        let unaffected = PlanKey::Phase(PhaseId::new(format!("unaffected-{i}")).unwrap());
+        let mut index = DependencyIndex::new();
+        index.register_observed(query.clone(), vec![fact.clone()], "value".into());
+        index.register_observed(unaffected.clone(), vec![other], "other".into());
+        index.verify(query.clone()).unwrap();
+        index.verify(unaffected.clone()).unwrap();
+        let dirty = index.invalidate(&fact);
+        assert!(dirty.contains(&query));
+        assert!(!dirty.contains(&unaffected));
+    }
+}
+
 fn minimal_spec(root: PhaseId) -> RoadmapSpec {
     let mut phases = std::collections::BTreeMap::new();
     phases.insert(root.clone(), phase(root.clone(), None));

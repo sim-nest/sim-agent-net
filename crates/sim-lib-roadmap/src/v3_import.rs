@@ -28,6 +28,12 @@ impl<'a> V3Importer<'a> {
     }
     pub fn import(&self, path: &str, source: &str) -> Result<ImportedRoadmap, ImportError> {
         validate_path(path)?;
+        if source.len() > 1_000_000 {
+            return Err(ImportError::Invalid(format!(
+                "document exceeds 1000000-byte admission bound: {}",
+                source.len()
+            )));
+        }
         let (doc, _) = MarkdownBackend
             .decode(
                 source,

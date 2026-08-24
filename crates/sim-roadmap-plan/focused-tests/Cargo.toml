@@ -1,0 +1,21 @@
+[package]
+name = "sim-roadmap-plan-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[lib]
+name = "sim_roadmap_plan"
+path = "../src/lib.rs"
+
+[dependencies]
+sim-roadmap-core = { path = "../../sim-roadmap-core" }
+sim-roadmap-refine = { path = "../../sim-roadmap-refine" }
+sim-source-deck = { path = "../../sim-source-deck" }
+sim-incremental-core = { path = "../../../../sim-runtime/crates/sim-incremental-core" }
+sim-kernel = { path = "../../../../sim-kernel", features = ["test-support"] }
+
+[patch.crates-io]
+sim-kernel = { path = "../../../../sim-kernel" }

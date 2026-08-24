@@ -313,6 +313,40 @@ fn hostile_prose_and_claimed_counts_cannot_improve_rank() {
 }
 
 #[test]
+fn every_configured_child_bound_keeps_rank_strict_and_certificate_bounded() {
+    for child_count in 2..=policy().maximum_children {
+        let base = revision("bounded", child_count + 2);
+        let grounded = grounding();
+        let children = (0..child_count)
+            .map(|i| {
+                let mut value = child(&format!("bounded-{i}"), i % 2);
+                if i != 0 {
+                    value.acceptance.statements.clear();
+                }
+                value
+            })
+            .collect();
+        let applied = apply_refinement(
+            &base,
+            &grounded,
+            &policy(),
+            proposal(&base, children, &grounded),
+            &NoopCompilationHooks,
+        )
+        .unwrap();
+        assert!(applied.certificate.verify());
+        assert_eq!(applied.certificate.children.len(), child_count);
+        assert!(
+            applied
+                .certificate
+                .children
+                .values()
+                .all(|profile| compare_profiles(profile, &applied.certificate.parent).is_lower())
+        );
+    }
+}
+
+#[test]
 fn freshness_grounding_coverage_limits_and_hooks_fail_closed() {
     struct Reject;
     impl CompilationHooks for Reject {
