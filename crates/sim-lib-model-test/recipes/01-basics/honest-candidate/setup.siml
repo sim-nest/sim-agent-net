@@ -1,0 +1,6 @@
+; Candidate identity contains public facts, never endpoint or credential data.
+'(candidate
+  (seat seat:ollama#lab)
+  (artifact (sha256 "manifest-digest"))
+  (backend "llama.cpp")
+  (route local-service))

@@ -1,0 +1,21 @@
+[package]
+name = "sim-lib-model-test"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Honest candidate identity and redacted census records for SIM model studies."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+sim-kernel = { version = "0.2.1" }
+sim-lib-provider = { version = "0.1.0", path = "../sim-lib-provider" }
+sim-study-core = { version = "0.1.0" }
+
+[lints]
+workspace = true

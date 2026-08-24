@@ -1,0 +1,22 @@
+//! Immutable-enough identities for model products observed through provider seats.
+//!
+//! [`CandidateRevision::from_provider`] consumes the delivered provider cards;
+//! it does not discover, authenticate, or open providers. A SIM-side trial
+//! harness remains a separate study coordinate and is intentionally absent
+//! from candidate identity.
+
+mod candidate;
+mod census;
+mod identity;
+mod privacy;
+
+pub use candidate::{
+    ArtifactEvidence, CandidateRevision, IdentityConfidence, ModelLimits, ModelRoute,
+    RouteSemantics,
+};
+pub use census::{CandidateCensus, CandidatePresence, CandidateRecord, IdentityObservation};
+pub use identity::{IdentityMismatch, IdentityVerification, verify_observed_identity};
+pub use privacy::{OfflineSnapshot, SnapshotError};
+
+#[cfg(test)]
+mod tests;
