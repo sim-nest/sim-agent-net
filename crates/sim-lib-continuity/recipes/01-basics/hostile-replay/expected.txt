@@ -1,0 +1,1 @@
+stable turns: 2; stable intents: 2

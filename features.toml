@@ -1,6 +1,25 @@
 schema = "sim.features"
 
 [[feature]]
+id = "feature/sim-agent-net/pure-continuity"
+title = "Pure intermittent-session continuity"
+summary = "Validate versioned continuity plans and deterministically reduce hostile, reordered session events into replayable turns and authority-free intents."
+owner = "crate/sim-lib-continuity"
+audiences = ["code", "framework"]
+guidance = "Use ContinuityPlan plus apply or rebuild for effect-free state derivation, and adapt ContinuityJournal to the delivered fenced journal at the composition boundary. Route candidates are observations, never capabilities. Hosts alone interpret emitted intents; keep platform, device, audio, model, view, wall-clock, and SDK behavior outside this crate."
+claims_anchors = ["anchor/crate/sim-lib-continuity"]
+claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-continuity/01-basics/hostile-replay"]
+
+[[route]]
+id = "route/continue-intermittent-session"
+task = "Replay and continue an intermittent multi-role session without hidden host authority"
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/pure-continuity", why = "The pure reducer validates policy and derives identical turns and intents from fenced journal history." },
+  { specimen = "recipe/sim-agent-net/crates/sim-lib-continuity/01-basics/hostile-replay", why = "The checked hostile trace proves empty-cache replay and typed refusal behavior." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/loadable-roadmap-command"
 title = "Loadable pure roadmap operations"
 summary = "Ground, plan, compare, refine, render, and explain bounded roadmap values through one capability-free loaded command library."
