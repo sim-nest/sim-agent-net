@@ -1,0 +1,22 @@
+[package]
+name = "sim-lib-roadmap"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Bounded native SIM value faces for grounded roadmaps"
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sim-kernel = { version = "0.2.0" }
+
+[dev-dependencies]
+sim-codec = { version = "0.1.7" }
+sim-codec-json = { version = "0.2.2" }
+sim-codec-lisp = { version = "0.2.1" }
+sim-kernel = { version = "0.2.0", features = ["test-support"] }
+
+[lints]
+workspace = true

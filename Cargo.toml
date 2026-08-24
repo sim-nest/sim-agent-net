@@ -2,6 +2,7 @@
 [workspace]
 resolver = "3"
 members = [
+  "crates/sim-lib-roadmap",
   "crates/sim-source-deck",
   "crates/sim-roadmap-core",
   "crates/sim-roadmap-refine",
