@@ -1,0 +1,15 @@
+[package]
+name = "sim-model-test-legacy-import-focused"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "harness.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[workspace]

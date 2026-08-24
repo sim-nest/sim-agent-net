@@ -196,6 +196,23 @@ depends_on = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/model-test-legacy-import"
+title = "One-way sealed model-test evidence import"
+summary = "Classify and atomically admit digest-pinned legacy evidence without retaining legacy execution, transport, cohort, or database authority."
+owner = "crate/sim-lib-model-test"
+audiences = ["code", "framework"]
+guidance = "Pass immutable bytes and their expected content ids to import_legacy_batch in deterministic source order. Supply a pinned historical public Git object for identity reconstruction. Only Verified entries are decision-eligible; Partial entries are report-only and Quarantined entries are inert. Re-run safely because exact objects are idempotent, retain repeats with distinct sample identities, and compute import parity separately from fresh SIM execution parity."
+claims_anchors = [
+  "anchor/crate/sim-lib-model-test",
+  "anchor/rustdoc/sim-lib-model-test/import_legacy_batch",
+  "anchor/rustdoc/sim-lib-model-test/legacy-import-report",
+]
+depends_on = [
+  "feature/sim-agent-net/model-task-protocols",
+  "feature/sim-agent-net/model-resource-economics",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/model-test-packs"
 title = "Frozen public and private-local model-test packs"
 summary = "Rebuild validated task packs from pinned Git objects into immutable epochs, compose open domain portfolios and paired generated capability evidence, and keep private task bytes and active selections behind control-plane loaders."
