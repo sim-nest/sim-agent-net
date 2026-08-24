@@ -1,6 +1,25 @@
 schema = "sim.features"
 
 [[feature]]
+id = "feature/sim-agent-net/certified-roadmap-refinement"
+title = "Certified immutable roadmap refinement"
+summary = "Replace one grounded roadmap leaf with a bounded finite tree only when every child has a strictly lower derived rank and parent acceptance remains completely covered."
+owner = "crate/sim-roadmap-refine"
+audiences = ["code", "framework"]
+guidance = "Call derive_profile only with an admitted phase and exact Grounding; profiles never accept numeric claims. Submit RefinementProposal to apply_refinement with the pinned TractabilityPolicy and compilation hooks. Accept only the returned successor plus a DescentCertificate whose verify method succeeds. A Refusal mints no revision and leaves the base bytes and identity untouched."
+claims_anchors = ["anchor/crate/sim-roadmap-refine"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-refine/src/tests"]
+depends_on = ["feature/sim-agent-net/roadmap-refinement-admission"]
+
+[enforcement.audience]
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+framework = "strict"
+code = "strict"
+
+[[feature]]
 id = "feature/sim-agent-net/roadmap-refinement-admission"
 title = "Bounded roadmap refinement admission"
 summary = "Admit roadmap decompositions only when they form one bounded tree, narrow every inherited authority envelope, preserve parent acceptance, and make aggregate obligation coverage unambiguous."

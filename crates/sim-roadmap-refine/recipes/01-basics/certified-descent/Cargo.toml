@@ -1,0 +1,14 @@
+[package]
+name = "sim-roadmap-refine-recipe-certified-descent"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+description = "Certified roadmap descent cookbook recipe."
+readme = "README.md"
+publish = false
+
+[dependencies]
+sim-roadmap-refine = { path = "../../.." }
+
+[lints]
+workspace = true
