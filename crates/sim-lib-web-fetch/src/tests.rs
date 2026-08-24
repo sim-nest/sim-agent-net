@@ -1,5 +1,5 @@
 use super::*;
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, HandleSeed};
+use sim_kernel::Cx;
 use std::collections::VecDeque;
 use std::sync::{
     Arc, Mutex,
@@ -53,11 +53,7 @@ fn response(status: u16, media: &str, body: &[u8]) -> HttpResponse {
     }
 }
 fn cx() -> Cx {
-    let mut cx = Cx::new(
-        EagerPolicy::arc(),
-        Arc::new(DefaultFactory),
-        HandleSeed::new(7),
-    );
+    let mut cx = sim_kernel::testing::eager_cx();
     cx.grant_named("net/http");
     cx
 }
@@ -152,11 +148,7 @@ fn robots_denial_redirect_and_mime_refusal_are_typed() {
 fn capability_and_offline_miss_precede_all_effects() {
     let script = Arc::new(Script::new(vec![]));
     let fetcher = fetcher(script.clone(), Arc::new(MemoryCaptureDir::default()));
-    let mut bare = Cx::new(
-        EagerPolicy::arc(),
-        Arc::new(DefaultFactory),
-        HandleSeed::new(8),
-    );
+    let mut bare = sim_kernel::testing::eager_cx();
     assert!(matches!(
         fetcher.capture(
             &mut bare,
