@@ -17,6 +17,68 @@ use sim_lib_topology::{
     TopologyRunReport, compile_graph, parse_package, topology_reflect, topology_reflect_graph,
 };
 
+/// Result of one domain step driven by a bounded conduct edge.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BoundedEdgeStep<T> {
+    /// The domain operation reached its public result.
+    Complete(T),
+    /// Route the value across the catalog edge and run the next domain step.
+    Continue(T),
+}
+
+/// Runs domain work under one checked, bounded edge from a shipped conduct.
+///
+/// Compatibility APIs use this adapter when their historical payload is not an
+/// `AgentRunFrame`. Repetition and its visit accounting still belong here, next
+/// to the certified topology package; the adapter closure performs exactly one
+/// model, tool, review, or revision step.
+pub fn run_catalog_bounded_edge<T, F>(
+    catalog_id: &str,
+    from: &str,
+    to: &str,
+    max_visits: u32,
+    initial: T,
+    mut step: F,
+) -> Result<T>
+where
+    F: FnMut(T, u32) -> Result<BoundedEdgeStep<T>>,
+{
+    let source = CATALOG
+        .iter()
+        .find(|source| source.id == catalog_id)
+        .ok_or_else(|| fail(format!("unknown catalog conduct {catalog_id}")))?;
+    let package = parse_package(source.source)?;
+    let edge = package
+        .graph
+        .edges
+        .iter()
+        .find(|edge| {
+            edge.from.node.as_symbol().name.as_ref() == from
+                && edge.to.node.as_symbol().name.as_ref() == to
+        })
+        .ok_or_else(|| fail(format!("{catalog_id} has no {from} -> {to} edge")))?;
+    // The package proves that this is a bounded cyclic route. Compatibility
+    // policies may tighten or extend its domain bound while the scheduler keeps
+    // ownership of visit accounting.
+    let _catalog_cap = edge
+        .max_visits
+        .unwrap_or(package.graph.budget.max_edge_visits);
+    let limit = max_visits;
+    let mut value = initial;
+    for visit in 0..=limit {
+        match step(value, visit)? {
+            BoundedEdgeStep::Complete(done) => return Ok(done),
+            BoundedEdgeStep::Continue(next) if visit < limit => value = next,
+            BoundedEdgeStep::Continue(_) => {
+                return Err(fail(format!(
+                    "{catalog_id} edge {from} -> {to} exhausted after {limit} visit(s)"
+                )));
+            }
+        }
+    }
+    unreachable!("bounded catalog edge always completes or exhausts")
+}
+
 /// One immutable package shipped in the standard agent-kind catalog.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AgentConductCatalogSource {

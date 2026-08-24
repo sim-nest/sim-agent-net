@@ -6,8 +6,8 @@ use sim_kernel::{NumberLiteral, Symbol};
 #[cfg(feature = "agent-net")]
 use std::sync::{Arc, OnceLock};
 
-#[cfg(feature = "agent-net")]
 pub(super) fn web_result_expr(cx: &mut Cx, endpoint: &str, expr: Expr) -> Result<Expr> {
+    require_net_http_capability(cx)?;
     let (query_expr, _limit) = decode_query(expr)?;
     let query = query_text(&query_expr)?;
     let url = resolve_url(endpoint, &query);
@@ -16,7 +16,6 @@ pub(super) fn web_result_expr(cx: &mut Cx, endpoint: &str, expr: Expr) -> Result
         use sim_lib_web_fetch::{
             FetchMode, FetchPlan, MemoryCaptureDir, NetHttpExecutor, PublicWebEgress, WebFetcher,
         };
-        require_net_http_capability(cx)?;
         static STORE: OnceLock<Arc<MemoryCaptureDir>> = OnceLock::new();
         let store = STORE
             .get_or_init(|| Arc::new(MemoryCaptureDir::default()))

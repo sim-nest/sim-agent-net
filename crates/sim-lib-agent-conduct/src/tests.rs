@@ -303,3 +303,27 @@ fn every_catalog_package_has_embedded_contract_data() {
     assert!(!implementation.contains("struct Triage"));
     assert!(!implementation.contains("fn triage"));
 }
+
+#[test]
+fn catalog_bounded_edge_owns_visit_order_and_exhaustion() {
+    let mut visits = Vec::new();
+    let result =
+        run_catalog_bounded_edge("agent/react-v1", "answer", "tools", 2, 0, |value, visit| {
+            visits.push(visit);
+            if visit == 2 {
+                Ok(BoundedEdgeStep::Complete(value + 1))
+            } else {
+                Ok(BoundedEdgeStep::Continue(value + 1))
+            }
+        })
+        .unwrap();
+    assert_eq!(result, 3);
+    assert_eq!(visits, vec![0, 1, 2]);
+
+    let error =
+        run_catalog_bounded_edge("agent/verify-retry-v1", "verify", "act", 1, (), |(), _| {
+            Ok(BoundedEdgeStep::Continue(()))
+        })
+        .unwrap_err();
+    assert!(error.to_string().contains("exhausted after 1 visit(s)"));
+}

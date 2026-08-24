@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod agent_repetition;
 mod file_sizes;
 mod recipe_assertions;
 #[cfg(test)]
@@ -27,9 +28,17 @@ fn run() -> Result<(), String> {
             simdoc::run(args)
         }
         Some("check-recipes") => run_recipe_assertions("check-recipes"),
-        Some("check-file-sizes") => file_sizes::run(&args),
+        Some("check-file-sizes") => {
+            file_sizes::run(&args)?;
+            let root = std::env::current_dir().map_err(|err| format!("current dir: {err}"))?;
+            agent_repetition::check(&root)
+        }
+        Some("check-agent-repetition") => {
+            let root = std::env::current_dir().map_err(|err| format!("current dir: {err}"))?;
+            agent_repetition::check(&root)
+        }
         _ => Err(format!(
-            "usage: {program} simdoc [--check] | check-file-sizes | check-recipes"
+            "usage: {program} simdoc [--check] | check-file-sizes | check-recipes | check-agent-repetition"
         )),
     }
 }

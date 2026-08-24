@@ -1,4 +1,5 @@
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
+use sim_lib_agent_conduct::{BoundedEdgeStep, run_catalog_bounded_edge};
 use sim_lib_agent_runner_core::{ModelRequest, ModelResponse, ModelRunner};
 use sim_value::access::{entry_required_bool_any, entry_required_str_any, entry_required_sym_any};
 
@@ -110,10 +111,26 @@ pub fn decompose_and_run(
     max_steps: u32,
 ) -> Result<Decomposition> {
     let subtasks = decompose(cx, goal, runner, max_steps)?;
-    let mut outputs = Vec::with_capacity(subtasks.len());
-    for task in &subtasks {
-        outputs.push(run_task(cx, task, runner)?);
-    }
+    let output_capacity = subtasks.len();
+    let (outputs, _) = run_catalog_bounded_edge(
+        "agent/plan-act-replan-v1",
+        "replan",
+        "act",
+        u32::try_from(subtasks.len()).unwrap_or(u32::MAX),
+        (Vec::with_capacity(output_capacity), 0usize),
+        |(mut outputs, next), _| {
+            let Some(task) = subtasks.get(next) else {
+                return Ok(BoundedEdgeStep::Complete((outputs, next)));
+            };
+            outputs.push(run_task(cx, task, runner)?);
+            let next = next + 1;
+            if next == subtasks.len() {
+                Ok(BoundedEdgeStep::Complete((outputs, next)))
+            } else {
+                Ok(BoundedEdgeStep::Continue((outputs, next)))
+            }
+        },
+    )?;
     Ok(Decomposition {
         goal: goal.clone(),
         budget_left: max_steps.saturating_sub(outputs.len() as u32),
@@ -139,18 +156,28 @@ pub fn reflect(
             Vec::new(),
         ),
     )?;
-    let mut reflection = parse_reflection(&response, retry_budget)?;
-    if !reflection.accept && reflection.retry.is_some() {
-        if retry_budget == 0 {
-            return Err(Error::Eval(
-                "reflect retry budget exhausted before re-run".to_owned(),
-            ));
-        }
-        let retry = reflection.retry.clone().expect("retry checked above");
-        reflection.retry_output = Some(run_task(cx, &retry, runner)?);
-        reflection.budget_left = retry_budget - 1;
+    let reflection = parse_reflection(&response, retry_budget)?;
+    if reflection.accept || reflection.retry.is_none() {
+        return Ok(reflection);
     }
-    Ok(reflection)
+    if retry_budget == 0 {
+        return Err(Error::Eval(
+            "reflect retry budget exhausted before re-run".to_owned(),
+        ));
+    }
+    run_catalog_bounded_edge(
+        "agent/plan-act-replan-v1",
+        "review",
+        "act",
+        retry_budget,
+        reflection,
+        |mut reflection, _| {
+            let retry = reflection.retry.clone().expect("retry checked above");
+            reflection.retry_output = Some(run_task(cx, &retry, runner)?);
+            reflection.budget_left = reflection.budget_left.saturating_sub(1);
+            Ok(BoundedEdgeStep::Complete(reflection))
+        },
+    )
 }
 
 fn run_task(cx: &mut Cx, task: &PlanningTask, runner: &dyn ModelRunner) -> Result<PlanningOutput> {
