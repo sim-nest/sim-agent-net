@@ -168,6 +168,23 @@ major_entrypoints = "advisory"
 frameworks = "advisory"
 
 [[feature]]
+id = "feature/sim-agent-net/execution-source-deck-provider"
+title = "Execution-grounded source deck provider"
+summary = "Run declared repo-contract emission under a bounded read-only sandbox and ground its exact source and specimen dependencies into a content-pinned execution receipt."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Construct a typed SourceDeckRequest with an exact repository head, allowed roots, literal artifact argv, sealed environment, requested evidence, and hard bounds. SourceDeckProvider delegates artifact decoding to published tooling, reads only repository-relative regular files through SourceRepository, and delegates validation and identity to sim-source-deck. Retain both ArtifactReceipt and deck id, and call reusable_after before reusing a receipt after mutations."
+claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+
+[enforcement.audience]
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+framework = "strict"
+code = "strict"
+
+[[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"
 title = "Policy-gated immutable web capture"
 summary = "Capture landing pages through separate egress and robots decisions into caller-owned content-addressed evidence, with explicit cache modes and fenced model rendering."

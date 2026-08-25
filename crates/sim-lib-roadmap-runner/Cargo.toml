@@ -9,10 +9,15 @@ publish = true
 repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
+[features]
+test-support = []
+
 [dependencies]
 sha2 = "0.10"
 sim-kernel = "0.2.1"
 sim-lib-journal = "0.1.0"
+sim-lib-exec = "0.2.0"
+sim-source-deck = { version = "0.1.0", path = "../sim-source-deck" }
 thiserror = "2"
 
 [lints]
