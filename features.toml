@@ -161,6 +161,25 @@ framework = "strict"
 code = "strict"
 
 [[feature]]
+id = "feature/sim-agent-net/loadable-roadmap-implementer-conduct"
+title = "Loadable exact roadmap implementer conduct"
+summary = "Propose deterministic full-image mutation plans from one grounded leaf through a bounded data-only conduct that never holds write, proof, shell, or network authority."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Load roadmap/implementer-v1, render ImplementerFace only from the grounded leaf, labeled guide examples, bounded SourceDeck, ProofCatalog, allowed roots, ceilings, and a typed prior rejection. Accept only MutationProposal, NeedsRefinement, or Blocked. Pass proposals through admit_implementer_reply before review; it preserves guide labels and promise ids as audit references but treats neither snippets nor status prose as proof. Run inspection only through exact named networkless ObservationSpecimen records. The returned SealedMutationPlan is data for the separate mutation adapter and grants no write authority."
+claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+depends_on = ["feature/sim-agent-net/loadable-roadmap-refiner-conduct"]
+
+[enforcement.audience]
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+framework = "strict"
+code = "strict"
+
+[[feature]]
 id = "feature/sim-agent-net/roadmap-refinement-admission"
 title = "Bounded roadmap refinement admission"
 summary = "Admit roadmap decompositions only when they form one bounded tree, narrow every inherited authority envelope, preserve parent acceptance, and make aggregate obligation coverage unambiguous."

@@ -59,3 +59,15 @@ postimages resumes deterministically; any foreign path returns `Ambiguous` and
 preserves its bytes. `inverse_plan` is an explicit second sealed transaction and
 is available only while every relevant path still equals the first plan's
 postimage. Adapters report the durability they actually provide in the receipt.
+
+For implementation, load the `roadmap/implementer-v1` topology and render an
+`ImplementerFace` from the one grounded leaf, labeled guide examples, bounded
+source deck, proof catalog, allowed roots, mutation ceilings, and the prior
+typed rejection. The conduct has no effect or tool node. Its receive boundary
+accepts only `MutationProposal`, `NeedsRefinement`, or `Blocked`; status prose
+has no authority. `admit_implementer_reply` validates guide labels and promise
+ids, rejects protected and generated paths, binary content, executable
+widening, and out-of-root edits, then delegates exact full-image sealing to the
+mutation layer. It returns data only. Read-only inspection is available solely
+through exact named `ObservationSpecimen` records with fixed argv, cwd, roots,
+network denial, no write mounts, and a hard output ceiling.

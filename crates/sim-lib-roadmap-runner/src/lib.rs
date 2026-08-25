@@ -4,6 +4,7 @@
 mod binding;
 mod budget;
 mod codec;
+mod implementer;
 mod journal;
 mod model;
 mod mutation;
@@ -15,6 +16,7 @@ mod source;
 
 pub use binding::*;
 pub use budget::*;
+pub use implementer::*;
 pub use journal::ExecutionJournal;
 pub use model::*;
 pub use mutation::*;
