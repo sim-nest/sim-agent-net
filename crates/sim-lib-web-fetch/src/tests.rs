@@ -249,3 +249,4 @@ fn robots_redirect_is_reauthorized_and_bounded() {
     assert_eq!(requests[0].1, "https://example.test/robots.txt");
     assert_eq!(requests[1].1, "https://policy.test/robots.txt");
 }
+// conformance: policy-gated immutable web capture and offline replay.

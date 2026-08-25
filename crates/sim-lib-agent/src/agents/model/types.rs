@@ -310,3 +310,4 @@ impl EvalSite for AgentFabric {
         self
     }
 }
+// conformance: manifest-selected agent conduct identity and bounds.

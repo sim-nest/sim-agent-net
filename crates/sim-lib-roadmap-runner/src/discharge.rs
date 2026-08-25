@@ -112,3 +112,4 @@ mod tests {
         assert_eq!(invalidation.roots(), roots);
     }
 }
+// conformance: fresh-deck grounded promise discharge.

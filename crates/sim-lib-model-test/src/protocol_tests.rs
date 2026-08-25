@@ -310,3 +310,4 @@ fn output(dir: &std::path::Path, args: &[&str]) -> String {
     .trim()
     .into()
 }
+// conformance: versioned model task protocols.

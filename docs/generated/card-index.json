@@ -1,5 +1,5 @@
 {
-  "card_count": 31,
+  "card_count": 35,
   "cards": [
     {
       "id": "browse/catalog",
@@ -50,6 +50,12 @@
       "summary": "Checked BRIDGE packet send and receive runtime."
     },
     {
+      "id": "cookbook/continuity",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-continuity",
+      "summary": "Pure plans, hostile replay, and fenced journal composition."
+    },
+    {
       "id": "cookbook/cookbook",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-cookbook",
@@ -60,6 +66,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-forge",
       "summary": "Compiled intent records for reusable BRIDGE packet programs."
+    },
+    {
+      "id": "cookbook/local-roadmap-runner",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-roadmap-runner",
+      "summary": "Public, hermetic specimens for the loadable local roadmap runner."
     },
     {
       "id": "cookbook/mcp",
@@ -132,6 +144,18 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-provider-cli",
       "summary": "Expose provider inventory and seat selection through the loadable SIM command surface."
+    },
+    {
+      "id": "cookbook/roadmap",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-roadmap",
+      "summary": "Caller-owned specimens for loadable roadmap intent operations."
+    },
+    {
+      "id": "cookbook/roadmap-refine",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-refine",
+      "summary": "Derive and certify strictly descending roadmap work."
     },
     {
       "id": "cookbook/search",

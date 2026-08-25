@@ -1,3 +1,5 @@
+// conformance: certified immutable roadmap refinement and strict descent.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use sim_kernel::{Ref, Symbol};

@@ -1,3 +1,5 @@
+// conformance: hostile local roadmap executor qualification.
+
 #[cfg(test)]
 #[allow(dead_code)]
 #[path = "../../src/refiner.rs"]

@@ -1,4 +1,5 @@
 //! Sanitized semantic records for shadow qualification.
+// conformance: sanitized roadmap shadow compatibility records.
 //!
 //! These values deliberately contain no oracle reader, journal adapter, filesystem
 //! path, or transition authority. A private host may compare them with an oracle;

@@ -668,3 +668,4 @@ mod tests {
         assert_eq!(built.policy.limits().output_bytes, 4096);
     }
 }
+// conformance: content-pinned execution source-deck acquisition.

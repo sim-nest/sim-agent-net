@@ -75,3 +75,4 @@ pub fn plan_refinement_after_reconciliation(
 pub fn terminal_requests_no_effects(effect: &RecoveryEffect) -> bool {
     matches!(effect, RecoveryEffect::Stop(_))
 }
+// conformance: finite identity-stable roadmap recovery decisions.

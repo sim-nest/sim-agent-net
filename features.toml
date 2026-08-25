@@ -8,7 +8,7 @@ owner = "crate/sim-roadmap-exec-core"
 audiences = ["code", "framework"]
 guidance = "Construct an ExecutionPolicy and canonical MutationPlan, then call reduce or replay with journal observations. Interpret EffectRequest values only in a host adapter and feed resulting observations back through the reducer. A Succeeded state is trustworthy only when returned with the reducer-minted PhaseReceipt; never synthesize receipts or put filesystem, process, model, network, Git, journal, scheduler, or CLI handles in these values."
 claims_anchors = ["anchor/crate/sim-roadmap-exec-core"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-exec-core/src/tests"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-exec-core/focused-tests/src/lib"]
 
 [[route]]
 id = "route/reconcile-roadmap-phase"
@@ -16,7 +16,7 @@ task = "Replay and reconcile one roadmap phase without coupling execution laws t
 audiences = ["framework"]
 steps = [
   { feature = "feature/sim-agent-net/pure-roadmap-execution", why = "The pure reducer owns correlation, reconciliation, and success admission while returning all requested effects as data." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-roadmap-exec-core/src/tests", why = "The transition matrix, hostile correlations, deterministic replay, and forged-success fixture exercise the complete value-machine boundary." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-roadmap-exec-core/focused-tests/src/lib", why = "The transition matrix, hostile correlations, deterministic replay, and forged-success fixture exercise the complete value-machine boundary." },
 ]
 
 [[feature]]
@@ -26,9 +26,9 @@ summary = "Bind bounded, redacted roadmap execution records and typed object ref
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Open ExecutionJournal with every conduct, policy, source-deck, model-pick, and runner-generation pin. Prepare bounded objects before append, retain the expected JournalHead, and replay after any fence conflict. Consume RebuiltExecution as a projection only: rebuild verifies closure and legality and never repeats an effect. Identity drift requires the deterministic child id; it never mutates an existing execution."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_anchors = []
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests"]
-depends_on = ["feature/sim-storage/atomic-content-journal", "feature/sim-agent-net/pure-roadmap-execution"]
+depends_on = ["feature/sim-agent-net/pure-roadmap-execution"]
 
 [[route]]
 id = "route/resume-durable-roadmap-execution"
@@ -46,7 +46,7 @@ summary = "Project bounded operator Cards, verified explanations, redacted condu
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Build ExecutionStatus only from a verified RebuiltExecution. Treat outstanding effects, proof failures, ambiguity, remaining byte bounds, pins, and safe next actions as facts rather than prose conclusions. Use compact for terminals, machine_lines for stable machine output, and diff for deterministic audit. ConductTraceRef carries generic topology, agent, and step identities plus an optional content id; never embed node-state copies or an unredacted BRIDGE face."
-claims_anchors = ["anchor/crate/sim-roadmap-exec-core", "anchor/crate/sim-lib-roadmap-runner"]
+claims_anchors = []
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/status"]
 depends_on = ["feature/sim-agent-net/durable-roadmap-execution-journal", "feature/sim-agent-net/pure-roadmap-execution"]
 
@@ -84,17 +84,19 @@ id = "feature/sim-agent-net/loadable-local-roadmap-runner"
 title = "Loadable local-only roadmap runner"
 summary = "Expose Shape-described run, resume, status, explain, and replay services with pinned conduct, model, proof, and hotload-generation identities and no delivery authority."
 owner = "crate/sim-lib-roadmap-runner"
-audience = ["framework", "product"]
+audiences = ["framework", "product"]
 guidance = "Load LocalRoadmapRunnerLib through the sim bootloader. Use --observe or replay for effect-free work. Supply both --disposable-checkout and --local-authority-token for mutation. Treat the identities repeated in every receipt as the execution boundary; a resumed execution never adopts a new generation."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_anchors = [
+  "anchor/export/sim-lib-roadmap-runner/cli/main/roadmap",
+  "anchor/runtime-lib/sim-lib-roadmap-runner/local-roadmap-runner-lib",
+]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/local_command"]
-depends_on = ["feature/sim-agent-net/bounded-roadmap-runner-service", "feature/sim-run/hot-generation-lifecycle"]
+depends_on = ["feature/sim-agent-net/bounded-roadmap-runner-service"]
 
 [[route]]
 id = "route/run-local-roadmap"
 task = "Run, inspect, recover, or replay one local roadmap execution without delivery authority"
-features = ["feature/sim-agent-net/loadable-local-roadmap-runner"]
-specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/local_command"]
+audiences = ["framework"]
 steps = [
   { feature = "feature/sim-agent-net/loadable-local-roadmap-runner", why = "The loaded service checks the explicit Shapes and content identities before dispatch and retains the selected generation through acknowledgement." },
   { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/local_command", why = "The focused tests prove the verb allowlist, mutation gate, identity-complete receipts, replay, and generation retention." },
@@ -107,7 +109,7 @@ summary = "Describe semantic compatibility across ten fixed execution dimensions
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Emit ShadowObservation only after observe-mode or disposable-checkout execution. Compare canonical dimensions rather than prose, retain content-addressed evidence references, and treat every transition as a proposal for the external authority. Private oracle ingestion and compatibility reports belong to the control plane."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_anchors = []
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/compatibility"]
 depends_on = ["feature/sim-agent-net/loadable-local-roadmap-runner"]
 
@@ -127,8 +129,8 @@ summary = "Classify roadmap failures by owner and admit only identity-stable, ef
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Classify failures with FailureClass, default unknowns to Ambiguity, and pass a reconciled ResumeDecision through plan_retry_after_reconciliation or plan_refinement_after_reconciliation before requesting any effect. Persist each RetryReceipt or ChildAttempt with unchanged identities, remaining budget, pick-record identity, and retained failed evidence. Treat NeedsRefinement as an untrusted proposal requiring fresh grounding and strict lower rank. Render only bounded redacted EscalationCard data at terminal stops; never create a supervisor loop or retry foreign bytes."
-claims_anchors = ["anchor/crate/sim-roadmap-exec-core", "anchor/crate/sim-lib-roadmap-runner"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-exec-core/focused-tests/src/lib", "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/recovery"]
 depends_on = ["feature/sim-agent-net/bounded-roadmap-runner-service", "feature/sim-agent-net/loadable-roadmap-refiner-conduct"]
 
 [[route]]
@@ -148,8 +150,9 @@ summary = "Validate versioned continuity plans and deterministically reduce host
 owner = "crate/sim-lib-continuity"
 audiences = ["code", "framework"]
 guidance = "Use ContinuityPlan plus apply or rebuild for effect-free state derivation, and adapt ContinuityJournal to the delivered fenced journal at the composition boundary. Route candidates are observations, never capabilities. Hosts alone interpret emitted intents; keep platform, device, audio, model, view, wall-clock, and SDK behavior outside this crate."
-claims_anchors = ["anchor/crate/sim-lib-continuity"]
+claims_anchors = ["anchor/cli/sim-lib-continuity-recipe-hostile-replay", "anchor/crate/sim-lib-continuity", "anchor/crate/sim-lib-continuity-recipe-hostile-replay"]
 claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-continuity/01-basics/hostile-replay"]
+claims_surfaces = ["cli/sim-lib-continuity-recipe-hostile-replay"]
 
 [[route]]
 id = "route/continue-intermittent-session"
@@ -167,8 +170,9 @@ summary = "Ground, plan, compare, refine, render, and explain bounded roadmap va
 owner = "crate/sim-lib-roadmap"
 audiences = ["user", "code", "framework"]
 guidance = "Load RoadmapLib and call the roadmap/* operations with already admitted caller-owned values. Use cli/main/roadmap only as the standard bootloader handoff. Keep source acquisition, codecs, execution, journals, mutation, models, and outward effects in separately loaded organs; a refinement result is a successor certificate or a typed refusal, never an edited input."
-claims_anchors = ["anchor/crate/sim-lib-roadmap", "anchor/export/sim-lib-roadmap/cli/main/roadmap"]
+claims_anchors = ["anchor/cli/roadmap", "anchor/crate/sim-lib-roadmap", "anchor/crate/sim-roadmap-plan", "anchor/export/sim-lib-roadmap/cli/main/roadmap", "anchor/runtime-lib/sim-lib-roadmap/roadmap-lib"]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap/src/tests"]
+claims_surfaces = ["cli/roadmap"]
 
 [enforcement.audience]
 user = "strict"
@@ -180,11 +184,24 @@ user = "strict"
 code = "strict"
 framework = "strict"
 
+[enforcement.surface]
+cli = "strict"
+docs = "advisory"
+
+[enforcement.route]
+major_entrypoints = "advisory"
+frameworks = "advisory"
+
 [[route]]
 id = "route/operate-on-roadmap-intent"
 task = "Ground and refine roadmap intent without execution authority"
-features = ["feature/sim-agent-net/loadable-roadmap-command", "feature/sim-agent-net/native-roadmap-document-adapter", "feature/sim-agent-net/certified-roadmap-refinement"]
-specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap/src/tests"]
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/loadable-roadmap-command", why = "The loadable command owns capability-free roadmap operations." },
+  { feature = "feature/sim-agent-net/native-roadmap-document-adapter", why = "The strict adapter imports and renders content-pinned roadmap documents." },
+  { feature = "feature/sim-agent-net/certified-roadmap-refinement", why = "Certified refinement preserves acceptance while proving strict descent." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap/src/tests", why = "The checked fixture covers grounding, import, refinement, rendering, and refusal." },
+]
 
 [[feature]]
 id = "feature/sim-agent-net/native-roadmap-document-adapter"
@@ -193,16 +210,8 @@ summary = "Import legacy v3 Markdown and typed catalogs into observation-separat
 owner = "crate/sim-lib-roadmap"
 audiences = ["code", "framework"]
 guidance = "Construct V3Importer with caller-owned referenced-document bytes. Import observes Markdown only through sim-codec-doc, content-pins every origin, keeps lifecycle state outside semantic identity, and marks legacy prose and snippets ungrounded. Decode proof and policy catalogs with import_catalogs so command fields remain argv. Prefer render_native; call render_v3 only when the caller can handle every returned loss path."
-claims_anchors = ["anchor/crate/sim-lib-roadmap"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap/src/tests"]
-
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap/src/v3_import"]
 
 [[feature]]
 id = "feature/sim-agent-net/certified-roadmap-refinement"
@@ -211,17 +220,10 @@ summary = "Replace one grounded roadmap leaf with a bounded finite tree only whe
 owner = "crate/sim-roadmap-refine"
 audiences = ["code", "framework"]
 guidance = "Call derive_profile only with an admitted phase and exact Grounding; profiles never accept numeric claims. Submit RefinementProposal to apply_refinement with the pinned TractabilityPolicy and compilation hooks. Accept only the returned successor plus a DescentCertificate whose verify method succeeds. A Refusal mints no revision and leaves the base bytes and identity untouched."
-claims_anchors = ["anchor/crate/sim-roadmap-refine"]
+claims_anchors = ["anchor/cli/sim-roadmap-refine-recipe-certified-descent", "anchor/crate/sim-roadmap-refine", "anchor/crate/sim-roadmap-refine-recipe-certified-descent"]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-refine/src/tests"]
+claims_surfaces = ["cli/sim-roadmap-refine-recipe-certified-descent"]
 depends_on = ["feature/sim-agent-net/roadmap-refinement-admission"]
-
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
 
 [[feature]]
 id = "feature/sim-agent-net/loadable-roadmap-refiner-conduct"
@@ -230,17 +232,9 @@ summary = "Run bounded default or third-party refiner packages through one stric
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Load RefinerPackage data under roadmap/refiner-v1, render RefinerFace from grounded inputs only, reject every field outside ProposalDraft, and pass the draft to validate_refinement with the pinned Grounding identity and TractabilityPolicy. Treat Blocked as preserving unanswered source truth. Never journal a proposal as admitted unless the returned certificate verifies."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/refiner"]
 depends_on = ["feature/sim-agent-net/certified-roadmap-refinement"]
-
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
 
 [[feature]]
 id = "feature/sim-agent-net/loadable-roadmap-implementer-conduct"
@@ -249,17 +243,9 @@ summary = "Propose deterministic full-image mutation plans from one grounded lea
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Load roadmap/implementer-v1, render ImplementerFace only from the grounded leaf, labeled guide examples, bounded SourceDeck, ProofCatalog, allowed roots, ceilings, and a typed prior rejection. Accept only MutationProposal, NeedsRefinement, or Blocked. Pass proposals through admit_implementer_reply before review; it preserves guide labels and promise ids as audit references but treats neither snippets nor status prose as proof. Run inspection only through exact named networkless ObservationSpecimen records. The returned SealedMutationPlan is data for the separate mutation adapter and grants no write authority."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/implementer"]
 depends_on = ["feature/sim-agent-net/loadable-roadmap-refiner-conduct"]
-
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
 
 [[feature]]
 id = "feature/sim-agent-net/roadmap-refinement-admission"
@@ -271,14 +257,6 @@ guidance = "Construct authored PhaseSpec values, then call RoadmapSpec::admit be
 claims_anchors = ["anchor/crate/sim-roadmap-core"]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-core/focused-tests/src/lib"]
 
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
-
 [[feature]]
 id = "feature/sim-agent-net/immutable-source-decks"
 title = "Immutable bounded source decks"
@@ -287,25 +265,7 @@ owner = "crate/sim-source-deck"
 audiences = ["code", "framework"]
 guidance = "Use sim-source-deck when a caller already holds fragment, certificate, source, and specimen bytes. Decode fragments with a caller-owned FragmentDecoder, then build once; validation is exact and fail-closed. The crate never fetches, scans, parses, or generates artifacts, and SyntaxBound or scanner evidence remains an explicit Limitation."
 claims_anchors = ["anchor/crate/sim-source-deck"]
-claims_specimens = ["spec-example/sim-agent-net/crates/sim-source-deck/grounded-declaration"]
-
-[enforcement.audience]
-user = "strict"
-framework = "strict"
-code = "strict"
-
-[enforcement.surface]
-cli = "strict"
-docs = "advisory"
-
-[enforcement.specimen]
-user = "strict"
-framework = "strict"
-code = "advisory"
-
-[enforcement.route]
-major_entrypoints = "advisory"
-frameworks = "advisory"
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-source-deck/examples/grounded_declaration"]
 
 [[feature]]
 id = "feature/sim-agent-net/execution-source-deck-provider"
@@ -314,15 +274,8 @@ summary = "Run declared repo-contract emission under a bounded read-only sandbox
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Construct a typed SourceDeckRequest with an exact repository head, allowed roots, literal artifact argv, sealed environment, requested evidence, and hard bounds. SourceDeckProvider delegates artifact decoding to published tooling, reads only repository-relative regular files through SourceRepository, and delegates validation and identity to sim-source-deck. Retain both ArtifactReceipt and deck id, and call reusable_after before reusing a receipt after mutations."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
-
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/source"]
 
 [[feature]]
 id = "feature/sim-agent-net/typed-hostile-proof-leaves"
@@ -331,16 +284,8 @@ summary = "Admit grounded catalog leaves, execute bounded commands through the s
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Build a ProofCatalog from the grounded phase's authored leaves and let conduct select only a catalog name. Use pure artifact-equality and source-deck predicates when their inputs suffice. For commands, retain literal argv, a sealed allowlisted environment, opaque mounts, complete required SandboxPolicy, structured expectation, and TypedProofReceipt. Use execute_journaled_proof with the launcher receipt store so intent precedes launch and unresolved effects reconcile rather than relaunch."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
-
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/proof"]
 
 [[feature]]
 id = "feature/sim-agent-net/recoverable-multi-file-mutation"
@@ -349,16 +294,8 @@ summary = "Seal full portable preimages and postimages, apply them behind durabl
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Expand structural edits to exact PortableImage values before SealedMutationPlan::seal, then execute through MutationEngine with a durable MutationJournal and an adapter whose Durability is honest. On restart, use classify_plan and resume only preimages; preserve and report every foreign path. Use inverse_plan only while all paths still equal the sealed postimages."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
-
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/mutation"]
 
 [[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"
@@ -369,8 +306,12 @@ audiences = ["user", "code", "framework"]
 guidance = "Use WebFetcher with an injected HTTP executor, CaptureDir, and EgressPolicy. Choose Live, PreferCache, Offline, or Revalidate explicitly; Offline names a capture ContentId and performs no network effect. Consume normalized text only through the codec-derived WebRepresentation and fenced_text. RetrieverBackend::Web is a compatibility projection over this owner, not a second capture path."
 claims_anchors = [
   "anchor/crate/sim-lib-web-fetch",
+  "anchor/export/sim-lib-web-fetch/codec/doc",
+  "anchor/export/sim-lib-web-fetch/codec/feed",
+  "anchor/export/sim-lib-web-fetch/codec/plain",
   "anchor/rustdoc/sim-lib-web-fetch/web-fetcher",
 ]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-web-fetch/src/tests"]
 
 [[route]]
 id = "route/capture-web-evidence"
@@ -391,6 +332,22 @@ guidance = "Use AgentRunFrame as the one packet passed through conduct steps, Ag
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-agent-conduct-core/01-basics/pure-journal",
 ]
+claims_anchors = [
+  "anchor/cli/sim-lib-agent-conduct-core-recipe-pure-journal",
+  "anchor/crate/sim-lib-agent-conduct-core-recipe-pure-journal",
+  "anchor/export/sim-lib-agent-conduct-core/agent/conduct-contract",
+  "anchor/export/sim-lib-agent-conduct-core/agent/event",
+  "anchor/export/sim-lib-agent-conduct-core/agent/journal-head",
+  "anchor/export/sim-lib-agent-conduct-core/agent/journal-record",
+  "anchor/export/sim-lib-agent-conduct-core/agent/outcome",
+  "anchor/export/sim-lib-agent-conduct-core/agent/run-frame",
+  "anchor/export/sim-lib-agent-conduct-core/agent/run-state",
+  "anchor/export/sim-lib-agent-conduct-core/agent/step-card",
+  "anchor/export/sim-lib-agent-conduct-core/agent/stop",
+  "anchor/export/sim-lib-agent-conduct-core/agent/usage",
+  "anchor/export/sim-lib-agent-conduct-core/agent/usage-budget",
+]
+claims_surfaces = ["cli/sim-lib-agent-conduct-core-recipe-pure-journal", "model/sim-lib-agent-conduct-core", "model/sim-lib-agent-conduct-core-recipe-pure-journal"]
 
 [[feature]]
 id = "feature/sim-agent-net/agent-conduct"
@@ -403,20 +360,8 @@ claims_anchors = [
   "anchor/crate/sim-lib-agent-conduct-core",
   "anchor/crate/sim-lib-agent-conduct",
 ]
-claims_specimens = [
-  "recipe/sim-agent-net/crates/sim-lib-agent-conduct-core/01-basics/pure-journal",
-  "recipe/sim-agent-net/crates/sim-lib-agent-conduct/01-basics/echo-conduct",
-  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/default",
-  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/react",
-  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/plan-act-replan",
-  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/phased",
-  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/verify-retry",
-  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/router-crew",
-  "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/third-party-step",
-  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard_steps",
-]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent-conduct/src/tests"]
 depends_on = [
-  "feature/sim-stream/stream-protocol-helpers",
   "feature/sim-agent-net/genai-assembly",
 ]
 
@@ -429,8 +374,23 @@ audiences = ["code", "framework"]
 guidance = "Use load_agent_conduct_catalog with the standard step Cards to load agent/default-v1, react-v1, plan-act-replan-v1, phased-v1, verify-retry-v1, router-crew-v1, and triage-v1 through table-backed topology package sources and the ordinary TopologyRegistry path. Use validate_agent_conduct for the strict RunFrame boundary, Card/outcome-route coverage, metadata-derived roles, capabilities, budgets, and finish-or-stop admission. Use bind_agent_conduct for exact node/Card bindings, then AgentConduct run or step for topology-owned execution and continuation. Add a new kind as a tested .simtopo package; never add a kind-specific Rust loop or type. The projection retains the original TopologyEntry and never creates another graph, parser, registry, or scheduler."
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-agent-conduct/01-basics/echo-conduct",
-  "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard_steps",
 ]
+claims_anchors = [
+  "anchor/cli/sim-lib-agent-conduct-recipe-echo",
+  "anchor/crate/sim-lib-agent-conduct-recipe-echo",
+  "anchor/export/sim-lib-agent-conduct/agent/conduct-v1",
+  "anchor/export/sim-lib-agent-conduct/agent/default-v1",
+  "anchor/export/sim-lib-agent-conduct/agent/phased-v1",
+  "anchor/export/sim-lib-agent-conduct/agent/plan-act-replan-v1",
+  "anchor/export/sim-lib-agent-conduct/agent/react-v1",
+  "anchor/export/sim-lib-agent-conduct/agent/router-crew-v1",
+  "anchor/export/sim-lib-agent-conduct/agent/triage-v1",
+  "anchor/export/sim-lib-agent-conduct/agent/verify-retry-v1",
+  "anchor/export/sim-lib-agent/agent/plan-act-replan-v1",
+  "anchor/export/sim-lib-agent/agent/react-v1",
+  "anchor/export/sim-lib-bridge/agent/verify-retry-v1",
+]
+claims_surfaces = ["cli/sim-lib-agent-conduct-recipe-echo", "model/sim-lib-agent-conduct", "model/sim-lib-agent-conduct-recipe-echo"]
 depends_on = ["feature/sim-agent-net/agent-conduct-records"]
 
 [[feature]]
@@ -441,7 +401,6 @@ owner = "crate/sim-lib-agent"
 audiences = ["code", "framework"]
 guidance = "Use the execute_*_once functions for one component, planning, reflection, review, or delegation attempt; use enter_phase, admit_phase_tool, and complete_phase around ordinary model/component/tool nodes; and admit public results only through execute_finish or execute_stop. Certify standard targets with standard_step_cards. Hosts extend conduct through AgentStepRegistry and AgentStepFactory keyed by Card id, without editing agent or conduct source. Budget admission precedes runner opening, delegation, and effects; child authority is diminished at the EvalFabric boundary; provider endpoint, credentials, transport, preference, hidden reasoning, mutable run state, and retry edges never belong to a step factory."
 claims_anchors = [
-  "anchor/crate/sim-lib-bridge",
   "anchor/rustdoc/sim-lib-agent/execute_model_turn_once",
   "anchor/rustdoc/sim-lib-agent/model_turn_card",
   "anchor/rustdoc/sim-lib-agent/tool_batch_card",
@@ -450,7 +409,6 @@ claims_anchors = [
   "anchor/rustdoc/sim-lib-bridge/run_ask_once",
 ]
 claims_specimens = [
-  "spec-test/sim-agent-net/crates/sim-lib-bridge/src/tests/ask",
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_ai_tools",
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/standard_steps",
 ]
@@ -477,6 +435,7 @@ depends_on = [
   "feature/sim-agent-net/agent-single-steps",
   "feature/sim-agent-net/provider-control",
 ]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/agents/model/types"]
 
 [[feature]]
 id = "feature/sim-agent-net/agent-conduct-product-surfaces"
@@ -511,8 +470,11 @@ owner = "crate/sim-lib-provider"
 audiences = ["code", "framework"]
 guidance = "Register each ProviderAdapter with ProviderRegistry, discover every visible provider seat, and open an explicit ProviderSeatId as the existing ModelRunner. Validate opened seats with ProviderConformanceHarness, which accepts only ProviderSeatCard and ModelRunner and runs identical checked request, output Shape, streaming, error, and cancellation cases. Declare streaming, tools, structured-output, usage, and workspace-effects on the seat; unsupported behavior refuses before runner invocation. Use ProviderInventory to validate private code-free provider-seats.toml authority and never project its contents publicly. Direct API families, subscription CLI broker families, local-service families, and third-party extensions are adapters on this one organ. Compose API-key, CLI, and daemon seats through Fanout for a deterministic ordered report with distinct principal identities. Keep the checked GenAI assembly recipe as the canonical cross-family specimen; vary only seat data, wire, principal, and declared capability expectations. Keep environment, file, keyring, interactive, and remote sourcing private to the bound provider, and keep transport and inference in their owning crates."
 claims_anchors = [
+  "anchor/cli/provider",
   "anchor/crate/sim-lib-provider",
   "anchor/crate/sim-lib-provider-cli",
+  "anchor/export/sim-lib-provider-cli/cli/main/provider",
+  "anchor/runtime-lib/sim-lib-provider-cli/provider-command-lib",
   "anchor/rustdoc/sim-lib-provider/provider-adapter",
   "anchor/rustdoc/sim-lib-provider/auth-method",
   "anchor/rustdoc/sim-lib-provider/auth-metadata",
@@ -544,6 +506,7 @@ claims_anchors = [
 claims_specimens = [
   "recipe/sim-agent-net/crates/sim-lib-provider/01-basics/open-seat",
 ]
+claims_surfaces = ["cli/provider"]
 supports = [
   "feature/sim-agent-net/model-runner-framework",
 ]
@@ -556,10 +519,10 @@ owner = "crate/sim-lib-model-test"
 audiences = ["code", "framework"]
 guidance = "Construct CandidateRevision from the delivered ProviderFamilyCard and ProviderSeatCard plus artifact or hosted-epoch evidence. Keep the SIM trial harness in the independent study harness coordinate. Verify each returned identity and quarantine mismatches; after successful provider sync mark missing candidates absent without deleting their evidence. Export only OfflineSnapshot, whose schema excludes principals, endpoint addresses, executable paths, secrets, and account identity."
 claims_anchors = [
-  "anchor/crate/sim-lib-model-test",
   "anchor/rustdoc/sim-lib-model-test/candidate-revision",
   "anchor/rustdoc/sim-lib-model-test/offline-snapshot",
 ]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-model-test/src/candidate"]
 depends_on = ["feature/sim-agent-net/provider-control"]
 
 [[feature]]
@@ -570,11 +533,11 @@ owner = "crate/sim-lib-model-test"
 audiences = ["code", "framework"]
 guidance = "Record model-domain facts with DecisionAxis, PriceObservation, AttemptResourceEvent, ExposureSeal, and reconcile_provider_usage. Prefer measured energy to an explicitly sourced declared power profile; treat missing or expired prices and unreconciled provider usage as unavailable. Feed generic_event into sim-lib-study attribution and its sole cost-per-accepted projection. Keep actual accounts, prices, forecasts, role policy, model inventory, and executable scoring outside this public crate."
 claims_anchors = [
-  "anchor/crate/sim-lib-model-test",
   "anchor/rustdoc/sim-lib-model-test/decision-axis",
   "anchor/rustdoc/sim-lib-model-test/exposure-seal",
   "anchor/rustdoc/sim-lib-model-test/reconcile_provider_usage",
 ]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-model-test/src/economics"]
 depends_on = ["feature/sim-agent-net/model-candidate-identity"]
 
 [[feature]]
@@ -584,9 +547,8 @@ summary = "Project generic study decisions and their sole selection into evidenc
 owner = "crate/sim-lib-model-test"
 audiences = ["code", "framework"]
 guidance = "Use project_verdict without altering its retained SubjectDecision, then emit_pick from the existing sim-lib-study Selection. Unfit requires failed hard gates across the declared independent-epoch floor; too-expensive requires reconciled cost and a price revision. Treat every named PickRefusal as a missing fact, retain uniquely capable costly candidates as specialists, and leave driver application to the maintainer."
-claims_anchors = [
-  "anchor/crate/sim-lib-model-test",
-]
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-model-test/src/product"]
 depends_on = ["feature/sim-agent-net/model-resource-economics"]
 
 [[feature]]
@@ -597,11 +559,11 @@ owner = "crate/sim-lib-model-test"
 audiences = ["code", "framework"]
 guidance = "Implement ModelTaskProtocol for a new task family and register it through ProtocolRegistry. Seal every visible, hidden, parser, grader, calibration, tool, toolchain, seed, and repository-closure input into TaskRevision; use discrete receipts for generated packs; keep deterministic failure authoritative over calibrated judging; and export only content ids and provenance, never hidden task bytes. Reuse the scalar, generated, judged-document, and workspace-mutation fake protocols for conformance."
 claims_anchors = [
-  "anchor/crate/sim-lib-model-test",
   "anchor/rustdoc/sim-lib-model-test/model-task-protocol",
   "anchor/rustdoc/sim-lib-model-test/protocol-registry",
   "anchor/rustdoc/sim-lib-model-test/task-revision",
 ]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-model-test/src/protocol_tests"]
 depends_on = [
   "feature/sim-agent-net/model-candidate-identity",
 ]
@@ -614,10 +576,10 @@ owner = "crate/sim-lib-model-test"
 audiences = ["code", "framework"]
 guidance = "Pass immutable bytes and their expected content ids to import_legacy_batch in deterministic source order. Supply a pinned historical public Git object for identity reconstruction. Only Verified entries are decision-eligible; Partial entries are report-only and Quarantined entries are inert. Re-run safely because exact objects are idempotent, retain repeats with distinct sample identities, and compute import parity separately from fresh SIM execution parity."
 claims_anchors = [
-  "anchor/crate/sim-lib-model-test",
   "anchor/rustdoc/sim-lib-model-test/import_legacy_batch",
   "anchor/rustdoc/sim-lib-model-test/legacy-import-report",
 ]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-model-test/src/legacy_import"]
 depends_on = [
   "feature/sim-agent-net/model-task-protocols",
   "feature/sim-agent-net/model-resource-economics",
@@ -638,6 +600,8 @@ claims_anchors = [
   "anchor/rustdoc/sim-lib-model-test-packs/assistance-session",
   "anchor/rustdoc/sim-lib-model-test-packs/grade_assistance",
 ]
+claims_surfaces = ["model/sim-lib-model-test-packs"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-model-test-packs/src/tests"]
 depends_on = ["feature/sim-agent-net/model-task-protocols"]
 
 [[feature]]
@@ -648,8 +612,13 @@ owner = "crate/sim-lib-model-test"
 audiences = ["user", "framework", "code"]
 guidance = "Enter through sim model-test, use --machine for the strict v1 envelope, and reserve provider contact for census --refresh, run, and resume. Reuse sim study for lifecycle and decisions, sim provider/model-access for access, and simctl model-test only for private configuration resolution. Export is a deterministic secret-free evidence bundle, not a filesystem backup."
 claims_anchors = [
+  "anchor/cli/model-test",
   "anchor/crate/sim-lib-model-test",
+  "anchor/export/sim-lib-model-test/cli/main/model-test",
+  "anchor/runtime-lib/sim-lib-model-test/model-test-lib",
 ]
+claims_surfaces = ["cli/model-test", "model/sim-lib-model-test"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-model-test/src/tests"]
 depends_on = [
   "feature/sim-agent-net/model-test-packs",
   "feature/sim-agent-net/model-verdict-picks",
@@ -664,6 +633,7 @@ owner = "crate/sim-transport-ports"
 audiences = ["code", "framework"]
 guidance = "Compose SocketPort and DnsPort for network transports and bind IpcPort only when the selected platform offers native local IPC. Use ModelPorts fault profiles for deterministic fragmentation, loss, pressure, resolution failure, collision, cancellation, and half-close tests; never infer a Windows pipe name from a Unix path."
 claims_anchors = ["anchor/crate/sim-transport-ports"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-transport-ports/src/model"]
 
 [[feature]]
 id = "feature/sim-agent-net/raw-http-server-seam"
@@ -703,6 +673,11 @@ claims_anchors = [
   "anchor/export/sim-lib-mcp/mcp/cassette",
   "anchor/export/sim-lib-mcp/mcp/cassette-entry",
   "anchor/export/sim-lib-mcp/mcp/request",
+  "anchor/export/sim-lib-mcp/mcp/request-state/v1",
+  "anchor/export/sim-lib-mcp/server/discover",
+  "anchor/export/sim-lib-mcp-client/server/cards",
+  "anchor/export/sim-lib-mcp-client/server/discover",
+  "anchor/export/sim-lib-mcp-stdio/server/discover",
   "anchor/export/sim-lib-mcp/mcp/sampling-fixture",
   "anchor/runtime-lib/sim-lib-mcp/mcp-lib",
   "anchor/runtime-lib/sim-lib-mcp/mcp-serve-lib",
@@ -831,10 +806,7 @@ claims_anchors = [
   "anchor/export/sim-lib-agent/agent/audit",
   "anchor/export/sim-lib-agent/agent/cookbook",
   "anchor/export/sim-lib-agent/agent/core",
-  "anchor/export/sim-lib-agent/agent/derive",
-  "anchor/export/sim-lib-agent/agent/make",
   "anchor/export/sim-lib-agent/agent/mission",
-  "anchor/export/sim-lib-agent/agent/start",
   "anchor/export/sim-lib-agent/agent/wire",
   "anchor/export/sim-lib-agent/codec-lisp",
   "anchor/export/sim-lib-bridge/bridge/fetch",
@@ -869,7 +841,6 @@ claims_anchors = [
   "anchor/crate/sim-lib-agent-runner-core",
   "anchor/crate/sim-lib-agent-runner-http",
   "anchor/crate/sim-lib-agent-runner-local",
-  "anchor/crate/sim-lib-agent-runner-process",
   "anchor/export/sim-lib-agent-runner-local/model/local",
   "anchor/runtime-lib/sim-lib-agent-runner-local/local-model-lib",
   "anchor/runtime-lib/sim-lib-agent-runner-local/wasm-model-lib",
@@ -955,9 +926,7 @@ summary = "Replay content-addressed stream-fabric fixtures through the loadable 
 owner = "crate/sim-lib-stream-fabric"
 audiences = ["user", "code"]
 guidance = "Use this row when inspecting or replaying the content-addressed fleet fixture."
-claims_anchors = [
-  "anchor/crate/sim-lib-stream-fabric",
-]
+claims_anchors = []
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-stream-fabric/tests/cassette_replay",
 ]
@@ -978,6 +947,7 @@ claims_anchors = [
 ]
 claims_surfaces = [
   "cli/sim-lib-agent-runner-core-recipe-output-contract-repair",
+  "model/sim-lib-agent-runner-core-recipe-output-contract-repair",
 ]
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-agent/src/tests/agent_recipe_result",
@@ -1009,7 +979,6 @@ audiences = ["code", "framework"]
 guidance = "Use this row when connecting a model-serving host to reusable agent tools."
 claims_anchors = [
   "anchor/crate/sim-lib-openai-server",
-  "anchor/crate/sim-lib-server",
   "anchor/crate/sim-lib-skill",
   "anchor/export/sim-lib-server/server/address",
   "anchor/export/sim-lib-server/server/connect",
@@ -1067,6 +1036,7 @@ claims_anchors = [
   "anchor/doc/generated/feature-map",
   "anchor/doc/generated/sim-index-fragment",
 ]
+claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-agent-runner-core/01-basics/fake-runner-descriptor"]
 claims_surfaces = [
   "cli/xtask",
   "docs/sim-agent-net/generated",
@@ -1162,7 +1132,6 @@ id = "route/author-agent-conduct"
 task = "Author an agent conduct control loop"
 audiences = ["user", "code", "framework"]
 steps = [
-  { feature = "feature/sim-stream/stream-protocol-helpers", why = "sim-lib-topology supplies the delivered .simtopo text parser, normalized graph, bounded scheduler, continuation, and reflection substrate without owning agent vocabulary." },
   { feature = "feature/sim-agent-net/agent-conduct", why = "The agent/conduct-v1 profile validates RunFrame Shapes, step Cards, outcome routing, roles, authority, budgets, terminal admission, and embedded tests." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent-conduct/01-basics/echo-conduct", why = "The checked recipe demonstrates a minimal authored topology package loaded and executed through the shared engine." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/third-party-step", why = "The checked extension specimen adds a Card and implementation without editing conduct or topology source." },
@@ -1202,7 +1171,6 @@ id = "route/inject-server-wall-clock"
 task = "Inject a server wall clock"
 audiences = ["code", "framework"]
 steps = [
-  { feature = "feature/sim-foundation/host-primitives", why = "The shared foundation row owns platform wall/monotonic/timer values, deterministic behavior, and explicit bindings." },
   { feature = "feature/sim-agent-net/server-wall-clock", why = "The server row documents consumption and compatibility re-exports without claiming time ownership." },
 ]
 
@@ -1232,7 +1200,7 @@ summary = "Immutable plans compose authorized Retriever cards, deterministic par
 owner = "crate/sim-lib-search"
 audiences = ["user", "code", "framework"]
 guidance = "Compose sim-lib-search with skill discovery, provider-neutral search transports, web-fetch, rank, and local EmbeddingIndex implementations. Keep provider wire fields, fetch policy, rank mathematics, codecs, and answer generation in their existing owners."
-claims_anchors = ["anchor/crate/sim-lib-search"]
+claims_anchors = []
 claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-search/01-fixture/fixture-research"]
 
 [[route]]
@@ -1253,7 +1221,8 @@ summary = "Execute query, fetch, research, and store-only show once and project 
 owner = "crate/sim-lib-search"
 audiences = ["user", "code", "framework"]
 guidance = "Install SearchProduct through SearchCommandLib or its exact Skill Cards. MCP must use the ordinary Skill projection and net/http capability rather than a provider-specific tool or transport."
-claims_anchors = ["anchor/crate/sim-lib-search"]
+claims_anchors = ["anchor/cli/search", "anchor/crate/sim-lib-search", "anchor/export/sim-lib-search/cli/main/search", "anchor/runtime-lib/sim-lib-search/search-command-lib"]
+claims_surfaces = ["cli/search"]
 claims_specimens = ["recipe/sim-agent-net/crates/sim-lib-search/01-fixture/cli-mcp-parity"]
 depends_on = ["feature/sim-agent-net/reproducible-federated-research", "feature/sim-agent-net/mcp-server"]
 
@@ -1274,13 +1243,5 @@ summary = "Correlate fresh repository evidence and typed proof receipts to every
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "After committed postimages are observed, build FreshDeckInvalidation from every touched path and affected generated fact, emit a new repo contract, and call admit_fresh_deck. Construct GroundedPromise and ProofAuthority from the compiled plan before executing proof leaves; decide_promise rejects receipts from any other plan, deck, mutation, launcher, policy, or proof definition and permits only predeclared, budgeted inconclusive fallbacks. Call accept_all with explicit ParentAcceptance coverage, invalidate_readiness through the compiled dependency index, then feed only the resulting typed discharges and fresh deck identity to sim-roadmap-exec-core. The reducer alone mints PhaseReceipt; a green command or completed child set is not acceptance."
-claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
-
-[enforcement.audience]
-framework = "strict"
-code = "strict"
-
-[enforcement.specimen]
-framework = "strict"
-code = "strict"
+claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/discharge"]

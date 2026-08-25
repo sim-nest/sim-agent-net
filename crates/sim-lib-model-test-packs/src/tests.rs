@@ -487,3 +487,4 @@ fn frozen_tasks_refuse_live_roadmaps() {
     t.frozen_epoch = "docs/workbench/active".into();
     assert!(t.validate().is_err())
 }
+// conformance: immutable model-test pack selection and privacy.

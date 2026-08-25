@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+// conformance: hostile bounded roadmap execution transitions and recovery.
+
 #[cfg(test)]
 mod tests {
     use sim_kernel::{ContentId, Symbol};

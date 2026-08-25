@@ -515,3 +515,4 @@ impl MutationWorkspace for FsWorkspace {
         Durability::FileAndDirectorySync
     }
 }
+// conformance: recoverable exact multi-file mutation.

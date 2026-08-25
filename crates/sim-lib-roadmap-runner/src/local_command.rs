@@ -1,4 +1,5 @@
 //! Public, local-only command surface for the roadmap runner.
+// conformance: loadable local-only roadmap command boundary.
 
 use std::{
     collections::BTreeMap,

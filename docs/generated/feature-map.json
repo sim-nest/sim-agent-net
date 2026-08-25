@@ -165,6 +165,16 @@
       "package": "sim-lib-bridge"
     },
     {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-continuity"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-continuity-recipe-hostile-replay"
+    },
+    {
       "features": [
         {
           "edges": [
@@ -420,6 +430,22 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-roadmap"
+    },
+    {
+      "features": [
+        {
+          "edges": [],
+          "name": "test-support",
+          "workspace_edges": []
+        }
+      ],
+      "group": "workspace",
+      "package": "sim-lib-roadmap-runner"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-search"
     },
     {
@@ -611,6 +637,36 @@
       "features": [],
       "group": "workspace",
       "package": "sim-mcp-server"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-roadmap-core"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-roadmap-exec-core"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-roadmap-plan"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-roadmap-refine"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-roadmap-refine-recipe-certified-descent"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-source-deck"
     },
     {
       "features": [],

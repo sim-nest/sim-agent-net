@@ -6,18 +6,36 @@
 | --- | --- | --- | --- |
 | `browse/catalog` | `browse-root` | `workspace` | root browse catalog |
 | `cookbook/agent` | `cookbook-recipe` | `sim-lib-agent` | Agent components, memories, and offline runner descriptors. |
+| `cookbook/agent-conduct-core` | `cookbook-recipe` | `sim-lib-agent-conduct-core` | Pure run and journal data contracts. |
 | `cookbook/agent-runner-core` | `cookbook-recipe` | `sim-lib-agent-runner-core` | Provider-neutral model runner contracts. |
 | `cookbook/agent-runner-http` | `cookbook-recipe` | `sim-lib-agent-runner-http` | HTTP runner provider profiles, probes, and cassette replay. |
 | `cookbook/agent-runner-local` | `cookbook-recipe` | `sim-lib-agent-runner-local` | Loadable local model placement target. |
 | `cookbook/agent-runner-process` | `cookbook-recipe` | `sim-lib-agent-runner-process` | Process runner descriptors expressed as local fixtures. |
 | `cookbook/bridge` | `cookbook-recipe` | `sim-lib-bridge` | Checked BRIDGE packet send and receive runtime. |
+| `cookbook/continuity` | `cookbook-recipe` | `sim-lib-continuity` | Pure plans, hostile replay, and fenced journal composition. |
 | `cookbook/cookbook` | `cookbook-recipe` | `sim-lib-cookbook` | Cookbook runtime operations and seeded recipe lookup. |
 | `cookbook/forge` | `cookbook-recipe` | `sim-lib-forge` | Compiled intent records for reusable BRIDGE packet programs. |
+| `cookbook/local-roadmap-runner` | `cookbook-recipe` | `sim-lib-roadmap-runner` | Public, hermetic specimens for the loadable local roadmap runner. |
 | `cookbook/mcp` | `cookbook-recipe` | `sim-lib-mcp` | MCP JSON-RPC descriptors and cassette replay. |
-| `cookbook/mcp-server` | `cookbook-recipe` | `sim-mcp-server` | Stdio MCP bootloader descriptors. |
+| `cookbook/mcp-client` | `cookbook-recipe` | `sim-lib-mcp-client` | Checked HTTP, stdio, legacy, MRTR, and subscription composition. |
+| `cookbook/mcp-http` | `cookbook-recipe` | `sim-lib-mcp-http` | Checked server and client assembly for final-protocol MCP HTTP. |
+| `cookbook/mcp-legacy` | `cookbook-recipe` | `sim-lib-mcp-legacy` | Initialize-era compatibility over the stateless MCP service. |
+| `cookbook/mcp-server` | `cookbook-recipe` | `sim-mcp-server` | Final stdio and configured Streamable HTTP MCP product descriptors. |
+| `cookbook/mcp-stdio` | `cookbook-recipe` | `sim-lib-mcp-stdio` | Bounded modern and explicit legacy MCP process boundaries. |
+| `cookbook/oauth-core` | `cookbook-recipe` | `sim-lib-oauth-core` | Effect-free resource-bound authorization-code composition. |
+| `cookbook/oauth-http` | `cookbook-recipe` | `sim-lib-oauth-http` | Retrieve discovery and JWK documents through the shared HTTP policy. |
+| `cookbook/oauth-jose` | `cookbook-recipe` | `sim-lib-oauth-jose` | Verify resource-bound access tokens against injected rotating JWK sets. |
 | `cookbook/openai-gateway` | `cookbook-recipe` | `sim-lib-openai-server` | OpenAI-shaped gateway request descriptors and local replay. |
+| `cookbook/provider` | `cookbook-recipe` | `sim-lib-provider` | Discover open provider families and selectable seats. |
+| `cookbook/provider-cli` | `cookbook-recipe` | `sim-lib-provider-cli` | Expose provider inventory and seat selection through the loadable SIM command surface. |
+| `cookbook/roadmap` | `cookbook-recipe` | `sim-lib-roadmap` | Caller-owned specimens for loadable roadmap intent operations. |
+| `cookbook/roadmap-refine` | `cookbook-recipe` | `sim-roadmap-refine` | Derive and certify strictly descending roadmap work. |
+| `cookbook/search` | `cookbook-recipe` | `sim-lib-search` | Deterministic claims, capture, selectors, and replay. |
+| `cookbook/search-http` | `cookbook-recipe` | `sim-lib-search-http` | Provider-neutral bounded search execution. |
 | `cookbook/server` | `cookbook-recipe` | `sim-lib-server` | Server request descriptors and local route shapes. |
+| `cookbook/sim-lib-agent-conduct` | `cookbook-recipe` | `sim-lib-agent-conduct` |  |
 | `cookbook/skill` | `cookbook-recipe` | `sim-lib-skill` | Skill cards, fixture transports, cassette replay, and audit policy. |
 | `cookbook/stream-fabric` | `cookbook-recipe` | `sim-lib-stream-fabric` | Content-addressed distributed evaluation for remote stream realization. |
 | `cookbook/table-remote` | `cookbook-recipe` | `sim-table-remote` | Remote table directory descriptors. |
+| `cookbook/transport-ports` | `cookbook-recipe` | `sim-transport-ports` | Bind provider-neutral transport services and test network faults deterministically. |
 | `registry/catalog` | `browse-registry` | `workspace` | registry catalog browse card |

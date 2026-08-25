@@ -365,3 +365,4 @@ fn observe_header(s: &str, o: &mut LegacyObservation) {
         o.next = Some(v.trim().into())
     }
 }
+// conformance: strict content-pinned v3 roadmap import.

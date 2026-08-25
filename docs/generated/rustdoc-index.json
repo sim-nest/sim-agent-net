@@ -79,6 +79,20 @@
       "summary": "Checked BRIDGE packet runtime for SIM model exchanges."
     },
     {
+      "crate_name": "sim_lib_continuity",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-continuity/Cargo.toml",
+      "package": "sim-lib-continuity",
+      "summary": "Pure continuity planning and replay."
+    },
+    {
+      "crate_name": "sim-lib-continuity-recipe-hostile-replay",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/Cargo.toml",
+      "package": "sim-lib-continuity-recipe-hostile-replay",
+      "summary": "Hostile continuity replay cookbook recipe."
+    },
+    {
       "crate_name": "sim_lib_cookbook",
       "group": "workspace",
       "manifest": "crates/sim-lib-cookbook/Cargo.toml",
@@ -184,6 +198,20 @@
       "summary": "Loadable sim provider command surface."
     },
     {
+      "crate_name": "sim_lib_roadmap",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-roadmap/Cargo.toml",
+      "package": "sim-lib-roadmap",
+      "summary": "Bounded native SIM value faces for grounded roadmaps"
+    },
+    {
+      "crate_name": "sim_lib_roadmap_runner",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-roadmap-runner/Cargo.toml",
+      "package": "sim-lib-roadmap-runner",
+      "summary": "Durable journal adapter for SIM roadmap executions"
+    },
+    {
       "crate_name": "sim_lib_search",
       "group": "workspace",
       "manifest": "crates/sim-lib-search/Cargo.toml",
@@ -231,6 +259,48 @@
       "manifest": "crates/sim-mcp-server/Cargo.toml",
       "package": "sim-mcp-server",
       "summary": "The sim-mcp-server binary: a thin bootloader that serves MCP over stdio."
+    },
+    {
+      "crate_name": "sim_roadmap_core",
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-core/Cargo.toml",
+      "package": "sim-roadmap-core",
+      "summary": "Pure content-addressed roadmap specifications and implementation guides for SIM"
+    },
+    {
+      "crate_name": "sim_roadmap_exec_core",
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-exec-core/Cargo.toml",
+      "package": "sim-roadmap-exec-core",
+      "summary": "Pure execution and reconciliation laws for SIM roadmaps"
+    },
+    {
+      "crate_name": "sim_roadmap_plan",
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-plan/Cargo.toml",
+      "package": "sim-roadmap-plan",
+      "summary": "Grounded, explainable compilation of immutable SIM roadmaps"
+    },
+    {
+      "crate_name": "sim_roadmap_refine",
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-refine/Cargo.toml",
+      "package": "sim-roadmap-refine",
+      "summary": "Certified, immutable refinement of grounded SIM roadmaps"
+    },
+    {
+      "crate_name": "sim-roadmap-refine-recipe-certified-descent",
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-refine/recipes/01-basics/certified-descent/Cargo.toml",
+      "package": "sim-roadmap-refine-recipe-certified-descent",
+      "summary": "Certified roadmap descent cookbook recipe."
+    },
+    {
+      "crate_name": "sim_source_deck",
+      "group": "workspace",
+      "manifest": "crates/sim-source-deck/Cargo.toml",
+      "package": "sim-source-deck",
+      "summary": "Immutable bounded source-context values for SIM"
     },
     {
       "crate_name": "sim_table_remote",

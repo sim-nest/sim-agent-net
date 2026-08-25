@@ -192,3 +192,4 @@ fn hosted_alias_requires_epoch_and_snapshot_is_redacted_and_append_preserving() 
     }
     assert!(snapshot.as_str().contains("Absent"));
 }
+// conformance: complete model-test product command behavior.

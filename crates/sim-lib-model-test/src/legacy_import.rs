@@ -350,3 +350,4 @@ pub struct CompatibilityParity {
     pub sim_execution_matched: usize,
     pub sim_execution_expected: usize,
 }
+// conformance: bounded sanitized legacy model-test import.

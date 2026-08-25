@@ -1,3 +1,5 @@
+// conformance: durable roadmap runner journal and replay laws.
+
 use std::sync::Arc;
 
 use sim_kernel::{ContentId, Symbol};

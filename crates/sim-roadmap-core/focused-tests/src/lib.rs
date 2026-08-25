@@ -1,3 +1,5 @@
+// conformance: bounded roadmap admission laws.
+
 #[cfg(test)]
 mod tests {
     use std::collections::{BTreeMap, BTreeSet};

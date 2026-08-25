@@ -1,3 +1,5 @@
+// conformance: bounded roadmap status, explanation, redaction, and audit values.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use sim_kernel::ContentId;

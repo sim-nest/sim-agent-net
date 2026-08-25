@@ -327,3 +327,4 @@ fn catalog_bounded_edge_owns_visit_order_and_exhaustion() {
         .unwrap_err();
     assert!(error.to_string().contains("exhausted after 1 visit(s)"));
 }
+// conformance: topology-backed agent conduct certification and execution.

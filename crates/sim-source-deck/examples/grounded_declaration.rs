@@ -1,3 +1,5 @@
+// conformance: immutable source-deck grounding and exact declaration lookup.
+
 use sim_source_deck::*;
 
 struct FixtureDecoder;

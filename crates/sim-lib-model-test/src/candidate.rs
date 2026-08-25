@@ -218,3 +218,4 @@ fn option_number(value: Option<u64>) -> String {
 fn expr_revision(value: &sim_kernel::Expr) -> Result<String> {
     Ok(Datum::try_from(value.clone())?.content_id()?.to_string())
 }
+// conformance: honest model candidate identity.

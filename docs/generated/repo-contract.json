@@ -1,5 +1,5 @@
 {
-  "card_count": 31,
+  "card_count": 35,
   "cards": [
     {
       "id": "browse/catalog",
@@ -50,6 +50,12 @@
       "summary": "Checked BRIDGE packet send and receive runtime."
     },
     {
+      "id": "cookbook/continuity",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-continuity",
+      "summary": "Pure plans, hostile replay, and fenced journal composition."
+    },
+    {
       "id": "cookbook/cookbook",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-cookbook",
@@ -60,6 +66,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-forge",
       "summary": "Compiled intent records for reusable BRIDGE packet programs."
+    },
+    {
+      "id": "cookbook/local-roadmap-runner",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-roadmap-runner",
+      "summary": "Public, hermetic specimens for the loadable local roadmap runner."
     },
     {
       "id": "cookbook/mcp",
@@ -132,6 +144,18 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-provider-cli",
       "summary": "Expose provider inventory and seat selection through the loadable SIM command surface."
+    },
+    {
+      "id": "cookbook/roadmap",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-roadmap",
+      "summary": "Caller-owned specimens for loadable roadmap intent operations."
+    },
+    {
+      "id": "cookbook/roadmap-refine",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-refine",
+      "summary": "Derive and certify strictly descending roadmap work."
     },
     {
       "id": "cookbook/search",
@@ -208,6 +232,8 @@
       "sim-lib-agent-runner-local",
       "sim-lib-agent-runner-process",
       "sim-lib-bridge",
+      "sim-lib-continuity",
+      "sim-lib-continuity-recipe-hostile-replay",
       "sim-lib-cookbook",
       "sim-lib-forge",
       "sim-lib-mcp",
@@ -223,6 +249,8 @@
       "sim-lib-openai-server",
       "sim-lib-provider",
       "sim-lib-provider-cli",
+      "sim-lib-roadmap",
+      "sim-lib-roadmap-runner",
       "sim-lib-search",
       "sim-lib-search-http",
       "sim-lib-server",
@@ -230,6 +258,12 @@
       "sim-lib-stream-fabric",
       "sim-lib-web-fetch",
       "sim-mcp-server",
+      "sim-roadmap-core",
+      "sim-roadmap-exec-core",
+      "sim-roadmap-plan",
+      "sim-roadmap-refine",
+      "sim-roadmap-refine-recipe-certified-descent",
+      "sim-source-deck",
       "sim-table-remote",
       "sim-transport-ports",
       "xtask"
@@ -422,7 +456,7 @@
       "reason": "live skill transport handle; transport metadata is carried by skill/Card descriptor"
     }
   ],
-  "package_count": 36,
+  "package_count": 46,
   "packages": [
     {
       "crate_name": "sim_lib_agent",
@@ -1149,6 +1183,68 @@
           ],
           "name": "build-script-build",
           "src": "crates/sim-lib-bridge/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_continuity",
+      "dependencies": [],
+      "description": "Pure, replayable continuity planning for intermittent SIM sessions.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-continuity/Cargo.toml",
+      "name": "sim-lib-continuity",
+      "publish": "true",
+      "root": "crates/sim-lib-continuity",
+      "rustdoc_summary": "Pure continuity planning and replay.",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_continuity",
+          "src": "crates/sim-lib-continuity/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim-lib-continuity-recipe-hostile-replay",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-continuity",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Hostile continuity replay cookbook recipe.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/Cargo.toml",
+      "name": "sim-lib-continuity-recipe-hostile-replay",
+      "publish": "false",
+      "root": "crates/sim-lib-continuity/recipes/01-basics/hostile-replay",
+      "rustdoc_summary": "Hostile continuity replay cookbook recipe.",
+      "target_kinds": [
+        "bin"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "bin"
+          ],
+          "name": "sim-lib-continuity-recipe-hostile-replay",
+          "src": "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/src/main.rs"
         }
       ]
     },
@@ -2163,6 +2259,109 @@
       ]
     },
     {
+      "crate_name": "sim_lib_roadmap",
+      "dependencies": [],
+      "description": "Bounded native SIM value faces for grounded roadmaps",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-roadmap/Cargo.toml",
+      "name": "sim-lib-roadmap",
+      "publish": "true",
+      "root": "crates/sim-lib-roadmap",
+      "rustdoc_summary": "Bounded native SIM value faces for grounded roadmaps",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_roadmap",
+          "src": "crates/sim-lib-roadmap/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_roadmap_runner",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-agent-conduct-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-exec-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-plan",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-refine",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-source-deck",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Durable journal adapter for SIM roadmap executions",
+      "features": [
+        {
+          "edges": [],
+          "name": "test-support",
+          "workspace_edges": []
+        }
+      ],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-roadmap-runner/Cargo.toml",
+      "name": "sim-lib-roadmap-runner",
+      "publish": "true",
+      "root": "crates/sim-lib-roadmap-runner",
+      "rustdoc_summary": "Durable journal adapter for SIM roadmap executions",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_roadmap_runner",
+          "src": "crates/sim-lib-roadmap-runner/src/lib.rs"
+        }
+      ]
+    },
+    {
       "crate_name": "sim_lib_search",
       "dependencies": [
         {
@@ -2739,6 +2938,251 @@
       ]
     },
     {
+      "crate_name": "sim_roadmap_core",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-source-deck",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Pure content-addressed roadmap specifications and implementation guides for SIM",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-core/Cargo.toml",
+      "name": "sim-roadmap-core",
+      "publish": "true",
+      "root": "crates/sim-roadmap-core",
+      "rustdoc_summary": "Pure content-addressed roadmap specifications and implementation guides for SIM",
+      "target_kinds": [
+        "example",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_roadmap_core",
+          "src": "crates/sim-roadmap-core/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "example"
+          ],
+          "name": "two_phase",
+          "src": "crates/sim-roadmap-core/examples/two_phase.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_roadmap_exec_core",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-core",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Pure execution and reconciliation laws for SIM roadmaps",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-exec-core/Cargo.toml",
+      "name": "sim-roadmap-exec-core",
+      "publish": "true",
+      "root": "crates/sim-roadmap-exec-core",
+      "rustdoc_summary": "Pure execution and reconciliation laws for SIM roadmaps",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_roadmap_exec_core",
+          "src": "crates/sim-roadmap-exec-core/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_roadmap_plan",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-refine",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-source-deck",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Grounded, explainable compilation of immutable SIM roadmaps",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-plan/Cargo.toml",
+      "name": "sim-roadmap-plan",
+      "publish": "true",
+      "root": "crates/sim-roadmap-plan",
+      "rustdoc_summary": "Grounded, explainable compilation of immutable SIM roadmaps",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_roadmap_plan",
+          "src": "crates/sim-roadmap-plan/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_roadmap_refine",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-core",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-source-deck",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Certified, immutable refinement of grounded SIM roadmaps",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-refine/Cargo.toml",
+      "name": "sim-roadmap-refine",
+      "publish": "true",
+      "root": "crates/sim-roadmap-refine",
+      "rustdoc_summary": "Certified, immutable refinement of grounded SIM roadmaps",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_roadmap_refine",
+          "src": "crates/sim-roadmap-refine/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim-roadmap-refine-recipe-certified-descent",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-roadmap-refine",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Certified roadmap descent cookbook recipe.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-roadmap-refine/recipes/01-basics/certified-descent/Cargo.toml",
+      "name": "sim-roadmap-refine-recipe-certified-descent",
+      "publish": "false",
+      "root": "crates/sim-roadmap-refine/recipes/01-basics/certified-descent",
+      "rustdoc_summary": "Certified roadmap descent cookbook recipe.",
+      "target_kinds": [
+        "bin"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "bin"
+          ],
+          "name": "sim-roadmap-refine-recipe-certified-descent",
+          "src": "crates/sim-roadmap-refine/recipes/01-basics/certified-descent/src/main.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_source_deck",
+      "dependencies": [],
+      "description": "Immutable bounded source-context values for SIM",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-source-deck/Cargo.toml",
+      "name": "sim-source-deck",
+      "publish": "true",
+      "root": "crates/sim-source-deck",
+      "rustdoc_summary": "Immutable bounded source-context values for SIM",
+      "target_kinds": [
+        "example",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_source_deck",
+          "src": "crates/sim-source-deck/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "example"
+          ],
+          "name": "grounded_declaration",
+          "src": "crates/sim-source-deck/examples/grounded_declaration.rs"
+        }
+      ]
+    },
+    {
       "crate_name": "sim_table_remote",
       "dependencies": [
         {
@@ -2833,10 +3277,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "cc25d8ac669907fa4e6ae6dd002303ad87a5aa30",
+    "git_commit": "b6a16c519054df7b0289442e767286073e727051",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "cc25d8ac669907fa4e6ae6dd002303ad87a5aa30",
+    "source_commit": "b6a16c519054df7b0289442e767286073e727051",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -2849,9 +3293,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "7d97e45b3f96d70d",
+    "workspace_hash": "2ec6b1ba74f13e32",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 875,
+    "workspace_hash_input_count": 1004,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
@@ -3204,6 +3648,20 @@
       "crates/sim-lib-bridge/src/tests.rs",
       "crates/sim-lib-bridge/src/tx.rs",
       "crates/sim-lib-bridge/src/warrant.rs",
+      "crates/sim-lib-continuity/Cargo.toml",
+      "crates/sim-lib-continuity/focused-tests/Cargo.toml",
+      "crates/sim-lib-continuity/focused-tests/src/lib.rs",
+      "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/Cargo.toml",
+      "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/recipe.toml",
+      "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/src/main.rs",
+      "crates/sim-lib-continuity/recipes/book.toml",
+      "crates/sim-lib-continuity/src/codec.rs",
+      "crates/sim-lib-continuity/src/journal.rs",
+      "crates/sim-lib-continuity/src/lib.rs",
+      "crates/sim-lib-continuity/src/model.rs",
+      "crates/sim-lib-continuity/src/plan.rs",
+      "crates/sim-lib-continuity/src/reduce.rs",
+      "crates/sim-lib-continuity/src/tests.rs",
       "crates/sim-lib-cookbook/Cargo.toml",
       "crates/sim-lib-cookbook/build.rs",
       "crates/sim-lib-cookbook/recipes/01-basics/search-recipe/recipe.toml",
@@ -3513,6 +3971,62 @@
       "crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/recipe.toml",
       "crates/sim-lib-provider-cli/recipes/book.toml",
       "crates/sim-lib-provider-cli/src/lib.rs",
+      "crates/sim-lib-roadmap/Cargo.toml",
+      "crates/sim-lib-roadmap/focused-tests/Cargo.toml",
+      "crates/sim-lib-roadmap/focused-tests/src/lib.rs",
+      "crates/sim-lib-roadmap/qualification/source/collision.rs",
+      "crates/sim-lib-roadmap/qualification/source/revision-a.rs",
+      "crates/sim-lib-roadmap/qualification/source/revision-b.rs",
+      "crates/sim-lib-roadmap/qualification/source/truncated.rs",
+      "crates/sim-lib-roadmap/recipes/01-basics/roadmap-operations/recipe.toml",
+      "crates/sim-lib-roadmap/recipes/book.toml",
+      "crates/sim-lib-roadmap/src/card.rs",
+      "crates/sim-lib-roadmap/src/catalog_import.rs",
+      "crates/sim-lib-roadmap/src/command.rs",
+      "crates/sim-lib-roadmap/src/document_model.rs",
+      "crates/sim-lib-roadmap/src/expr.rs",
+      "crates/sim-lib-roadmap/src/lib.rs",
+      "crates/sim-lib-roadmap/src/loss.rs",
+      "crates/sim-lib-roadmap/src/native_render.rs",
+      "crates/sim-lib-roadmap/src/operations.rs",
+      "crates/sim-lib-roadmap/src/projection.rs",
+      "crates/sim-lib-roadmap/src/read_construct.rs",
+      "crates/sim-lib-roadmap/src/shape.rs",
+      "crates/sim-lib-roadmap/src/tests.rs",
+      "crates/sim-lib-roadmap/src/v3_import.rs",
+      "crates/sim-lib-roadmap/src/v3_render.rs",
+      "crates/sim-lib-roadmap/src/value.rs",
+      "crates/sim-lib-roadmap-runner/Cargo.toml",
+      "crates/sim-lib-roadmap-runner/compatibility-tests/Cargo.toml",
+      "crates/sim-lib-roadmap-runner/compatibility-tests/src/lib.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/Cargo.toml",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/lib.rs",
+      "crates/sim-lib-roadmap-runner/recipes/01-basics/implementer-observe/recipe.toml",
+      "crates/sim-lib-roadmap-runner/recipes/01-basics/interrupted-mutation/recipe.toml",
+      "crates/sim-lib-roadmap-runner/recipes/01-basics/no-model-replay/recipe.toml",
+      "crates/sim-lib-roadmap-runner/recipes/01-basics/promise-discharge/recipe.toml",
+      "crates/sim-lib-roadmap-runner/recipes/01-basics/third-party-conduct/recipe.toml",
+      "crates/sim-lib-roadmap-runner/recipes/book.toml",
+      "crates/sim-lib-roadmap-runner/src/accept.rs",
+      "crates/sim-lib-roadmap-runner/src/binding.rs",
+      "crates/sim-lib-roadmap-runner/src/budget.rs",
+      "crates/sim-lib-roadmap-runner/src/codec.rs",
+      "crates/sim-lib-roadmap-runner/src/compatibility.rs",
+      "crates/sim-lib-roadmap-runner/src/discharge.rs",
+      "crates/sim-lib-roadmap-runner/src/implementer.rs",
+      "crates/sim-lib-roadmap-runner/src/journal.rs",
+      "crates/sim-lib-roadmap-runner/src/lib.rs",
+      "crates/sim-lib-roadmap-runner/src/local_command.rs",
+      "crates/sim-lib-roadmap-runner/src/model.rs",
+      "crates/sim-lib-roadmap-runner/src/mutation.rs",
+      "crates/sim-lib-roadmap-runner/src/proof.rs",
+      "crates/sim-lib-roadmap-runner/src/reconcile.rs",
+      "crates/sim-lib-roadmap-runner/src/recovery.rs",
+      "crates/sim-lib-roadmap-runner/src/refiner.rs",
+      "crates/sim-lib-roadmap-runner/src/service.rs",
+      "crates/sim-lib-roadmap-runner/src/source.rs",
+      "crates/sim-lib-roadmap-runner/src/status.rs",
+      "crates/sim-lib-roadmap-runner/src/tests.rs",
       "crates/sim-lib-search/Cargo.toml",
       "crates/sim-lib-search/build.rs",
       "crates/sim-lib-search/recipes/01-fixture/cli-mcp-parity/recipe.toml",
@@ -3712,6 +4226,65 @@
       "crates/sim-mcp-server/recipes/book.toml",
       "crates/sim-mcp-server/src/http.rs",
       "crates/sim-mcp-server/src/main.rs",
+      "crates/sim-roadmap-core/Cargo.toml",
+      "crates/sim-roadmap-core/examples/two_phase.rs",
+      "crates/sim-roadmap-core/focused-tests/Cargo.toml",
+      "crates/sim-roadmap-core/focused-tests/examples/two_phase.rs",
+      "crates/sim-roadmap-core/focused-tests/src/lib.rs",
+      "crates/sim-roadmap-core/src/admit.rs",
+      "crates/sim-roadmap-core/src/completion.rs",
+      "crates/sim-roadmap-core/src/id.rs",
+      "crates/sim-roadmap-core/src/inheritance.rs",
+      "crates/sim-roadmap-core/src/lib.rs",
+      "crates/sim-roadmap-core/src/path.rs",
+      "crates/sim-roadmap-core/src/tests.rs",
+      "crates/sim-roadmap-core/src/tree.rs",
+      "crates/sim-roadmap-exec-core/Cargo.toml",
+      "crates/sim-roadmap-exec-core/focused-tests/Cargo.toml",
+      "crates/sim-roadmap-exec-core/focused-tests/src/lib.rs",
+      "crates/sim-roadmap-exec-core/src/card.rs",
+      "crates/sim-roadmap-exec-core/src/failure.rs",
+      "crates/sim-roadmap-exec-core/src/lib.rs",
+      "crates/sim-roadmap-exec-core/src/model.rs",
+      "crates/sim-roadmap-exec-core/src/recovery.rs",
+      "crates/sim-roadmap-exec-core/src/reduce.rs",
+      "crates/sim-roadmap-exec-core/src/tests.rs",
+      "crates/sim-roadmap-plan/Cargo.toml",
+      "crates/sim-roadmap-plan/focused-tests/Cargo.toml",
+      "crates/sim-roadmap-plan/src/compile.rs",
+      "crates/sim-roadmap-plan/src/completion.rs",
+      "crates/sim-roadmap-plan/src/explain.rs",
+      "crates/sim-roadmap-plan/src/ground.rs",
+      "crates/sim-roadmap-plan/src/invalidation.rs",
+      "crates/sim-roadmap-plan/src/key.rs",
+      "crates/sim-roadmap-plan/src/lib.rs",
+      "crates/sim-roadmap-plan/src/projection.rs",
+      "crates/sim-roadmap-plan/src/promise.rs",
+      "crates/sim-roadmap-plan/src/query.rs",
+      "crates/sim-roadmap-plan/src/readiness.rs",
+      "crates/sim-roadmap-plan/src/tests.rs",
+      "crates/sim-roadmap-refine/Cargo.toml",
+      "crates/sim-roadmap-refine/focused-tests/Cargo.toml",
+      "crates/sim-roadmap-refine/recipes/01-basics/certified-descent/Cargo.toml",
+      "crates/sim-roadmap-refine/recipes/01-basics/certified-descent/recipe.toml",
+      "crates/sim-roadmap-refine/recipes/01-basics/certified-descent/src/main.rs",
+      "crates/sim-roadmap-refine/recipes/book.toml",
+      "crates/sim-roadmap-refine/src/apply.rs",
+      "crates/sim-roadmap-refine/src/atomicity.rs",
+      "crates/sim-roadmap-refine/src/certificate.rs",
+      "crates/sim-roadmap-refine/src/diff.rs",
+      "crates/sim-roadmap-refine/src/lib.rs",
+      "crates/sim-roadmap-refine/src/policy.rs",
+      "crates/sim-roadmap-refine/src/profile.rs",
+      "crates/sim-roadmap-refine/src/proposal.rs",
+      "crates/sim-roadmap-refine/src/rank.rs",
+      "crates/sim-roadmap-refine/src/refusal.rs",
+      "crates/sim-roadmap-refine/src/tests.rs",
+      "crates/sim-source-deck/Cargo.toml",
+      "crates/sim-source-deck/examples/grounded_declaration.rs",
+      "crates/sim-source-deck/focused-tests/Cargo.toml",
+      "crates/sim-source-deck/src/lib.rs",
+      "crates/sim-source-deck/src/tests.rs",
       "crates/sim-table-remote/Cargo.toml",
       "crates/sim-table-remote/recipes/01-basics/remote-dir-descriptor/recipe.toml",
       "crates/sim-table-remote/recipes/book.toml",
@@ -3730,7 +4303,7 @@
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 29,
+  "recipe_book_count": 33,
   "recipes": [
     {
       "book": "agent",
@@ -4357,6 +4930,26 @@
       "title": "Bridge Runtime"
     },
     {
+      "book": "continuity",
+      "book_toml": "crates/sim-lib-continuity/recipes/book.toml",
+      "card_id": "cookbook/continuity",
+      "group": "workspace",
+      "package": "sim-lib-continuity",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "continuity/01-basics/hostile-replay",
+          "codec": "rust",
+          "id": "hostile-replay",
+          "package": "sim-lib-continuity",
+          "recipe_toml": "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/recipe.toml",
+          "title": "Replay a hostile intermittent trace"
+        }
+      ],
+      "summary": "Pure plans, hostile replay, and fenced journal composition.",
+      "title": "Intermittent Continuity"
+    },
+    {
       "book": "cookbook",
       "book_toml": "crates/sim-lib-cookbook/recipes/book.toml",
       "card_id": "cookbook/cookbook",
@@ -4681,6 +5274,78 @@
       "title": "Provider CLI"
     },
     {
+      "book": "roadmap",
+      "book_toml": "crates/sim-lib-roadmap/recipes/book.toml",
+      "card_id": "cookbook/roadmap",
+      "group": "workspace",
+      "package": "sim-lib-roadmap",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "roadmap/01-basics/roadmap-operations",
+          "codec": "",
+          "id": "roadmap-operations",
+          "package": "sim-lib-roadmap",
+          "recipe_toml": "crates/sim-lib-roadmap/recipes/01-basics/roadmap-operations/recipe.toml",
+          "title": "Ground and refine a bounded roadmap"
+        }
+      ],
+      "summary": "Caller-owned specimens for loadable roadmap intent operations.",
+      "title": "Pure roadmap operations"
+    },
+    {
+      "book": "local-roadmap-runner",
+      "book_toml": "crates/sim-lib-roadmap-runner/recipes/book.toml",
+      "card_id": "cookbook/local-roadmap-runner",
+      "group": "workspace",
+      "package": "sim-lib-roadmap-runner",
+      "recipe_count": 5,
+      "recipes": [
+        {
+          "card_id": "local-roadmap-runner/01-basics/roadmap-implementer-observe",
+          "codec": "",
+          "id": "roadmap-implementer-observe",
+          "package": "sim-lib-roadmap-runner",
+          "recipe_toml": "crates/sim-lib-roadmap-runner/recipes/01-basics/implementer-observe/recipe.toml",
+          "title": "Observe a recorded implementer"
+        },
+        {
+          "card_id": "local-roadmap-runner/01-basics/roadmap-interrupted-mutation",
+          "codec": "",
+          "id": "roadmap-interrupted-mutation",
+          "package": "sim-lib-roadmap-runner",
+          "recipe_toml": "crates/sim-lib-roadmap-runner/recipes/01-basics/interrupted-mutation/recipe.toml",
+          "title": "Recover an interrupted disposable mutation"
+        },
+        {
+          "card_id": "local-roadmap-runner/01-basics/roadmap-no-model-replay",
+          "codec": "",
+          "id": "roadmap-no-model-replay",
+          "package": "sim-lib-roadmap-runner",
+          "recipe_toml": "crates/sim-lib-roadmap-runner/recipes/01-basics/no-model-replay/recipe.toml",
+          "title": "Replay without a model"
+        },
+        {
+          "card_id": "local-roadmap-runner/01-basics/roadmap-promise-discharge",
+          "codec": "",
+          "id": "roadmap-promise-discharge",
+          "package": "sim-lib-roadmap-runner",
+          "recipe_toml": "crates/sim-lib-roadmap-runner/recipes/01-basics/promise-discharge/recipe.toml",
+          "title": "Inspect promise discharge"
+        },
+        {
+          "card_id": "local-roadmap-runner/01-basics/roadmap-third-party-conduct",
+          "codec": "",
+          "id": "roadmap-third-party-conduct",
+          "package": "sim-lib-roadmap-runner",
+          "recipe_toml": "crates/sim-lib-roadmap-runner/recipes/01-basics/third-party-conduct/recipe.toml",
+          "title": "Replace conduct by content identity"
+        }
+      ],
+      "summary": "Public, hermetic specimens for the loadable local roadmap runner.",
+      "title": "Local roadmap execution"
+    },
+    {
       "book": "search",
       "book_toml": "crates/sim-lib-search/recipes/book.toml",
       "card_id": "cookbook/search",
@@ -4831,6 +5496,26 @@
       ],
       "summary": "Final stdio and configured Streamable HTTP MCP product descriptors.",
       "title": "MCP Server"
+    },
+    {
+      "book": "roadmap-refine",
+      "book_toml": "crates/sim-roadmap-refine/recipes/book.toml",
+      "card_id": "cookbook/roadmap-refine",
+      "group": "workspace",
+      "package": "sim-roadmap-refine",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "roadmap-refine/01-basics/certified-roadmap-descent",
+          "codec": "rust",
+          "id": "certified-roadmap-descent",
+          "package": "sim-roadmap-refine",
+          "recipe_toml": "crates/sim-roadmap-refine/recipes/01-basics/certified-descent/recipe.toml",
+          "title": "Certify roadmap descent"
+        }
+      ],
+      "summary": "Derive and certify strictly descending roadmap work.",
+      "title": "Roadmap Refinement"
     },
     {
       "book": "table-remote",

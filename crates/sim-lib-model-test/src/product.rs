@@ -307,3 +307,4 @@ mod tests {
         let _ = fs::remove_file(second);
     }
 }
+// conformance: evidence-backed model verdict and pick records.
