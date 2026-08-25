@@ -40,6 +40,26 @@ steps = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/bounded-roadmap-runner-service"
+title = "Bounded roadmap runner service"
+summary = "Advance one compiled-plan-admitted roadmap leaf through content-pinned adapters, provenance-preserving authority ceilings, intent-first journaling, and the pure execution reducer."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Open RoadmapRunnerService with a complete ExecutionIdentity and the pointwise EffectiveCeiling derived from caller, roadmap, conduct, model-site, sandbox, and operator layers. Call advance_one_effect explicitly; ReadinessPort remains the only scheduler and EffectPort returns observations rather than state. Resume only with identical content pins, a fresh caller grant, and an equal-or-narrower ceiling. Use replay and inspect for observation, never an unbounded host loop."
+claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+depends_on = ["feature/sim-agent-net/durable-roadmap-execution-journal", "feature/sim-agent-net/pure-roadmap-execution"]
+
+[[route]]
+id = "route/advance-bounded-roadmap-execution"
+task = "Safely advance, interrupt, replay, and resume one grounded roadmap leaf"
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/bounded-roadmap-runner-service", why = "The service pins every effect-bearing identity, delegates readiness, journals intent before adapter use, and admits receipts only through the pure reducer." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib", why = "The deterministic service fixture proves direct and replayed observations produce identical state and rejects package identity replacement before another effect." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/pure-continuity"
 title = "Pure intermittent-session continuity"
 summary = "Validate versioned continuity plans and deterministically reduce hostile, reordered session events into replayable turns and authority-free intents."

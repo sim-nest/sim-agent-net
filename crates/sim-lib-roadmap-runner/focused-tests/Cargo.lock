@@ -47,6 +47,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "equivalent"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -57,10 +63,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+
+[[package]]
+name = "indexmap"
+version = "2.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
+dependencies = [
+ "equivalent",
+ "hashbrown",
+]
+
+[[package]]
+name = "inventory"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4f0c30c76f2f4ccee3fe55a2435f691ca00c0e4bd87abe4f4a851b1d4dac39b"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
+
+[[package]]
+name = "memchr"
+version = "2.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+
+[[package]]
+name = "proc-macro-crate"
+version = "3.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e67ba7e9b2b56446f1d419b1d807906278ffa1a658a8a5d8a39dcb1f5a78614f"
+dependencies = [
+ "toml_edit",
+]
 
 [[package]]
 name = "proc-macro2"
@@ -81,6 +127,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustversion"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
+
+[[package]]
+name = "serde_core"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -92,12 +164,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-citizen"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be0642ec328afcbb0ac615a0f7550846bd1df9f79820de624f45ea640a4a5e5e"
+dependencies = [
+ "inventory",
+ "sim-kernel",
+ "sim-value 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sim-citizen-derive"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a1d8410aba0b26fb2e41555aa65ee953c9fdbe6c1c0f3ad9aaefc0542b97dfe"
+dependencies = [
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "sim-config"
 version = "0.1.4"
 dependencies = [
  "sim-kernel",
  "sim-table-core",
- "sim-value",
+ "sim-value 0.2.0",
 ]
 
 [[package]]
@@ -106,7 +201,7 @@ version = "0.2.1"
 dependencies = [
  "sim-config",
  "sim-kernel",
- "sim-value",
+ "sim-value 0.2.0",
 ]
 
 [[package]]
@@ -121,6 +216,17 @@ name = "sim-kernel"
 version = "0.2.1"
 dependencies = [
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sim-lib-agent-conduct-core"
+version = "0.1.1"
+dependencies = [
+ "sim-citizen",
+ "sim-citizen-derive",
+ "sim-kernel",
+ "sim-shape",
+ "sim-value 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -148,8 +254,11 @@ version = "0.1.0"
 dependencies = [
  "sha2",
  "sim-kernel",
+ "sim-lib-agent-conduct-core",
  "sim-lib-exec",
  "sim-lib-journal",
+ "sim-roadmap-core",
+ "sim-roadmap-exec-core",
  "sim-source-deck",
  "thiserror 2.0.19",
 ]
@@ -164,6 +273,37 @@ dependencies = [
  "sim-lib-exec",
  "sim-lib-journal",
  "sim-lib-roadmap-runner",
+ "sim-roadmap-core",
+ "sim-roadmap-exec-core",
+]
+
+[[package]]
+name = "sim-roadmap-core"
+version = "0.1.0"
+dependencies = [
+ "sim-kernel",
+ "sim-source-deck",
+]
+
+[[package]]
+name = "sim-roadmap-exec-core"
+version = "0.1.0"
+dependencies = [
+ "sim-citizen",
+ "sim-citizen-derive",
+ "sim-kernel",
+ "sim-roadmap-core",
+]
+
+[[package]]
+name = "sim-shape"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99b38556a7ac838aa327b3d19df66473133e043fbfeeec4680fe747b8964bfab"
+dependencies = [
+ "sim-citizen",
+ "sim-citizen-derive",
+ "sim-kernel",
 ]
 
 [[package]]
@@ -182,12 +322,21 @@ name = "sim-table-core"
 version = "0.1.4"
 dependencies = [
  "sim-kernel",
- "sim-value",
+ "sim-value 0.2.0",
 ]
 
 [[package]]
 name = "sim-value"
 version = "0.2.0"
+dependencies = [
+ "sim-kernel",
+]
+
+[[package]]
+name = "sim-value"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5a3ca34efc2b8cd76bf8a99164b12984adffac302f910989acbb0378f20e04f"
 dependencies = [
  "sim-kernel",
 ]
@@ -255,6 +404,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml_datetime"
+version = "1.1.1+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3165f65f62e28e0115a00b2ebdd37eb6f3b641855f9d636d3cd4103767159ad7"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.25.13+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6975367e4d2ef766d86af01ffad14b622fecc8d4357a998fbc4deb6e9bacaf9b"
+dependencies = [
+ "indexmap",
+ "toml_datetime",
+ "toml_parser",
+ "winnow",
+]
+
+[[package]]
+name = "toml_parser"
+version = "1.1.3+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56"
+dependencies = [
+ "winnow",
+]
+
+[[package]]
 name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -271,3 +450,12 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "winnow"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
+dependencies = [
+ "memchr",
+]
