@@ -15,3 +15,9 @@ The loadable `roadmap/implementer-v1` conduct turns grounded source and guide
 data into an exact sealed mutation proposal without holding write authority.
 Named networkless observations and deterministic preflight reject ambiguous or
 direct-effect attempts before the mutation adapter can see a plan.
+
+Install `sim` and the same library becomes a safe local product: observe a
+recorded implementer, recover an interrupted mutation in a disposable checkout,
+inspect promise discharge, or replay without a model. The five Shape-described
+verbs pin conduct, model, proof, and generation identities in every receipt and
+expose no delivery back door.

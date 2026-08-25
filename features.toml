@@ -80,6 +80,27 @@ steps = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/loadable-local-roadmap-runner"
+title = "Loadable local-only roadmap runner"
+summary = "Expose Shape-described run, resume, status, explain, and replay services with pinned conduct, model, proof, and hotload-generation identities and no delivery authority."
+owner = "crate/sim-lib-roadmap-runner"
+audience = ["framework", "product"]
+guidance = "Load LocalRoadmapRunnerLib through the sim bootloader. Use --observe or replay for effect-free work. Supply both --disposable-checkout and --local-authority-token for mutation. Treat the identities repeated in every receipt as the execution boundary; a resumed execution never adopts a new generation."
+claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/local_command"]
+depends_on = ["feature/sim-agent-net/bounded-roadmap-runner-service", "feature/sim-run/hot-generation-lifecycle"]
+
+[[route]]
+id = "route/run-local-roadmap"
+task = "Run, inspect, recover, or replay one local roadmap execution without delivery authority"
+features = ["feature/sim-agent-net/loadable-local-roadmap-runner"]
+specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/local_command"]
+steps = [
+  { feature = "feature/sim-agent-net/loadable-local-roadmap-runner", why = "The loaded service checks the explicit Shapes and content identities before dispatch and retains the selected generation through acknowledgement." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/local_command", why = "The focused tests prove the verb allowlist, mutation gate, identity-complete receipts, replay, and generation retention." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/bounded-roadmap-recovery"
 title = "Finite source-aware roadmap recovery"
 summary = "Classify roadmap failures by owner and admit only identity-stable, effect-resolved, policy-named retries, certified refinement descent, or pinned compatible model fallbacks within finite counters."

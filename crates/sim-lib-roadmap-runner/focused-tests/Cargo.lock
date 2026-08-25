@@ -265,6 +265,7 @@ dependencies = [
  "sim-roadmap-exec-core",
  "sim-roadmap-plan",
  "sim-roadmap-refine",
+ "sim-shape",
  "sim-source-deck",
  "thiserror 2.0.19",
 ]
@@ -282,6 +283,7 @@ dependencies = [
  "sim-roadmap-core",
  "sim-roadmap-exec-core",
  "sim-roadmap-refine",
+ "sim-shape",
  "sim-source-deck",
 ]
 
@@ -324,9 +326,7 @@ dependencies = [
 
 [[package]]
 name = "sim-shape"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99b38556a7ac838aa327b3d19df66473133e043fbfeeec4680fe747b8964bfab"
+version = "0.2.4"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",

@@ -1,0 +1,6 @@
+id = "roadmap-promise-discharge"
+title = "Inspect promise discharge"
+summary = "Explain proof and promise evidence from a pinned execution."
+level = "basics"
+tags = ["roadmap", "proof", "promise"]
+requires = ["sim-lib-roadmap-runner"]

@@ -17,6 +17,7 @@ sim-roadmap-core = { path = "../../sim-roadmap-core" }
 sim-roadmap-exec-core = { path = "../../sim-roadmap-exec-core" }
 sim-roadmap-refine = { path = "../../sim-roadmap-refine" }
 sim-source-deck = { path = "../../sim-source-deck" }
+sim-shape = { path = "../../../../sim-shape" }
 
 [patch.crates-io]
 sim-kernel = { path = "../../../../sim-kernel" }
@@ -25,3 +26,4 @@ sim-lib-journal = { path = "../../../../sim-storage/crates/sim-lib-journal" }
 sim-lib-exec = { path = "../../../../sim-runtime/crates/sim-lib-exec" }
 sim-cookbook = { path = "../../../../sim-foundation/crates/sim-cookbook" }
 sim-cookbook-build = { path = "../../../../sim-foundation/crates/sim-cookbook-build" }
+sim-shape = { path = "../../../../sim-shape" }

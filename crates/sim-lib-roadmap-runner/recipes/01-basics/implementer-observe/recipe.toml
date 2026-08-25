@@ -1,0 +1,6 @@
+id = "roadmap-implementer-observe"
+title = "Observe a recorded implementer"
+summary = "Run a content-pinned implementer in non-mutating observe mode."
+level = "basics"
+tags = ["roadmap", "observe", "implementer"]
+requires = ["sim-lib-roadmap-runner"]

@@ -5,7 +5,7 @@ mod refiner_product;
 
 #[cfg(test)]
 mod tests {
-    use sim_kernel::{ContentId, Symbol};
+    use sim_kernel::{ContentId, Lib, Symbol};
     use sim_lib_journal::{
         Admission, JournalBackend, JournalError, JournalHead, Lease, MemoryBackend, StoredState,
     };
@@ -17,6 +17,55 @@ mod tests {
 
     fn proof_content(byte: u8) -> ContentId {
         ContentId::from_bytes(Symbol::qualified("core", "sha256-datum-v1"), [byte; 32])
+    }
+
+    fn local_request(verb: &str, observe: bool) -> LocalRoadmapRequest {
+        LocalRoadmapRequest {
+            verb: verb.into(),
+            observe,
+            disposable_checkout: None,
+            local_authority_token: None,
+            identity: LocalExecutionIdentity {
+                execution: "local/specimen".into(),
+                conduct: "sha256:conduct".into(),
+                model_pick: "sha256:no-model".into(),
+                proof_catalog: "sha256:proofs".into(),
+                runner_generation: "sha256:generation".into(),
+            },
+        }
+    }
+
+    #[test]
+    fn loaded_local_runner_has_exact_shapes_and_no_delivery_surface() {
+        let manifest = LocalRoadmapRunnerLib::new().manifest();
+        for verb in LOCAL_ROADMAP_VERBS {
+            assert!(manifest.exports.iter().any(|export| matches!(export,
+                sim_kernel::Export::Function { symbol, .. } if symbol == &Symbol::qualified("roadmap", verb))));
+            for suffix in ["Args", "Result"] {
+                assert!(manifest.exports.iter().any(|export| matches!(export,
+                    sim_kernel::Export::Shape { symbol, .. } if symbol == &Symbol::qualified(format!("roadmap/{verb}"), suffix))));
+            }
+        }
+        let exports = format!("{:?}", manifest.exports);
+        for forbidden in ["push", "publish", "release", "closeout", "roadmap-status"] {
+            assert!(!exports.contains(&format!("roadmap/{forbidden}")));
+        }
+    }
+
+    #[test]
+    fn local_runner_gates_mutation_and_replays_with_pinned_generation() {
+        let port = PublicLocalRoadmapPort::default();
+        let request = local_request("run", false);
+        assert!(port.invoke(&request, GenerationHandle::acquire("sha256:generation")).unwrap_err().contains("disposable"));
+        let observed = local_request("run", true);
+        let handle = GenerationHandle::acquire("sha256:generation");
+        let retained = handle.clone();
+        let receipt = port.invoke(&observed, handle).unwrap();
+        assert!(receipt.journal_acknowledged);
+        assert_eq!(receipt.identity, observed.identity);
+        let replay = local_request("replay", false);
+        assert!(port.invoke(&replay, retained).unwrap().detail.contains("replayed"));
+        assert!(port.invoke(&replay, GenerationHandle::acquire("sha256:new")).unwrap_err().contains("drift"));
     }
 
     #[test]

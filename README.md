@@ -71,6 +71,9 @@ Agent and model fabric:
   one admitted roadmap phase. Its pure reducer correlates journal observations,
   emits effect requests as data, and mints a success receipt only after every
   mutation, source-deck, promise, parent-acceptance, and proof invariant holds.
+- `sim-lib-roadmap-runner` -- the durable roadmap journal, mutation/proof
+  adapters, content-pinned conduct, and the loadable local-only `sim roadmap`
+  runner (`run --observe`, `resume`, `status`, `explain`, and `replay`).
 
 - `sim-lib-agent-runner-core` -- provider-neutral runner contracts: the
   transcript objects (`ModelRequest`, `ModelResponse`, `ModelUsage`), the

@@ -1,5 +1,19 @@
 # sim-lib-roadmap-runner
 
+The loadable `LocalRoadmapRunnerLib` is the public local execution face behind
+`sim roadmap`. It exports Shape-described `run`, `resume`, `status`, `explain`,
+and `replay` operations. Every invocation pins the conduct, model pick, proof
+catalog, and delivered runner generation before effects; every receipt repeats
+those identities. Observe and replay need no mutation authority. Mutation
+requires both an explicitly disposable checkout and a local authority token.
+There are deliberately no delivery, release, remote-CI, roadmap-edit, or
+closeout operations.
+
+One `GenerationHandle` is acquired before dispatch and passed through the
+adapter. Resumes retain the execution's pinned generation identity; generation
+drift is a refusal. The public deterministic adapter acknowledges the terminal
+journal receipt before its handle is released.
+
 `sim-lib-roadmap-runner` binds roadmap execution facts to the generic,
 domain-free `sim-lib-journal`. It owns the versioned execution payload codec,
 redaction and byte budgets, legal replay projection, and immutable identity
