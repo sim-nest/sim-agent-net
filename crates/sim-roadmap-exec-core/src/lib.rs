@@ -1,11 +1,13 @@
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 
+mod card;
 mod failure;
 mod model;
 mod recovery;
 mod reduce;
 
+pub use card::*;
 pub use failure::*;
 pub use model::*;
 pub use recovery::*;

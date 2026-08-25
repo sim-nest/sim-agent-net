@@ -40,6 +40,26 @@ steps = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/roadmap-execution-status-values"
+title = "Roadmap execution status, explanation, replay, and audit values"
+summary = "Project bounded operator Cards, verified explanations, redacted conduct references, and deterministic state/evidence diffs from the durable execution journal without invoking effects."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Build ExecutionStatus only from a verified RebuiltExecution. Treat outstanding effects, proof failures, ambiguity, remaining byte bounds, pins, and safe next actions as facts rather than prose conclusions. Use compact for terminals, machine_lines for stable machine output, and diff for deterministic audit. ConductTraceRef carries generic topology, agent, and step identities plus an optional content id; never embed node-state copies or an unredacted BRIDGE face."
+claims_anchors = ["anchor/crate/sim-roadmap-exec-core", "anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/status"]
+depends_on = ["feature/sim-agent-net/durable-roadmap-execution-journal", "feature/sim-agent-net/pure-roadmap-execution"]
+
+[[route]]
+id = "route/explain-roadmap-execution"
+task = "Inspect and compare a roadmap execution without trusting raw logs or repeating effects"
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/roadmap-execution-status-values", why = "The projection derives bounded status, explanation, redaction, and audit facts exclusively from verified journal values." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/status", why = "The fixture proves deterministic effect-free rebuilding, stable diffs, hostile redaction, and bounded terminal output." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/bounded-roadmap-runner-service"
 title = "Bounded roadmap runner service"
 summary = "Advance one compiled-plan-admitted roadmap leaf through content-pinned adapters, provenance-preserving authority ceilings, intent-first journaling, and the pure execution reducer."

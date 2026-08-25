@@ -16,6 +16,7 @@ mod recovery;
 mod refiner;
 mod service;
 mod source;
+mod status;
 
 pub use accept::*;
 pub use binding::*;
@@ -31,6 +32,7 @@ pub use recovery::*;
 pub use refiner::*;
 pub use service::*;
 pub use source::*;
+pub use status::*;
 
 #[cfg(test)]
 mod tests;
