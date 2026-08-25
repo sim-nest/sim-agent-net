@@ -1,6 +1,25 @@
 schema = "sim.features"
 
 [[feature]]
+id = "feature/sim-agent-net/diminished-channel-passports"
+title = "Authority-diminishing channel passports"
+summary = "Move expedition thoughts between surfaces with payload-free passports whose claim references, expiry, and grants can only diminish."
+owner = "crate/sim-lib-agent"
+audiences = ["code", "framework"]
+guidance = "Construct ChannelPassport from an already closed pack and selected public claim references, then verify every derived handoff before selecting a channel ceiling. The passport represents no payload, credential, live handle, or model memory. Treat expiry as a normal manual-continuation boundary and reduce workstation, local voice, Telegram, Halo, and watch responses before any encoder runs."
+claims_anchors = ["anchor/crate/sim-lib-agent"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/channel-policy-focused/src/lib"]
+
+[[route]]
+id = "route/handoff-expedition-across-channels"
+task = "Move an expedition thought across channels without widening authority or disclosure"
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/diminished-channel-passports", why = "The passport and channel ceilings enforce diminishing handoff before encode." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/channel-policy-focused/src/lib", why = "Adversarial fixtures reject new grants and claims and prove every named channel ceiling." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/content-addressed-capability-packs"
 title = "Content-addressed capability-pack graph"
 summary = "Resolve immutable runtime compositions into one deterministic, authority-diminishing closure and preflight every route, Shape, claim, output, effect, disclosure, specimen, and fallback before loading."
