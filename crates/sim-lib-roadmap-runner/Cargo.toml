@@ -20,6 +20,7 @@ sim-lib-exec = "0.2.0"
 sim-lib-agent-conduct-core = { version = "0.1.1", path = "../sim-lib-agent-conduct-core" }
 sim-roadmap-core = { version = "0.1.0", path = "../sim-roadmap-core" }
 sim-roadmap-exec-core = { version = "0.1.0", path = "../sim-roadmap-exec-core" }
+sim-roadmap-refine = { version = "0.1.0", path = "../sim-roadmap-refine" }
 sim-source-deck = { version = "0.1.0", path = "../sim-source-deck" }
 thiserror = "2"
 

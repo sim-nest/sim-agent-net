@@ -4,3 +4,9 @@ One bounded, redacted, hash-linked record family captures every roadmap
 execution decision. Large data is stored once as content-addressed objects;
 replay verifies identity, order, legality, and complete object closure without
 repeating an effect.
+
+The same runner loads bounded roadmap-refiner conduct as content-pinned data.
+Default and third-party strategies may suggest different decompositions, while
+one strict BRIDGE Shape and the public machine validator retain exclusive
+authority over grounding, lower-rank descent, complete promise coverage, global
+limits, and admission certificates.

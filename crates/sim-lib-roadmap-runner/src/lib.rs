@@ -9,6 +9,7 @@ mod model;
 mod mutation;
 mod proof;
 mod reconcile;
+mod refiner;
 mod service;
 mod source;
 
@@ -19,6 +20,7 @@ pub use model::*;
 pub use mutation::*;
 pub use proof::*;
 pub use reconcile::*;
+pub use refiner::*;
 pub use service::*;
 pub use source::*;
 

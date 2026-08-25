@@ -15,6 +15,8 @@ sim-cookbook-build = { path = "../../../../sim-foundation/crates/sim-cookbook-bu
 sim-lib-roadmap-runner = { path = ".." }
 sim-roadmap-core = { path = "../../sim-roadmap-core" }
 sim-roadmap-exec-core = { path = "../../sim-roadmap-exec-core" }
+sim-roadmap-refine = { path = "../../sim-roadmap-refine" }
+sim-source-deck = { path = "../../sim-source-deck" }
 
 [patch.crates-io]
 sim-kernel = { path = "../../../../sim-kernel" }

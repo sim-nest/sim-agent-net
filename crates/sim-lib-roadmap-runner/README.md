@@ -6,6 +6,18 @@ redaction and byte budgets, legal replay projection, and immutable identity
 branching. The storage crate remains the sole owner of objects, atomic fenced
 append, hash-chain verification, durable backends, and crash recovery.
 
+Roadmap refinement is loaded behavior, not a runner worker type. Load the
+shipped `roadmap/refiner-v1` `RefinerPackage` or a third-party package under the
+same proposal/result Shapes. `RefinerFace` exposes only grounded parent and
+guide material, the pinned source deck, derived profile, atomicity policy,
+remaining bounds, and exact rejection feedback through injection-fenced BRIDGE
+fields. `check_proposal_fields` rejects model-authored rank, profile,
+certificate, completion, mutation, proof, and authority claims. Pass the typed
+`ProposalDraft` to `validate_refinement`; it checks the pinned grounding and
+delegates descent, coverage, ceilings, bounds, successor compilation, and the
+certificate to `sim-roadmap-refine`. An unanswered source query returns typed
+`Blocked` and cannot disappear into an admitted revision.
+
 Call `ExecutionJournal::open` with every pinned identity. Append records using
 the returned expected head. A stale writer must replay. `rebuild` is read-only
 and performs no execution effects.

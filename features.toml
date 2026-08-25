@@ -142,6 +142,25 @@ framework = "strict"
 code = "strict"
 
 [[feature]]
+id = "feature/sim-agent-net/loadable-roadmap-refiner-conduct"
+title = "Loadable certified roadmap refiner conduct"
+summary = "Run bounded default or third-party refiner packages through one strict BRIDGE proposal face while machine-owned grounding, rank, coverage, limits, and descent certificates exclusively decide admission."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Load RefinerPackage data under roadmap/refiner-v1, render RefinerFace from grounded inputs only, reject every field outside ProposalDraft, and pass the draft to validate_refinement with the pinned Grounding identity and TractabilityPolicy. Treat Blocked as preserving unanswered source truth. Never journal a proposal as admitted unless the returned certificate verifies."
+claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+depends_on = ["feature/sim-agent-net/certified-roadmap-refinement"]
+
+[enforcement.audience]
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+framework = "strict"
+code = "strict"
+
+[[feature]]
 id = "feature/sim-agent-net/roadmap-refinement-admission"
 title = "Bounded roadmap refinement admission"
 summary = "Admit roadmap decompositions only when they form one bounded tree, narrow every inherited authority envelope, preserve parent acceptance, and make aggregate obligation coverage unambiguous."

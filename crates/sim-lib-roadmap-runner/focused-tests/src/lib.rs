@@ -1,4 +1,9 @@
 #[cfg(test)]
+#[allow(dead_code)]
+#[path = "../../src/refiner.rs"]
+mod refiner_product;
+
+#[cfg(test)]
 mod tests {
     use sim_kernel::{ContentId, Symbol};
     use sim_lib_journal::{
