@@ -31,3 +31,19 @@ artifact identity, allowed relative paths, query coverage, and source bytes
 before `sim-source-deck` mints the deck identity. Keep the returned artifact and
 deck receipts together; `SourceDeckReceipt::reusable_after` rejects reuse when a
 touched source or generated artifact intersects the receipt dependency set.
+
+For multi-file mutation, first turn every structural edit into exact full
+`PortableImage` preimages and postimages, then call `SealedMutationPlan::seal`.
+Sealing sorts and deduplicates paths and binds bytes, portable modes, existence,
+and ordering into one identity. `MutationEngine` preflights the entire plan
+before journaling `Prepared`, applies only sealed postimages through an injected
+`MutationWorkspace`, and observes each result before advancing its fence. The
+native `FsWorkspace` uses no-follow observation, same-directory temporaries,
+file flushes, atomic replacement, and parent-directory synchronization.
+
+Recovery is deliberately conservative: `classify_plan` labels each path as an
+exact preimage, postimage, unchanged image, or foreign. A mix of preimages and
+postimages resumes deterministically; any foreign path returns `Ambiguous` and
+preserves its bytes. `inverse_plan` is an explicit second sealed transaction and
+is available only while every relevant path still equals the first plan's
+postimage. Adapters report the durability they actually provide in the receipt.

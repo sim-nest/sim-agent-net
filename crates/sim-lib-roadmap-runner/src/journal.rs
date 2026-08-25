@@ -7,8 +7,9 @@ use sim_lib_journal::{
 };
 
 use crate::{
-    ExecutionJournalError, ExecutionPins, ExecutionRecord, Limits, ObjectKind, ObjectRef,
-    PreparedObject, RebuiltExecution, ReplayFailure, codec,
+    ExecutionJournalError, ExecutionPins, ExecutionRecord, Limits, MutationError, MutationFence,
+    MutationJournal, ObjectKind, ObjectRef, PreparedObject, RebuiltExecution, ReplayFailure, codec,
+    encode_plan, mutation_id_text,
 };
 
 pub struct ExecutionJournal<B> {
@@ -236,6 +237,60 @@ impl<B: JournalBackend> ExecutionJournal<B> {
             last_verified_head: last,
             error,
         })
+    }
+}
+
+impl<B: JournalBackend> MutationJournal for ExecutionJournal<B> {
+    fn put_plan(&mut self, plan: &crate::SealedMutationPlan) -> Result<(), MutationError> {
+        let object = self
+            .prepare_object(
+                ObjectKind::FileBytes,
+                encode_plan(plan),
+                "sealed mutation plan",
+            )
+            .map_err(|error| MutationError::Journal(error.to_string()))?;
+        let input = object.reference.clone();
+        let state = self
+            .rebuild()
+            .map_err(|error| MutationError::Journal(error.to_string()))?;
+        self.append(
+            Some(&state.head),
+            ExecutionRecord::EffectRequested {
+                effect_id: format!("mutation:{}", mutation_id_text(plan.id)),
+                kind: "sealed-mutation-plan".into(),
+                input: Some(input),
+            },
+            vec![object],
+        )
+        .map(|_| ())
+        .map_err(|error| MutationError::Journal(error.to_string()))
+    }
+
+    fn append_fence(
+        &mut self,
+        plan_id: [u8; 32],
+        fence: MutationFence,
+    ) -> Result<(), MutationError> {
+        let state = self
+            .rebuild()
+            .map_err(|error| MutationError::Journal(error.to_string()))?;
+        let expected = match fence {
+            MutationFence::Prepared => "prepared".into(),
+            MutationFence::Applying(index) => format!("applying:{index}"),
+            MutationFence::Verifying => "verifying".into(),
+            MutationFence::Committed => "committed".into(),
+            MutationFence::Ambiguous => "ambiguous".into(),
+        };
+        self.append(
+            Some(&state.head),
+            ExecutionRecord::MutationFence {
+                mutation_id: mutation_id_text(plan_id),
+                expected,
+            },
+            Vec::new(),
+        )
+        .map(|_| ())
+        .map_err(|error| MutationError::Journal(error.to_string()))
     }
 }
 
