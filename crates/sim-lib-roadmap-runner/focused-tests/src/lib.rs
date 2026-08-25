@@ -745,4 +745,60 @@ mod proof_leaf_tests {
         let second = execute_journaled_proof(&journal, &mut journal.rebuild().unwrap(), &catalog, "no-model", &Panic, &store, &ProcessCancellation::default(), "ignored").unwrap();
         assert_eq!(first, second);
     }
+
+    fn recovery_content(byte: u8) -> ContentId {
+        ContentId::from_bytes(Symbol::qualified("core", "sha256-datum-v1"), [byte; 32])
+    }
+
+    #[test]
+    fn recovery_reconciles_foreign_bytes_and_certifies_strict_descent() {
+        let policy = sim_roadmap_exec_core::RecoveryPolicy {
+            max_refinement_rank: 4,
+            ..Default::default()
+        };
+        for n in 0..512 {
+            let ambiguous = ResumeDecision::Ambiguous {
+                foreign_paths: vec![format!("foreign-{n}.rs")],
+            };
+            let effect = plan_refinement_after_reconciliation(
+                &ambiguous,
+                true,
+                recovery_content((n % 250 + 1) as u8),
+                3,
+                2,
+                &policy,
+            );
+            assert!(matches!(
+                effect,
+                RecoveryEffect::Stop(RecoveryStop::Ambiguous { .. })
+            ));
+            assert!(terminal_requests_no_effects(&effect));
+        }
+        let profile = recovery_content(7);
+        assert_eq!(
+            plan_refinement_after_reconciliation(
+                &ResumeDecision::Committed,
+                true,
+                profile.clone(),
+                4,
+                3,
+                &policy,
+            ),
+            RecoveryEffect::InvokeRefiner {
+                derived_profile: profile
+            }
+        );
+        for (fresh, parent, child) in [(false, 4, 3), (true, 4, 4), (true, 4, 5)] {
+            assert!(terminal_requests_no_effects(
+                &plan_refinement_after_reconciliation(
+                    &ResumeDecision::Committed,
+                    fresh,
+                    recovery_content(8),
+                    parent,
+                    child,
+                    &policy,
+                )
+            ));
+        }
+    }
 }

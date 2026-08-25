@@ -71,6 +71,15 @@ preserves its bytes. `inverse_plan` is an explicit second sealed transaction and
 is available only while every relevant path still equals the first plan's
 postimage. Adapters report the durability they actually provide in the receipt.
 
+Pass that freshly observed `ResumeDecision` through
+`plan_retry_after_reconciliation` or `plan_refinement_after_reconciliation`
+before requesting any recovery effect. Preimages still awaiting apply and
+ambiguous foreign bytes stop before retry, proof, rollback, or model work.
+Implementer `NeedsRefinement` remains a proposal and reaches the refiner only
+after fresh grounding yields a strictly lower, policy-bounded derived profile.
+Terminal decisions request no effects; an external source-state change must be
+observed and reclassified before an ambiguous execution can move again.
+
 For implementation, load the `roadmap/implementer-v1` topology and render an
 `ImplementerFace` from the one grounded leaf, labeled guide examples, bounded
 source deck, proof catalog, allowed roots, mutation ceilings, and the prior

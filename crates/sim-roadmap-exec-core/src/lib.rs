@@ -1,10 +1,14 @@
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 
+mod failure;
 mod model;
+mod recovery;
 mod reduce;
 
+pub use failure::*;
 pub use model::*;
+pub use recovery::*;
 pub use reduce::{reduce, replay};
 
 use sim_citizen::CitizenRegistry;

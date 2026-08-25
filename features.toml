@@ -60,6 +60,27 @@ steps = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/bounded-roadmap-recovery"
+title = "Finite source-aware roadmap recovery"
+summary = "Classify roadmap failures by owner and admit only identity-stable, effect-resolved, policy-named retries, certified refinement descent, or pinned compatible model fallbacks within finite counters."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Classify failures with FailureClass, default unknowns to Ambiguity, and pass a reconciled ResumeDecision through plan_retry_after_reconciliation or plan_refinement_after_reconciliation before requesting any effect. Persist each RetryReceipt or ChildAttempt with unchanged identities, remaining budget, pick-record identity, and retained failed evidence. Treat NeedsRefinement as an untrusted proposal requiring fresh grounding and strict lower rank. Render only bounded redacted EscalationCard data at terminal stops; never create a supervisor loop or retry foreign bytes."
+claims_anchors = ["anchor/crate/sim-roadmap-exec-core", "anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-exec-core/focused-tests/src/lib", "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+depends_on = ["feature/sim-agent-net/bounded-roadmap-runner-service", "feature/sim-agent-net/loadable-roadmap-refiner-conduct"]
+
+[[route]]
+id = "route/recover-bounded-roadmap-execution"
+task = "Recover a failed roadmap attempt without widening authority or cycling"
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/bounded-roadmap-recovery", why = "The pure policy gate makes reconciliation, unchanged identities, named failure class, compatible fallback provenance, and a finite remaining counter prerequisites for another attempt." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-roadmap-exec-core/focused-tests/src/lib", why = "Randomized sequences consume their declared counters and pinned fallback fixtures reject foreign candidates." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib", why = "Foreign source bytes terminate without effects while only freshly regrounded strict descent reaches the refiner." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/pure-continuity"
 title = "Pure intermittent-session continuity"
 summary = "Validate versioned continuity plans and deterministically reduce hostile, reordered session events into replayable turns and authority-free intents."

@@ -331,3 +331,90 @@ fn secret_shaped_environment_and_packet_data_never_reach_objects() {
         Err(ExecutionJournalError::Secret)
     ));
 }
+
+fn recovery_cid(n: u8) -> ContentId {
+    ContentId::from_bytes(Symbol::qualified("core", "sha256-datum-v1"), [n; 32])
+}
+
+#[test]
+fn recovery_reconciles_before_every_effect_and_ambiguous_is_terminal() {
+    let policy = sim_roadmap_exec_core::RecoveryPolicy::default();
+    let failure = sim_roadmap_exec_core::ClassifiedFailure::unknown(vec![]);
+    let context = sim_roadmap_exec_core::RetryContext {
+        attempt: sim_roadmap_exec_core::AttemptId::new("a").unwrap(),
+        attempts_used: 0,
+        unresolved_effect: false,
+        identities_before: vec![],
+        identities_now: vec![],
+    };
+    let ambiguous = ResumeDecision::Ambiguous {
+        foreign_paths: vec!["foreign.rs".into()],
+    };
+    let retry = plan_retry_after_reconciliation(&ambiguous, &policy, &failure, &context);
+    assert!(matches!(
+        retry,
+        RecoveryEffect::Stop(RecoveryStop::Ambiguous { .. })
+    ));
+    assert!(terminal_requests_no_effects(&retry));
+    let refine =
+        plan_refinement_after_reconciliation(&ambiguous, true, recovery_cid(8), 3, 2, &policy);
+    assert!(terminal_requests_no_effects(&refine));
+}
+
+#[test]
+fn needs_refinement_requires_fresh_strict_bounded_descent() {
+    let policy = sim_roadmap_exec_core::RecoveryPolicy {
+        max_refinement_rank: 4,
+        ..Default::default()
+    };
+    let profile = recovery_cid(7);
+    assert_eq!(
+        plan_refinement_after_reconciliation(
+            &ResumeDecision::Committed,
+            true,
+            profile.clone(),
+            4,
+            3,
+            &policy,
+        ),
+        RecoveryEffect::InvokeRefiner {
+            derived_profile: profile
+        }
+    );
+    for (fresh, parent, child) in [(false, 4, 3), (true, 4, 4), (true, 4, 5)] {
+        let effect = plan_refinement_after_reconciliation(
+            &ResumeDecision::Committed,
+            fresh,
+            recovery_cid(7),
+            parent,
+            child,
+            &policy,
+        );
+        assert!(terminal_requests_no_effects(&effect));
+    }
+}
+
+#[test]
+fn foreign_bytes_never_request_mutation_in_randomized_sequences() {
+    for n in 0..512 {
+        let decision = ResumeDecision::Ambiguous {
+            foreign_paths: vec![format!("foreign-{n}.rs")],
+        };
+        let effect = plan_refinement_after_reconciliation(
+            &decision,
+            true,
+            recovery_cid((n % 250 + 1) as u8),
+            2,
+            1,
+            &sim_roadmap_exec_core::RecoveryPolicy {
+                max_refinement_rank: 1,
+                ..Default::default()
+            },
+        );
+        assert!(matches!(
+            effect,
+            RecoveryEffect::Stop(RecoveryStop::Ambiguous { .. })
+        ));
+        assert!(terminal_requests_no_effects(&effect));
+    }
+}

@@ -265,3 +265,184 @@ fn public_api_contains_no_effect_trait_or_adapter_handle() {
         assert!(!source.contains(forbidden), "{forbidden}");
     }
 }
+
+#[test]
+fn recovery_classes_have_exact_owner_and_unknown_stops() {
+    let cases = [
+        (
+            FailureClass::DeterministicInput,
+            FailureOwner::InputAuthor,
+            false,
+        ),
+        (FailureClass::Conduct, FailureOwner::Conduct, true),
+        (FailureClass::Mutation, FailureOwner::MutationAdapter, false),
+        (FailureClass::Proof, FailureOwner::ProofSystem, true),
+        (
+            FailureClass::InfrastructureTransient,
+            FailureOwner::Infrastructure,
+            true,
+        ),
+        (
+            FailureClass::InfrastructurePermanent,
+            FailureOwner::Infrastructure,
+            false,
+        ),
+        (FailureClass::Budget, FailureOwner::BudgetAuthority, false),
+        (
+            FailureClass::Authority,
+            FailureOwner::AuthorityHolder,
+            false,
+        ),
+        (FailureClass::Ambiguity, FailureOwner::Unknown, false),
+    ];
+    for (class, owner, retry_safe) in cases {
+        assert_eq!(class.owner(), owner);
+        assert_eq!(class.intrinsically_retry_safe(), retry_safe);
+    }
+    assert_eq!(
+        ClassifiedFailure::unknown(vec![]).class,
+        FailureClass::Ambiguity
+    );
+}
+
+#[test]
+fn recovery_retry_is_named_bounded_identity_stable_and_receipted() {
+    let mut policy = RecoveryPolicy::default();
+    policy.retry.insert(
+        FailureClass::InfrastructureTransient,
+        RetryRule {
+            max_attempts: 2,
+            backoff_millis: vec![5, 13],
+        },
+    );
+    let failure = ClassifiedFailure {
+        class: FailureClass::InfrastructureTransient,
+        evidence: vec![cid(1)],
+    };
+    for used in 0..=2 {
+        let decision = admit_retry(
+            &policy,
+            &failure,
+            &RetryContext {
+                attempt: AttemptId::new("parent").unwrap(),
+                attempts_used: used,
+                unresolved_effect: false,
+                identities_before: vec![cid(2)],
+                identities_now: vec![cid(2)],
+            },
+        );
+        if used < 2 {
+            let RetryDecision::Retry(receipt) = decision else {
+                panic!("retry expected")
+            };
+            assert_eq!(receipt.next_attempt_number, used + 1);
+            assert_eq!(receipt.remaining_attempts, 1 - used);
+            assert_eq!(receipt.unchanged_identities, vec![cid(2)]);
+        } else {
+            assert_eq!(decision, RetryDecision::Stop(StopReason::AttemptsExhausted));
+        }
+    }
+}
+
+#[test]
+fn recovery_fallback_is_pinned_child_and_preserves_failed_evidence() {
+    let policy = RecoveryPolicy {
+        max_child_attempts: 1,
+        ..RecoveryPolicy::default()
+    };
+    let pick = ModelPickRecord {
+        record_id: cid(1),
+        primary: cid(2),
+        compatible_fallbacks: vec![cid(3)],
+    };
+    let child = admit_model_fallback(
+        &policy,
+        &pick,
+        &cid(2),
+        &cid(3),
+        &AttemptId::new("parent").unwrap(),
+        AttemptId::new("child").unwrap(),
+        0,
+        vec![cid(4)],
+    )
+    .unwrap();
+    assert_eq!(child.pick_record, cid(1));
+    assert_eq!(child.failed_evidence_retained, vec![cid(4)]);
+    assert!(
+        admit_model_fallback(
+            &policy,
+            &pick,
+            &cid(2),
+            &cid(9),
+            &child.parent,
+            AttemptId::new("foreign").unwrap(),
+            0,
+            vec![]
+        )
+        .is_none()
+    );
+}
+
+#[test]
+fn randomized_recovery_sequences_converge_within_declared_bound() {
+    let mut seed = 0x5eed_u64;
+    for _case in 0..2_000 {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        let bound = (seed % 8) as u32;
+        let mut policy = RecoveryPolicy::default();
+        policy.retry.insert(
+            FailureClass::InfrastructureTransient,
+            RetryRule {
+                max_attempts: bound,
+                backoff_millis: vec![],
+            },
+        );
+        let failure = ClassifiedFailure {
+            class: FailureClass::InfrastructureTransient,
+            evidence: vec![],
+        };
+        let mut used = 0;
+        loop {
+            match admit_retry(
+                &policy,
+                &failure,
+                &RetryContext {
+                    attempt: AttemptId::new(format!("attempt-{used}")).unwrap(),
+                    attempts_used: used,
+                    unresolved_effect: false,
+                    identities_before: vec![cid(1)],
+                    identities_now: vec![cid(1)],
+                },
+            ) {
+                RetryDecision::Retry(receipt) => {
+                    assert_eq!(receipt.next_attempt_number, used + 1);
+                    assert!(receipt.next_attempt_number <= bound);
+                    used += 1;
+                }
+                RetryDecision::Stop(reason) => {
+                    assert_eq!(reason, StopReason::AttemptsExhausted);
+                    assert_eq!(used, bound);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn recovery_escalation_is_bounded_and_redacted() {
+    let card = EscalationCard {
+        verified_state: vec!["<packet raw>".into(), "clean".into()],
+        safe_paths: vec!["secret token".into()],
+        evidence_ids: vec![cid(1)],
+        missing_authority_or_decision: "human choice".into(),
+        permitted_next_actions: (0..32).map(|n| format!("action-{n}")).collect(),
+    };
+    let rendered = card.render_redacted();
+    assert!(!rendered.contains("raw"));
+    assert!(!rendered.contains("token"));
+    assert_eq!(
+        rendered.matches("permitted:").count(),
+        EscalationCard::MAX_ROWS
+    );
+}
