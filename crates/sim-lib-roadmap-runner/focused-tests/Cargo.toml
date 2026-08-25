@@ -1,0 +1,17 @@
+[package]
+name = "sim-lib-roadmap-runner-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+sim-kernel = { path = "../../../../sim-kernel" }
+sim-lib-journal = { path = "../../../../sim-storage/crates/sim-lib-journal" }
+sim-lib-roadmap-runner = { path = ".." }
+
+[patch.crates-io]
+sim-kernel = { path = "../../../../sim-kernel" }
+sim-storage-port = { path = "../../../../sim-storage/crates/sim-storage-port" }
+sim-lib-journal = { path = "../../../../sim-storage/crates/sim-lib-journal" }

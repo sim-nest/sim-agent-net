@@ -1,0 +1,19 @@
+[package]
+name = "sim-lib-roadmap-runner"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Durable journal adapter for SIM roadmap executions"
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sha2 = "0.10"
+sim-kernel = "0.2.1"
+sim-lib-journal = "0.1.0"
+thiserror = "2"
+
+[lints]
+workspace = true
