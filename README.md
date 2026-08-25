@@ -67,6 +67,11 @@ Server and distributed-eval substrate:
 
 Agent and model fabric:
 
+- `sim-roadmap-exec-core` -- effect-free execution and reconciliation values for
+  one admitted roadmap phase. Its pure reducer correlates journal observations,
+  emits effect requests as data, and mints a success receipt only after every
+  mutation, source-deck, promise, parent-acceptance, and proof invariant holds.
+
 - `sim-lib-agent-runner-core` -- provider-neutral runner contracts: the
   transcript objects (`ModelRequest`, `ModelResponse`, `ModelUsage`), the
   streaming surface (`ModelEvent`, `ModelEventSink`, `VecEventSink`), the

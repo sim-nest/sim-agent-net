@@ -1,0 +1,12 @@
+[package]
+name = "sim-roadmap-exec-core-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+sim-roadmap-exec-core = { path = ".." }
+sim-roadmap-core = { path = "../../sim-roadmap-core" }
+sim-kernel = "0.2.1"
+
+[workspace]

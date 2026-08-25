@@ -1,6 +1,25 @@
 schema = "sim.features"
 
 [[feature]]
+id = "feature/sim-agent-net/pure-roadmap-execution"
+title = "Pure roadmap execution and reconciliation"
+summary = "Reduce correlated phase observations into deterministic execution state, data-only effect requests, and invariant-checked success receipts without granting adapter authority."
+owner = "crate/sim-roadmap-exec-core"
+audiences = ["code", "framework"]
+guidance = "Construct an ExecutionPolicy and canonical MutationPlan, then call reduce or replay with journal observations. Interpret EffectRequest values only in a host adapter and feed resulting observations back through the reducer. A Succeeded state is trustworthy only when returned with the reducer-minted PhaseReceipt; never synthesize receipts or put filesystem, process, model, network, Git, journal, scheduler, or CLI handles in these values."
+claims_anchors = ["anchor/crate/sim-roadmap-exec-core"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-exec-core/src/tests"]
+
+[[route]]
+id = "route/reconcile-roadmap-phase"
+task = "Replay and reconcile one roadmap phase without coupling execution laws to a host"
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/pure-roadmap-execution", why = "The pure reducer owns correlation, reconciliation, and success admission while returning all requested effects as data." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-roadmap-exec-core/src/tests", why = "The transition matrix, hostile correlations, deterministic replay, and forged-success fixture exercise the complete value-machine boundary." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/pure-continuity"
 title = "Pure intermittent-session continuity"
 summary = "Validate versioned continuity plans and deterministically reduce hostile, reordered session events into replayable turns and authority-free intents."
