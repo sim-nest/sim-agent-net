@@ -1,0 +1,13 @@
+id = "checked-pack"
+title = "Resolve and preflight a capability pack"
+codec = "rust"
+setup = "src/main.rs"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["capability-pack", "content-addressed", "authority", "refusal", "rust"]
+requires = ["sim-lib-capability-pack"]
+
+[[expect]]
+form = 0
+result = "pack closure checked before load"

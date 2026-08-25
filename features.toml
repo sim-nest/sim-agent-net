@@ -1,6 +1,25 @@
 schema = "sim.features"
 
 [[feature]]
+id = "feature/sim-agent-net/content-addressed-capability-packs"
+title = "Content-addressed capability-pack graph"
+summary = "Resolve immutable runtime compositions into one deterministic, authority-diminishing closure and preflight every route, Shape, claim, output, effect, disclosure, specimen, and fallback before loading."
+owner = "crate/sim-lib-capability-pack"
+audiences = ["code", "framework"]
+guidance = "Supply packs through the injected PackDir by canonical sha256 content id, call resolve with the intersection of the mission and caller ceilings, validate against a read-only Index/Shape Catalog, and only then pass the opaque ValidatedPack to load. Imports may diminish but never widen authority. Keep SDK conventions, package management, room enums, kernel changes, and bootloader-frame behavior outside this organ."
+claims_anchors = ["anchor/crate/sim-lib-capability-pack"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-capability-pack/focused-tests/tests/closure"]
+
+[[route]]
+id = "route/compose-content-addressed-capability-pack"
+task = "Compose a room as a checked content-addressed runtime closure"
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/content-addressed-capability-packs", why = "PackDir lookup, deterministic graph resolution, diminishing ceilings, complete preflight, and separated loading form the reusable composition boundary." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-capability-pack/focused-tests/tests/closure", why = "Two independent roots share one deterministic import while cycle and authority-widening fixtures refuse before load." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/pure-roadmap-execution"
 title = "Pure roadmap execution and reconciliation"
 summary = "Reduce correlated phase observations into deterministic execution state, data-only effect requests, and invariant-checked success receipts without granting adapter authority."

@@ -1,0 +1,1 @@
+pack closure checked before load

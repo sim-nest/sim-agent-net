@@ -1,0 +1,11 @@
+[package]
+name = "sim-lib-capability-pack-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+sim-lib-capability-pack = { path = ".." }
+sim-kernel = "0.2.1"
+
+[workspace]
