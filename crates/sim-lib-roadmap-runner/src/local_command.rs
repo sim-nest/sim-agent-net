@@ -6,9 +6,9 @@ use std::{
 };
 
 use sim_kernel::{
-    AbiVersion, Args, Callable, ClassRef, Cx, Error, Export, Expr, Factory, Lib, LibManifest,
-    LibTarget, Linker, LoadCx, MatchScore, Object, ObjectCompat, Result, Shape, ShapeDoc,
-    ShapeMatch, ShapeRef, Symbol, Value, Version,
+    AbiVersion, Args, Callable, ClassRef, Cx, Error, Export, Expr, Lib, LibManifest, LibTarget,
+    Linker, LoadCx, MatchScore, Object, ObjectCompat, Result, Shape, ShapeDoc, ShapeMatch,
+    ShapeRef, Symbol, Value, Version,
 };
 use sim_shape::shape_value;
 

@@ -124,7 +124,7 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(
-            accept_all(&[promise.clone()], &[refuted], &ParentAcceptance::default()),
+            accept_all(std::slice::from_ref(&promise), &[refuted], &ParentAcceptance::default()),
             Err(AcceptanceFailure::Refuted(_))
         ));
         let exact = receipt("exact-source", ProofDisposition::Passed);
