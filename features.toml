@@ -101,6 +101,26 @@ steps = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/roadmap-shadow-observation"
+title = "Sanitized roadmap shadow observations"
+summary = "Describe semantic compatibility across ten fixed execution dimensions without importing an oracle or acquiring transition authority."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Emit ShadowObservation only after observe-mode or disposable-checkout execution. Compare canonical dimensions rather than prose, retain content-addressed evidence references, and treat every transition as a proposal for the external authority. Private oracle ingestion and compatibility reports belong to the control plane."
+claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/compatibility"]
+depends_on = ["feature/sim-agent-net/loadable-local-roadmap-runner"]
+
+[[route]]
+id = "route/qualify-roadmap-shadow"
+task = "Qualify a local roadmap runner in shadow mode without creating a second authority"
+audiences = ["framework"]
+steps = [
+  { feature = "feature/sim-agent-net/roadmap-shadow-observation", why = "The fixed semantic record is sanitized, evidence-backed, and incapable of reading an oracle or applying its proposed transition." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/compatibility", why = "The fixture checks dimension completeness, stable content identity, and rejection of private control-plane values." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/bounded-roadmap-recovery"
 title = "Finite source-aware roadmap recovery"
 summary = "Classify roadmap failures by owner and admit only identity-stable, effect-resolved, policy-named retries, certified refinement descent, or pinned compatible model fallbacks within finite counters."

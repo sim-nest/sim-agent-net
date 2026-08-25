@@ -105,3 +105,12 @@ widening, and out-of-root edits, then delegates exact full-image sealing to the
 mutation layer. It returns data only. Read-only inspection is available solely
 through exact named `ObservationSpecimen` records with fixed argv, cwd, roots,
 network denial, no write mounts, and a hard output ceiling.
+
+## Shadow qualification
+
+`ShadowObservation` is the public interchange boundary for compatibility
+qualification. It records ten fixed semantic dimensions, a classification, and
+content-addressed evidence references. It cannot read an oracle or private
+journal, and a transition remains a proposal to the external authority. Private
+hosts compare the canonical record; explanatory prose is compared only through
+its sanitized identity.
