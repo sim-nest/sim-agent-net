@@ -3,6 +3,7 @@
 pub mod capsule;
 mod contract_native;
 pub mod guard;
+pub mod instrument_adoption;
 pub mod mission;
 pub mod mission_control;
 mod mission_handoff;
@@ -27,6 +28,11 @@ pub use contract_native::{
 pub use guard::{
     AtelierAction, GuardCapability, GuardDecision, GuardEvaluation, GuardRefusal,
     evaluate_guarded_action, guard_action,
+};
+pub use instrument_adoption::{
+    AdoptionError, AdoptionJournalReceipt, AdoptionPreview, AdoptionState, ArtifactDigest,
+    BridgeInstrumentBrief, FrozenInstrumentRecipe, InstrumentAdoption, InstrumentGeneration,
+    InstrumentProposal, PackClosure, RollbackPoint,
 };
 pub use mission::{AgentMission, AtelierAgentRole, HumanDecisionPoint, MissionRun, MissionScope};
 pub use mission_control::{MissionControlFixture, fake_mission_control_fixture};
@@ -61,6 +67,9 @@ mod contract_native_tests;
 
 #[cfg(test)]
 mod guard_tests;
+
+#[cfg(test)]
+mod instrument_adoption_tests;
 
 #[cfg(test)]
 mod mission_tests;

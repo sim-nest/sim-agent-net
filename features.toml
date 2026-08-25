@@ -342,6 +342,25 @@ steps = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/reproducible-instrument-adoption"
+title = "Conversation-free instrument adoption transaction"
+summary = "Freeze spoken intent into a BRIDGE brief and recipe, preview a ChangeCapsule, and atomically adopt or roll back every pack, artifact, generation, and registry identity."
+owner = "crate/sim-lib-agent"
+audiences = ["code", "framework"]
+guidance = "Compose BRIDGE, ChangeCapsule, capability-pack resolution, sandboxed FORGE builds, and hotload. Discard chat, model state, scratch, and derived views before rebuilding from FrozenInstrumentRecipe; InstrumentAdoption refuses mismatched artifacts without changing state."
+claims_anchors = ["anchor/rustdoc/sim-lib-agent/atelier/instrument_adoption"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/instrument_adoption_tests", "recipe/sim-sdk/hotload/conversational-instrument-adoption"]
+
+[[route]]
+id = "route/agent-reproducible-instrument-adoption"
+task = "Adopt an instrument proposed through conversation without retaining the conversation"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/reproducible-instrument-adoption", why = "Freeze intent and coordinate the indivisible local adoption transaction." },
+  { specimen = "recipe/sim-sdk/hotload/conversational-instrument-adoption", why = "Exercise the public facade with only frozen recipe inputs." },
+]
+
+[[feature]]
 id = "feature/sim-agent-net/immutable-mission-law"
 title = "Immutable mission law and replaceable crew topology"
 summary = "Freeze authority, pack closure, roles, placements, tools, budgets, vetoes, escalation, stop, and crew topology into one content-identified MissionPlan."
