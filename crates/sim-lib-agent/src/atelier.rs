@@ -7,6 +7,7 @@ pub mod mission;
 pub mod mission_control;
 mod mission_handoff;
 mod mission_lease;
+pub mod mission_policy;
 /// Ranked retrieval of Atelier code/memory hints from an indexed corpus.
 pub mod radar;
 pub mod self_hosting;
@@ -34,6 +35,10 @@ pub use mission_lease::{
     WorkspaceLease, WorkspaceLeaseConflict, WorkspaceLeaseKind, WorkspaceLeaseMode,
     detect_workspace_lease_conflicts,
 };
+pub use mission_policy::{
+    AuthorityLevel, CrewTopology, MissionAdmission, MissionPlan, MissionPlanError, MissionRequest,
+    MissionRole, MissionVeto, Placement, ToolCeiling,
+};
 pub use radar::{
     RadarChunk, RadarError, RadarHint, RadarIndex, RadarQuery, RadarReport, RadarResult,
     SourceSpan, retrieve_radar_hints,
@@ -59,6 +64,9 @@ mod guard_tests;
 
 #[cfg(test)]
 mod mission_tests;
+
+#[cfg(test)]
+mod mission_policy_tests;
 
 #[cfg(test)]
 mod mission_control_tests;

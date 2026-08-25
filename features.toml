@@ -342,6 +342,17 @@ steps = [
 ]
 
 [[feature]]
+id = "feature/sim-agent-net/immutable-mission-law"
+title = "Immutable mission law and replaceable crew topology"
+summary = "Freeze authority, pack closure, roles, placements, tools, budgets, vetoes, escalation, stop, and crew topology into one content-identified MissionPlan."
+owner = "crate/sim-lib-agent"
+audiences = ["code", "framework"]
+guidance = "Build MissionPlan once from the selected AGENT_7 conduct packages, role ceilings, model placements, exact tools, budget, escalation target, stop state, and data-only topology. Call MissionPlan::admit before an existing conduct acts. Observe, organize, propose-local, and adopt-local are bounded local authority; request-external and request-sensitive only escalate. Deterministic verification, source checks, capability refusal, privacy, and budget vetoes are non-overridable. Placement and topology never grant authority, and plan admission rejects role widening, self-selected judges, hidden adjacent-room reads, and pack-closure drift."
+claims_anchors = ["anchor/rustdoc/sim-lib-agent/MissionPlan", "anchor/rustdoc/sim-lib-agent/AuthorityLevel"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/mission_policy_tests"]
+depends_on = ["feature/sim-agent-net/agent-conduct-topology-profile", "feature/sim-agent-net/agent-single-steps"]
+
+[[feature]]
 id = "feature/sim-agent-net/agent-conduct-records"
 title = "Pure agent conduct records"
 summary = "Describe agent run frames, open lifecycle vocabulary, exact domain budgets, step Cards, and durable hash-linked run journals with effect-safe replay and forks."
