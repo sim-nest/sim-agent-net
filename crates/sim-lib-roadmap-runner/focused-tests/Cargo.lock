@@ -92,10 +92,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-config"
+version = "0.1.4"
+dependencies = [
+ "sim-kernel",
+ "sim-table-core",
+ "sim-value",
+]
+
+[[package]]
+name = "sim-cookbook"
+version = "0.2.1"
+dependencies = [
+ "sim-config",
+ "sim-kernel",
+ "sim-value",
+]
+
+[[package]]
+name = "sim-cookbook-build"
+version = "0.1.0"
+dependencies = [
+ "sim-cookbook",
+]
+
+[[package]]
 name = "sim-kernel"
 version = "0.2.1"
 dependencies = [
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sim-lib-exec"
+version = "0.2.0"
+dependencies = [
+ "sim-cookbook",
+ "sim-cookbook-build",
+ "sim-kernel",
 ]
 
 [[package]]
@@ -114,7 +148,9 @@ version = "0.1.0"
 dependencies = [
  "sha2",
  "sim-kernel",
+ "sim-lib-exec",
  "sim-lib-journal",
+ "sim-source-deck",
  "thiserror 2.0.19",
 ]
 
@@ -122,14 +158,39 @@ dependencies = [
 name = "sim-lib-roadmap-runner-focused-tests"
 version = "0.0.0"
 dependencies = [
+ "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
+ "sim-lib-exec",
  "sim-lib-journal",
  "sim-lib-roadmap-runner",
 ]
 
 [[package]]
+name = "sim-source-deck"
+version = "0.1.0"
+dependencies = [
+ "sim-kernel",
+]
+
+[[package]]
 name = "sim-storage-port"
 version = "0.1.0"
+
+[[package]]
+name = "sim-table-core"
+version = "0.1.4"
+dependencies = [
+ "sim-kernel",
+ "sim-value",
+]
+
+[[package]]
+name = "sim-value"
+version = "0.2.0"
+dependencies = [
+ "sim-kernel",
+]
 
 [[package]]
 name = "syn"

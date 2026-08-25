@@ -185,6 +185,24 @@ framework = "strict"
 code = "strict"
 
 [[feature]]
+id = "feature/sim-agent-net/typed-hostile-proof-leaves"
+title = "Typed hostile-sandbox proof leaves"
+summary = "Admit grounded catalog leaves, execute bounded commands through the shared sandbox, and replay normalized proof receipts without duplicate effects."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Build a ProofCatalog from the grounded phase's authored leaves and let conduct select only a catalog name. Use pure artifact-equality and source-deck predicates when their inputs suffice. For commands, retain literal argv, a sealed allowlisted environment, opaque mounts, complete required SandboxPolicy, structured expectation, and TypedProofReceipt. Use execute_journaled_proof with the launcher receipt store so intent precedes launch and unresolved effects reconcile rather than relaunch."
+claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+
+[enforcement.audience]
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+framework = "strict"
+code = "strict"
+
+[[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"
 title = "Policy-gated immutable web capture"
 summary = "Capture landing pages through separate egress and robots decisions into caller-owned content-addressed evidence, with explicit cache modes and fenced model rendering."

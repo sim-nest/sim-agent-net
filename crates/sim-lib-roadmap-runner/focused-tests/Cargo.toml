@@ -9,9 +9,15 @@ publish = false
 [dependencies]
 sim-kernel = { path = "../../../../sim-kernel" }
 sim-lib-journal = { path = "../../../../sim-storage/crates/sim-lib-journal" }
+sim-lib-exec = { path = "../../../../sim-runtime/crates/sim-lib-exec" }
+sim-cookbook = { path = "../../../../sim-foundation/crates/sim-cookbook" }
+sim-cookbook-build = { path = "../../../../sim-foundation/crates/sim-cookbook-build" }
 sim-lib-roadmap-runner = { path = ".." }
 
 [patch.crates-io]
 sim-kernel = { path = "../../../../sim-kernel" }
 sim-storage-port = { path = "../../../../sim-storage/crates/sim-storage-port" }
 sim-lib-journal = { path = "../../../../sim-storage/crates/sim-lib-journal" }
+sim-lib-exec = { path = "../../../../sim-runtime/crates/sim-lib-exec" }
+sim-cookbook = { path = "../../../../sim-foundation/crates/sim-cookbook" }
+sim-cookbook-build = { path = "../../../../sim-foundation/crates/sim-cookbook-build" }
