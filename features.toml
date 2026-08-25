@@ -1184,3 +1184,21 @@ steps = [
   { feature = "feature/sim-agent-net/mcp-server", why = "The existing Skill projection derives MCP schemas, capability checks, execution, and audit." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-search/01-fixture/cli-mcp-parity", why = "The checked fixture demonstrates identical CLI and MCP behavior without ambient network access." },
 ]
+
+[[feature]]
+id = "feature/sim-agent-net/grounded-promise-discharge"
+title = "Fresh-deck grounded promise discharge"
+summary = "Correlate fresh repository evidence and typed proof receipts to every retained child and parent promise before proposing phase completion."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "After committed postimages are observed, build FreshDeckInvalidation from every touched path and affected generated fact, emit a new repo contract, and call admit_fresh_deck. Construct GroundedPromise and ProofAuthority from the compiled plan before executing proof leaves; decide_promise rejects receipts from any other plan, deck, mutation, launcher, policy, or proof definition and permits only predeclared, budgeted inconclusive fallbacks. Call accept_all with explicit ParentAcceptance coverage, invalidate_readiness through the compiled dependency index, then feed only the resulting typed discharges and fresh deck identity to sim-roadmap-exec-core. The reducer alone mints PhaseReceipt; a green command or completed child set is not acceptance."
+claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+
+[enforcement.audience]
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+framework = "strict"
+code = "strict"

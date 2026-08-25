@@ -15,6 +15,83 @@ mod tests {
         atomic::{AtomicBool, Ordering},
     };
 
+    fn proof_content(byte: u8) -> ContentId {
+        ContentId::from_bytes(Symbol::qualified("core", "sha256-datum-v1"), [byte; 32])
+    }
+
+    #[test]
+    fn false_signature_stays_unresolved_until_exact_correlated_proof() {
+        use sim_roadmap_core::PromiseId;
+
+        let authority = ProofAuthority {
+            plan: proof_content(1),
+            deck: proof_content(2),
+            mutation: proof_content(3),
+            launcher: "networkless-v1".into(),
+            policy: proof_content(4),
+            proof_definition: proof_content(5),
+        };
+        let promise = GroundedPromise {
+            id: PromiseId::new("public-signature").unwrap(),
+            admitted_proofs: [("exact-source".into(), proof_content(5))].into(),
+            inconclusive_fallback: None,
+        };
+        let receipt = |proof: &str, disposition| CorrelatedProof {
+            authority: authority.clone(),
+            receipt: TypedProofReceipt {
+                proof: proof.into(),
+                effect_id: None,
+                disposition,
+                exit_code: Some(0),
+                timeout: false,
+                signal: None,
+                truncated: false,
+                launcher_identity: Some("networkless-v1".into()),
+                sandbox_identity: Some("sandbox".into()),
+                stdout_object: None,
+                stderr_object: None,
+                observed_at: "logical:1".into(),
+                semantic_detail: "exact signature predicate".into(),
+            },
+            evidence: proof_content(9),
+        };
+
+        assert!(matches!(
+            decide_promise(
+                &promise,
+                &authority,
+                &receipt("generic-green", ProofDisposition::Passed),
+                None,
+                &mut 0,
+            ),
+            Err(AcceptanceFailure::UnadmittedProof(_))
+        ));
+        let refuted = decide_promise(
+            &promise,
+            &authority,
+            &receipt("exact-source", ProofDisposition::Failed),
+            None,
+            &mut 0,
+        )
+        .unwrap();
+        assert!(matches!(
+            accept_all(&[promise.clone()], &[refuted], &ParentAcceptance::default()),
+            Err(AcceptanceFailure::Refuted(_))
+        ));
+        let exact = receipt("exact-source", ProofDisposition::Passed);
+        let accepted = decide_promise(&promise, &authority, &exact, None, &mut 0).unwrap();
+        assert_eq!(
+            accepted,
+            decide_promise(&promise, &authority, &exact, None, &mut 0).unwrap()
+        );
+        assert_eq!(
+            accept_all(&[promise], &[accepted], &ParentAcceptance::default())
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
     fn pins(n: u8) -> ExecutionPins {
         ExecutionPins {
             conduct: format!("conduct-{n}"),

@@ -212,6 +212,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-incremental-core"
+version = "0.1.2"
+
+[[package]]
 name = "sim-kernel"
 version = "0.2.1"
 dependencies = [
@@ -259,6 +263,7 @@ dependencies = [
  "sim-lib-journal",
  "sim-roadmap-core",
  "sim-roadmap-exec-core",
+ "sim-roadmap-plan",
  "sim-roadmap-refine",
  "sim-source-deck",
  "thiserror 2.0.19",
@@ -296,6 +301,16 @@ dependencies = [
  "sim-citizen-derive",
  "sim-kernel",
  "sim-roadmap-core",
+]
+
+[[package]]
+name = "sim-roadmap-plan"
+version = "0.1.0"
+dependencies = [
+ "sim-incremental-core",
+ "sim-roadmap-core",
+ "sim-roadmap-refine",
+ "sim-source-deck",
 ]
 
 [[package]]

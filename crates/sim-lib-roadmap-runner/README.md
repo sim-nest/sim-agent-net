@@ -44,6 +44,17 @@ before `sim-source-deck` mints the deck identity. Keep the returned artifact and
 deck receipts together; `SourceDeckReceipt::reusable_after` rejects reuse when a
 touched source or generated artifact intersects the receipt dependency set.
 
+After mutation, form `FreshDeckInvalidation` from every touched path and affected
+generated fact, rebuild the repository contract and deck, and call
+`admit_fresh_deck`. Bind each `TypedProofReceipt` to a `ProofAuthority` covering
+the exact plan, fresh deck, committed mutation, launcher, policy, and proof
+definition. `decide_promise` preserves proven, refuted, and inconclusive results;
+only a predeclared fallback with remaining budget may resolve an inconclusive
+leaf. `accept_all` requires every retained promise plus explicit child evidence
+for every parent promise. Finally call `invalidate_readiness` so the compiled
+plan rebuilds affected readiness, then offer the typed discharges and fresh deck
+to `sim-roadmap-exec-core`; only its reducer may mint `PhaseReceipt`.
+
 For multi-file mutation, first turn every structural edit into exact full
 `PortableImage` preimages and postimages, then call `SealedMutationPlan::seal`.
 Sealing sorts and deduplicates paths and binds bytes, portable modes, existence,
