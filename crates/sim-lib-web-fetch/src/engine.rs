@@ -256,17 +256,16 @@ impl EgressPolicy for PublicWebEgress {
         if host == "localhost" || host.ends_with(".localhost") {
             return Err(FetchError::PolicyDenied("local host denied".into()));
         }
-        if let Ok(ip) = host.parse::<std::net::IpAddr>() {
-            if ip.is_loopback()
+        if let Ok(ip) = host.parse::<std::net::IpAddr>()
+            && (ip.is_loopback()
                 || ip.is_unspecified()
                 || ip.is_multicast()
                 || match ip {
                     std::net::IpAddr::V4(v) => v.is_private() || v.is_link_local(),
                     std::net::IpAddr::V6(v) => v.is_unique_local() || v.is_unicast_link_local(),
-                }
-            {
-                return Err(FetchError::PolicyDenied("non-public address denied".into()));
-            }
+                })
+        {
+            return Err(FetchError::PolicyDenied("non-public address denied".into()));
         }
         Ok(())
     }
@@ -361,16 +360,6 @@ impl WebFetcher {
                 location: location.clone(),
                 sensitive_headers_redacted: true,
             });
-            if (300..400).contains(&response.status) {
-                let next = location
-                    .ok_or_else(|| FetchError::Transport("redirect without location".into()))?;
-                if chain.len() > plan.max_redirects {
-                    return Err(FetchError::PolicyDenied("redirect budget exceeded".into()));
-                }
-                current = resolve_location(&url, &next)?;
-                validators.clear();
-                continue;
-            }
             if response.status == 304 {
                 let id = self
                     .dir
@@ -384,6 +373,16 @@ impl WebFetcher {
                 old.from_cache = true;
                 old.exchange_chain.extend(chain);
                 return Ok(old);
+            }
+            if (300..400).contains(&response.status) {
+                let next = location
+                    .ok_or_else(|| FetchError::Transport("redirect without location".into()))?;
+                if chain.len() > plan.max_redirects {
+                    return Err(FetchError::PolicyDenied("redirect budget exceeded".into()));
+                }
+                current = resolve_location(&url, &next)?;
+                validators.clear();
+                continue;
             }
             break response;
         };
@@ -545,7 +544,7 @@ impl WebFetcher {
 }
 
 fn require_net_http(cx: &Cx) -> Result<(), FetchError> {
-    let names = ["net/http", "network.http", "http", "web-fetch"];
+    let names = ["net/http", "network.http", "network", "http", "web-fetch"];
     if names
         .iter()
         .any(|n| cx.require(&CapabilityName::new(*n)).is_ok())

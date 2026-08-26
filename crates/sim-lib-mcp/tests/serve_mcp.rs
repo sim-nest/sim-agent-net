@@ -90,7 +90,11 @@ fn tools_call_denial_returns_mcp_error_without_leaking_skill_metadata() {
 }
 
 fn skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xc42d_7cc3_54f8_804b),
+    );
     install_skill_lib(&mut cx).unwrap();
     cx
 }

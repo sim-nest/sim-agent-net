@@ -1,5 +1,6 @@
 id = "roadmap-operations"
 title = "Ground and refine a bounded roadmap"
+purpose = "Exercise fail-closed grounding and refinement of bounded roadmap work."
 summary = "Six fail-closed specimens for pure roadmap operations."
 level = "basics"
 tags = ["roadmap", "grounding", "refinement", "diff", "v3"]

@@ -13,7 +13,4 @@ path = "../src/lib.rs"
 [dependencies]
 sim-roadmap-core = { path = "../../sim-roadmap-core" }
 sim-source-deck = { path = "../../sim-source-deck" }
-sim-kernel = { path = "../../../../sim-kernel", features = ["test-support"] }
-
-[patch.crates-io]
-sim-kernel = { path = "../../../../sim-kernel" }
+sim-kernel = { version = "0.2.1", features = ["test-support"] }

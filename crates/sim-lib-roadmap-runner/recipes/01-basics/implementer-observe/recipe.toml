@@ -1,5 +1,6 @@
 id = "roadmap-implementer-observe"
 title = "Observe a recorded implementer"
+purpose = "Inspect a content-pinned implementer without granting mutation authority."
 summary = "Run a content-pinned implementer in non-mutating observe mode."
 level = "basics"
 tags = ["roadmap", "observe", "implementer"]

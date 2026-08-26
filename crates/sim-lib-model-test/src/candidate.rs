@@ -93,7 +93,7 @@ impl CandidateRevision {
                 wire: family
                     .wires
                     .first()
-                    .map(|v| v.name.clone())
+                    .map(|v| v.name.to_string())
                     .unwrap_or_default(),
                 provider_revision: expr_revision(&family.revision)?,
             },
@@ -157,8 +157,8 @@ impl CandidateRevision {
 }
 
 fn route_semantics(family: &ProviderFamilyCard) -> Result<RouteSemantics> {
-    let transport = family.transport.name.as_str();
-    let semantics = family.semantics.name.as_str();
+    let transport = family.transport.name.as_ref();
+    let semantics = family.semantics.name.as_ref();
     match (transport, semantics) {
         ("local-service", "model-turn") | ("http-local", "model-turn") => {
             Ok(RouteSemantics::LocalService)
@@ -216,6 +216,17 @@ fn option_number(value: Option<u64>) -> String {
 }
 
 fn expr_revision(value: &sim_kernel::Expr) -> Result<String> {
-    Ok(Datum::try_from(value.clone())?.content_id()?.to_string())
+    Ok(content_id_text(
+        &Datum::try_from(value.clone())?.content_id()?,
+    ))
+}
+
+pub(crate) fn content_id_text(id: &sim_kernel::ContentId) -> String {
+    let digest = id
+        .bytes
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("{}:{digest}", id.algorithm.as_qualified_str())
 }
 // conformance: honest model candidate identity.

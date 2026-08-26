@@ -78,6 +78,7 @@ fn a5_phase6_openai_compatible_runner_posts_json_and_decodes_response() {
             .unwrap();
     });
 
+    cx.grant_named("ai-runner-secret");
     let runner = cx
         .call_function(
             &Symbol::qualified("runner", "openai-compatible"),

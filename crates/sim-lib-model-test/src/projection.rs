@@ -1,7 +1,7 @@
 //! Model-specific, read-only projections of generic study decisions and selections.
 
 use sim_kernel::{ContentId, Symbol};
-use sim_lib_study::{Selection, SubjectDecision, Verdict};
+use sim_lib_study::decision::{Selection, SubjectDecision, Verdict};
 use std::collections::BTreeSet;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -280,7 +280,7 @@ impl ModelPick {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sim_lib_study::{StalenessInputs, SubjectDecision};
+    use sim_lib_study::decision::{StalenessInputs, SubjectDecision};
     fn id(n: u8) -> ContentId {
         ContentId::from_bytes(Symbol::new("sha256"), [n; 32])
     }
@@ -459,7 +459,7 @@ mod tests {
             &pick_facts(),
         )
         .unwrap();
-        assert_eq!(journal.entries(), &[pick.clone()]);
+        assert_eq!(journal.entries(), std::slice::from_ref(&pick));
         assert_eq!(pick.driver_selection(), "model-x --seat seat-a");
         assert!(pick.rationale().contains("expires-at-ms=99"));
     }

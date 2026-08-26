@@ -5,12 +5,19 @@ use super::agent_r18_support::{
 use super::support::{eval_cx, flatten_text, install_agent_lib, install_roundtrip_codecs};
 use sim_kernel::{Args, Expr, Symbol};
 use sim_lib_server::Connection;
+use sim_lib_topology::topology_run_capability;
 
-#[test]
-fn r18_ring_cycles_roles_and_visits_agents_in_order() {
+fn topology_cx() -> sim_kernel::Cx {
     let mut cx = eval_cx();
     install_roundtrip_codecs(&mut cx);
     install_agent_lib(&mut cx).unwrap();
+    cx.grant(topology_run_capability());
+    cx
+}
+
+#[test]
+fn r18_ring_cycles_roles_and_visits_agents_in_order() {
+    let mut cx = topology_cx();
     register_connection(
         &mut cx,
         Symbol::qualified("test", "ring-a"),
@@ -70,9 +77,7 @@ fn r18_ring_cycles_roles_and_visits_agents_in_order() {
 
 #[test]
 fn r18_star_fans_out_and_hub_sees_all_spoke_replies() {
-    let mut cx = eval_cx();
-    install_roundtrip_codecs(&mut cx);
-    install_agent_lib(&mut cx).unwrap();
+    let mut cx = topology_cx();
     register_connection(
         &mut cx,
         Symbol::qualified("test", "hub"),
@@ -122,9 +127,7 @@ fn r18_star_fans_out_and_hub_sees_all_spoke_replies() {
 
 #[test]
 fn r18_mesh_uses_real_judge_to_pick_best_answer() {
-    let mut cx = eval_cx();
-    install_roundtrip_codecs(&mut cx);
-    install_agent_lib(&mut cx).unwrap();
+    let mut cx = topology_cx();
     register_connection(
         &mut cx,
         Symbol::qualified("test", "mesh-a"),
@@ -188,9 +191,7 @@ fn r18_mesh_uses_real_judge_to_pick_best_answer() {
 
 #[test]
 fn r18_market_routes_to_lowest_bidder() {
-    let mut cx = eval_cx();
-    install_roundtrip_codecs(&mut cx);
-    install_agent_lib(&mut cx).unwrap();
+    let mut cx = topology_cx();
 
     let _cheap = register_bid_worker(
         &mut cx,
@@ -249,9 +250,7 @@ fn r18_market_routes_to_lowest_bidder() {
 
 #[test]
 fn r18_debate_returns_verdict_winner_and_transcript() {
-    let mut cx = eval_cx();
-    install_roundtrip_codecs(&mut cx);
-    install_agent_lib(&mut cx).unwrap();
+    let mut cx = topology_cx();
 
     let judge = cx
         .call_function(
@@ -311,9 +310,7 @@ fn r18_debate_returns_verdict_winner_and_transcript() {
 
 #[test]
 fn r18_speculate_verify_uses_fast_path_and_handles_mismatch() {
-    let mut cx = eval_cx();
-    install_roundtrip_codecs(&mut cx);
-    install_agent_lib(&mut cx).unwrap();
+    let mut cx = topology_cx();
     register_connection(
         &mut cx,
         Symbol::qualified("test", "spec-fast"),

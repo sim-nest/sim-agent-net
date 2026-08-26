@@ -1,0 +1,5 @@
+book = "source-deck"
+title = "Source Deck"
+summary = "Ground bounded source evidence without ambient effects."
+order = 80
+chapters = ["01-basics"]

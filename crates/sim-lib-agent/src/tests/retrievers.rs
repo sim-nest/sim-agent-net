@@ -193,29 +193,37 @@ fn r11_web_retriever_fetches_real_http_response() {
     };
     let port = listener.local_addr().unwrap().port();
     let handle = thread::spawn(move || {
-        let (mut stream, _) = listener.accept().unwrap();
-        stream
-            .set_read_timeout(Some(Duration::from_secs(1)))
-            .unwrap();
-        let mut request = Vec::new();
-        let mut chunk = [0u8; 1024];
-        loop {
-            let read = stream.read(&mut chunk).unwrap();
-            if read == 0 {
-                break;
+        for expected_path in ["/robots.txt", "/docs/topic"] {
+            let (mut stream, _) = listener.accept().unwrap();
+            stream
+                .set_read_timeout(Some(Duration::from_secs(1)))
+                .unwrap();
+            let mut request = Vec::new();
+            let mut chunk = [0u8; 1024];
+            loop {
+                let read = stream.read(&mut chunk).unwrap();
+                if read == 0 {
+                    break;
+                }
+                request.extend_from_slice(&chunk[..read]);
+                if request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
             }
-            request.extend_from_slice(&chunk[..read]);
-            if request.windows(4).any(|window| window == b"\r\n\r\n") {
-                break;
+            let request_text = String::from_utf8_lossy(&request);
+            assert!(request_text.starts_with(&format!("GET {expected_path} ")));
+            if expected_path == "/robots.txt" {
+                stream
+                    .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n")
+                    .unwrap();
+            } else {
+                stream
+                    .write_all(
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 11\r\nContent-Type: text/plain\r\n\r\nhello world",
+                    )
+                    .unwrap();
             }
         }
-        let request_text = String::from_utf8_lossy(&request);
-        assert!(request_text.starts_with("GET /docs/topic "));
-        stream
-            .write_all(
-                b"HTTP/1.1 200 OK\r\nContent-Length: 11\r\nContent-Type: text/plain\r\n\r\nhello world",
-            )
-            .unwrap();
     });
 
     let retriever = cx

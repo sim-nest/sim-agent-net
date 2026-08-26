@@ -1,5 +1,9 @@
 id = "cli-mcp-parity"
 title = "Run one canonical search through CLI and MCP"
-purpose = "Proves both projections execute the same SearchProduct and return one stable search/Run identity without ambient network access."
+purpose = "purpose.md"
 setup = "setup.siml"
 expected = "expected.txt"
+
+[[expect]]
+form = 0
+result = "(search/query search/fetch search/research search/show)"

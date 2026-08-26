@@ -103,29 +103,41 @@ pub struct ChildAttempt {
     pub remaining_children: u32,
 }
 
+/// Complete evidence and identity for one proposed model-fallback child.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModelFallbackAttempt {
+    /// Candidate whose failure triggered fallback consideration.
+    pub failed_candidate: ContentId,
+    /// Compatible candidate proposed for the child attempt.
+    pub fallback: ContentId,
+    /// Parent attempt that retains the failed evidence.
+    pub parent: AttemptId,
+    /// Fresh identity assigned to the proposed child.
+    pub child: AttemptId,
+    /// Number of child attempts already consumed.
+    pub children_used: u32,
+    /// Immutable evidence retained from the failed candidate.
+    pub failed_evidence: Vec<ContentId>,
+}
+
 pub fn admit_model_fallback(
     policy: &RecoveryPolicy,
     pick: &ModelPickRecord,
-    failed_candidate: &ContentId,
-    fallback: &ContentId,
-    parent: &AttemptId,
-    child: AttemptId,
-    children_used: u32,
-    failed_evidence: Vec<ContentId>,
+    attempt: ModelFallbackAttempt,
 ) -> Option<ChildAttempt> {
-    if failed_candidate != &pick.primary
-        || children_used >= policy.max_child_attempts
-        || !pick.compatible_fallbacks.contains(fallback)
+    if attempt.failed_candidate != pick.primary
+        || attempt.children_used >= policy.max_child_attempts
+        || !pick.compatible_fallbacks.contains(&attempt.fallback)
     {
         return None;
     }
     Some(ChildAttempt {
-        parent: parent.clone(),
-        child,
-        candidate: fallback.clone(),
+        parent: attempt.parent,
+        child: attempt.child,
+        candidate: attempt.fallback,
         pick_record: pick.record_id.clone(),
-        failed_evidence_retained: failed_evidence,
-        remaining_children: policy.max_child_attempts - children_used - 1,
+        failed_evidence_retained: attempt.failed_evidence,
+        remaining_children: policy.max_child_attempts - attempt.children_used - 1,
     })
 }
 

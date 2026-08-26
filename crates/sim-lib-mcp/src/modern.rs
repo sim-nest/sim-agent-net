@@ -295,6 +295,7 @@ pub fn validate_input_required(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sim_cancel::CancellationReason;
     use std::sync::Mutex;
 
     struct SharedEvents(Mutex<Vec<SubscriptionEvent>>);
@@ -359,7 +360,10 @@ mod tests {
             }) if subscription_id == "s1"
         ));
 
-        second.cancellation().cancel();
+        second.cancellation().cancel(
+            CancellationReason::new("subscription test cancellation")
+                .expect("static cancellation reason is valid"),
+        );
         assert!(matches!(
             second.sequence(&source, 43).unwrap().as_slice(),
             [

@@ -1,6 +1,8 @@
 use super::*;
 #[cfg(all(feature = "server-net-http", feature = "trigger-webhook"))]
-use std::{io::Write, net::TcpStream};
+use crate::transport::port_io::PortTcpStream;
+#[cfg(all(feature = "server-net-http", feature = "trigger-webhook"))]
+use std::io::Write;
 
 fn wait_until(timeout_ms: u64, predicate: impl Fn() -> bool) {
     let start = std::time::Instant::now();
@@ -446,7 +448,7 @@ fn webhook_trigger_accepts_real_http_posts() {
     let trigger = handle.object().downcast_ref::<TriggerHandle>().unwrap();
     let port = trigger.webhook_port().unwrap().unwrap();
 
-    let mut stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    let mut stream = PortTcpStream::connect(("127.0.0.1", port)).unwrap();
     let body = b"posted";
     write!(
         stream,

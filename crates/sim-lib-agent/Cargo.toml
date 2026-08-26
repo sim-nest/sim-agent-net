@@ -51,6 +51,7 @@ sim-codec-json = { version = "0.2.0" }
 sim-codec-lisp = { version = "0.2.0" }
 sim-kernel = { version = "0.2.1", features = ["test-support"] }
 sim-lib-cookbook = { version = "0.1.16", path = "../sim-lib-cookbook" }
+sim-transport-ports = { version = "0.1.0", path = "../sim-transport-ports" }
 wat = "1.245.1"
 
 [features]

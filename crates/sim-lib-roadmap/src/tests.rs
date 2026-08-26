@@ -1,11 +1,11 @@
 // conformance: capability-free roadmap grounding and refinement operations.
 
+use crate::*;
 use sim_codec::{DecodeBudget, DecodeLimits, Input, decode_with_codec, encode_with_codec};
 use sim_kernel::{
     Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, Lib, NoopEvalPolicy, ReadPolicy, Shape,
     Symbol,
 };
-use sim_lib_roadmap::*;
 use std::{collections::BTreeMap, sync::Arc};
 
 fn fields(entries: &[(&str, Expr)]) -> BTreeMap<Symbol, Expr> {

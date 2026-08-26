@@ -104,7 +104,7 @@ pub trait TrialBackend: Send {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CassetteEntry {
-    Observed(TrialObservation),
+    Observed(Box<TrialObservation>),
     Operational(OperationalFailure),
 }
 
@@ -205,7 +205,7 @@ impl<R: TrialResolver, B: TrialBackend> StudyExecutor for ModelStudyExecutor<R, 
         }
         let result = if let Some(entry) = self.cassettes.get(&coordinate_id) {
             match entry {
-                CassetteEntry::Observed(v) => Ok(v.clone()),
+                CassetteEntry::Observed(v) => Ok(v.as_ref().clone()),
                 CassetteEntry::Operational(e) => Err(e.clone()),
             }
         } else {
@@ -429,7 +429,7 @@ mod tests {
                 wrong_workspace: false,
             },
         )
-        .with_cassette(id, CassetteEntry::Observed(observation));
+        .with_cassette(id, CassetteEntry::Observed(Box::new(observation)));
         assert_eq!(
             e.execute(&c, &cid("claim"), &NeverCancel).outcome,
             AttemptOutcome::Observed

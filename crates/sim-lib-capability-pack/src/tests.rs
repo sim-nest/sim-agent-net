@@ -219,3 +219,4 @@ fn citizen_codec_round_trips_pack() {
     let encoded = encode_pack(&value);
     assert_eq!(decode_pack(CURRENT_PACK_VERSION, &encoded).unwrap(), value);
 }
+// conformance: capability-pack tests prove deterministic closure and diminishing authority.

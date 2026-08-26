@@ -44,7 +44,7 @@ impl HttpEndpoint {
             .split('/')
             .filter(|component| !component.is_empty() && *component != ".")
             .collect();
-        if components.iter().any(|component| *component == "..") {
+        if components.contains(&"..") {
             return Err(ClientError::Policy(
                 "endpoint resource cannot contain parent traversal".into(),
             ));

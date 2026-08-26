@@ -9,11 +9,8 @@ publish = false
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sim-kernel = { path = "../../../../sim-kernel" }
+sim-kernel = { version = "0.2.1" }
 
 [[test]]
 name = "product"
 path = "product.rs"
-
-[patch.crates-io]
-sim-kernel = { path = "../../../../sim-kernel" }

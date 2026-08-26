@@ -2,6 +2,9 @@ use std::{sync::Arc, time::Duration};
 
 use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, Result, Symbol, Value};
 use sim_lib_agent_runner_core::ModelEvent;
+use sim_lib_exec::{
+    ProcResult, ProcessAttempt, ProcessCancellation, ProcessPort, ProcessReceipt, ProcessRequest,
+};
 use sim_shape::{
     ExprKind, ExprKindShape, FieldShape, FieldSpec, ListShape, NumberValueShape, shape_value,
 };
@@ -141,8 +144,37 @@ fn skill_cx() -> Cx {
         Arc::new(DefaultFactory),
         HandleSeed::new(0x5A11_0003),
     );
+    sim_lib_agent_runner_process::bind_process_port(&mut cx, Arc::new(FixtureProcess))
+        .expect("process skill tests require an explicit model process port");
     install_skill_lib(&mut cx).unwrap();
     cx
+}
+
+struct FixtureProcess;
+
+impl ProcessPort for FixtureProcess {
+    fn run(&self, request: &ProcessRequest, _cancellation: &ProcessCancellation) -> ProcessAttempt {
+        let command = request.program.as_str();
+        let (stdout, exit_code) = if command.contains("secret-command") {
+            (String::new(), 7)
+        } else if command.contains("one\\ntwo") {
+            ("one\ntwo\n".to_owned(), 0)
+        } else {
+            (r#"{"answer":42,"status":"ok"}"#.to_owned(), 0)
+        };
+        ProcessAttempt::Completed {
+            receipt: ProcessReceipt {
+                provider: "model/process-skill".to_owned(),
+                elapsed_mono_ns: 1,
+                result: ProcResult {
+                    stdout,
+                    stderr: String::new(),
+                    exit_code,
+                    truncated: false,
+                },
+            },
+        }
+    }
 }
 
 fn grant_call_caps(cx: &mut Cx, id: &str) {

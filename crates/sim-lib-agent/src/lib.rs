@@ -185,6 +185,7 @@ pub fn install_agent_lib(cx: &mut Cx) -> Result<()> {
     install_server_lib(cx)?;
     register_address_resolver(Symbol::new("agent"), resolve_agent_address)?;
     register_line_driver(Symbol::new("agent"), agent_line_driver_factory)?;
+    sim_lib_core::install_once(cx, &sim_citizen::CitizenLib::namespace("agent"))?;
     sim_lib_core::install_once(cx, &AgentLib)?;
     core_tools::install_core_tools(cx)?;
     #[cfg(feature = "cookbook")]

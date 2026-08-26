@@ -23,7 +23,7 @@ fn agent_lib_claims_loaded_cli_agent_entrypoint() {
     let mut cx = eval_cx();
     install_agent_lib(&mut cx).unwrap();
     let symbol = Symbol::qualified("cli", "main/agent");
-    let envelope = cli_envelope(&mut cx, "agent", &["agent", "--dry-run"]);
+    let envelope = cli_envelope(&mut cx, "agent", &["agent", "conduct", "list"]);
 
     let value = cx
         .call_function(&symbol, Args::new(vec![envelope]))

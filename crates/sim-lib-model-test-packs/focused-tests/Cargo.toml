@@ -9,6 +9,6 @@ path = "harness.rs"
 
 [dependencies]
 sha2 = "0.10"
-sim-study-core = { path = "../../../../sim-foundation/crates/sim-study-core" }
+sim-study-core = { version = "0.1.0" }
 
 [workspace]

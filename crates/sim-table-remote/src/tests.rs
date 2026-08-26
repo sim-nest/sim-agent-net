@@ -17,13 +17,21 @@ use crate::{
 };
 
 fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x9836_2364_deeb_e404),
+    );
     install_codecs(&mut cx);
     cx
 }
 
 fn strict_name_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(StrictNames(EagerPolicy)), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(StrictNames(EagerPolicy)),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x4883_ca20_8510_6dfa),
+    );
     install_codecs(&mut cx);
     cx
 }
@@ -104,7 +112,7 @@ fn remote_dir_roundtrips_against_in_process_site() {
     assert_eq!(table.keys(&mut cx).unwrap(), vec![Symbol::new("x")]);
     assert_eq!(table.len(&mut cx).unwrap(), 1);
 
-    let replacement = cx.factory().string("next").unwrap();
+    let replacement = cx.factory().string("next".to_owned()).unwrap();
     let cas = table
         .compare_exchange(
             &mut cx,

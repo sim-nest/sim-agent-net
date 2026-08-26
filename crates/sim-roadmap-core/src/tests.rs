@@ -245,3 +245,4 @@ fn claimed_revision_is_verified_without_self_hashing() {
         Err(Failure::ClaimedRevisionMismatch)
     ));
 }
+// conformance: roadmap-core tests prove bounded admission, inheritance, and graph laws.

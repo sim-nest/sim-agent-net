@@ -14,19 +14,21 @@ pub(super) fn web_result_expr(cx: &mut Cx, endpoint: &str, expr: Expr) -> Result
     #[cfg(feature = "agent-net")]
     {
         use sim_lib_web_fetch::{
-            FetchMode, FetchPlan, MemoryCaptureDir, NetHttpExecutor, PublicWebEgress, WebFetcher,
+            FetchMode, FetchPlan, MemoryCaptureDir, NetHttpExecutor, WebFetcher,
         };
         static STORE: OnceLock<Arc<MemoryCaptureDir>> = OnceLock::new();
         let store = STORE
             .get_or_init(|| Arc::new(MemoryCaptureDir::default()))
             .clone();
-        let mut policy = sim_lib_net_http::Policy::default();
-        policy.max_response_bytes = 16 * 1024;
-        policy.total_timeout = std::time::Duration::from_millis(250);
+        let policy = sim_lib_net_http::Policy {
+            max_response_bytes: 16 * 1024,
+            total_timeout: std::time::Duration::from_millis(250),
+            ..Default::default()
+        };
         let fetcher = WebFetcher::new(
             Arc::new(NetHttpExecutor::new(sim_lib_net_http::TcpConnector, policy)),
             store,
-            Arc::new(PublicWebEgress),
+            web_egress(),
         );
         let response = fetcher
             .capture(cx, FetchPlan::get(&url, FetchMode::PreferCache))
@@ -54,6 +56,32 @@ pub(super) fn web_result_expr(cx: &mut Cx, endpoint: &str, expr: Expr) -> Result
         let _ = url;
         Err(Error::Eval("web retriever requires agent-net".to_owned()))
     }
+}
+
+#[cfg(all(feature = "agent-net", not(test)))]
+fn web_egress() -> Arc<dyn sim_lib_web_fetch::EgressPolicy> {
+    Arc::new(sim_lib_web_fetch::PublicWebEgress)
+}
+
+#[cfg(all(feature = "agent-net", test))]
+fn web_egress() -> Arc<dyn sim_lib_web_fetch::EgressPolicy> {
+    struct LoopbackTestEgress;
+    impl sim_lib_web_fetch::EgressPolicy for LoopbackTestEgress {
+        fn authorize(
+            &self,
+            method: &str,
+            _url: &sim_lib_net_http::Url,
+        ) -> std::result::Result<(), sim_lib_web_fetch::FetchError> {
+            if matches!(method, "GET" | "HEAD") {
+                Ok(())
+            } else {
+                Err(sim_lib_web_fetch::FetchError::PolicyDenied(
+                    "unsafe method".into(),
+                ))
+            }
+        }
+    }
+    Arc::new(LoopbackTestEgress)
 }
 
 fn query_text(expr: &Expr) -> Result<String> {

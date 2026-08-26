@@ -167,6 +167,16 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-capability-pack"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-capability-pack-recipe-checked-pack"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-continuity"
     },
     {

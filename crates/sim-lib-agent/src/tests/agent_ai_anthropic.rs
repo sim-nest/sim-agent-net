@@ -154,18 +154,15 @@ fn native_anthropic_runner_handles_errors_missing_secret_and_redacts_secret() {
     let listener = bind_loopback_listener().unwrap();
     let port = listener.local_addr().unwrap().port();
     let missing_env = unique_missing_env();
-    let missing = anthropic_runner(
+    let missing = try_anthropic_runner(
         &mut cx,
         port,
         &[(":api-key-env", Expr::String(missing_env.clone()))],
-    );
-    let missing_request = request_frame(&mut cx, request_expr("missing secret", Vec::new()));
-    let missing_reply = as_component(&missing)
-        .answer(&mut cx, missing_request)
-        .unwrap();
-    let missing_text = flatten_text(&reply_expr(&mut cx, &missing_reply));
+    )
+    .unwrap_err();
+    let missing_text = missing.to_string().to_ascii_lowercase();
     assert!(
-        missing_text.contains("missing env var")
+        missing_text.contains("credential is unavailable")
             && missing_text.contains(&missing_env.to_ascii_lowercase()),
         "{missing_text}"
     );
@@ -264,6 +261,14 @@ fn anthropic_runner(
     port: u16,
     extra: &[(&str, Expr)],
 ) -> sim_kernel::Value {
+    try_anthropic_runner(cx, port, extra).unwrap()
+}
+
+fn try_anthropic_runner(
+    cx: &mut sim_kernel::Cx,
+    port: u16,
+    extra: &[(&str, Expr)],
+) -> sim_kernel::Result<sim_kernel::Value> {
     let mut args = vec![
         Expr::Symbol(Symbol::new(":endpoint")),
         Expr::String(format!("http://127.0.0.1:{port}/v1")),
@@ -276,11 +281,14 @@ fn anthropic_runner(
         .into_iter()
         .map(|expr| crate::value_from_expr(cx, &expr).unwrap())
         .collect();
-    cx.call_function(
-        &Symbol::qualified("runner", "anthropic"),
-        sim_kernel::Args::new(values),
-    )
-    .unwrap()
+    let mut construction_caps = cx.capabilities().clone();
+    construction_caps.insert(sim_kernel::CapabilityName::new("ai-runner-secret"));
+    cx.with_capabilities(construction_caps, |cx| {
+        cx.call_function(
+            &Symbol::qualified("runner", "anthropic"),
+            sim_kernel::Args::new(values),
+        )
+    })
 }
 
 fn reply_expr(cx: &mut sim_kernel::Cx, frame: &ServerFrame) -> Expr {

@@ -271,14 +271,14 @@ fn reject_completion_cycles(spec: &RoadmapSpec, tree: &Tree) -> Result<(), Failu
                 },
                 _ => None,
             };
-            if let Some(dependency) = referenced {
-                if dependency == &phase.id || tree.descendants[&phase.id].contains(dependency) {
-                    return Err(Failure::CircularCompletion {
-                        phase: phase.id.clone(),
-                        dependency: dependency.clone(),
-                        path: tree.paths[&phase.id].clone(),
-                    });
-                }
+            if let Some(dependency) = referenced
+                && (dependency == &phase.id || tree.descendants[&phase.id].contains(dependency))
+            {
+                return Err(Failure::CircularCompletion {
+                    phase: phase.id.clone(),
+                    dependency: dependency.clone(),
+                    path: tree.paths[&phase.id].clone(),
+                });
             }
         }
     }

@@ -150,10 +150,8 @@ fn http_transport_round_trips_a_frame_over_post_body() {
 
 #[test]
 fn http_transport_replies_with_error_frame_on_garbage_body() {
-    use std::net::TcpStream;
-
     use crate::http::{HttpRequest, read_response, write_request};
-    use crate::transport::decode_transport_frame;
+    use crate::transport::{decode_transport_frame, port_io::PortTcpStream};
 
     #[derive(Clone)]
     struct HttpAnswerSite {
@@ -217,7 +215,7 @@ fn http_transport_replies_with_error_frame_on_garbage_body() {
     });
     runtime.set_accept_thread(handle).unwrap();
 
-    let mut stream = TcpStream::connect((host.as_str(), port)).unwrap();
+    let mut stream = PortTcpStream::connect((host.as_str(), port)).unwrap();
     write_request(
         &mut stream,
         &HttpRequest {

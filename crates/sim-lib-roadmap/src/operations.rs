@@ -43,7 +43,7 @@ impl Lib for RoadmapLib {
         let mut exports = ROADMAP_OPERATIONS
             .iter()
             .map(|name| Export::Function {
-                symbol: Symbol::qualified("roadmap", name),
+                symbol: Symbol::qualified("roadmap", *name),
                 function_id: None,
             })
             .collect::<Vec<_>>();
@@ -71,7 +71,8 @@ impl Lib for RoadmapLib {
         linker.function_value(
             Symbol::qualified("cli/main", "roadmap"),
             cx.factory().opaque(Arc::new(crate::RoadmapCommand))?,
-        )
+        )?;
+        Ok(())
     }
 }
 
@@ -233,10 +234,10 @@ fn phase_ids(expr: &Expr) -> Vec<String> {
             }
             Expr::Map(v) => {
                 for (k, x) in v {
-                    if matches!(k, Expr::Symbol(s) if s.name.as_ref()=="id") {
-                        if let Expr::String(id) = x {
-                            out.push(id.clone());
-                        }
+                    if matches!(k, Expr::Symbol(s) if s.name.as_ref()=="id")
+                        && let Expr::String(id) = x
+                    {
+                        out.push(id.clone());
                     }
                     walk(x, out);
                 }
@@ -319,15 +320,10 @@ fn explain(values: &[RoadmapValue]) -> Result<RoadmapValue> {
             "explain expects one roadmap value and one id value".into(),
         ));
     }
-    let id = values[1]
-        .fields()
-        .values()
-        .find_map(|e| {
-            if let Expr::String(s) = e {
-                Some(s.clone())
-            } else {
-                None
-            }
+    let id = field(&values[1], "subject")
+        .and_then(|value| match value {
+            Expr::String(subject) => Some(subject),
+            _ => None,
         })
         .ok_or_else(|| {
             Error::Eval(

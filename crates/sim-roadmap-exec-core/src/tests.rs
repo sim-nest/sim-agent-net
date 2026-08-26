@@ -1,5 +1,5 @@
 use sim_citizen::{CitizenRegistry, run_registry_conformance_expecting};
-use sim_kernel::{ContentId, Datum, Expr, Symbol, testing::bare_cx as cx};
+use sim_kernel::{ContentId, Datum, Symbol, testing::bare_cx as cx};
 use sim_roadmap_core::{PhaseId, PromiseId};
 
 use crate::*;
@@ -358,12 +358,14 @@ fn recovery_fallback_is_pinned_child_and_preserves_failed_evidence() {
     let child = admit_model_fallback(
         &policy,
         &pick,
-        &cid(2),
-        &cid(3),
-        &AttemptId::new("parent").unwrap(),
-        AttemptId::new("child").unwrap(),
-        0,
-        vec![cid(4)],
+        ModelFallbackAttempt {
+            failed_candidate: cid(2),
+            fallback: cid(3),
+            parent: AttemptId::new("parent").unwrap(),
+            child: AttemptId::new("child").unwrap(),
+            children_used: 0,
+            failed_evidence: vec![cid(4)],
+        },
     )
     .unwrap();
     assert_eq!(child.pick_record, cid(1));
@@ -372,12 +374,14 @@ fn recovery_fallback_is_pinned_child_and_preserves_failed_evidence() {
         admit_model_fallback(
             &policy,
             &pick,
-            &cid(2),
-            &cid(9),
-            &child.parent,
-            AttemptId::new("foreign").unwrap(),
-            0,
-            vec![]
+            ModelFallbackAttempt {
+                failed_candidate: cid(2),
+                fallback: cid(9),
+                parent: child.parent.clone(),
+                child: AttemptId::new("foreign").unwrap(),
+                children_used: 0,
+                failed_evidence: vec![],
+            }
         )
         .is_none()
     );
@@ -446,3 +450,4 @@ fn recovery_escalation_is_bounded_and_redacted() {
         EscalationCard::MAX_ROWS
     );
 }
+// conformance: execution-core tests prove hostile transitions, replay, recovery, and receipts.

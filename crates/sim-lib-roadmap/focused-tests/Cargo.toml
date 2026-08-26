@@ -8,19 +8,7 @@ publish = false
 
 [dependencies]
 sim-lib-roadmap = { path = ".." }
-sim-kernel = { path = "../../../../sim-kernel", features = ["test-support"] }
-sim-codec = { path = "../../../../sim-codecs/crates/sim-codec" }
-sim-codec-json = { path = "../../../../sim-codecs/crates/sim-codec-json" }
-sim-codec-lisp = { path = "../../../../sim-codecs/crates/sim-codec-lisp" }
-
-[patch.crates-io]
-sim-kernel = { path = "../../../../sim-kernel" }
-sim-lib-net-core = { path = "../../../../sim-foundation/crates/sim-lib-net-core" }
-sim-codec = { path = "../../../../sim-codecs/crates/sim-codec" }
-sim-codec-binary = { path = "../../../../sim-codecs/crates/sim-codec-binary" }
-sim-codec-config = { path = "../../../../sim-codecs/crates/sim-codec-config" }
-sim-codec-doc = { path = "../../../../sim-codecs/crates/sim-codec-doc" }
-sim-cookbook = { path = "../../../../sim-foundation/crates/sim-cookbook" }
-sim-cookbook-build = { path = "../../../../sim-foundation/crates/sim-cookbook-build" }
-sim-shape = { path = "../../../../sim-shape" }
-sim-value = { path = "../../../../sim-foundation/crates/sim-value" }
+sim-kernel = { version = "0.2.1", features = ["test-support"] }
+sim-codec = { version = "0.1.8" }
+sim-codec-json = { version = "0.2.2" }
+sim-codec-lisp = { version = "0.2.1" }

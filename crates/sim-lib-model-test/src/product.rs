@@ -180,9 +180,9 @@ pub fn run_command(args: &[String]) -> Result<String> {
     if verb == "export" {
         return export_bundle(&words[1..]);
     }
-    let contact = if CONTACT_VERBS.contains(&verb) {
-        "explicit-configured-resource"
-    } else if verb == "census" && words.iter().any(|w| w == "--refresh") {
+    let contact = if CONTACT_VERBS.contains(&verb)
+        || (verb == "census" && words.iter().any(|w| w == "--refresh"))
+    {
         "explicit-configured-resource"
     } else {
         "none"

@@ -1,0 +1,5 @@
+book = "roadmap-plan"
+title = "Roadmap Planning"
+summary = "Compile grounded roadmap readiness with exact invalidation."
+order = 82
+chapters = ["01-basics"]

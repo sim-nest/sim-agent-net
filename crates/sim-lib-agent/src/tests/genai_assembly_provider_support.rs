@@ -299,33 +299,35 @@ fn provider_runner(
     model: &str,
     endpoint: String,
 ) -> Value {
-    cx.call_function(
-        &function,
-        Args::new(vec![
-            cx.factory().symbol(Symbol::new(":name")).unwrap(),
-            cx.factory().symbol(name).unwrap(),
-            cx.factory().symbol(Symbol::new(":model")).unwrap(),
-            cx.factory().string(model.to_owned()).unwrap(),
-            cx.factory().symbol(Symbol::new(":endpoint")).unwrap(),
-            cx.factory().string(endpoint).unwrap(),
-            cx.factory().symbol(Symbol::new(":api-key-env")).unwrap(),
-            cx.factory()
-                .string("CARGO_MANIFEST_DIR".to_owned())
-                .unwrap(),
-            cx.factory().symbol(Symbol::new(":timeout")).unwrap(),
-            cx.factory().string("2s".to_owned()).unwrap(),
-            cx.factory().symbol(Symbol::new(":stream")).unwrap(),
-            cx.factory().bool(false).unwrap(),
-            cx.factory().symbol(Symbol::new(":tools")).unwrap(),
-            cx.factory().bool(false).unwrap(),
-            cx.factory()
-                .symbol(Symbol::new(":max-output-bytes"))
-                .unwrap(),
-            cx.factory()
-                .number_literal(Symbol::qualified("numbers", "f64"), "4096".to_owned())
-                .unwrap(),
-        ]),
-    )
+    let values = vec![
+        cx.factory().symbol(Symbol::new(":name")).unwrap(),
+        cx.factory().symbol(name).unwrap(),
+        cx.factory().symbol(Symbol::new(":model")).unwrap(),
+        cx.factory().string(model.to_owned()).unwrap(),
+        cx.factory().symbol(Symbol::new(":endpoint")).unwrap(),
+        cx.factory().string(endpoint).unwrap(),
+        cx.factory().symbol(Symbol::new(":api-key-env")).unwrap(),
+        cx.factory()
+            .string("CARGO_MANIFEST_DIR".to_owned())
+            .unwrap(),
+        cx.factory().symbol(Symbol::new(":timeout")).unwrap(),
+        cx.factory().string("2s".to_owned()).unwrap(),
+        cx.factory().symbol(Symbol::new(":stream")).unwrap(),
+        cx.factory().bool(false).unwrap(),
+        cx.factory().symbol(Symbol::new(":tools")).unwrap(),
+        cx.factory().bool(false).unwrap(),
+        cx.factory()
+            .symbol(Symbol::new(":max-output-bytes"))
+            .unwrap(),
+        cx.factory()
+            .number_literal(Symbol::qualified("numbers", "f64"), "4096".to_owned())
+            .unwrap(),
+    ];
+    let mut construction_caps = cx.capabilities().clone();
+    construction_caps.insert(sim_kernel::CapabilityName::new("ai-runner-secret"));
+    cx.with_capabilities(construction_caps, |cx| {
+        cx.call_function(&function, Args::new(values))
+    })
     .unwrap()
 }
 

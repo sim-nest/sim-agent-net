@@ -165,7 +165,11 @@ mod tests {
 
     #[test]
     fn model_request_and_delta_convert_to_kernel_chunk_events() {
-        let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+        let mut cx = Cx::new(
+            Arc::new(NoopEvalPolicy),
+            Arc::new(DefaultFactory),
+            sim_kernel::HandleSeed::new(0xaa0a_e72c_c8f6_c03e),
+        );
         let run = Ref::Symbol(Symbol::qualified("test", "run"));
         let request = ModelRequest::new(Expr::String("task".to_owned()), Vec::new());
         let request_event = model_request_kernel_event(&mut cx, run.clone(), 0, &request).unwrap();

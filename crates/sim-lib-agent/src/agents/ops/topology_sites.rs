@@ -224,7 +224,7 @@ impl EvalSite for DebateTurnSite {
             .cloned()
             .unwrap_or_else(|| input.clone());
         let mut transcript = list_field(&input, "transcript");
-        let pro_turn = turns_used % 2 == 0;
+        let pro_turn = turns_used.is_multiple_of(2);
         let (side, role, connection) = if pro_turn {
             ("pro", Symbol::new("worker"), &self.pro)
         } else {

@@ -15,6 +15,8 @@
 | `sim-lib-agent-runner-local` | `workspace` | Loadable local model runner for SIM. |
 | `sim-lib-agent-runner-process` | `workspace` | Local subprocess-backed model runners for SIM. |
 | `sim-lib-bridge` | `workspace` | Checked BRIDGE packet runtime for SIM model exchanges. |
+| `sim-lib-capability-pack` | `workspace` | Content-addressed, checked composition of loadable SIM capabilities. |
+| `sim-lib-capability-pack-recipe-checked-pack` | `workspace` | SIM workspace package for sim lib capability pack recipe checked pack. |
 | `sim-lib-continuity` | `workspace` | Pure continuity planning and replay. |
 | `sim-lib-continuity-recipe-hostile-replay` | `workspace` | Hostile continuity replay cookbook recipe. |
 | `sim-lib-cookbook` | `workspace` | Runtime cookbook: operations for SIM. |

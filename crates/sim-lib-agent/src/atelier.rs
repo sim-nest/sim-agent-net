@@ -1,12 +1,12 @@
 //! Atelier agent-facing retrieval contracts.
 
 pub mod capsule;
+pub mod channel;
 mod contract_native;
 pub mod guard;
 pub mod instrument_adoption;
 pub mod mission;
 pub mod mission_control;
-pub mod channel;
 mod mission_handoff;
 mod mission_lease;
 pub mod mission_policy;
@@ -20,6 +20,7 @@ pub use capsule::{
     CapsulePush, CapsuleReview, CapsuleScope, ChangeCapsule, GeneratedArtifact, JobSite,
     PinPlanEntry, PlacedJob, fake_change_capsule, review_change_capsule,
 };
+pub use channel::{Channel, ChannelCeiling, ChannelPassport, HandoffError, ReturnShape};
 pub use contract_native::{
     AtelierBackend, CONTRACT_NATIVE_SCHEMA, ContractNativeAtelierReport, ContractNativeDeckSummary,
     ContractNativeGrammarSummary, ContractNativeGuardDenial, ContractNativeProjectionSummary,
@@ -37,7 +38,6 @@ pub use instrument_adoption::{
 };
 pub use mission::{AgentMission, AtelierAgentRole, HumanDecisionPoint, MissionRun, MissionScope};
 pub use mission_control::{MissionControlFixture, fake_mission_control_fixture};
-pub use channel::{Channel, ChannelCeiling, ChannelPassport, HandoffError, ReturnShape};
 pub use mission_handoff::{MissionHandoffReport, run_mission_handoff};
 pub use mission_lease::{
     WorkspaceLease, WorkspaceLeaseConflict, WorkspaceLeaseKind, WorkspaceLeaseMode,

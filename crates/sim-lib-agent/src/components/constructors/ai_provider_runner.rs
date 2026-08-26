@@ -54,7 +54,7 @@ fn provider_runner_capabilities(config: &ProviderConfig) -> Vec<CapabilityName> 
 }
 
 fn provider_runner_spec(config: &ProviderConfig) -> Vec<(Symbol, Expr)> {
-    vec![
+    let mut spec = vec![
         (
             Symbol::new("backend"),
             Expr::Symbol(config.profile.provider.clone()),
@@ -86,5 +86,12 @@ fn provider_runner_spec(config: &ProviderConfig) -> Vec<(Symbol, Expr)> {
                 canonical: config.max_output_bytes.to_string(),
             }),
         ),
-    ]
+    ];
+    if let Some(api_key_env) = &config.api_key_env {
+        spec.push((
+            Symbol::new("api-key-env"),
+            Expr::String(api_key_env.clone()),
+        ));
+    }
+    spec
 }

@@ -1,3 +1,4 @@
+use crate::candidate::content_id_text;
 use crate::{CandidateRevision, IdentityVerification, verify_observed_identity};
 use sim_kernel::{ContentId, Result};
 use std::collections::BTreeMap;
@@ -32,7 +33,7 @@ impl CandidateCensus {
             record.presence = CandidatePresence::Absent;
         }
         for revision in present {
-            let key = revision.subject_revision()?.content_id().to_string();
+            let key = content_id_text(revision.subject_revision()?.content_id());
             self.records.insert(
                 key,
                 CandidateRecord {

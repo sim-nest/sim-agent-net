@@ -401,7 +401,11 @@ fn bind_skill(cx: &mut Cx) -> Arc<sim_lib_skill::FixtureTransport> {
 }
 
 fn test_cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x54ae_4439_028c_3b4e),
+    )
 }
 
 fn any_shape(name: &str) -> ShapeRef {

@@ -1,0 +1,6 @@
+(quote (roadmap-core
+  (tree bounded)
+  (revision content-addressed)
+  (guide reviewed)
+  (execution absent)
+  (completion unclaimed)))

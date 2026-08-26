@@ -147,14 +147,14 @@ mod bounded_service {
 
     #[test]
     fn pins_and_budget_provenance_fail_closed_before_an_effect() {
-        let request = request(10, 100);
-        assert_eq!(request.authority.ceiling.limits[0].sources.len(), 2);
+        let open_request = request(10, 100);
+        assert_eq!(open_request.authority.ceiling.limits[0].sources.len(), 2);
         let mut service = RoadmapRunnerService::open(
             Arc::new(MemoryBackend::new()),
-            Ready(request.phase.clone()),
+            Ready(open_request.phase.clone()),
             FakeEffects(Mutex::new(vec![])),
             NeverCancel,
-            request.clone(),
+            open_request.clone(),
             Limits::default(),
         )
         .unwrap();

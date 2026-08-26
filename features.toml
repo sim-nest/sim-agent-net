@@ -8,7 +8,7 @@ owner = "crate/sim-lib-agent"
 audiences = ["code", "framework"]
 guidance = "Construct ChannelPassport from an already closed pack and selected public claim references, then verify every derived handoff before selecting a channel ceiling. The passport represents no payload, credential, live handle, or model memory. Treat expiry as a normal manual-continuation boundary and reduce workstation, local voice, Telegram, Halo, and watch responses before any encoder runs."
 claims_anchors = ["anchor/crate/sim-lib-agent"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/channel-policy-focused/src/lib"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/channel"]
 
 [[route]]
 id = "route/handoff-expedition-across-channels"
@@ -16,7 +16,7 @@ task = "Move an expedition thought across channels without widening authority or
 audiences = ["framework"]
 steps = [
   { feature = "feature/sim-agent-net/diminished-channel-passports", why = "The passport and channel ceilings enforce diminishing handoff before encode." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/channel-policy-focused/src/lib", why = "Adversarial fixtures reject new grants and claims and prove every named channel ceiling." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/channel", why = "Adversarial fixtures reject new grants and claims and prove every named channel ceiling." },
 ]
 
 [[feature]]
@@ -27,7 +27,7 @@ owner = "crate/sim-lib-capability-pack"
 audiences = ["code", "framework"]
 guidance = "Supply packs through the injected PackDir by canonical sha256 content id, call resolve with the intersection of the mission and caller ceilings, validate against a read-only Index/Shape Catalog, and only then pass the opaque ValidatedPack to load. Imports may diminish but never widen authority. Keep SDK conventions, package management, room enums, kernel changes, and bootloader-frame behavior outside this organ."
 claims_anchors = ["anchor/crate/sim-lib-capability-pack"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-capability-pack/focused-tests/tests/closure"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-capability-pack/src/tests"]
 
 [[route]]
 id = "route/compose-content-addressed-capability-pack"
@@ -35,7 +35,7 @@ task = "Compose a room as a checked content-addressed runtime closure"
 audiences = ["framework"]
 steps = [
   { feature = "feature/sim-agent-net/content-addressed-capability-packs", why = "PackDir lookup, deterministic graph resolution, diminishing ceilings, complete preflight, and separated loading form the reusable composition boundary." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-capability-pack/focused-tests/tests/closure", why = "Two independent roots share one deterministic import while cycle and authority-widening fixtures refuse before load." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-capability-pack/src/tests", why = "Two independent roots share one deterministic import while cycle and authority-widening fixtures refuse before load." },
 ]
 
 [[feature]]
@@ -46,7 +46,7 @@ owner = "crate/sim-roadmap-exec-core"
 audiences = ["code", "framework"]
 guidance = "Construct an ExecutionPolicy and canonical MutationPlan, then call reduce or replay with journal observations. Interpret EffectRequest values only in a host adapter and feed resulting observations back through the reducer. A Succeeded state is trustworthy only when returned with the reducer-minted PhaseReceipt; never synthesize receipts or put filesystem, process, model, network, Git, journal, scheduler, or CLI handles in these values."
 claims_anchors = ["anchor/crate/sim-roadmap-exec-core"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-exec-core/focused-tests/src/lib"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-exec-core/src/tests"]
 
 [[route]]
 id = "route/reconcile-roadmap-phase"
@@ -54,7 +54,7 @@ task = "Replay and reconcile one roadmap phase without coupling execution laws t
 audiences = ["framework"]
 steps = [
   { feature = "feature/sim-agent-net/pure-roadmap-execution", why = "The pure reducer owns correlation, reconciliation, and success admission while returning all requested effects as data." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-roadmap-exec-core/focused-tests/src/lib", why = "The transition matrix, hostile correlations, deterministic replay, and forged-success fixture exercise the complete value-machine boundary." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-roadmap-exec-core/src/tests", why = "The transition matrix, hostile correlations, deterministic replay, and forged-success fixture exercise the complete value-machine boundary." },
 ]
 
 [[feature]]
@@ -105,7 +105,7 @@ owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Open RoadmapRunnerService with a complete ExecutionIdentity and the pointwise EffectiveCeiling derived from caller, roadmap, conduct, model-site, sandbox, and operator layers. Call advance_one_effect explicitly; ReadinessPort remains the only scheduler and EffectPort returns observations rather than state. Resume only with identical content pins, a fresh caller grant, and an equal-or-narrower ceiling. Use replay and inspect for observation, never an unbounded host loop."
 claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests"]
 depends_on = ["feature/sim-agent-net/durable-roadmap-execution-journal", "feature/sim-agent-net/pure-roadmap-execution"]
 
 [[route]]
@@ -114,7 +114,7 @@ task = "Safely advance, interrupt, replay, and resume one grounded roadmap leaf"
 audiences = ["framework"]
 steps = [
   { feature = "feature/sim-agent-net/bounded-roadmap-runner-service", why = "The service pins every effect-bearing identity, delegates readiness, journals intent before adapter use, and admits receipts only through the pure reducer." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib", why = "The deterministic service fixture proves direct and replayed observations produce identical state and rejects package identity replacement before another effect." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests", why = "The deterministic service fixture proves direct and replayed observations produce identical state and rejects package identity replacement before another effect." },
 ]
 
 [[feature]]
@@ -177,8 +177,8 @@ task = "Recover a failed roadmap attempt without widening authority or cycling"
 audiences = ["framework"]
 steps = [
   { feature = "feature/sim-agent-net/bounded-roadmap-recovery", why = "The pure policy gate makes reconciliation, unchanged identities, named failure class, compatible fallback provenance, and a finite remaining counter prerequisites for another attempt." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-roadmap-exec-core/focused-tests/src/lib", why = "Randomized sequences consume their declared counters and pinned fallback fixtures reject foreign candidates." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/focused-tests/src/lib", why = "Foreign source bytes terminate without effects while only freshly regrounded strict descent reaches the refiner." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-roadmap-exec-core/src/tests", why = "Randomized sequences consume their declared counters and pinned fallback fixtures reject foreign candidates." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests", why = "Foreign source bytes terminate without effects while only freshly regrounded strict descent reaches the refiner." },
 ]
 
 [[feature]]
@@ -293,7 +293,7 @@ owner = "crate/sim-roadmap-core"
 audiences = ["code", "framework"]
 guidance = "Construct authored PhaseSpec values, then call RoadmapSpec::admit before consuming their decomposition. Read effective envelopes from AdmittedPhase while retaining the authored fields for review. Composite phases must explicitly map every parent obligation to a child contribution or retain it at the parent; supporting child obligations must trace back, and aggregate dependencies may not target self or descendants. Handle the structured Failure path instead of reconstructing graph diagnostics. This is roadmap policy admission, not a scheduler or generic graph worklist."
 claims_anchors = ["anchor/crate/sim-roadmap-core"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-core/focused-tests/src/lib"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-roadmap-core/src/tests"]
 
 [[feature]]
 id = "feature/sim-agent-net/immutable-source-decks"
@@ -368,7 +368,7 @@ owner = "crate/sim-lib-agent"
 audiences = ["code", "framework"]
 guidance = "Compose BRIDGE, ChangeCapsule, capability-pack resolution, sandboxed FORGE builds, and hotload. Discard chat, model state, scratch, and derived views before rebuilding from FrozenInstrumentRecipe; InstrumentAdoption refuses mismatched artifacts without changing state."
 claims_anchors = ["anchor/rustdoc/sim-lib-agent/atelier/instrument_adoption"]
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/instrument_adoption_tests", "recipe/sim-sdk/hotload/conversational-instrument-adoption"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/instrument_adoption_tests"]
 
 [[route]]
 id = "route/agent-reproducible-instrument-adoption"
@@ -376,7 +376,7 @@ task = "Adopt an instrument proposed through conversation without retaining the 
 audiences = ["code", "framework"]
 steps = [
   { feature = "feature/sim-agent-net/reproducible-instrument-adoption", why = "Freeze intent and coordinate the indivisible local adoption transaction." },
-  { specimen = "recipe/sim-sdk/hotload/conversational-instrument-adoption", why = "Exercise the public facade with only frozen recipe inputs." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/instrument_adoption_tests", why = "Exercise the conversation-free adoption transaction with frozen recipe inputs and rollback evidence." },
 ]
 
 [[feature]]
@@ -386,7 +386,7 @@ summary = "Freeze authority, pack closure, roles, placements, tools, budgets, ve
 owner = "crate/sim-lib-agent"
 audiences = ["code", "framework"]
 guidance = "Build MissionPlan once from the selected AGENT_7 conduct packages, role ceilings, model placements, exact tools, budget, escalation target, stop state, and data-only topology. Call MissionPlan::admit before an existing conduct acts. Observe, organize, propose-local, and adopt-local are bounded local authority; request-external and request-sensitive only escalate. Deterministic verification, source checks, capability refusal, privacy, and budget vetoes are non-overridable. Placement and topology never grant authority, and plan admission rejects role widening, self-selected judges, hidden adjacent-room reads, and pack-closure drift."
-claims_anchors = ["anchor/rustdoc/sim-lib-agent/MissionPlan", "anchor/rustdoc/sim-lib-agent/AuthorityLevel"]
+claims_anchors = ["anchor/rustdoc/sim-lib-agent/atelier/mission_policy/mission-plan", "anchor/rustdoc/sim-lib-agent/atelier/mission_policy/authority-level"]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/mission_policy_tests"]
 depends_on = ["feature/sim-agent-net/agent-conduct-topology-profile", "feature/sim-agent-net/agent-single-steps"]
 
@@ -1200,10 +1200,21 @@ id = "route/author-agent-conduct"
 task = "Author an agent conduct control loop"
 audiences = ["user", "code", "framework"]
 steps = [
+  { feature = "feature/sim-agent-net/agent-conduct-records", why = "The core records define the stable frame, step Card, budget, journal, replay, and fork vocabulary every conduct uses." },
+  { feature = "feature/sim-agent-net/agent-conduct-topology-profile", why = "The topology profile certifies data-only conduct packages and binds their Cards through the shared topology engine." },
   { feature = "feature/sim-agent-net/agent-conduct", why = "The agent/conduct-v1 profile validates RunFrame Shapes, step Cards, outcome routing, roles, authority, budgets, terminal admission, and embedded tests." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent-conduct/01-basics/echo-conduct", why = "The checked recipe demonstrates a minimal authored topology package loaded and executed through the shared engine." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/third-party-step", why = "The checked extension specimen adds a Card and implementation without editing conduct or topology source." },
   { specimen = "recipe/sim-agent-net/crates/sim-lib-agent/50-conducts/router-crew", why = "The data-only triage and routing family proves a nontrivial authored graph remains catalog data rather than baked-in control flow." },
+]
+
+[[route]]
+id = "route/build-model-test-pack"
+task = "Build a reproducible model-test task pack"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/model-test-packs", why = "The pack owner rebuilds pinned public fixtures, seals immutable epochs, and keeps private bytes behind caller-supplied control-plane loaders." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-model-test-packs/src/tests", why = "The checked pack specimen covers deterministic reconstruction, generated target/control pairs, private-loader boundaries, and sealed evaluator evidence." },
 ]
 
 [[route]]

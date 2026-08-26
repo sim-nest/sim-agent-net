@@ -1,5 +1,7 @@
 //! Payload-free, authority-diminishing passports for cross-surface handoff.
 
+// conformance: channel tests prove diminishing grants, claims, expiry, and response ceilings.
+
 use std::collections::BTreeSet;
 
 /// A surface class with a fixed disclosure ceiling.
@@ -132,19 +134,43 @@ mod tests {
 
         let mut richer = diminished.clone();
         richer.grants.insert("credential-read".into());
-        assert_eq!(source.verify_handoff(&richer, 10), Err(HandoffError::AuthorityGain));
+        assert_eq!(
+            source.verify_handoff(&richer, 10),
+            Err(HandoffError::AuthorityGain)
+        );
         let mut disclosed = diminished;
         disclosed.claim_refs.insert("claim:model-memory".into());
-        assert_eq!(source.verify_handoff(&disclosed, 10), Err(HandoffError::AuthorityGain));
+        assert_eq!(
+            source.verify_handoff(&disclosed, 10),
+            Err(HandoffError::AuthorityGain)
+        );
     }
 
     #[test]
     fn expiry_and_channel_ceilings_fail_closed() {
-        assert_eq!(passport().verify_handoff(&passport(), 100), Err(HandoffError::Expired));
-        assert_eq!(Channel::Watch.reduce(ChannelCeiling::Full), ChannelCeiling::Acknowledge);
-        assert_eq!(Channel::Halo.reduce(ChannelCeiling::Interactive), ChannelCeiling::Acknowledge);
-        assert_eq!(Channel::Telegram.reduce(ChannelCeiling::Full), ChannelCeiling::Summary);
-        assert_eq!(Channel::LocalVoice.reduce(ChannelCeiling::Full), ChannelCeiling::Interactive);
-        assert_eq!(Channel::Workstation.reduce(ChannelCeiling::Full), ChannelCeiling::Full);
+        assert_eq!(
+            passport().verify_handoff(&passport(), 100),
+            Err(HandoffError::Expired)
+        );
+        assert_eq!(
+            Channel::Watch.reduce(ChannelCeiling::Full),
+            ChannelCeiling::Acknowledge
+        );
+        assert_eq!(
+            Channel::Halo.reduce(ChannelCeiling::Interactive),
+            ChannelCeiling::Acknowledge
+        );
+        assert_eq!(
+            Channel::Telegram.reduce(ChannelCeiling::Full),
+            ChannelCeiling::Summary
+        );
+        assert_eq!(
+            Channel::LocalVoice.reduce(ChannelCeiling::Full),
+            ChannelCeiling::Interactive
+        );
+        assert_eq!(
+            Channel::Workstation.reduce(ChannelCeiling::Full),
+            ChannelCeiling::Full
+        );
     }
 }

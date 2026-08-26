@@ -72,12 +72,11 @@ pub fn apply(
                     "route lease is outside freshness bound",
                 ));
             }
-            if lease.networked {
-                if matches!(plan.network, crate::NetworkPolicy::Offline)
-                    || !plan.allowed_network_routes.contains(&lease.route)
-                {
-                    return Err(refusal("network-policy", "network route is forbidden"));
-                }
+            if lease.networked
+                && (matches!(plan.network, crate::NetworkPolicy::Offline)
+                    || !plan.allowed_network_routes.contains(&lease.route))
+            {
+                return Err(refusal("network-policy", "network route is forbidden"));
             }
             if role
                 .required_services

@@ -7,23 +7,14 @@ publish = false
 [workspace]
 
 [dependencies]
-sim-kernel = { path = "../../../../sim-kernel" }
-sim-lib-journal = { path = "../../../../sim-storage/crates/sim-lib-journal" }
-sim-lib-exec = { path = "../../../../sim-runtime/crates/sim-lib-exec" }
-sim-cookbook = { path = "../../../../sim-foundation/crates/sim-cookbook" }
-sim-cookbook-build = { path = "../../../../sim-foundation/crates/sim-cookbook-build" }
+sim-kernel = { version = "0.2.1" }
+sim-lib-journal = { version = "0.1.0" }
+sim-lib-exec = { version = "0.2.0" }
+sim-cookbook = { version = "0.2.1" }
+sim-cookbook-build = { version = "0.1.0" }
 sim-lib-roadmap-runner = { path = ".." }
 sim-roadmap-core = { path = "../../sim-roadmap-core" }
 sim-roadmap-exec-core = { path = "../../sim-roadmap-exec-core" }
 sim-roadmap-refine = { path = "../../sim-roadmap-refine" }
 sim-source-deck = { path = "../../sim-source-deck" }
-sim-shape = { path = "../../../../sim-shape" }
-
-[patch.crates-io]
-sim-kernel = { path = "../../../../sim-kernel" }
-sim-storage-port = { path = "../../../../sim-storage/crates/sim-storage-port" }
-sim-lib-journal = { path = "../../../../sim-storage/crates/sim-lib-journal" }
-sim-lib-exec = { path = "../../../../sim-runtime/crates/sim-lib-exec" }
-sim-cookbook = { path = "../../../../sim-foundation/crates/sim-cookbook" }
-sim-cookbook-build = { path = "../../../../sim-foundation/crates/sim-cookbook-build" }
-sim-shape = { path = "../../../../sim-shape" }
+sim-shape = { version = "0.2.4" }

@@ -147,5 +147,4 @@ pub fn services() -> Result<TransportServices> {
             )
         })
 }
-
 pub mod model;

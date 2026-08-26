@@ -215,7 +215,7 @@ impl<B: JournalBackend> ExecutionJournal<B> {
     pub fn rebuild_report(&self) -> Result<RebuiltExecution, ReplayFailure> {
         let state = self.backend.read_state().map_err(|error| ReplayFailure {
             last_verified_head: None,
-            error: error.into(),
+            error: Box::new(error.into()),
         })?;
         let mut prefix = StoredState {
             objects: state.objects.clone(),
@@ -235,7 +235,7 @@ impl<B: JournalBackend> ExecutionJournal<B> {
         }
         self.rebuild().map_err(|error| ReplayFailure {
             last_verified_head: last,
-            error,
+            error: Box::new(error),
         })
     }
 }

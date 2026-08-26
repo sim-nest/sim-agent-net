@@ -79,6 +79,20 @@
       "summary": "Checked BRIDGE packet runtime for SIM model exchanges."
     },
     {
+      "crate_name": "sim_lib_capability_pack",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-capability-pack/Cargo.toml",
+      "package": "sim-lib-capability-pack",
+      "summary": "Content-addressed, checked composition of loadable SIM capabilities."
+    },
+    {
+      "crate_name": "sim-lib-capability-pack-recipe-checked-pack",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/Cargo.toml",
+      "package": "sim-lib-capability-pack-recipe-checked-pack",
+      "summary": "SIM workspace package for sim lib capability pack recipe checked pack."
+    },
+    {
       "crate_name": "sim_lib_continuity",
       "group": "workspace",
       "manifest": "crates/sim-lib-continuity/Cargo.toml",

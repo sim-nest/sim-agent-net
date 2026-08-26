@@ -74,19 +74,6 @@ pub fn check(root: &Path) -> Result<(), String> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn repository_has_no_private_agent_repetition() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("xtask lives directly below the repository root");
-        check(root).expect("agent repetition inventory must remain conduct-owned");
-    }
-}
-
 fn collect_rs(path: &Path, files: &mut Vec<std::path::PathBuf>) -> Result<(), String> {
     for entry in fs::read_dir(path).map_err(|error| format!("{}: {error}", path.display()))? {
         let entry = entry.map_err(|error| format!("{}: {error}", path.display()))?;
@@ -98,4 +85,17 @@ fn collect_rs(path: &Path, files: &mut Vec<std::path::PathBuf>) -> Result<(), St
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repository_has_no_private_agent_repetition() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("xtask lives directly below the repository root");
+        check(root).expect("agent repetition inventory must remain conduct-owned");
+    }
 }

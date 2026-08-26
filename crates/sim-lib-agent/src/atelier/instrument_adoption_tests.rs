@@ -115,3 +115,4 @@ fn cancellation_and_failed_rebuild_change_nothing_then_rollback_restores_all() {
         .unwrap();
     assert_eq!(adoption.rollback().unwrap(), before.installed);
 }
+// conformance: instrument-adoption tests prove bounded qualification and retained evidence.

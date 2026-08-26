@@ -1,5 +1,5 @@
 {
-  "card_count": 35,
+  "card_count": 43,
   "cards": [
     {
       "id": "browse/catalog",
@@ -44,10 +44,22 @@
       "summary": "Process runner descriptors expressed as local fixtures."
     },
     {
+      "id": "cookbook/agent/conduct",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-agent-conduct",
+      "summary": "Compose checked agent conduct policies."
+    },
+    {
       "id": "cookbook/bridge",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-bridge",
       "summary": "Checked BRIDGE packet send and receive runtime."
+    },
+    {
+      "id": "cookbook/capability/pack",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-capability-pack",
+      "summary": "Checked content-addressed runtime compositions."
     },
     {
       "id": "cookbook/continuity",
@@ -110,6 +122,18 @@
       "summary": "Bounded modern and explicit legacy MCP process boundaries."
     },
     {
+      "id": "cookbook/model-test",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-model-test",
+      "summary": "Seal, run, and grade reproducible model trials without hidden ambient authority."
+    },
+    {
+      "id": "cookbook/model-test/packs",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-model-test-packs",
+      "summary": "Freeze, validate, and select immutable public model-test task packs."
+    },
+    {
       "id": "cookbook/oauth-core",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-oauth-core",
@@ -152,6 +176,24 @@
       "summary": "Caller-owned specimens for loadable roadmap intent operations."
     },
     {
+      "id": "cookbook/roadmap-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-core",
+      "summary": "Author immutable bounded roadmap intent and reviewed guides."
+    },
+    {
+      "id": "cookbook/roadmap-exec-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-exec-core",
+      "summary": "Reduce execution observations and admit bounded recovery as pure data."
+    },
+    {
+      "id": "cookbook/roadmap-plan",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-plan",
+      "summary": "Compile grounded roadmap readiness with exact invalidation."
+    },
+    {
       "id": "cookbook/roadmap-refine",
       "kind": "cookbook-recipe",
       "owner": "sim-roadmap-refine",
@@ -176,16 +218,16 @@
       "summary": "Server request descriptors and local route shapes."
     },
     {
-      "id": "cookbook/sim-lib-agent-conduct",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-agent-conduct",
-      "summary": ""
-    },
-    {
       "id": "cookbook/skill",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-skill",
       "summary": "Skill cards, fixture transports, cassette replay, and audit policy."
+    },
+    {
+      "id": "cookbook/source-deck",
+      "kind": "cookbook-recipe",
+      "owner": "sim-source-deck",
+      "summary": "Ground bounded source evidence without ambient effects."
     },
     {
       "id": "cookbook/stream-fabric",
@@ -204,6 +246,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-transport-ports",
       "summary": "Bind provider-neutral transport services and test network faults deterministically."
+    },
+    {
+      "id": "cookbook/web/fetch",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-web-fetch",
+      "summary": "Policy-gated capture and deterministic offline replay of immutable web evidence."
     },
     {
       "id": "registry/catalog",
@@ -232,6 +280,8 @@
       "sim-lib-agent-runner-local",
       "sim-lib-agent-runner-process",
       "sim-lib-bridge",
+      "sim-lib-capability-pack",
+      "sim-lib-capability-pack-recipe-checked-pack",
       "sim-lib-continuity",
       "sim-lib-continuity-recipe-hostile-replay",
       "sim-lib-cookbook",
@@ -456,7 +506,7 @@
       "reason": "live skill transport handle; transport metadata is carried by skill/Card descriptor"
     }
   ],
-  "package_count": 46,
+  "package_count": 48,
   "packages": [
     {
       "crate_name": "sim_lib_agent",
@@ -465,6 +515,13 @@
           "kind": "dev",
           "optional": false,
           "package": "sim-lib-cookbook",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "dev",
+          "optional": false,
+          "package": "sim-transport-ports",
           "rename": null,
           "target": null
         },
@@ -1183,6 +1240,68 @@
           ],
           "name": "build-script-build",
           "src": "crates/sim-lib-bridge/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_capability_pack",
+      "dependencies": [],
+      "description": "Content-addressed, authority-bounded runtime capability-pack composition for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-capability-pack/Cargo.toml",
+      "name": "sim-lib-capability-pack",
+      "publish": "true",
+      "root": "crates/sim-lib-capability-pack",
+      "rustdoc_summary": "Content-addressed, checked composition of loadable SIM capabilities.",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_capability_pack",
+          "src": "crates/sim-lib-capability-pack/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim-lib-capability-pack-recipe-checked-pack",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-capability-pack",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "SIM workspace package for sim lib capability pack recipe checked pack.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/Cargo.toml",
+      "name": "sim-lib-capability-pack-recipe-checked-pack",
+      "publish": "false",
+      "root": "crates/sim-lib-capability-pack/recipes/01-basics/checked-pack",
+      "rustdoc_summary": "SIM workspace package for sim lib capability pack recipe checked pack.",
+      "target_kinds": [
+        "bin"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "bin"
+          ],
+          "name": "sim-lib-capability-pack-recipe-checked-pack",
+          "src": "crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/src/main.rs"
         }
       ]
     },
@@ -3277,10 +3396,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-18T14:40:47+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "b6a16c519054df7b0289442e767286073e727051",
+    "git_commit": "4bb7a0858fbe393594b942c2d19a2c31c3cfab47",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "b6a16c519054df7b0289442e767286073e727051",
+    "source_commit": "4bb7a0858fbe393594b942c2d19a2c31c3cfab47",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -3293,13 +3412,15 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "2ec6b1ba74f13e32",
+    "workspace_hash": "62690577b9304fd4",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 1004,
+    "workspace_hash_input_count": 1119,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
       "crates/sim-lib-agent/build.rs",
+      "crates/sim-lib-agent/channel-policy-focused/Cargo.toml",
+      "crates/sim-lib-agent/channel-policy-focused/src/lib.rs",
       "crates/sim-lib-agent/recipes/01-basics/core-tool-projection/recipe.toml",
       "crates/sim-lib-agent/recipes/01-basics/decompose-reflect/recipe.toml",
       "crates/sim-lib-agent/recipes/01-basics/fairness-explain/recipe.toml",
@@ -3349,7 +3470,10 @@
       "crates/sim-lib-agent/recipes/50-conducts/third-party-step/recipe.toml",
       "crates/sim-lib-agent/recipes/50-conducts/verify-retry/recipe.toml",
       "crates/sim-lib-agent/recipes/book.toml",
+      "crates/sim-lib-agent/src/agents/components.rs",
       "crates/sim-lib-agent/src/agents/driver.rs",
+      "crates/sim-lib-agent/src/agents/helpers/manifest_runtime.rs",
+      "crates/sim-lib-agent/src/agents/helpers/runtime_sites.rs",
       "crates/sim-lib-agent/src/agents/helpers.rs",
       "crates/sim-lib-agent/src/agents/model/lookup.rs",
       "crates/sim-lib-agent/src/agents/model/runtime.rs",
@@ -3373,15 +3497,20 @@
       "crates/sim-lib-agent/src/agents.rs",
       "crates/sim-lib-agent/src/atelier/capsule.rs",
       "crates/sim-lib-agent/src/atelier/capsule_tests.rs",
+      "crates/sim-lib-agent/src/atelier/channel.rs",
       "crates/sim-lib-agent/src/atelier/contract_native.rs",
       "crates/sim-lib-agent/src/atelier/contract_native_tests.rs",
       "crates/sim-lib-agent/src/atelier/guard.rs",
       "crates/sim-lib-agent/src/atelier/guard_tests.rs",
+      "crates/sim-lib-agent/src/atelier/instrument_adoption.rs",
+      "crates/sim-lib-agent/src/atelier/instrument_adoption_tests.rs",
       "crates/sim-lib-agent/src/atelier/mission.rs",
       "crates/sim-lib-agent/src/atelier/mission_control.rs",
       "crates/sim-lib-agent/src/atelier/mission_control_tests.rs",
       "crates/sim-lib-agent/src/atelier/mission_handoff.rs",
       "crates/sim-lib-agent/src/atelier/mission_lease.rs",
+      "crates/sim-lib-agent/src/atelier/mission_policy.rs",
+      "crates/sim-lib-agent/src/atelier/mission_policy_tests.rs",
       "crates/sim-lib-agent/src/atelier/mission_tests.rs",
       "crates/sim-lib-agent/src/atelier/radar.rs",
       "crates/sim-lib-agent/src/atelier/radar_tests.rs",
@@ -3466,6 +3595,8 @@
       "crates/sim-lib-agent/src/reply.rs",
       "crates/sim-lib-agent/src/roles.rs",
       "crates/sim-lib-agent/src/runner_projection.rs",
+      "crates/sim-lib-agent/src/steps/core.rs",
+      "crates/sim-lib-agent/src/steps/model_turn.rs",
       "crates/sim-lib-agent/src/steps.rs",
       "crates/sim-lib-agent/src/tests/agent30_recipes.rs",
       "crates/sim-lib-agent/src/tests/agent_ai_agent_runner.rs",
@@ -3498,6 +3629,8 @@
       "crates/sim-lib-agent/src/tests/agent_r18.rs",
       "crates/sim-lib-agent/src/tests/agent_r18_support.rs",
       "crates/sim-lib-agent/src/tests/agent_r19.rs",
+      "crates/sim-lib-agent/src/tests/agent_r23/delegation.rs",
+      "crates/sim-lib-agent/src/tests/agent_r23/topologies.rs",
       "crates/sim-lib-agent/src/tests/agent_r23.rs",
       "crates/sim-lib-agent/src/tests/agent_recipe_result.rs",
       "crates/sim-lib-agent/src/tests/agent_stream_phase9.rs",
@@ -3519,6 +3652,7 @@
       "crates/sim-lib-agent/src/tests/sandbox_r13.rs",
       "crates/sim-lib-agent/src/tests/standard_steps.rs",
       "crates/sim-lib-agent/src/tests/support.rs",
+      "crates/sim-lib-agent/src/tests/support_ports.rs",
       "crates/sim-lib-agent/src/tests/tools_memory.rs",
       "crates/sim-lib-agent/src/tests/voice_recorder_r14.rs",
       "crates/sim-lib-agent/src/tests/workflow_r12.rs",
@@ -3531,8 +3665,12 @@
       "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/recipe.toml",
       "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/src/main.rs",
       "crates/sim-lib-agent-conduct/recipes/book.toml",
+      "crates/sim-lib-agent-conduct/src/catalog.rs",
+      "crates/sim-lib-agent-conduct/src/conduct.rs",
       "crates/sim-lib-agent-conduct/src/lib.rs",
+      "crates/sim-lib-agent-conduct/src/runtime.rs",
       "crates/sim-lib-agent-conduct/src/tests.rs",
+      "crates/sim-lib-agent-conduct/src/validation.rs",
       "crates/sim-lib-agent-conduct-core/Cargo.toml",
       "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/Cargo.toml",
       "crates/sim-lib-agent-conduct-core/recipes/01-basics/pure-journal/recipe.toml",
@@ -3541,6 +3679,7 @@
       "crates/sim-lib-agent-conduct-core/src/journal.rs",
       "crates/sim-lib-agent-conduct-core/src/lib.rs",
       "crates/sim-lib-agent-conduct-core/src/lifecycle.rs",
+      "crates/sim-lib-agent-conduct-core/src/lifecycle_tests.rs",
       "crates/sim-lib-agent-conduct-core/src/records.rs",
       "crates/sim-lib-agent-conduct-core/src/sha256.rs",
       "crates/sim-lib-agent-conduct-core/src/symbols.rs",
@@ -3575,6 +3714,7 @@
       "crates/sim-lib-agent-runner-http/src/client/tests.rs",
       "crates/sim-lib-agent-runner-http/src/client.rs",
       "crates/sim-lib-agent-runner-http/src/config.rs",
+      "crates/sim-lib-agent-runner-http/src/config_tests.rs",
       "crates/sim-lib-agent-runner-http/src/direct_api.rs",
       "crates/sim-lib-agent-runner-http/src/lib.rs",
       "crates/sim-lib-agent-runner-http/src/local_service.rs",
@@ -3583,6 +3723,8 @@
       "crates/sim-lib-agent-runner-http/src/probe.rs",
       "crates/sim-lib-agent-runner-http/src/provider.rs",
       "crates/sim-lib-agent-runner-http/src/redact.rs",
+      "crates/sim-lib-agent-runner-http/src/runner/request_policy.rs",
+      "crates/sim-lib-agent-runner-http/src/runner/tests/transport.rs",
       "crates/sim-lib-agent-runner-http/src/runner/tests.rs",
       "crates/sim-lib-agent-runner-http/src/runner.rs",
       "crates/sim-lib-agent-runner-http/src/stream/anthropic.rs",
@@ -3648,9 +3790,25 @@
       "crates/sim-lib-bridge/src/tests.rs",
       "crates/sim-lib-bridge/src/tx.rs",
       "crates/sim-lib-bridge/src/warrant.rs",
+      "crates/sim-lib-capability-pack/Cargo.toml",
+      "crates/sim-lib-capability-pack/focused-tests/Cargo.toml",
+      "crates/sim-lib-capability-pack/focused-tests/src/lib.rs",
+      "crates/sim-lib-capability-pack/focused-tests/tests/closure.rs",
+      "crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/Cargo.toml",
+      "crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/recipe.toml",
+      "crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/src/main.rs",
+      "crates/sim-lib-capability-pack/recipes/book.toml",
+      "crates/sim-lib-capability-pack/src/codec.rs",
+      "crates/sim-lib-capability-pack/src/lib.rs",
+      "crates/sim-lib-capability-pack/src/load.rs",
+      "crates/sim-lib-capability-pack/src/model.rs",
+      "crates/sim-lib-capability-pack/src/resolve.rs",
+      "crates/sim-lib-capability-pack/src/tests.rs",
+      "crates/sim-lib-capability-pack/src/validate.rs",
       "crates/sim-lib-continuity/Cargo.toml",
       "crates/sim-lib-continuity/focused-tests/Cargo.toml",
       "crates/sim-lib-continuity/focused-tests/src/lib.rs",
+      "crates/sim-lib-continuity/focused-tests/src/suite.rs",
       "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/Cargo.toml",
       "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/recipe.toml",
       "crates/sim-lib-continuity/recipes/01-basics/hostile-replay/src/main.rs",
@@ -3751,7 +3909,9 @@
       "crates/sim-lib-mcp/src/sampling_tests.rs",
       "crates/sim-lib-mcp/src/schema.rs",
       "crates/sim-lib-mcp/src/serve.rs",
+      "crates/sim-lib-mcp/src/serve_tests.rs",
       "crates/sim-lib-mcp/src/service.rs",
+      "crates/sim-lib-mcp/src/service_tests.rs",
       "crates/sim-lib-mcp/src/session.rs",
       "crates/sim-lib-mcp/src/skill.rs",
       "crates/sim-lib-mcp/src/stdio.rs",
@@ -3774,24 +3934,36 @@
       "crates/sim-lib-mcp-client/recipes/01-basics/subscription/recipe.toml",
       "crates/sim-lib-mcp-client/recipes/book.toml",
       "crates/sim-lib-mcp-client/src/cache.rs",
+      "crates/sim-lib-mcp-client/src/client/callable.rs",
+      "crates/sim-lib-mcp-client/src/client/discovery.rs",
+      "crates/sim-lib-mcp-client/src/client/session.rs",
       "crates/sim-lib-mcp-client/src/client.rs",
       "crates/sim-lib-mcp-client/src/identity.rs",
       "crates/sim-lib-mcp-client/src/lib.rs",
       "crates/sim-lib-mcp-client/src/model.rs",
       "crates/sim-lib-mcp-client/src/schema.rs",
+      "crates/sim-lib-mcp-client/tests/client/cache.rs",
+      "crates/sim-lib-mcp-client/tests/client/connection.rs",
       "crates/sim-lib-mcp-client/tests/client.rs",
       "crates/sim-lib-mcp-http/Cargo.toml",
       "crates/sim-lib-mcp-http/build.rs",
       "crates/sim-lib-mcp-http/recipes/01-basics/http-client/recipe.toml",
       "crates/sim-lib-mcp-http/recipes/01-basics/http-server/recipe.toml",
       "crates/sim-lib-mcp-http/recipes/book.toml",
+      "crates/sim-lib-mcp-http/src/client.rs",
+      "crates/sim-lib-mcp-http/src/dispatch.rs",
       "crates/sim-lib-mcp-http/src/lib.rs",
+      "crates/sim-lib-mcp-http/src/policy.rs",
+      "crates/sim-lib-mcp-http/src/server.rs",
+      "crates/sim-lib-mcp-http/src/tests.rs",
       "crates/sim-lib-mcp-http/tests/streamable_http.rs",
       "crates/sim-lib-mcp-legacy/Cargo.toml",
       "crates/sim-lib-mcp-legacy/build.rs",
       "crates/sim-lib-mcp-legacy/recipes/01-basics/legacy-lifecycle/recipe.toml",
       "crates/sim-lib-mcp-legacy/recipes/book.toml",
+      "crates/sim-lib-mcp-legacy/src/connection.rs",
       "crates/sim-lib-mcp-legacy/src/lib.rs",
+      "crates/sim-lib-mcp-legacy/src/tests.rs",
       "crates/sim-lib-mcp-stdio/Cargo.toml",
       "crates/sim-lib-mcp-stdio/build.rs",
       "crates/sim-lib-mcp-stdio/recipes/01-basics/legacy-stdio/recipe.toml",
@@ -3801,6 +3973,7 @@
       "crates/sim-lib-mcp-stdio/src/framing.rs",
       "crates/sim-lib-mcp-stdio/src/lib.rs",
       "crates/sim-lib-mcp-stdio/src/server.rs",
+      "crates/sim-lib-mcp-stdio/src/server_tests.rs",
       "crates/sim-lib-model-test/Cargo.toml",
       "crates/sim-lib-model-test/focused-tests/Cargo.toml",
       "crates/sim-lib-model-test/focused-tests/harness.rs",
@@ -3808,6 +3981,7 @@
       "crates/sim-lib-model-test/product-focused/product.rs",
       "crates/sim-lib-model-test/recipes/01-basics/honest-candidate/recipe.toml",
       "crates/sim-lib-model-test/recipes/02-product/no-network-observatory/recipe.toml",
+      "crates/sim-lib-model-test/recipes/book.toml",
       "crates/sim-lib-model-test/src/candidate.rs",
       "crates/sim-lib-model-test/src/census.rs",
       "crates/sim-lib-model-test/src/economics.rs",
@@ -3818,6 +3992,7 @@
       "crates/sim-lib-model-test/src/privacy.rs",
       "crates/sim-lib-model-test/src/product.rs",
       "crates/sim-lib-model-test/src/projection.rs",
+      "crates/sim-lib-model-test/src/protocol/fake.rs",
       "crates/sim-lib-model-test/src/protocol.rs",
       "crates/sim-lib-model-test/src/protocol_tests.rs",
       "crates/sim-lib-model-test/src/tests.rs",
@@ -3827,6 +4002,7 @@
       "crates/sim-lib-model-test-packs/focused-tests/Cargo.toml",
       "crates/sim-lib-model-test-packs/focused-tests/harness.rs",
       "crates/sim-lib-model-test-packs/recipes/01-basics/public-conformance/recipe.toml",
+      "crates/sim-lib-model-test-packs/recipes/book.toml",
       "crates/sim-lib-model-test-packs/src/assistance.rs",
       "crates/sim-lib-model-test-packs/src/domain.rs",
       "crates/sim-lib-model-test-packs/src/epoch.rs",
@@ -3844,17 +4020,24 @@
       "crates/sim-lib-oauth-core/build.rs",
       "crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/recipe.toml",
       "crates/sim-lib-oauth-core/recipes/book.toml",
+      "crates/sim-lib-oauth-core/src/flow.rs",
       "crates/sim-lib-oauth-core/src/lib.rs",
+      "crates/sim-lib-oauth-core/src/tests.rs",
+      "crates/sim-lib-oauth-core/src/types.rs",
       "crates/sim-lib-oauth-http/Cargo.toml",
       "crates/sim-lib-oauth-http/build.rs",
       "crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/recipe.toml",
       "crates/sim-lib-oauth-http/recipes/book.toml",
+      "crates/sim-lib-oauth-http/src/documents.rs",
       "crates/sim-lib-oauth-http/src/lib.rs",
+      "crates/sim-lib-oauth-http/src/oauth_tests.rs",
       "crates/sim-lib-oauth-jose/Cargo.toml",
       "crates/sim-lib-oauth-jose/build.rs",
       "crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/recipe.toml",
       "crates/sim-lib-oauth-jose/recipes/book.toml",
       "crates/sim-lib-oauth-jose/src/lib.rs",
+      "crates/sim-lib-oauth-jose/src/tests.rs",
+      "crates/sim-lib-oauth-jose/src/verifier.rs",
       "crates/sim-lib-openai-server/Cargo.toml",
       "crates/sim-lib-openai-server/build.rs",
       "crates/sim-lib-openai-server/recipes/01-basics/fixture-chat/recipe.toml",
@@ -3958,6 +4141,7 @@
       "crates/sim-lib-provider/src/codex.rs",
       "crates/sim-lib-provider/src/conformance.rs",
       "crates/sim-lib-provider/src/fanout.rs",
+      "crates/sim-lib-provider/src/fanout_tests.rs",
       "crates/sim-lib-provider/src/lib.rs",
       "crates/sim-lib-provider/src/opencode.rs",
       "crates/sim-lib-provider/src/ops.rs",
@@ -3966,11 +4150,15 @@
       "crates/sim-lib-provider/src/seat_id.rs",
       "crates/sim-lib-provider/src/secret.rs",
       "crates/sim-lib-provider/src/secret_provider.rs",
+      "crates/sim-lib-provider/src/tests/auth.rs",
+      "crates/sim-lib-provider/src/tests/registry.rs",
       "crates/sim-lib-provider/src/tests.rs",
       "crates/sim-lib-provider-cli/Cargo.toml",
       "crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/recipe.toml",
       "crates/sim-lib-provider-cli/recipes/book.toml",
       "crates/sim-lib-provider-cli/src/lib.rs",
+      "crates/sim-lib-provider-cli/src/render.rs",
+      "crates/sim-lib-provider-cli/src/tests.rs",
       "crates/sim-lib-roadmap/Cargo.toml",
       "crates/sim-lib-roadmap/focused-tests/Cargo.toml",
       "crates/sim-lib-roadmap/focused-tests/src/lib.rs",
@@ -4001,6 +4189,14 @@
       "crates/sim-lib-roadmap-runner/compatibility-tests/src/lib.rs",
       "crates/sim-lib-roadmap-runner/focused-tests/Cargo.toml",
       "crates/sim-lib-roadmap-runner/focused-tests/src/lib.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/tests/common.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/tests/implementer.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/tests/local_runner.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/tests/mutation.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/tests/proof_leaf.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/tests/recovery.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/tests/replay.rs",
+      "crates/sim-lib-roadmap-runner/focused-tests/src/tests/supervisor.rs",
       "crates/sim-lib-roadmap-runner/recipes/01-basics/implementer-observe/recipe.toml",
       "crates/sim-lib-roadmap-runner/recipes/01-basics/interrupted-mutation/recipe.toml",
       "crates/sim-lib-roadmap-runner/recipes/01-basics/no-model-replay/recipe.toml",
@@ -4017,14 +4213,20 @@
       "crates/sim-lib-roadmap-runner/src/journal.rs",
       "crates/sim-lib-roadmap-runner/src/lib.rs",
       "crates/sim-lib-roadmap-runner/src/local_command.rs",
+      "crates/sim-lib-roadmap-runner/src/local_command_tests.rs",
       "crates/sim-lib-roadmap-runner/src/model.rs",
+      "crates/sim-lib-roadmap-runner/src/mutation/fs_workspace.rs",
       "crates/sim-lib-roadmap-runner/src/mutation.rs",
+      "crates/sim-lib-roadmap-runner/src/proof/normalization.rs",
+      "crates/sim-lib-roadmap-runner/src/proof/tests.rs",
       "crates/sim-lib-roadmap-runner/src/proof.rs",
       "crates/sim-lib-roadmap-runner/src/reconcile.rs",
       "crates/sim-lib-roadmap-runner/src/recovery.rs",
       "crates/sim-lib-roadmap-runner/src/refiner.rs",
+      "crates/sim-lib-roadmap-runner/src/refiner_tests.rs",
       "crates/sim-lib-roadmap-runner/src/service.rs",
       "crates/sim-lib-roadmap-runner/src/source.rs",
+      "crates/sim-lib-roadmap-runner/src/source_tests.rs",
       "crates/sim-lib-roadmap-runner/src/status.rs",
       "crates/sim-lib-roadmap-runner/src/tests.rs",
       "crates/sim-lib-search/Cargo.toml",
@@ -4032,15 +4234,26 @@
       "crates/sim-lib-search/recipes/01-fixture/cli-mcp-parity/recipe.toml",
       "crates/sim-lib-search/recipes/01-fixture/fixture-research/recipe.toml",
       "crates/sim-lib-search/recipes/book.toml",
+      "crates/sim-lib-search/src/dispatch.rs",
+      "crates/sim-lib-search/src/fusion.rs",
+      "crates/sim-lib-search/src/judge.rs",
       "crates/sim-lib-search/src/lib.rs",
+      "crates/sim-lib-search/src/planning.rs",
+      "crates/sim-lib-search/src/product/command.rs",
       "crates/sim-lib-search/src/product.rs",
+      "crates/sim-lib-search/src/product_tests.rs",
+      "crates/sim-lib-search/src/research.rs",
       "crates/sim-lib-search/src/tests.rs",
       "crates/sim-lib-search-http/Cargo.toml",
       "crates/sim-lib-search-http/build.rs",
       "crates/sim-lib-search-http/recipes/01-basics/fixture-site/recipe.toml",
       "crates/sim-lib-search-http/recipes/book.toml",
+      "crates/sim-lib-search-http/src/client.rs",
+      "crates/sim-lib-search-http/src/config.rs",
       "crates/sim-lib-search-http/src/lib.rs",
+      "crates/sim-lib-search-http/src/skill.rs",
       "crates/sim-lib-search-http/src/tests.rs",
+      "crates/sim-lib-search-http/src/transport.rs",
       "crates/sim-lib-server/Cargo.toml",
       "crates/sim-lib-server/build.rs",
       "crates/sim-lib-server/recipes/01-basics/request-descriptor/recipe.toml",
@@ -4118,6 +4331,7 @@
       "crates/sim-lib-server/src/tests/voice.rs",
       "crates/sim-lib-server/src/tests/wasm_lifecycle.rs",
       "crates/sim-lib-server/src/tests.rs",
+      "crates/sim-lib-server/src/transport/accept_loop.rs",
       "crates/sim-lib-server/src/transport/backends.rs",
       "crates/sim-lib-server/src/transport/framing/header.rs",
       "crates/sim-lib-server/src/transport/framing.rs",
@@ -4215,6 +4429,7 @@
       "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/Cargo.toml",
       "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/recipe.toml",
       "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/src/main.rs",
+      "crates/sim-lib-web-fetch/recipes/book.toml",
       "crates/sim-lib-web-fetch/src/engine.rs",
       "crates/sim-lib-web-fetch/src/lib.rs",
       "crates/sim-lib-web-fetch/src/projection.rs",
@@ -4231,17 +4446,28 @@
       "crates/sim-roadmap-core/focused-tests/Cargo.toml",
       "crates/sim-roadmap-core/focused-tests/examples/two_phase.rs",
       "crates/sim-roadmap-core/focused-tests/src/lib.rs",
+      "crates/sim-roadmap-core/focused-tests/src/tests/admission.rs",
+      "crates/sim-roadmap-core/focused-tests/src/tests/common.rs",
+      "crates/sim-roadmap-core/focused-tests/src/tests/tree.rs",
+      "crates/sim-roadmap-core/recipes/01-basics/bounded-roadmap/recipe.toml",
+      "crates/sim-roadmap-core/recipes/book.toml",
       "crates/sim-roadmap-core/src/admit.rs",
       "crates/sim-roadmap-core/src/completion.rs",
+      "crates/sim-roadmap-core/src/datum.rs",
       "crates/sim-roadmap-core/src/id.rs",
       "crates/sim-roadmap-core/src/inheritance.rs",
       "crates/sim-roadmap-core/src/lib.rs",
       "crates/sim-roadmap-core/src/path.rs",
       "crates/sim-roadmap-core/src/tests.rs",
       "crates/sim-roadmap-core/src/tree.rs",
+      "crates/sim-roadmap-core/src/types.rs",
+      "crates/sim-roadmap-core/src/validation.rs",
       "crates/sim-roadmap-exec-core/Cargo.toml",
       "crates/sim-roadmap-exec-core/focused-tests/Cargo.toml",
       "crates/sim-roadmap-exec-core/focused-tests/src/lib.rs",
+      "crates/sim-roadmap-exec-core/focused-tests/src/suite.rs",
+      "crates/sim-roadmap-exec-core/recipes/01-basics/bounded-retry/recipe.toml",
+      "crates/sim-roadmap-exec-core/recipes/book.toml",
       "crates/sim-roadmap-exec-core/src/card.rs",
       "crates/sim-roadmap-exec-core/src/failure.rs",
       "crates/sim-roadmap-exec-core/src/lib.rs",
@@ -4251,6 +4477,8 @@
       "crates/sim-roadmap-exec-core/src/tests.rs",
       "crates/sim-roadmap-plan/Cargo.toml",
       "crates/sim-roadmap-plan/focused-tests/Cargo.toml",
+      "crates/sim-roadmap-plan/recipes/01-basics/grounded-readiness/recipe.toml",
+      "crates/sim-roadmap-plan/recipes/book.toml",
       "crates/sim-roadmap-plan/src/compile.rs",
       "crates/sim-roadmap-plan/src/completion.rs",
       "crates/sim-roadmap-plan/src/explain.rs",
@@ -4283,8 +4511,13 @@
       "crates/sim-source-deck/Cargo.toml",
       "crates/sim-source-deck/examples/grounded_declaration.rs",
       "crates/sim-source-deck/focused-tests/Cargo.toml",
+      "crates/sim-source-deck/recipes/01-basics/grounded-evidence/recipe.toml",
+      "crates/sim-source-deck/recipes/book.toml",
+      "crates/sim-source-deck/src/build.rs",
+      "crates/sim-source-deck/src/canonical.rs",
       "crates/sim-source-deck/src/lib.rs",
       "crates/sim-source-deck/src/tests.rs",
+      "crates/sim-source-deck/src/types.rs",
       "crates/sim-table-remote/Cargo.toml",
       "crates/sim-table-remote/recipes/01-basics/remote-dir-descriptor/recipe.toml",
       "crates/sim-table-remote/recipes/book.toml",
@@ -4299,11 +4532,12 @@
       "crates/sim-transport-ports/recipes/book.toml",
       "crates/sim-transport-ports/src/lib.rs",
       "crates/sim-transport-ports/src/model.rs",
+      "crates/sim-transport-ports/src/model_tests.rs",
       "features.toml",
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 33,
+  "recipe_book_count": 41,
   "recipes": [
     {
       "book": "agent",
@@ -4702,15 +4936,15 @@
       "title": "Agent"
     },
     {
-      "book": "sim-lib-agent-conduct",
+      "book": "agent/conduct",
       "book_toml": "crates/sim-lib-agent-conduct/recipes/book.toml",
-      "card_id": "cookbook/sim-lib-agent-conduct",
+      "card_id": "cookbook/agent/conduct",
       "group": "workspace",
       "package": "sim-lib-agent-conduct",
       "recipe_count": 1,
       "recipes": [
         {
-          "card_id": "sim-lib-agent-conduct/01-basics/echo-conduct",
+          "card_id": "agent/conduct/01-basics/echo-conduct",
           "codec": "",
           "id": "echo-conduct",
           "package": "sim-lib-agent-conduct",
@@ -4718,7 +4952,7 @@
           "title": "Certify and run an echo conduct"
         }
       ],
-      "summary": "",
+      "summary": "Compose checked agent conduct policies.",
       "title": "Agent Conduct Recipes"
     },
     {
@@ -4928,6 +5162,26 @@
       ],
       "summary": "Checked BRIDGE packet send and receive runtime.",
       "title": "Bridge Runtime"
+    },
+    {
+      "book": "capability/pack",
+      "book_toml": "crates/sim-lib-capability-pack/recipes/book.toml",
+      "card_id": "cookbook/capability/pack",
+      "group": "workspace",
+      "package": "sim-lib-capability-pack",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "capability/pack/01-basics/checked-pack",
+          "codec": "rust",
+          "id": "checked-pack",
+          "package": "sim-lib-capability-pack",
+          "recipe_toml": "crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/recipe.toml",
+          "title": "Resolve and preflight a capability pack"
+        }
+      ],
+      "summary": "Checked content-addressed runtime compositions.",
+      "title": "Capability Pack Recipes"
     },
     {
       "book": "continuity",
@@ -5152,6 +5406,54 @@
       ],
       "summary": "Bounded modern and explicit legacy MCP process boundaries.",
       "title": "MCP stdio lifetime adapter"
+    },
+    {
+      "book": "model-test",
+      "book_toml": "crates/sim-lib-model-test/recipes/book.toml",
+      "card_id": "cookbook/model-test",
+      "group": "workspace",
+      "package": "sim-lib-model-test",
+      "recipe_count": 2,
+      "recipes": [
+        {
+          "card_id": "model-test/01-basics/honest-candidate",
+          "codec": "lisp",
+          "id": "honest-candidate",
+          "package": "sim-lib-model-test",
+          "recipe_toml": "crates/sim-lib-model-test/recipes/01-basics/honest-candidate/recipe.toml",
+          "title": "Identify a model candidate"
+        },
+        {
+          "card_id": "model-test/02-product/no-network-observatory",
+          "codec": "lisp",
+          "id": "no-network-observatory",
+          "package": "sim-lib-model-test",
+          "recipe_toml": "crates/sim-lib-model-test/recipes/02-product/no-network-observatory/recipe.toml",
+          "title": "Replay the complete model observatory without provider contact"
+        }
+      ],
+      "summary": "Seal, run, and grade reproducible model trials without hidden ambient authority.",
+      "title": "Model Test"
+    },
+    {
+      "book": "model-test/packs",
+      "book_toml": "crates/sim-lib-model-test-packs/recipes/book.toml",
+      "card_id": "cookbook/model-test/packs",
+      "group": "workspace",
+      "package": "sim-lib-model-test-packs",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "model-test/packs/01-basics/public-conformance",
+          "codec": "lisp",
+          "id": "public-conformance",
+          "package": "sim-lib-model-test-packs",
+          "recipe_toml": "crates/sim-lib-model-test-packs/recipes/01-basics/public-conformance/recipe.toml",
+          "title": "Freeze and select a public model-test pack"
+        }
+      ],
+      "summary": "Freeze, validate, and select immutable public model-test task packs.",
+      "title": "Model Test Packs"
     },
     {
       "book": "oauth-core",
@@ -5470,6 +5772,26 @@
       "title": "Stream Fabric"
     },
     {
+      "book": "web/fetch",
+      "book_toml": "crates/sim-lib-web-fetch/recipes/book.toml",
+      "card_id": "cookbook/web/fetch",
+      "group": "workspace",
+      "package": "sim-lib-web-fetch",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "web/fetch/01-basics/offline-capture",
+          "codec": "rust",
+          "id": "offline-capture",
+          "package": "sim-lib-web-fetch",
+          "recipe_toml": "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/recipe.toml",
+          "title": "Replay immutable web evidence offline"
+        }
+      ],
+      "summary": "Policy-gated capture and deterministic offline replay of immutable web evidence.",
+      "title": "Web Fetch"
+    },
+    {
       "book": "mcp-server",
       "book_toml": "crates/sim-mcp-server/recipes/book.toml",
       "card_id": "cookbook/mcp-server",
@@ -5498,6 +5820,66 @@
       "title": "MCP Server"
     },
     {
+      "book": "roadmap-core",
+      "book_toml": "crates/sim-roadmap-core/recipes/book.toml",
+      "card_id": "cookbook/roadmap-core",
+      "group": "workspace",
+      "package": "sim-roadmap-core",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "roadmap-core/01-basics/bounded-roadmap",
+          "codec": "lisp",
+          "id": "bounded-roadmap",
+          "package": "sim-roadmap-core",
+          "recipe_toml": "crates/sim-roadmap-core/recipes/01-basics/bounded-roadmap/recipe.toml",
+          "title": "Admit bounded roadmap intent"
+        }
+      ],
+      "summary": "Author immutable bounded roadmap intent and reviewed guides.",
+      "title": "Roadmap Core"
+    },
+    {
+      "book": "roadmap-exec-core",
+      "book_toml": "crates/sim-roadmap-exec-core/recipes/book.toml",
+      "card_id": "cookbook/roadmap-exec-core",
+      "group": "workspace",
+      "package": "sim-roadmap-exec-core",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "roadmap-exec-core/01-basics/bounded-retry",
+          "codec": "lisp",
+          "id": "bounded-retry",
+          "package": "sim-roadmap-exec-core",
+          "recipe_toml": "crates/sim-roadmap-exec-core/recipes/01-basics/bounded-retry/recipe.toml",
+          "title": "Admit one bounded retry"
+        }
+      ],
+      "summary": "Reduce execution observations and admit bounded recovery as pure data.",
+      "title": "Roadmap Execution Core"
+    },
+    {
+      "book": "roadmap-plan",
+      "book_toml": "crates/sim-roadmap-plan/recipes/book.toml",
+      "card_id": "cookbook/roadmap-plan",
+      "group": "workspace",
+      "package": "sim-roadmap-plan",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "roadmap-plan/01-basics/grounded-readiness",
+          "codec": "lisp",
+          "id": "grounded-readiness",
+          "package": "sim-roadmap-plan",
+          "recipe_toml": "crates/sim-roadmap-plan/recipes/01-basics/grounded-readiness/recipe.toml",
+          "title": "Compile grounded readiness"
+        }
+      ],
+      "summary": "Compile grounded roadmap readiness with exact invalidation.",
+      "title": "Roadmap Planning"
+    },
+    {
       "book": "roadmap-refine",
       "book_toml": "crates/sim-roadmap-refine/recipes/book.toml",
       "card_id": "cookbook/roadmap-refine",
@@ -5516,6 +5898,26 @@
       ],
       "summary": "Derive and certify strictly descending roadmap work.",
       "title": "Roadmap Refinement"
+    },
+    {
+      "book": "source-deck",
+      "book_toml": "crates/sim-source-deck/recipes/book.toml",
+      "card_id": "cookbook/source-deck",
+      "group": "workspace",
+      "package": "sim-source-deck",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "source-deck/01-basics/grounded-evidence",
+          "codec": "lisp",
+          "id": "grounded-evidence",
+          "package": "sim-source-deck",
+          "recipe_toml": "crates/sim-source-deck/recipes/01-basics/grounded-evidence/recipe.toml",
+          "title": "Ground exact source evidence"
+        }
+      ],
+      "summary": "Ground bounded source evidence without ambient effects.",
+      "title": "Source Deck"
     },
     {
       "book": "table-remote",

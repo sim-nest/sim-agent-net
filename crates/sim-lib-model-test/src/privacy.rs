@@ -1,3 +1,4 @@
+use crate::candidate::content_id_text;
 use crate::{CandidateCensus, CandidatePresence};
 use std::fmt;
 
@@ -18,7 +19,7 @@ impl OfflineSnapshot {
                 .map_err(|_| SnapshotError)?;
             rows.push(format!(
                 "{}\t{}\t{:?}\t{:?}",
-                id.content_id(),
+                content_id_text(id.content_id()),
                 record.revision.model,
                 record.revision.route.semantics,
                 record.presence

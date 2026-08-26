@@ -121,12 +121,12 @@ impl ClientCache for MemoryLruCache {
             return Ok(CacheDisposition::Hit(value));
         }
         drop(state);
-        if let Some(store) = &self.persistent {
-            if let Some(bytes) = store.get(&key.stable(), now_ms)? {
-                let value = serde_json::from_slice(&bytes)
-                    .map_err(|error| ClientError::Cache(error.to_string()))?;
-                return Ok(CacheDisposition::Hit(value));
-            }
+        if let Some(store) = &self.persistent
+            && let Some(bytes) = store.get(&key.stable(), now_ms)?
+        {
+            let value = serde_json::from_slice(&bytes)
+                .map_err(|error| ClientError::Cache(error.to_string()))?;
+            return Ok(CacheDisposition::Hit(value));
         }
         Ok(CacheDisposition::Miss)
     }

@@ -236,7 +236,10 @@ pub fn run_broker_process(
             )));
         }
         ProcessAttempt::StoppedAfterTimeout { .. } => {
-            return Err(Error::Eval(format!("{} timed out", spec.label)));
+            return Err(Error::Eval(format!(
+                "{} timed out after {}ms",
+                spec.label, request.budget.timeout_ms
+            )));
         }
         ProcessAttempt::StoppedAfterCancel { .. } => {
             return Err(Error::Eval(format!("{} was cancelled", spec.label)));

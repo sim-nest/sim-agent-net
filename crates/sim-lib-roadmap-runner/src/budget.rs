@@ -52,7 +52,41 @@ impl EffectiveCeiling {
             self.limits
                 .iter()
                 .find(|new| new.unit == old.unit)
-                .is_some_and(|new| new.amount <= old.amount)
+                .is_some_and(|new| {
+                    new.amount <= old.amount
+                        && old.sources.iter().all(|old_source| {
+                            new.sources.iter().any(|new_source| {
+                                new_source.owner == old_source.owner
+                                    && new_source.amount <= old_source.amount
+                            })
+                        })
+                })
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn limit(owner: &str, amount: u64) -> OwnedLimit {
+        OwnedLimit {
+            owner: Symbol::new(owner),
+            unit: Symbol::new("tokens"),
+            amount,
+        }
+    }
+
+    #[test]
+    fn narrower_ceiling_preserves_each_authority_sources_limit() {
+        let prior = EffectiveCeiling::intersect([limit("caller", 100), limit("roadmap", 50)]);
+        let narrowed = EffectiveCeiling::intersect([limit("caller", 40), limit("roadmap", 50)]);
+        let masked_widening =
+            EffectiveCeiling::intersect([limit("caller", 200), limit("roadmap", 50)]);
+        let missing_source = EffectiveCeiling::intersect([limit("roadmap", 40)]);
+
+        assert!(narrowed.is_narrower_than(&prior));
+        assert!(!masked_widening.is_narrower_than(&prior));
+        assert!(!missing_source.is_narrower_than(&prior));
     }
 }

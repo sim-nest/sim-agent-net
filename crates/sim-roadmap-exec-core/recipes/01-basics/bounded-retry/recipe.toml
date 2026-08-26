@@ -1,0 +1,15 @@
+id = "bounded-retry"
+title = "Admit one bounded retry"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["roadmap", "execution", "recovery", "effect-free"]
+requires = ["core", "codec/lisp"]
+assert_tags = ["roadmap", "execution", "recovery", "effect-free"]
+assert_setup_codec = "lisp"
+
+[[expect]]
+form = 0
+result = "(roadmap-exec (failure classified) (identities unchanged) (effects resolved) (retry one-step) (loop caller-owned))"

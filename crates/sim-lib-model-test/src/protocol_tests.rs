@@ -1,6 +1,4 @@
-#[path = "protocol.rs"]
-mod protocol;
-use protocol::*;
+use crate::protocol::*;
 use std::{fs, path::PathBuf, process::Command, sync::Arc};
 
 fn spec(protocol: &str, visible: &[u8], oracle: &[u8]) -> TaskRevisionSpec {

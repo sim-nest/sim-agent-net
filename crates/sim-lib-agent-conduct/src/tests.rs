@@ -209,8 +209,7 @@ fn validation_rejects_card_role_route_terminal_and_binding_disagreement() {
             echo,
         )],
     )
-    .err()
-    .expect("incompatible binding rejected");
+    .expect_err("incompatible binding rejected");
     assert!(error.to_string().contains("Card-incompatible"));
 }
 

@@ -234,10 +234,22 @@ fn build_graph_connection(
 ) -> Result<Arc<Connection>> {
     let mut bindings = TopologyBindings::new();
     for node in &graph.nodes {
-        let Some(Expr::Symbol(symbol)) = &node.target else {
-            continue;
-        };
-        if let Some(target) = targets.iter().find(|target| &target.symbol == symbol) {
+        let matching = targets
+            .iter()
+            .filter(|target| {
+                node.target
+                    .iter()
+                    .chain(node.options.iter().map(|(_, value)| value))
+                    .any(|value| matches!(value, Expr::Symbol(symbol) if symbol == &target.symbol))
+            })
+            .collect::<Vec<_>>();
+        if matching.len() > 1 {
+            return Err(Error::Eval(format!(
+                "topology node {} requires more than one live binding",
+                node.id.as_symbol()
+            )));
+        }
+        if let Some(target) = matching.first() {
             bindings.bind(
                 node.id.clone(),
                 TopologyBindingDescriptor::for_node(target.symbol.to_string(), node),

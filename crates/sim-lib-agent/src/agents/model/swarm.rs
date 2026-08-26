@@ -239,6 +239,13 @@ impl SwarmRoundRecord {
     }
 }
 
+fn number_expr(value: u32) -> Expr {
+    Expr::Number(sim_kernel::NumberLiteral {
+        domain: Symbol::qualified("citizen", "int"),
+        canonical: value.to_string(),
+    })
+}
+
 impl SwarmRunState {
     fn status(&self) -> super::types::SwarmStatus {
         super::types::SwarmStatus {

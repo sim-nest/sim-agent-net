@@ -85,10 +85,10 @@ fn validate_schema(schema: &Value, depth: usize, cap: usize) -> Result<(), Clien
     if let Some(items) = object.get("items") {
         validate_schema(items, depth + 1, cap)?;
     }
-    if let Some(values) = object.get("enum") {
-        if values.as_array().is_none_or(Vec::is_empty) {
-            return Err(ClientError::Schema("enum must be a non-empty array".into()));
-        }
+    if let Some(values) = object.get("enum")
+        && values.as_array().is_none_or(Vec::is_empty)
+    {
+        return Err(ClientError::Schema("enum must be a non-empty array".into()));
     }
     Ok(())
 }
@@ -103,10 +103,10 @@ fn validate_instance(
         return Err(ClientError::Schema("instance depth limit exceeded".into()));
     }
     let object = schema.as_object().expect("validated schema");
-    if let Some(values) = object.get("enum").and_then(Value::as_array) {
-        if !values.contains(value) {
-            return Err(ClientError::Schema("value is outside schema enum".into()));
-        }
+    if let Some(values) = object.get("enum").and_then(Value::as_array)
+        && !values.contains(value)
+    {
+        return Err(ClientError::Schema("value is outside schema enum".into()));
     }
     if let Some(kind) = object.get("type").and_then(Value::as_str) {
         let valid = match kind {

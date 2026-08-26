@@ -1,0 +1,15 @@
+id = "grounded-evidence"
+title = "Ground exact source evidence"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["source-deck", "grounding", "content-addressed", "offline"]
+requires = ["core", "codec/lisp"]
+assert_tags = ["source-deck", "grounding", "content-addressed", "offline"]
+assert_setup_codec = "lisp"
+
+[[expect]]
+form = 0
+result = "(source-deck (revision exact) (fragment content-addressed) (claims checked) (limitations explicit) (effects none))"

@@ -212,3 +212,4 @@ fn content_identity_binds_every_plan_input() {
     assert_ne!(first.content_id(), moved.content_id());
     assert_ne!(first.content_id(), topology.content_id());
 }
+// conformance: mission-policy tests prove authority ceilings and fail-closed admission.

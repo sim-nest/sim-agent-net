@@ -14,8 +14,5 @@ path = "../src/lib.rs"
 sim-roadmap-core = { path = "../../sim-roadmap-core" }
 sim-roadmap-refine = { path = "../../sim-roadmap-refine" }
 sim-source-deck = { path = "../../sim-source-deck" }
-sim-incremental-core = { path = "../../../../sim-runtime/crates/sim-incremental-core" }
-sim-kernel = { path = "../../../../sim-kernel", features = ["test-support"] }
-
-[patch.crates-io]
-sim-kernel = { path = "../../../../sim-kernel" }
+sim-incremental-core = { version = "0.1.2" }
+sim-kernel = { version = "0.2.1", features = ["test-support"] }

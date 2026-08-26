@@ -1,4 +1,5 @@
+book = "agent/conduct"
 title = "Agent Conduct Recipes"
-
-[[chapter]]
-path = "01-basics/chapter.toml"
+summary = "Compose checked agent conduct policies."
+order = 10
+chapters = ["01-basics"]

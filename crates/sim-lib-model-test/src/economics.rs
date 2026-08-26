@@ -5,7 +5,7 @@
 //! formula here.
 
 use sim_kernel::{ContentId, Symbol};
-use sim_lib_study::{AttributedResourceEvent, ResourceCause};
+use sim_lib_study::decision::{AttributedResourceEvent, ResourceCause};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -282,7 +282,7 @@ pub enum EconomicError {
 mod tests {
     use super::*;
     use sim_kernel::Datum;
-    use sim_lib_study::{cost_per_accepted, summarize_spend};
+    use sim_lib_study::decision::{cost_per_accepted, summarize_spend};
 
     fn cid(value: &str) -> ContentId {
         Datum::String(value.into()).content_id().unwrap()

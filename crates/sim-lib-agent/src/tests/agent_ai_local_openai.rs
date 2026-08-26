@@ -40,15 +40,19 @@ fn native_local_openai_runners_reflect_provider_defaults() {
     );
     assert!(!capabilities(&lm_reflected).contains(&"ai-runner-secret".to_owned()));
 
+    cx.grant_named("ai-runner-secret");
     let lm_studio_with_auth = call_runner(
         &mut cx,
         "lm-studio",
-        vec![(":api-key-env", Expr::String("LM_STUDIO_API_KEY".to_owned()))],
+        vec![(
+            ":api-key-env",
+            Expr::String("CARGO_MANIFEST_DIR".to_owned()),
+        )],
     );
     let lm_auth_reflected = as_component(&lm_studio_with_auth).reflect(&mut cx).unwrap();
     assert_eq!(
         map_value(&lm_auth_reflected, "api-key-env"),
-        Some(&Expr::String("LM_STUDIO_API_KEY".to_owned()))
+        Some(&Expr::String("CARGO_MANIFEST_DIR".to_owned()))
     );
     assert!(capabilities(&lm_auth_reflected).contains(&"ai-runner-secret".to_owned()));
 

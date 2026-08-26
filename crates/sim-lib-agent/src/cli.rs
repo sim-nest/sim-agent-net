@@ -129,7 +129,7 @@ fn dispatch_conduct_cli(cx: &mut Cx, command: &str, args: &[String]) -> Result<E
             };
             Ok(map(vec![
                 ("kind", symbol("agent.cli", command)),
-                ("id", Expr::Symbol(Symbol::new(id))),
+                ("id", Expr::Symbol(Symbol::new(id.as_str()))),
                 ("topology", topology),
                 (
                     "step-cards",
@@ -189,7 +189,7 @@ fn dispatch_run_cli(command: &str, args: &[String]) -> Result<Expr> {
         ("replay", [run_id]) => with_run(run_id, |run| {
             Ok(map(vec![
                 ("kind", symbol("agent.cli", "effect-free-replay")),
-                ("run-id", Expr::Symbol(Symbol::new(run_id))),
+                ("run-id", Expr::Symbol(Symbol::new(run_id.as_str()))),
                 ("live-effects", Expr::Bool(false)),
                 ("report", run.report.clone()),
             ]))
@@ -203,10 +203,10 @@ fn start_cli_run(cx: &mut Cx, conduct_id: &str, run_id: &str) -> Result<Expr> {
     validate_identifier(conduct_id)?;
     validate_identifier(run_id)?;
     let conduct = catalog_conduct(cx, conduct_id)?;
-    let report = conduct.report(cx, Expr::Symbol(Symbol::qualified("agent", "RunFrame")))?;
+    let topology_report = conduct.diagram(cx);
     let report = map(vec![
         ("graph-fingerprint", Expr::String(conduct.graph_fingerprint)),
-        ("topology-report", report.as_expr()),
+        ("topology-report", topology_report),
     ]);
     let run = CliRun {
         conduct: conduct_id.to_owned(),
@@ -292,7 +292,7 @@ fn run_expr(run_id: &str, run: &CliRun) -> Result<Expr> {
     Ok(map(vec![
         ("kind", symbol("agent.cli", "run")),
         ("run-id", Expr::Symbol(Symbol::new(run_id))),
-        ("conduct", Expr::Symbol(Symbol::new(&run.conduct))),
+        ("conduct", Expr::Symbol(Symbol::new(run.conduct.as_str()))),
         ("status", symbol("agent.run", run.status)),
         ("sequence", number(run.sequence)),
         ("report", run.report.clone()),
@@ -433,6 +433,7 @@ mod tests {
     fn run_lifecycle_is_bounded_effect_free_and_forkable() {
         let mut cx = sim_kernel::testing::bare_cx();
         cx.grant(sim_lib_topology::topology_reflect_capability());
+        cx.grant(sim_lib_topology::topology_run_capability());
         let run_id = "cli-lifecycle-spec";
         dispatch_agent_cli(
             &mut cx,

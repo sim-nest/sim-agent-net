@@ -1,3 +1,4 @@
+mod components;
 mod driver;
 mod helpers;
 mod model;
@@ -5,10 +6,12 @@ mod ops;
 mod tool_injection;
 mod trace;
 
+pub(crate) use components::{
+    collect_agent_components, component_kind_matches, component_name, first_codec,
+};
 pub(crate) use driver::agent_line_driver_factory;
 pub(crate) use helpers::{
-    build_agent_runtime_site, collect_agent_components, component_kind_matches, component_name,
-    conduct_id, first_codec, graph_fingerprint, required_roles_from_expr,
+    build_agent_runtime_site, conduct_id, graph_fingerprint, required_roles_from_expr,
 };
 #[cfg(test)]
 #[allow(unused_imports)]

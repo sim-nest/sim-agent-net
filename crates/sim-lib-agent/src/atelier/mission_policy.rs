@@ -177,7 +177,10 @@ pub enum MissionAdmission {
     /// The local action is admitted.
     AdmitLocal,
     /// An external authority must decide; no effect has occurred.
-    Escalate { sensitive: bool },
+    Escalate {
+        /// Whether the request carries sensitive data or authority.
+        sensitive: bool,
+    },
     /// A non-overridable veto refused the request.
     Refuse(MissionVeto),
 }
@@ -332,23 +335,20 @@ impl MissionPlan {
         if request.authority > *ceiling {
             return MissionAdmission::Refuse(MissionVeto::SelfWideningRole);
         }
-        if let Some(tool) = &request.tool {
-            if !self
+        if let Some(tool) = &request.tool
+            && !self
                 .tool_ceilings
                 .get(&request.role)
                 .is_some_and(|tools| tools.contains(tool))
-            {
-                return MissionAdmission::Refuse(MissionVeto::ToolCeiling);
-            }
+        {
+            return MissionAdmission::Refuse(MissionVeto::ToolCeiling);
         }
         if request.authority == AuthorityLevel::AdoptLocal
             && self.topology == CrewTopology::JudgeJury
+            && (request.selected_judge.as_ref() != self.judge.as_ref()
+                || self.jury.contains(&request.role))
         {
-            if request.selected_judge.as_ref() != self.judge.as_ref()
-                || self.jury.contains(&request.role)
-            {
-                return MissionAdmission::Refuse(MissionVeto::SelfSelectedJudge);
-            }
+            return MissionAdmission::Refuse(MissionVeto::SelfSelectedJudge);
         }
         match request.authority {
             AuthorityLevel::RequestExternal => MissionAdmission::Escalate { sensitive: false },

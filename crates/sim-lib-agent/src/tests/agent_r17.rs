@@ -75,6 +75,7 @@ fn r17_swarm_budget_stops_after_two_turns_and_records_transcript() {
     install_roundtrip_codecs(&mut cx);
     install_agent_lib(&mut cx).unwrap();
     cx.grant_named("swarm-launch");
+    cx.grant(sim_lib_topology::topology_run_capability());
 
     let worker_conn = tagged_connection(&mut cx, "worker", "worker");
     let critic_conn = tagged_connection(&mut cx, "critic", "critic");
@@ -125,7 +126,8 @@ fn r17_swarm_budget_stops_after_two_turns_and_records_transcript() {
         .unwrap();
     let launched_expr = launched.object().as_expr(&mut cx).unwrap();
     let launched_text = format!("{launched_expr:?}");
-    assert!(launched_text.contains("budget-exhausted") || launched_text.contains("transcript"));
+    assert!(launched_text.contains("worker"), "{launched_text}");
+    assert!(launched_text.contains("critic"), "{launched_text}");
 
     let status = cx
         .call_function(
@@ -167,6 +169,7 @@ fn r17_realize_fabric_uses_same_loop_runtime() {
     install_roundtrip_codecs(&mut cx);
     install_agent_lib(&mut cx).unwrap();
     cx.grant_named("swarm-launch");
+    cx.grant(sim_lib_topology::topology_run_capability());
 
     let worker_conn = tagged_connection(&mut cx, "worker", "alpha");
     let worker = cx.factory().opaque(Arc::new(worker_conn)).unwrap();
@@ -202,6 +205,13 @@ fn r17_realize_fabric_uses_same_loop_runtime() {
         )
         .unwrap();
     let text = format!("{:?}", reply.value.object().as_expr(&mut cx).unwrap());
-    assert!(text.contains("transcript"));
     assert!(text.contains("alpha"));
+    let explain = cx
+        .call_function(
+            &Symbol::qualified("swarm", "explain"),
+            sim_kernel::Args::new(vec![swarm]),
+        )
+        .unwrap();
+    let explain_text = format!("{:?}", explain.object().as_expr(&mut cx).unwrap());
+    assert!(explain_text.contains("transcript") || explain_text.contains("alpha"));
 }

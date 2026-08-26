@@ -14,7 +14,7 @@ use crate::{
 
 // conformance: standard and third-party agent steps remain complete, precise, and open.
 
-use super::support::eval_cx;
+use super::support::{eval_cx, install_agent_lib};
 
 struct Uppercase;
 
@@ -81,12 +81,51 @@ impl sim_kernel::ObjectCompat for StepCallable {
 impl Callable for StepCallable {
     fn call(&self, cx: &mut Cx, args: Args) -> Result<sim_kernel::Value> {
         let input = args.values()[0].object().as_expr(cx)?;
-        let mut frame =
-            AgentRunFrame::standard(Symbol::qualified("run", "topology"), input.clone());
-        frame.working = input;
+        let value = construct_citizen(cx, &input)?;
+        let mut frame = value
+            .object()
+            .downcast_ref::<AgentRunFrame>()
+            .cloned()
+            .ok_or(sim_kernel::Error::TypeMismatch {
+                expected: "agent/RunFrame",
+                found: "non-run-frame",
+            })?;
         self.0.execute(cx, &mut frame)?;
-        cx.factory().expr(frame.working)
+        cx.factory().opaque(Arc::new(frame))
     }
+}
+
+fn construct_citizen(cx: &mut Cx, expr: &Expr) -> Result<sim_kernel::Value> {
+    let Expr::Extension { tag, payload } = expr else {
+        return Err(sim_kernel::Error::TypeMismatch {
+            expected: "citizen read-construct",
+            found: "other expression",
+        });
+    };
+    if *tag != Symbol::qualified("citizen", "read-construct") {
+        return Err(sim_kernel::Error::TypeMismatch {
+            expected: "citizen read-construct",
+            found: "other extension",
+        });
+    }
+    let Expr::Vector(items) = payload.as_ref() else {
+        return Err(sim_kernel::Error::TypeMismatch {
+            expected: "citizen read-construct vector",
+            found: "other payload",
+        });
+    };
+    let Some(Expr::Symbol(class)) = items.first() else {
+        return Err(sim_kernel::Error::TypeMismatch {
+            expected: "citizen class symbol",
+            found: "other constructor head",
+        });
+    };
+    let values = items[1..]
+        .iter()
+        .cloned()
+        .map(|item| cx.factory().expr(item))
+        .collect::<Result<Vec<_>>>()?;
+    cx.read_construct(class, values)
 }
 
 #[test]
@@ -200,7 +239,9 @@ profile=agent/conduct-v1
         validate_agent_conduct(parse_package(source).unwrap(), &[uppercase_card(), finish])
             .unwrap();
     let mut cx = eval_cx();
+    install_agent_lib(&mut cx).unwrap();
     cx.grant(sim_lib_topology::topology_run_capability());
+    cx.grant(sim_kernel::read_construct_capability());
     let upper = registry
         .bind(
             &Symbol::qualified("example.step", "uppercase"),
@@ -225,10 +266,20 @@ profile=agent/conduct-v1
         ],
     )
     .unwrap();
-    assert_eq!(
-        conduct
-            .run(&mut cx, Expr::String("topology".into()), bindings)
-            .unwrap(),
-        Expr::String("TOPOLOGY".into())
+    let mut initial = AgentRunFrame::standard(
+        Symbol::qualified("run", "topology"),
+        Expr::String("topology".into()),
     );
+    initial.working = Expr::String("topology".into());
+    let initial = cx
+        .factory()
+        .opaque(Arc::new(initial))
+        .unwrap()
+        .object()
+        .as_expr(&mut cx)
+        .unwrap();
+    let result = conduct.run(&mut cx, initial, bindings).unwrap();
+    let result = construct_citizen(&mut cx, &result).unwrap();
+    let frame = result.object().downcast_ref::<AgentRunFrame>().unwrap();
+    assert_eq!(frame.working, Expr::String("TOPOLOGY".into()));
 }

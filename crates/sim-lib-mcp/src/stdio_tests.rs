@@ -144,7 +144,11 @@ fn run_loop(cx: &mut Cx, router: &mut McpRouter, input: &str) -> (String, String
 }
 
 fn test_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xe684_06c5_6fbf_f3fc),
+    );
     let codec = McpCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&codec).unwrap();
     cx

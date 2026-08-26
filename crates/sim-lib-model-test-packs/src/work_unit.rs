@@ -357,9 +357,9 @@ mod tests {
             .insert("tempting-parallel-owner".into());
         let grade = grade_implementation(&task(), &trapped);
         assert!(grade.failures.len() >= 4);
-        assert_eq!(grade.facets[&ImplementationFacet::FinalSemantics], true);
-        assert_eq!(grade.facets[&ImplementationFacet::ChangeScope], false);
-        assert_eq!(grade.facets[&ImplementationFacet::TestQuality], false);
+        assert!(grade.facets[&ImplementationFacet::FinalSemantics]);
+        assert!(!grade.facets[&ImplementationFacet::ChangeScope]);
+        assert!(!grade.facets[&ImplementationFacet::TestQuality]);
     }
 
     #[test]

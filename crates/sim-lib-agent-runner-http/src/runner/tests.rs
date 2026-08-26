@@ -7,8 +7,10 @@ use sim_lib_agent_runner_core::{
 };
 use sim_lib_provider::Secret;
 use sim_lib_provider::{ProviderDispatch, ProviderSeatExecution};
-use sim_transport_ports::model::ScriptedStreamPort;
 use std::{collections::HashMap, sync::Arc, time::Duration};
+
+mod transport;
+use transport::LoopbackOrScriptedPort;
 
 #[test]
 fn new_provider_maps_config_onto_existing_runner_fields() {
@@ -282,7 +284,7 @@ fn direct_and_split_http_paths_are_identical_and_thread_safe() {
         body.len(),
         body
     );
-    let transport = Arc::new(ScriptedStreamPort::new([
+    let transport = Arc::new(LoopbackOrScriptedPort::new([
         response.clone().into_bytes(),
         response.clone().into_bytes(),
         response.into_bytes(),

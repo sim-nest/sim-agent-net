@@ -245,7 +245,7 @@ fn collect_rs_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
 fn should_skip_dir(path: &Path) -> bool {
     matches!(
         path.file_name().and_then(OsStr::to_str),
-        Some(".git" | "target" | ".meta-workspace" | "sim-tooling")
+        Some(".git" | ".sim" | "target" | ".meta-workspace" | "sim-tooling")
     )
 }
 
@@ -344,5 +344,11 @@ mod tests {
     fn skips_ci_tooling_checkout() {
         assert!(should_skip_dir(Path::new("sim-tooling")));
         assert!(should_skip_dir(Path::new("nested/sim-tooling")));
+    }
+
+    #[test]
+    fn skips_generated_test_workspaces() {
+        assert!(should_skip_dir(Path::new(".sim")));
+        assert!(should_skip_dir(Path::new("nested/.sim")));
     }
 }

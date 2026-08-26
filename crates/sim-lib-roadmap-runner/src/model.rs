@@ -121,7 +121,7 @@ pub struct RebuiltExecution {
 #[derive(Debug)]
 pub struct ReplayFailure {
     pub last_verified_head: Option<JournalHead>,
-    pub error: ExecutionJournalError,
+    pub error: Box<ExecutionJournalError>,
 }
 
 #[derive(Debug, Error)]

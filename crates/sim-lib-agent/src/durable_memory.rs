@@ -2,7 +2,7 @@
 
 use std::cell::RefCell;
 
-use sim_kernel::{Cx, Expr, Factory, NumberLiteral, Object, Symbol};
+use sim_kernel::{Cx, Expr, NumberLiteral, Symbol};
 use sim_lib_agent_conduct_core::{AgentJournalRecord, AgentJournalStore, LifecycleError};
 
 use crate::MemoryBackend;

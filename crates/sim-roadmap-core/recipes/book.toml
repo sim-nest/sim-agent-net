@@ -1,0 +1,5 @@
+book = "roadmap-core"
+title = "Roadmap Core"
+summary = "Author immutable bounded roadmap intent and reviewed guides."
+order = 81
+chapters = ["01-basics"]

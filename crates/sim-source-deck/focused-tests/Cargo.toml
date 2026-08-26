@@ -16,6 +16,3 @@ path = "../examples/grounded_declaration.rs"
 
 [dependencies]
 sim-kernel = "0.2.1"
-
-[patch.crates-io]
-sim-kernel = { path = "../../../../sim-kernel" }

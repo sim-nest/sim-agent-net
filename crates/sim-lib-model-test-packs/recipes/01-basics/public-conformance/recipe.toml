@@ -1,8 +1,11 @@
 schema = "sim.recipe/v1"
 id = "public-conformance"
 title = "Freeze and select a public model-test pack"
-entrypoint = "setup.siml"
-
-[checks]
-kind = "model-test-pack-conformance"
-provider_required = false
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["model-test", "pack", "conformance", "offline"]
+requires = ["model-test-packs", "codec/lisp"]
+assert_tags = ["model-test", "pack", "conformance", "offline"]
+assert_setup_codec = "lisp"

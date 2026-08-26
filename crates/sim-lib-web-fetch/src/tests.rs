@@ -1,14 +1,19 @@
 use super::*;
-use sim_kernel::Cx;
+use crate::projection::project;
+use sim_kernel::{Cx, Datum};
+use sim_lib_net_http::Url;
 use std::collections::VecDeque;
 use std::sync::{
     Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
 };
+
+type RecordedRequest = (String, String, Vec<(String, String)>);
+
 struct Script {
     replies: Mutex<VecDeque<Result<HttpResponse, FetchError>>>,
     calls: AtomicUsize,
-    requests: Mutex<Vec<(String, String, Vec<(String, String)>)>>,
+    requests: Mutex<Vec<RecordedRequest>>,
 }
 impl Script {
     fn new(v: Vec<HttpResponse>) -> Self {
@@ -192,8 +197,8 @@ fn revalidate_sends_validators_and_duplicate_capture_is_idempotent() {
     ]);
     let script = Arc::new(Script::new(vec![response(404, "text/plain", b""), first]));
     let dir = Arc::new(MemoryCaptureDir::default());
-    let fetcher = fetcher(script.clone(), dir.clone());
-    let live = fetcher
+    let live_fetcher = fetcher(script.clone(), dir.clone());
+    let live = live_fetcher
         .capture(
             &mut cx(),
             FetchPlan::get("https://example.test/page", FetchMode::Live),
@@ -205,8 +210,8 @@ fn revalidate_sends_validators_and_duplicate_capture_is_idempotent() {
         headers: vec![],
         body: vec![],
     }]));
-    let fetcher = fetcher(recheck.clone(), dir);
-    let replay = fetcher
+    let recheck_fetcher = fetcher(recheck.clone(), dir);
+    let replay = recheck_fetcher
         .capture(
             &mut cx(),
             FetchPlan::get("https://example.test/page", FetchMode::Revalidate),

@@ -73,7 +73,12 @@ fn collect_recipe_manifests(
         if file_type.is_dir() {
             if matches!(
                 file_name.as_ref(),
-                ".git" | ".meta-workspace" | "target" | "generated-reports" | "split-reports"
+                ".git"
+                    | ".sim"
+                    | ".meta-workspace"
+                    | "target"
+                    | "generated-reports"
+                    | "split-reports"
             ) {
                 continue;
             }

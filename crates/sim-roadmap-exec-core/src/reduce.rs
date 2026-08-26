@@ -126,10 +126,10 @@ fn correlate(
     {
         return Err(ExecutionFailure::WrongMutation);
     }
-    if let Some(c) = &event.observation.proof_cursor {
-        if c.journal_head != current.journal_head || c.sequence == 0 {
-            return Err(ExecutionFailure::WrongProofCursor);
-        }
+    if let Some(c) = &event.observation.proof_cursor
+        && (c.journal_head != current.journal_head || c.sequence == 0)
+    {
+        return Err(ExecutionFailure::WrongProofCursor);
     }
     Ok(())
 }

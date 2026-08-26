@@ -15,6 +15,8 @@
 | `sim-lib-agent-runner-local` | `workspace` | 3 | 0 |
 | `sim-lib-agent-runner-process` | `workspace` | 0 | 0 |
 | `sim-lib-bridge` | `workspace` | 0 | 0 |
+| `sim-lib-capability-pack` | `workspace` | 0 | 0 |
+| `sim-lib-capability-pack-recipe-checked-pack` | `workspace` | 0 | 0 |
 | `sim-lib-continuity` | `workspace` | 0 | 0 |
 | `sim-lib-continuity-recipe-hostile-replay` | `workspace` | 0 | 0 |
 | `sim-lib-cookbook` | `workspace` | 2 | 1 |
