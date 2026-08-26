@@ -9008,7 +9008,7 @@ title = "default conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
@@ -9026,7 +9026,7 @@ title = "react conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
@@ -9044,7 +9044,7 @@ title = "plan-act-replan conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
@@ -9062,7 +9062,7 @@ title = "phased conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
@@ -9080,7 +9080,7 @@ title = "verify-retry conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
@@ -9098,7 +9098,7 @@ title = "router-crew conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
@@ -9116,7 +9116,7 @@ title = "suspend-resume conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
@@ -9134,7 +9134,7 @@ title = "effect-free-replay conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
@@ -9152,7 +9152,7 @@ title = "third-party-step conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]

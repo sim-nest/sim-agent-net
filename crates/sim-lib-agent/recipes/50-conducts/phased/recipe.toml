@@ -3,7 +3,7 @@ title = "phased conduct"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-requires = ["agent", "codec/lisp", "sim-lib-agent-conduct"]
+requires = ["agent", "codec/lisp"]
 runner_mode = "fake"
 capabilities = ["fixture-tools", "cassette", "modeled-effects"]
 [[expect]]
