@@ -39,4 +39,6 @@ pub use source::*;
 pub use status::*;
 
 #[cfg(test)]
+mod journal_contract_tests;
+#[cfg(test)]
 mod tests;

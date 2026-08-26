@@ -7,7 +7,6 @@ summary = "Move expedition thoughts between surfaces with payload-free passports
 owner = "crate/sim-lib-agent"
 audiences = ["code", "framework"]
 guidance = "Construct ChannelPassport from an already closed pack and selected public claim references, then verify every derived handoff before selecting a channel ceiling. The passport represents no payload, credential, live handle, or model memory. Treat expiry as a normal manual-continuation boundary and reduce workstation, local voice, Telegram, Halo, and watch responses before any encoder runs."
-claims_anchors = ["anchor/crate/sim-lib-agent"]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/atelier/channel"]
 
 [[route]]
@@ -26,8 +25,13 @@ summary = "Resolve immutable runtime compositions into one deterministic, author
 owner = "crate/sim-lib-capability-pack"
 audiences = ["code", "framework"]
 guidance = "Supply packs through the injected PackDir by canonical sha256 content id, call resolve with the intersection of the mission and caller ceilings, validate against a read-only Index/Shape Catalog, and only then pass the opaque ValidatedPack to load. Imports may diminish but never widen authority. Keep SDK conventions, package management, room enums, kernel changes, and bootloader-frame behavior outside this organ."
-claims_anchors = ["anchor/crate/sim-lib-capability-pack"]
+claims_anchors = [
+  "anchor/cli/sim-lib-capability-pack-recipe-checked-pack",
+  "anchor/crate/sim-lib-capability-pack",
+  "anchor/crate/sim-lib-capability-pack-recipe-checked-pack",
+]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-capability-pack/src/tests"]
+claims_surfaces = ["cli/sim-lib-capability-pack-recipe-checked-pack"]
 
 [[route]]
 id = "route/compose-content-addressed-capability-pack"
@@ -65,7 +69,7 @@ owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Open ExecutionJournal with every conduct, policy, source-deck, model-pick, and runner-generation pin. Prepare bounded objects before append, retain the expected JournalHead, and replay after any fence conflict. Consume RebuiltExecution as a projection only: rebuild verifies closure and legality and never repeats an effect. Identity drift requires the deterministic child id; it never mutates an existing execution."
 claims_anchors = []
-claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/journal_contract_tests"]
 depends_on = ["feature/sim-agent-net/pure-roadmap-execution"]
 
 [[route]]
@@ -691,6 +695,15 @@ depends_on = [
   "feature/sim-agent-net/model-test-packs",
   "feature/sim-agent-net/model-verdict-picks",
   "feature/sim-agent-net/provider-control",
+]
+
+[[route]]
+id = "route/operate-model-test-observatory"
+task = "Operate the model-test observatory through its loadable command"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-agent-net/model-test-product", why = "The product owns the complete command vocabulary while delegating lifecycle and provider authority to their existing owners." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-model-test/src/tests", why = "The product specimen proves fixed dispatch, bounded machine output, and provider-contact boundaries." },
 ]
 
 [[feature]]
