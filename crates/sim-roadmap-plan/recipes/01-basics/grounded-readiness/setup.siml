@@ -1,6 +1,8 @@
-(quote (roadmap-plan
-  (roadmap admitted)
-  (source-deck exact)
-  (ready-set complete)
-  (cursor absent)
-  (invalidation dependency-exact)))
+(expr:map
+  [kind "grounded-roadmap-readiness"]
+  [roadmap "admitted"]
+  [source-deck "exact"]
+  [ready-set "complete"]
+  [cursor "absent"]
+  [invalidation "dependency-exact"]
+  [proof "focused planning tests"])

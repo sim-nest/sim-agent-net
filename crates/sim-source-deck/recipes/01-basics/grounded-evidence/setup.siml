@@ -1,6 +1,8 @@
-(quote (source-deck
-  (revision exact)
-  (fragment content-addressed)
-  (claims checked)
-  (limitations explicit)
-  (effects none)))
+(expr:map
+  [kind "grounded-source-evidence"]
+  [revision "exact"]
+  [fragment "content-addressed"]
+  [claims "checked"]
+  [limitations "explicit"]
+  [effects "none"]
+  [proof "focused source-deck tests"])

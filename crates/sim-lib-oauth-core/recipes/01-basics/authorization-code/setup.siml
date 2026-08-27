@@ -1,1 +1,7 @@
-(quote (oauth-code (pkce S256) (state unpredictable) (resource exact) (effects injected)))
+(expr:map
+  [kind "oauth-authorization-code"]
+  [pkce "S256"]
+  [state "injected unpredictable bytes"]
+  [resource "one exact resource"]
+  [effects "explicit injected interfaces"]
+  [proof "crate flow tests"])

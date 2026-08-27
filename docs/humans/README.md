@@ -766,11 +766,9 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-mcp-client/recipes/01-basics/subscription/setup.siml`
 - `crates/sim-lib-mcp-client/recipes/book.toml`
 - `crates/sim-lib-mcp-http/recipes/01-basics/chapter.toml`
-- `crates/sim-lib-mcp-http/recipes/01-basics/http-client/expected.txt`
 - `crates/sim-lib-mcp-http/recipes/01-basics/http-client/purpose.md`
 - `crates/sim-lib-mcp-http/recipes/01-basics/http-client/recipe.toml`
 - `crates/sim-lib-mcp-http/recipes/01-basics/http-client/setup.siml`
-- `crates/sim-lib-mcp-http/recipes/01-basics/http-server/expected.txt`
 - `crates/sim-lib-mcp-http/recipes/01-basics/http-server/purpose.md`
 - `crates/sim-lib-mcp-http/recipes/01-basics/http-server/recipe.toml`
 - `crates/sim-lib-mcp-http/recipes/01-basics/http-server/setup.siml`
@@ -782,11 +780,9 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-mcp-legacy/recipes/01-basics/legacy-lifecycle/setup.siml`
 - `crates/sim-lib-mcp-legacy/recipes/book.toml`
 - `crates/sim-lib-mcp-stdio/recipes/01-basics/chapter.toml`
-- `crates/sim-lib-mcp-stdio/recipes/01-basics/legacy-stdio/expected.txt`
 - `crates/sim-lib-mcp-stdio/recipes/01-basics/legacy-stdio/purpose.md`
 - `crates/sim-lib-mcp-stdio/recipes/01-basics/legacy-stdio/recipe.toml`
 - `crates/sim-lib-mcp-stdio/recipes/01-basics/legacy-stdio/setup.siml`
-- `crates/sim-lib-mcp-stdio/recipes/01-basics/modern-stdio/expected.txt`
 - `crates/sim-lib-mcp-stdio/recipes/01-basics/modern-stdio/purpose.md`
 - `crates/sim-lib-mcp-stdio/recipes/01-basics/modern-stdio/recipe.toml`
 - `crates/sim-lib-mcp-stdio/recipes/01-basics/modern-stdio/setup.siml`
@@ -807,20 +803,17 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-model-test/recipes/02-product/no-network-observatory/recipe.toml`
 - `crates/sim-lib-model-test/recipes/02-product/no-network-observatory/setup.siml`
 - `crates/sim-lib-model-test/recipes/book.toml`
-- `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/expected.txt`
 - `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/purpose.md`
 - `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/recipe.toml`
 - `crates/sim-lib-oauth-core/recipes/01-basics/authorization-code/setup.siml`
 - `crates/sim-lib-oauth-core/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-oauth-core/recipes/book.toml`
 - `crates/sim-lib-oauth-http/recipes/01-basics/chapter.toml`
-- `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/expected.txt`
 - `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/purpose.md`
 - `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/recipe.toml`
 - `crates/sim-lib-oauth-http/recipes/01-basics/metadata-refresh/setup.siml`
 - `crates/sim-lib-oauth-http/recipes/book.toml`
 - `crates/sim-lib-oauth-jose/recipes/01-basics/chapter.toml`
-- `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/expected.txt`
 - `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/purpose.md`
 - `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/recipe.toml`
 - `crates/sim-lib-oauth-jose/recipes/01-basics/verify-token/setup.siml`
@@ -831,7 +824,6 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-openai-server/recipes/01-basics/fixture-chat/setup.siml`
 - `crates/sim-lib-openai-server/recipes/book.toml`
 - `crates/sim-lib-provider-cli/recipes/01-basics/chapter.toml`
-- `crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/expected.txt`
 - `crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/purpose.md`
 - `crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/recipe.toml`
 - `crates/sim-lib-provider-cli/recipes/01-basics/provider-cli-descriptor/setup.siml`
@@ -907,20 +899,17 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/recipe.toml`
 - `crates/sim-mcp-server/recipes/01-basics/stdio-bootloader/setup.siml`
 - `crates/sim-mcp-server/recipes/book.toml`
-- `crates/sim-roadmap-core/recipes/01-basics/bounded-roadmap/expected.txt`
 - `crates/sim-roadmap-core/recipes/01-basics/bounded-roadmap/purpose.md`
 - `crates/sim-roadmap-core/recipes/01-basics/bounded-roadmap/recipe.toml`
 - `crates/sim-roadmap-core/recipes/01-basics/bounded-roadmap/setup.siml`
 - `crates/sim-roadmap-core/recipes/01-basics/chapter.toml`
 - `crates/sim-roadmap-core/recipes/book.toml`
-- `crates/sim-roadmap-exec-core/recipes/01-basics/bounded-retry/expected.txt`
 - `crates/sim-roadmap-exec-core/recipes/01-basics/bounded-retry/purpose.md`
 - `crates/sim-roadmap-exec-core/recipes/01-basics/bounded-retry/recipe.toml`
 - `crates/sim-roadmap-exec-core/recipes/01-basics/bounded-retry/setup.siml`
 - `crates/sim-roadmap-exec-core/recipes/01-basics/chapter.toml`
 - `crates/sim-roadmap-exec-core/recipes/book.toml`
 - `crates/sim-roadmap-plan/recipes/01-basics/chapter.toml`
-- `crates/sim-roadmap-plan/recipes/01-basics/grounded-readiness/expected.txt`
 - `crates/sim-roadmap-plan/recipes/01-basics/grounded-readiness/purpose.md`
 - `crates/sim-roadmap-plan/recipes/01-basics/grounded-readiness/recipe.toml`
 - `crates/sim-roadmap-plan/recipes/01-basics/grounded-readiness/setup.siml`
@@ -933,7 +922,6 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-roadmap-refine/recipes/01-basics/chapter.toml`
 - `crates/sim-roadmap-refine/recipes/book.toml`
 - `crates/sim-source-deck/recipes/01-basics/chapter.toml`
-- `crates/sim-source-deck/recipes/01-basics/grounded-evidence/expected.txt`
 - `crates/sim-source-deck/recipes/01-basics/grounded-evidence/purpose.md`
 - `crates/sim-source-deck/recipes/01-basics/grounded-evidence/recipe.toml`
 - `crates/sim-source-deck/recipes/01-basics/grounded-evidence/setup.siml`
@@ -945,7 +933,6 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-table-remote/recipes/01-basics/remote-dir-descriptor/setup.siml`
 - `crates/sim-table-remote/recipes/book.toml`
 - `crates/sim-transport-ports/recipes/01-basics/chapter.toml`
-- `crates/sim-transport-ports/recipes/01-basics/transport-port-descriptor/expected.txt`
 - `crates/sim-transport-ports/recipes/01-basics/transport-port-descriptor/purpose.md`
 - `crates/sim-transport-ports/recipes/01-basics/transport-port-descriptor/recipe.toml`
 - `crates/sim-transport-ports/recipes/01-basics/transport-port-descriptor/setup.siml`
@@ -13405,14 +13392,9 @@ summary = "Compose injected entropy, consent, browser, storage, PKCE S256, state
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
-tags = ["oauth", "pkce", "client"]
+tags = ["oauth", "pkce", "client", "sandbox-descriptor"]
 requires = ["oauth-core"]
-
-[[expect]]
-form = 0
-result = "(oauth-code (pkce S256) (state unpredictable) (resource exact) (effects injected))"
 ```
 
 ### `feature/sim-agent-net/oauth-local-jose`
@@ -13428,14 +13410,9 @@ summary = "Select one allowlisted algorithm and kid, then bind issuer, audience,
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
-tags = ["oauth", "jose", "jwt"]
+tags = ["oauth", "jose", "jwt", "sandbox-descriptor"]
 requires = ["oauth-jose"]
-
-[[expect]]
-form = 0
-result = "(verified-principal (token redacted) (authority exact) (key-generation current))"
 ```
 
 ### `feature/sim-agent-net/oauth-bounded-http`
@@ -13451,14 +13428,9 @@ summary = "Use the shared HTTP policy with HTTPS, byte caps, redirects off, and 
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
-tags = ["oauth", "http", "discovery"]
+tags = ["oauth", "http", "discovery", "sandbox-descriptor"]
 requires = ["oauth-http", "net-http"]
-
-[[expect]]
-form = 0
-result = "(oauth-discovery (https required) (redirect off) (bytes bounded) (refresh explicit))"
 ```
 
 ### `feature/sim-agent-net/mcp-streamable-http`
@@ -13474,14 +13446,9 @@ summary = "Configure exact endpoint, origin, limits, and principal projection be
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
 tags = ["mcp", "http", "server", "sandbox-descriptor"]
 requires = ["mcp", "server"]
-
-[[expect]]
-form = 0
-result = "(mcp-http-server (endpoint exact) (origin checked) (body bounded) (dispatch raw-http))"
 ```
 
 Specimen `recipe/sim-agent-net/crates/sim-lib-mcp-http/01-basics/http-client` is checked by `xtask check-recipes`.
@@ -13495,14 +13462,9 @@ summary = "Build exact MCP headers and classify JSON, SSE, notification, and dis
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 20
 tags = ["mcp", "http", "client", "sandbox-descriptor"]
 requires = ["mcp", "net-http"]
-
-[[expect]]
-form = 0
-result = "(mcp-http-client (headers exact) (response classified) (cancellation request-owned))"
 ```
 
 Specimen `spec-test/sim-agent-net/crates/sim-lib-mcp-http/tests/streamable_http` is checked by `cargo test`.
@@ -13823,14 +13785,9 @@ summary = "Compose stateless modern MCP with bounded stdio framing."
 codec = "lisp"
 purpose = "purpose.md"
 setup = "setup.siml"
-expected = "expected.txt"
 order = 10
 tags = ["mcp", "stdio", "modern", "sandbox-descriptor"]
 requires = ["mcp"]
-
-[[expect]]
-form = 0
-result = "(mcp-stdio (service stateless) (context fresh-per-request) (legacy false) (stdout protocol-only))"
 ```
 
 Specimen `recipe/sim-agent-net/crates/sim-lib-mcp-stdio/01-basics/legacy-stdio` is checked by `xtask check-recipes`.
@@ -13844,14 +13801,9 @@ summary = "Compose the removable legacy adapter only at construction."
 codec = "lisp"
 purpose = "purpose.md"
 setup = "setup.siml"
-expected = "expected.txt"
 order = 20
 tags = ["mcp", "stdio", "legacy", "sandbox-descriptor"]
 requires = ["mcp"]
-
-[[expect]]
-form = 0
-result = "(mcp-stdio (legacy construction-time) (auto-upgrade false) (stdout protocol-only))"
 ```
 
 Specimen `spec-test/sim-agent-net/crates/sim-lib-mcp-stdio/src/server` is checked by `cargo test`.

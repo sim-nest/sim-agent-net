@@ -1,1 +1,7 @@
-(quote (mcp-http-server (endpoint exact) (origin checked) (body bounded) (dispatch raw-http)))
+(expr:map
+  [kind "mcp-http-server-boundary"]
+  [endpoint "exact"]
+  [origin "checked"]
+  [body "bounded"]
+  [dispatch "raw HTTP seam"]
+  [proof "MCP HTTP server tests"])

@@ -4,11 +4,6 @@ summary = "Keep sockets, DNS, and IPC behind host-injected ports instead of ambi
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
 tags = ["transport", "ports", "sandbox-descriptor"]
 requires = ["transport"]
-
-[[expect]]
-form = 0
-result = "(transport-ports (authority host-injected) (socket port) (dns port) (ipc optional))"

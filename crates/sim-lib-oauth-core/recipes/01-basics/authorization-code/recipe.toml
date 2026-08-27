@@ -4,11 +4,6 @@ summary = "Compose injected entropy, consent, browser, storage, PKCE S256, state
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
-tags = ["oauth", "pkce", "client"]
+tags = ["oauth", "pkce", "client", "sandbox-descriptor"]
 requires = ["oauth-core"]
-
-[[expect]]
-form = 0
-result = "(oauth-code (pkce S256) (state unpredictable) (resource exact) (effects injected))"

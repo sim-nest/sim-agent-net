@@ -1,1 +1,7 @@
-(quote (mcp-http-client (headers exact) (response classified) (cancellation request-owned)))
+(expr:map
+  [kind "mcp-http-client-boundary"]
+  [headers "exact"]
+  [response "classified"]
+  [cancellation "request-owned"]
+  [transport "injected net-http"]
+  [proof "MCP HTTP client tests"])

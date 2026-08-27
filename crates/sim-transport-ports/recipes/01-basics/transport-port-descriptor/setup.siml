@@ -1,1 +1,7 @@
-(quote (transport-ports (authority host-injected) (socket port) (dns port) (ipc optional)))
+(expr:map
+  [kind "transport-port-boundary"]
+  [authority "host-injected"]
+  [socket "port"]
+  [dns "port"]
+  [ipc "optional port"]
+  [proof "transport port tests"])

@@ -1,1 +1,7 @@
-(quote (mcp-stdio (service stateless) (context fresh-per-request) (legacy false) (stdout protocol-only)))
+(expr:map
+  [kind "modern-mcp-stdio-boundary"]
+  [service "stateless"]
+  [context "fresh per request"]
+  [legacy false]
+  [stdout "protocol only"]
+  [proof "modern stdio tests"])

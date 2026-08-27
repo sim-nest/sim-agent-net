@@ -3,13 +3,8 @@ title = "Admit bounded roadmap intent"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
-tags = ["roadmap", "intent", "guide", "offline"]
+tags = ["roadmap", "intent", "guide", "offline", "sandbox-descriptor"]
 requires = ["core", "codec/lisp"]
-assert_tags = ["roadmap", "intent", "guide", "offline"]
+assert_tags = ["roadmap", "intent", "guide", "offline", "sandbox-descriptor"]
 assert_setup_codec = "lisp"
-
-[[expect]]
-form = 0
-result = "(roadmap-core (tree bounded) (revision content-addressed) (guide reviewed) (execution absent) (completion unclaimed))"

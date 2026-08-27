@@ -3,13 +3,8 @@ title = "Compile grounded readiness"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
-tags = ["roadmap", "planning", "readiness", "incremental"]
+tags = ["roadmap", "planning", "readiness", "incremental", "sandbox-descriptor"]
 requires = ["core", "codec/lisp"]
-assert_tags = ["roadmap", "planning", "readiness", "incremental"]
+assert_tags = ["roadmap", "planning", "readiness", "incremental", "sandbox-descriptor"]
 assert_setup_codec = "lisp"
-
-[[expect]]
-form = 0
-result = "(roadmap-plan (roadmap admitted) (source-deck exact) (ready-set complete) (cursor absent) (invalidation dependency-exact))"

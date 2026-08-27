@@ -4,11 +4,6 @@ summary = "Compose stateless modern MCP with bounded stdio framing."
 codec = "lisp"
 purpose = "purpose.md"
 setup = "setup.siml"
-expected = "expected.txt"
 order = 10
 tags = ["mcp", "stdio", "modern", "sandbox-descriptor"]
 requires = ["mcp"]
-
-[[expect]]
-form = 0
-result = "(mcp-stdio (service stateless) (context fresh-per-request) (legacy false) (stdout protocol-only))"

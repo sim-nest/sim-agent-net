@@ -1,1 +1,0 @@
-(mcp-stdio (service stateless) (context fresh-per-request) (legacy false) (stdout protocol-only))

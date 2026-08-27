@@ -1,1 +1,6 @@
-(quote (provider-cli (surface sim-command) (inventory redaction-safe) (policy provider-lib-owned)))
+(expr:map
+  [kind "provider-cli-boundary"]
+  [surface "sim command"]
+  [inventory "redaction-safe"]
+  [policy "sim-lib-provider owned"]
+  [proof "provider CLI tests"])

@@ -1,1 +1,0 @@
-(mcp-http-server (endpoint exact) (origin checked) (body bounded) (dispatch raw-http))

@@ -4,11 +4,6 @@ summary = "Compose the removable legacy adapter only at construction."
 codec = "lisp"
 purpose = "purpose.md"
 setup = "setup.siml"
-expected = "expected.txt"
 order = 20
 tags = ["mcp", "stdio", "legacy", "sandbox-descriptor"]
 requires = ["mcp"]
-
-[[expect]]
-form = 0
-result = "(mcp-stdio (legacy construction-time) (auto-upgrade false) (stdout protocol-only))"

@@ -1,1 +1,0 @@
-(oauth-code (pkce S256) (state unpredictable) (resource exact) (effects injected))

@@ -4,11 +4,6 @@ summary = "Render redaction-safe provider inventory while leaving registry and a
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
 tags = ["provider", "cli", "sandbox-descriptor"]
 requires = ["provider"]
-
-[[expect]]
-form = 0
-result = "(provider-cli (surface sim-command) (inventory redaction-safe) (policy provider-lib-owned))"

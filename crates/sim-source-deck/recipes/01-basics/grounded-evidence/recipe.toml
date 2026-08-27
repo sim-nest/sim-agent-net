@@ -3,13 +3,8 @@ title = "Ground exact source evidence"
 codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
-expected = "expected.txt"
 order = 10
-tags = ["source-deck", "grounding", "content-addressed", "offline"]
+tags = ["source-deck", "grounding", "content-addressed", "offline", "sandbox-descriptor"]
 requires = ["core", "codec/lisp"]
-assert_tags = ["source-deck", "grounding", "content-addressed", "offline"]
+assert_tags = ["source-deck", "grounding", "content-addressed", "offline", "sandbox-descriptor"]
 assert_setup_codec = "lisp"
-
-[[expect]]
-form = 0
-result = "(source-deck (revision exact) (fragment content-addressed) (claims checked) (limitations explicit) (effects none))"

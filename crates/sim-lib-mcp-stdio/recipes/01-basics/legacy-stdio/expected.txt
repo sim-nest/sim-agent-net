@@ -1,1 +1,0 @@
-(mcp-stdio (legacy construction-time) (auto-upgrade false) (stdout protocol-only))

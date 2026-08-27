@@ -1,6 +1,8 @@
-(quote (roadmap-core
-  (tree bounded)
-  (revision content-addressed)
-  (guide reviewed)
-  (execution absent)
-  (completion unclaimed)))
+(expr:map
+  [kind "bounded-roadmap-intent"]
+  [tree "bounded"]
+  [revision "content-addressed"]
+  [guide "reviewed"]
+  [execution "absent"]
+  [completion "unclaimed"]
+  [proof "focused admission tests"])

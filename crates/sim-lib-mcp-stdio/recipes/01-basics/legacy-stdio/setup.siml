@@ -1,1 +1,6 @@
-(quote (mcp-stdio (legacy construction-time) (auto-upgrade false) (stdout protocol-only)))
+(expr:map
+  [kind "legacy-mcp-stdio-boundary"]
+  [legacy "construction-time only"]
+  [auto-upgrade false]
+  [stdout "protocol only"]
+  [proof "legacy adapter tests"])
