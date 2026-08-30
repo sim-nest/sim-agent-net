@@ -10,15 +10,15 @@ repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
-sim-cookbook = "0.2.1"
-sim-kernel = "0.2.1"
-sim-lib-agent-runner-core = { version = "0.2.0", path = "../sim-lib-agent-runner-core" }
-sim-lib-rank = "0.1.4"
+sim-cookbook = "0.3.0"
+sim-kernel = "0.3.0"
+sim-lib-agent-runner-core = { version = "0.3.0", path = "../sim-lib-agent-runner-core" }
+sim-lib-rank = "0.2.0"
 sim-lib-search-core = "0.1.0"
-sim-lib-skill = { version = "0.2.1", path = "../sim-lib-skill" }
+sim-lib-skill = { version = "0.3.0", path = "../sim-lib-skill" }
 sim-lib-web-core = "0.1.0"
-sim-shape = "0.2.3"
-sim-run-core = "0.3.2"
+sim-shape = "0.3.0"
+sim-run-core = "0.4.0"
 
 [build-dependencies]
 sim-cookbook-build = "0.1.0"

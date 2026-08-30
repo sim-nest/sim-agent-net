@@ -10,9 +10,9 @@ repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
-sim-citizen = "0.2.0"
-sim-citizen-derive = "0.2.0"
-sim-kernel = "0.2.1"
+sim-citizen = "0.3.0"
+sim-citizen-derive = "0.3.0"
+sim-kernel = "0.3.0"
 sim-roadmap-core = { version = "0.1.0", path = "../sim-roadmap-core" }
 
 [lints]

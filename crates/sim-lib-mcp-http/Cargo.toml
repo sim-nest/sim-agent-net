@@ -11,25 +11,25 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
 sim-cancel = "0.1.0"
-sim-codec = "0.1.8"
-sim-codec-mcp = "0.1.5"
-sim-cookbook = "0.2.0"
-sim-kernel = "0.2.1"
-sim-lib-mcp = { version = "0.1.9", path = "../sim-lib-mcp" }
+sim-codec = "0.2.0"
+sim-codec-mcp = "0.2.0"
+sim-cookbook = "0.3.0"
+sim-kernel = "0.3.0"
+sim-lib-mcp = { version = "0.2.0", path = "../sim-lib-mcp" }
 sim-lib-mcp-legacy = { version = "0.1.0", path = "../sim-lib-mcp-legacy" }
 sim-lib-net-http = "0.1.0"
 sim-lib-oauth-core = { version = "0.1.0", path = "../sim-lib-oauth-core" }
 sim-lib-provider = { version = "0.1.0", path = "../sim-lib-provider" }
 serde_json = "1"
-sim-lib-server = { version = "0.1.12", path = "../sim-lib-server", features = ["server-net-http"] }
-sim-value = "0.2.0"
+sim-lib-server = { version = "0.2.0", path = "../sim-lib-server", features = ["server-net-http"] }
+sim-value = "0.3.0"
 
 [build-dependencies]
 sim-cookbook-build = "0.1.0"
 
 [dev-dependencies]
-sim-codec-mcp = "0.1.5"
-sim-kernel = { version = "0.2.1", features = ["test-support"] }
+sim-codec-mcp = "0.2.0"
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
 
 [lints]
 workspace = true

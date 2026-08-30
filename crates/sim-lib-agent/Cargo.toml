@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent"
-version = "0.1.18"
+version = "0.2.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "Agent runtime surfaces for SIM."
@@ -12,45 +12,45 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 [dependencies]
 regex = "1"
 serde_json = "1"
-sim-config = { version = "0.1.1" }
-sim-citizen = { version = "0.2.0" }
-sim-citizen-derive = { version = "0.2.0" }
-sim-codec = { version = "0.1.8" }
-sim-codec-binary = { version = "0.2.1" }
-sim-codec-bridge = { version = "0.1.2" }
-sim-codec-chat = { version = "0.2.1" }
-sim-cookbook = { version = "0.2.0" }
-sim-kernel = { version = "0.2.1" }
-sim-lib-agent-runner-core = { version = "0.2.0", path = "../sim-lib-agent-runner-core" }
+sim-config = { version = "0.2.0" }
+sim-citizen = { version = "0.3.0" }
+sim-citizen-derive = { version = "0.3.0" }
+sim-codec = { version = "0.2.0" }
+sim-codec-binary = { version = "0.3.0" }
+sim-codec-bridge = { version = "0.2.0" }
+sim-codec-chat = { version = "0.3.0" }
+sim-cookbook = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0" }
+sim-lib-agent-runner-core = { version = "0.3.0", path = "../sim-lib-agent-runner-core" }
 sim-lib-agent-conduct-core = { version = "0.1.1", path = "../sim-lib-agent-conduct-core" }
 sim-lib-agent-conduct = { version = "0.1.0", path = "../sim-lib-agent-conduct" }
-sim-lib-bridge = { version = "0.1.7", path = "../sim-lib-bridge" }
-sim-lib-agent-runner-http = { version = "0.2.0", optional = true, path = "../sim-lib-agent-runner-http" }
-sim-lib-agent-runner-process = { version = "0.1.5", optional = true, path = "../sim-lib-agent-runner-process" }
+sim-lib-bridge = { version = "0.2.0", path = "../sim-lib-bridge" }
+sim-lib-agent-runner-http = { version = "0.3.0", optional = true, path = "../sim-lib-agent-runner-http" }
+sim-lib-agent-runner-process = { version = "0.2.0", optional = true, path = "../sim-lib-agent-runner-process" }
 sim-lib-exec = { version = "0.2.0", optional = true }
 sim-lib-provider = { version = "0.1.0", path = "../sim-lib-provider" }
-sim-lib-topology = { version = "0.1.5" }
-sim-lib-cookbook = { version = "0.1.16", optional = true, path = "../sim-lib-cookbook" }
-sim-lib-core = { version = "0.2.0" }
-sim-lib-numbers-stats = { version = "0.4.0" }
-sim-lib-rank = { version = "0.1.4" }
-sim-lib-server = { version = "0.1.12", path = "../sim-lib-server" }
+sim-lib-topology = { version = "0.2.0" }
+sim-lib-cookbook = { version = "0.2.0", optional = true, path = "../sim-lib-cookbook" }
+sim-lib-core = { version = "0.3.0" }
+sim-lib-numbers-stats = { version = "0.5.0" }
+sim-lib-rank = { version = "0.2.0" }
+sim-lib-server = { version = "0.2.0", path = "../sim-lib-server" }
 sim-lib-web-fetch = { version = "0.1.0", optional = true, path = "../sim-lib-web-fetch" }
 sim-lib-net-http = { version = "0.1.0", optional = true }
-sim-lib-stream-fabric = { version = "0.2.1", path = "../sim-lib-stream-fabric" }
-sim-lib-stream-core = { version = "0.1.4" }
-sim-shape = { version = "0.2.3" }
-sim-value = { version = "0.2.0" }
-sim-wasm-abi = { version = "0.3.0" }
+sim-lib-stream-fabric = { version = "0.3.0", path = "../sim-lib-stream-fabric" }
+sim-lib-stream-core = { version = "0.2.0" }
+sim-shape = { version = "0.3.0" }
+sim-value = { version = "0.3.0" }
+sim-wasm-abi = { version = "0.4.0" }
 [build-dependencies]
 sim-cookbook-build = { version = "0.1.0" }
 
 [dev-dependencies]
-sim-codec-chat = { version = "0.2.0" }
-sim-codec-json = { version = "0.2.0" }
-sim-codec-lisp = { version = "0.2.0" }
-sim-kernel = { version = "0.2.1", features = ["test-support"] }
-sim-lib-cookbook = { version = "0.1.16", path = "../sim-lib-cookbook" }
+sim-codec-chat = { version = "0.3.0" }
+sim-codec-json = { version = "0.3.0" }
+sim-codec-lisp = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
+sim-lib-cookbook = { version = "0.2.0", path = "../sim-lib-cookbook" }
 sim-transport-ports = { version = "0.1.0", path = "../sim-transport-ports" }
 wat = "1.245.1"
 

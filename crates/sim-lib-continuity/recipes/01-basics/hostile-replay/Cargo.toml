@@ -8,7 +8,7 @@ readme = "README.md"
 publish = false
 [dependencies]
 sim-lib-continuity = { path = "../../.." }
-sim-kernel = { version = "0.2.1" }
+sim-kernel = { version = "0.3.0" }
 
 [lints]
 workspace = true

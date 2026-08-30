@@ -11,7 +11,7 @@ publish = true
 
 [dependencies]
 base64 = "0.22"
-sim-cookbook = "0.2.0"
+sim-cookbook = "0.3.0"
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
 url = "2.5"

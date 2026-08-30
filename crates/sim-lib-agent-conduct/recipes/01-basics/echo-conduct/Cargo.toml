@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-sim-kernel = { version = "0.2.1", features = ["test-support"] }
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
 sim-lib-agent-conduct = { path = "../../.." }
 sim-lib-agent-conduct-core = { version = "0.1.0", path = "../../../../sim-lib-agent-conduct-core" }
-sim-lib-topology = { version = "0.1.5" }
+sim-lib-topology = { version = "0.2.0" }

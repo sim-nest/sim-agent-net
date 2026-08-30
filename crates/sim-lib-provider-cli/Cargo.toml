@@ -10,9 +10,9 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-sim-kernel = { version = "0.2.1" }
+sim-kernel = { version = "0.3.0" }
 sim-lib-provider = { version = "0.1.0", path = "../sim-lib-provider" }
-sim-run-core = { version = "0.3.2" }
+sim-run-core = { version = "0.4.0" }
 
 [lints]
 workspace = true

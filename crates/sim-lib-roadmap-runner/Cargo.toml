@@ -14,8 +14,8 @@ test-support = []
 
 [dependencies]
 sha2 = "0.10"
-sim-kernel = "0.2.1"
-sim-shape = "0.2.4"
+sim-kernel = "0.3.0"
+sim-shape = "0.3.0"
 sim-lib-journal = "0.1.0"
 sim-lib-exec = "0.2.0"
 sim-lib-agent-conduct-core = { version = "0.1.1", path = "../sim-lib-agent-conduct-core" }

@@ -12,20 +12,20 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 [dependencies]
 serde_json = "1"
 sim-cancel = { version = "0.1.0" }
-sim-codec-json = { version = "0.2.2" }
-sim-codec-mcp = { version = "0.1.5" }
-sim-cookbook = { version = "0.2.0" }
-sim-kernel = { version = "0.2.1" }
-sim-lib-agent-runner-process = { version = "0.1.5", path = "../sim-lib-agent-runner-process" }
+sim-codec-json = { version = "0.3.0" }
+sim-codec-mcp = { version = "0.2.0" }
+sim-cookbook = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0" }
+sim-lib-agent-runner-process = { version = "0.2.0", path = "../sim-lib-agent-runner-process" }
 sim-lib-exec = { version = "0.2.0" }
-sim-lib-mcp = { version = "0.1.9", path = "../sim-lib-mcp" }
+sim-lib-mcp = { version = "0.2.0", path = "../sim-lib-mcp" }
 sim-lib-mcp-legacy = { version = "0.1.0", path = "../sim-lib-mcp-legacy", optional = true }
 
 [build-dependencies]
 sim-cookbook-build = { version = "0.1.0" }
 
 [dev-dependencies]
-sim-kernel = { version = "0.2.1", features = ["test-support"] }
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
 
 [features]
 default = []

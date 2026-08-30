@@ -13,7 +13,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 path = "src/lib.rs"
 
 [dependencies]
-sim-kernel = { version = "0.2.1" }
+sim-kernel = { version = "0.3.0" }
 sim-lib-provider = { version = "0.1.0", path = "../sim-lib-provider" }
 sim-study-core = { version = "0.1.0" }
 sim-lib-study = { version = "0.1.0" }
