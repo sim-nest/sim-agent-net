@@ -10,6 +10,9 @@ use std::{
     time::Duration,
 };
 
+mod duplex;
+use duplex::duplex;
+
 /// One deterministic request/response exchange for protocol tests.
 #[derive(Clone, Default)]
 pub struct ScriptedStreamPort {
@@ -371,78 +374,6 @@ impl DnsPort for ModelPorts {
     }
 }
 
-#[derive(Default)]
-struct Pipe {
-    bytes: VecDeque<u8>,
-    closed: bool,
-}
-struct DuplexStream {
-    input: Arc<Mutex<Pipe>>,
-    output: Arc<Mutex<Pipe>>,
-}
-fn duplex() -> (DuplexStream, DuplexStream) {
-    let a = Arc::new(Mutex::new(Pipe::default()));
-    let b = Arc::new(Mutex::new(Pipe::default()));
-    (
-        DuplexStream {
-            input: a.clone(),
-            output: b.clone(),
-        },
-        DuplexStream {
-            input: b,
-            output: a,
-        },
-    )
-}
-impl Read for DuplexStream {
-    fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
-        for _ in 0..500 {
-            let mut p = self.input.lock().expect("duplex mutex poisoned");
-            if !p.bytes.is_empty() {
-                let n = out.len().min(p.bytes.len());
-                for x in &mut out[..n] {
-                    *x = p.bytes.pop_front().expect("bounded");
-                }
-                return Ok(n);
-            }
-            if p.closed {
-                return Ok(0);
-            }
-            drop(p);
-            std::thread::sleep(Duration::from_millis(1));
-        }
-        Err(io::Error::from(io::ErrorKind::TimedOut))
-    }
-}
-impl Write for DuplexStream {
-    fn write(&mut self, b: &[u8]) -> io::Result<usize> {
-        let mut p = self.output.lock().expect("duplex mutex poisoned");
-        if p.closed {
-            return Err(io::Error::from(io::ErrorKind::BrokenPipe));
-        }
-        p.bytes.extend(b);
-        Ok(b.len())
-    }
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-impl Stream for DuplexStream {
-    fn set_read_timeout(&self, _: Option<Duration>) -> Result<()> {
-        Ok(())
-    }
-    fn shutdown(&self, h: Half) -> Result<()> {
-        match h {
-            Half::Read => self.input.lock().expect("duplex mutex poisoned").closed = true,
-            Half::Write => self.output.lock().expect("duplex mutex poisoned").closed = true,
-            Half::Both => {
-                self.input.lock().expect("duplex mutex poisoned").closed = true;
-                self.output.lock().expect("duplex mutex poisoned").closed = true;
-            }
-        }
-        Ok(())
-    }
-}
 struct ModelIpcListener(Profile);
 impl IpcListener for ModelIpcListener {
     fn accept(&self) -> Result<Option<Box<dyn Stream>>> {

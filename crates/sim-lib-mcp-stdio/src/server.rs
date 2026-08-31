@@ -258,24 +258,22 @@ impl<D: Dispatch> StdioServer<D> {
             output.flush().map_err(FrameError::Io)?;
             Ok::<_, FrameError>(count)
         });
-        let (done_tx, done_rx) =
-            mpsc::channel::<(String, Value, Result<Vec<Value>, DispatchError>)>();
+        let (done_tx, done_rx) = mpsc::channel::<(String, Result<(), DispatchError>)>();
         let mut active = BTreeMap::<String, Cancellation>::new();
         let mut summary = ServerSummary::default();
         let mut workers = Vec::new();
         let mut terminal_error = None;
-        'input: loop {
-            while let Ok((key, id, result)) = done_rx.try_recv() {
-                active.remove(&key);
-                if enqueue_result(&write_tx, &id, result).is_err() {
-                    terminal_error = Some(FrameError::Io(std::io::Error::new(
-                        std::io::ErrorKind::BrokenPipe,
-                        "writer closed",
-                    )));
-                    break 'input;
-                }
+        loop {
+            if let Err(error) = drain_worker_completions(&done_rx, &mut active) {
+                terminal_error = Some(error);
+                break;
             }
-            let message = match framer.read(&mut input) {
+            let framed = framer.read(&mut input);
+            if let Err(error) = drain_worker_completions(&done_rx, &mut active) {
+                terminal_error = Some(error);
+                break;
+            }
+            let message = match framed {
                 Ok(Some(value)) => value,
                 Ok(None) => break,
                 Err(error) => {
@@ -327,6 +325,7 @@ impl<D: Dispatch> StdioServer<D> {
             let wire_id = message["id"].clone();
             let dispatch = Arc::clone(&self.dispatch);
             let done = done_tx.clone();
+            let worker_write_tx = write_tx.clone();
             let meta = message
                 .get("params")
                 .and_then(|p| p.get("_meta"))
@@ -338,7 +337,8 @@ impl<D: Dispatch> StdioServer<D> {
                     meta,
                     cancellation,
                 });
-                let _ = done.send((id, wire_id, result));
+                let write_result = enqueue_result(&worker_write_tx, &wire_id, result);
+                let _ = done.send((id, write_result));
             }));
         }
         for token in active.values() {
@@ -348,13 +348,16 @@ impl<D: Dispatch> StdioServer<D> {
             );
         }
         for worker in workers {
-            let _ = worker.join();
-        }
-        while let Ok((key, id, result)) = done_rx.try_recv() {
-            active.remove(&key);
-            if terminal_error.is_none() {
-                let _ = enqueue_result(&write_tx, &id, result);
+            if worker.join().is_err() && terminal_error.is_none() {
+                terminal_error = Some(FrameError::Io(std::io::Error::other(
+                    "dispatch worker panicked",
+                )));
             }
+        }
+        if let Err(error) = drain_worker_completions(&done_rx, &mut active)
+            && terminal_error.is_none()
+        {
+            terminal_error = Some(error);
         }
         drop(write_tx);
         summary.messages_written = writer
@@ -365,6 +368,19 @@ impl<D: Dispatch> StdioServer<D> {
         }
         Ok(summary)
     }
+}
+
+fn drain_worker_completions(
+    receiver: &mpsc::Receiver<(String, Result<(), DispatchError>)>,
+    active: &mut BTreeMap<String, Cancellation>,
+) -> Result<(), FrameError> {
+    while let Ok((key, result)) = receiver.try_recv() {
+        active.remove(&key);
+        result.map_err(|error| {
+            FrameError::Io(std::io::Error::new(std::io::ErrorKind::BrokenPipe, error.0))
+        })?;
+    }
+    Ok(())
 }
 
 fn request_id(value: &Value) -> Option<String> {

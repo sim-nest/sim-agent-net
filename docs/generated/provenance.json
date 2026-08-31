@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-18T14:40:47+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "e896c1f6bfc0398b39190b3e1f32926e3e44f94b",
+  "git_commit": "8ce452c6ea987c06b3b3fecc36e0c8b5fd0faf98",
   "repo": "sim-agent-net",
   "schema": "sim.provenance.v1",
-  "source_commit": "e896c1f6bfc0398b39190b3e1f32926e3e44f94b",
+  "source_commit": "8ce452c6ea987c06b3b3fecc36e0c8b5fd0faf98",
   "source_remote": "https://github.com/sim-nest/sim-agent-net",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "d945a0bf40843c7a",
+  "workspace_hash": "8c7e61554371ea84",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 1120,
+  "workspace_hash_input_count": 1121,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-agent/Cargo.toml",
@@ -1139,6 +1139,7 @@
     "crates/sim-transport-ports/recipes/01-basics/transport-port-descriptor/recipe.toml",
     "crates/sim-transport-ports/recipes/book.toml",
     "crates/sim-transport-ports/src/lib.rs",
+    "crates/sim-transport-ports/src/model/duplex.rs",
     "crates/sim-transport-ports/src/model.rs",
     "crates/sim-transport-ports/src/model_tests.rs",
     "features.toml",

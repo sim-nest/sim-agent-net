@@ -1,15 +1,44 @@
 use super::*;
 use std::{
+    future::Future,
     io::Cursor,
+    pin::pin,
     sync::{Condvar, Mutex},
-    time::Duration,
+    task::{Context, Poll, Wake, Waker},
 };
 
-#[derive(Default)]
 struct Interleaved {
     calls: Mutex<Vec<(String, Value, Cancellation)>>,
+    slow_release: SlowRelease,
+}
+
+enum SlowRelease {
+    AfterFastOutput(Arc<FastOutput>),
+    OnCancellation,
+}
+
+#[derive(Default)]
+struct FastOutput {
+    written: Mutex<bool>,
     release: Condvar,
 }
+
+impl Interleaved {
+    fn after_fast_output(output: Arc<FastOutput>) -> Self {
+        Self {
+            calls: Mutex::default(),
+            slow_release: SlowRelease::AfterFastOutput(output),
+        }
+    }
+
+    fn until_cancelled() -> Self {
+        Self {
+            calls: Mutex::default(),
+            slow_release: SlowRelease::OnCancellation,
+        }
+    }
+}
+
 impl Dispatch for Interleaved {
     fn dispatch(&self, call: DispatchCall) -> Result<Vec<Value>, DispatchError> {
         let id = request_id(&call.message).unwrap();
@@ -18,17 +47,18 @@ impl Dispatch for Interleaved {
             .unwrap()
             .push((id.clone(), call.meta.clone(), call.cancellation.clone()));
         if id == "s:slow" {
-            let guard = self.calls.lock().unwrap();
-            let _guard = self
-                .release
-                .wait_timeout_while(guard, Duration::from_millis(150), |_| {
-                    !call.cancellation.is_cancelled()
-                })
-                .unwrap()
-                .0;
-            // Keep the specimen deterministic: cancellation releases the
-            // slow call, but the independent fast call still completes first.
-            thread::sleep(Duration::from_millis(10));
+            match &self.slow_release {
+                SlowRelease::AfterFastOutput(output) => {
+                    let written = output.written.lock().unwrap();
+                    let _written = output
+                        .release
+                        .wait_while(written, |written| !*written)
+                        .unwrap();
+                }
+                SlowRelease::OnCancellation => {
+                    wait_for_cancellation(&call.cancellation);
+                }
+            }
         }
         Ok(vec![
             json!({"jsonrpc":"2.0","id":call.message["id"],"result":{"meta":call.meta,"cancelled":call.cancellation.is_cancelled()}}),
@@ -36,16 +66,34 @@ impl Dispatch for Interleaved {
     }
 }
 
+struct ThreadWake(thread::Thread);
+
+impl Wake for ThreadWake {
+    fn wake(self: Arc<Self>) {
+        self.0.unpark();
+    }
+}
+
+fn wait_for_cancellation(cancellation: &Cancellation) {
+    let waker = Waker::from(Arc::new(ThreadWake(thread::current())));
+    let mut context = Context::from_waker(&waker);
+    let mut cancelled = pin!(cancellation.cancelled());
+    while cancelled.as_mut().poll(&mut context) == Poll::Pending {
+        thread::park();
+    }
+}
+
 #[test]
 fn interleaves_principals_out_of_order_and_cancels_only_addressed_request() {
-    let dispatch = Arc::new(Interleaved::default());
+    let fast_output = Arc::new(FastOutput::default());
+    let dispatch = Arc::new(Interleaved::after_fast_output(Arc::clone(&fast_output)));
     let server = StdioServer::new(Arc::clone(&dispatch), ServerOptions::default()).unwrap();
     let input = concat!(
         "{\"jsonrpc\":\"2.0\",\"id\":\"slow\",\"method\":\"tools/call\",\"params\":{\"_meta\":{\"principal\":\"a\",\"version\":\"v1\"}}}\n",
         "{\"jsonrpc\":\"2.0\",\"id\":\"fast\",\"method\":\"tools/call\",\"params\":{\"_meta\":{\"principal\":\"b\",\"version\":\"v2\"}}}\n",
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\",\"params\":{\"requestId\":\"slow\"}}\n",
     );
-    let output = SharedOutput::default();
+    let output = SharedOutput::releasing_slow_after_fast(fast_output);
     let capture = output.clone();
     let mut diagnostics = Vec::new();
     let summary = server
@@ -68,7 +116,7 @@ fn interleaves_principals_out_of_order_and_cancels_only_addressed_request() {
 
 #[test]
 fn rejects_duplicate_live_ids_and_reports_late_cancellation_only_to_diagnostics() {
-    let dispatch = Arc::new(Interleaved::default());
+    let dispatch = Arc::new(Interleaved::until_cancelled());
     let server = StdioServer::new(dispatch, ServerOptions::default()).unwrap();
     let input = concat!(
         "{\"jsonrpc\":\"2.0\",\"id\":\"slow\",\"method\":\"x\",\"params\":{}}\n",
@@ -95,10 +143,27 @@ fn rejects_duplicate_live_ids_and_reports_late_cancellation_only_to_diagnostics(
 }
 
 #[derive(Clone, Default)]
-struct SharedOutput(Arc<Mutex<Vec<u8>>>);
+struct SharedOutput(Arc<Mutex<Vec<u8>>>, Option<Arc<FastOutput>>);
+
+impl SharedOutput {
+    fn releasing_slow_after_fast(fast_output: Arc<FastOutput>) -> Self {
+        Self(Arc::default(), Some(fast_output))
+    }
+}
+
 impl Write for SharedOutput {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.0.lock().unwrap().extend_from_slice(buf);
+        let mut output = self.0.lock().unwrap();
+        output.extend_from_slice(buf);
+        let fast_written = output
+            .split(|byte| *byte == b'\n')
+            .filter_map(|line| serde_json::from_slice::<Value>(line).ok())
+            .any(|line| line["id"] == "fast");
+        drop(output);
+        if fast_written && let Some(fast_output) = &self.1 {
+            *fast_output.written.lock().unwrap() = true;
+            fast_output.release.notify_all();
+        }
         Ok(buf.len())
     }
     fn flush(&mut self) -> std::io::Result<()> {

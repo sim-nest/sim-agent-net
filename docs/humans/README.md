@@ -11571,6 +11571,9 @@ use std::{
     time::Duration,
 };
 
+mod duplex;
+use duplex::duplex;
+
 /// One deterministic request/response exchange for protocol tests.
 #[derive(Clone, Default)]
 pub struct ScriptedStreamPort {
@@ -11932,78 +11935,6 @@ impl DnsPort for ModelPorts {
     }
 }
 
-#[derive(Default)]
-struct Pipe {
-    bytes: VecDeque<u8>,
-    closed: bool,
-}
-struct DuplexStream {
-    input: Arc<Mutex<Pipe>>,
-    output: Arc<Mutex<Pipe>>,
-}
-fn duplex() -> (DuplexStream, DuplexStream) {
-    let a = Arc::new(Mutex::new(Pipe::default()));
-    let b = Arc::new(Mutex::new(Pipe::default()));
-    (
-        DuplexStream {
-            input: a.clone(),
-            output: b.clone(),
-        },
-        DuplexStream {
-            input: b,
-            output: a,
-        },
-    )
-}
-impl Read for DuplexStream {
-    fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
-        for _ in 0..500 {
-            let mut p = self.input.lock().expect("duplex mutex poisoned");
-            if !p.bytes.is_empty() {
-                let n = out.len().min(p.bytes.len());
-                for x in &mut out[..n] {
-                    *x = p.bytes.pop_front().expect("bounded");
-                }
-                return Ok(n);
-            }
-            if p.closed {
-                return Ok(0);
-            }
-            drop(p);
-            std::thread::sleep(Duration::from_millis(1));
-        }
-        Err(io::Error::from(io::ErrorKind::TimedOut))
-    }
-}
-impl Write for DuplexStream {
-    fn write(&mut self, b: &[u8]) -> io::Result<usize> {
-        let mut p = self.output.lock().expect("duplex mutex poisoned");
-        if p.closed {
-            return Err(io::Error::from(io::ErrorKind::BrokenPipe));
-        }
-        p.bytes.extend(b);
-        Ok(b.len())
-    }
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-impl Stream for DuplexStream {
-    fn set_read_timeout(&self, _: Option<Duration>) -> Result<()> {
-        Ok(())
-    }
-    fn shutdown(&self, h: Half) -> Result<()> {
-        match h {
-            Half::Read => self.input.lock().expect("duplex mutex poisoned").closed = true,
-            Half::Write => self.output.lock().expect("duplex mutex poisoned").closed = true,
-            Half::Both => {
-                self.input.lock().expect("duplex mutex poisoned").closed = true;
-                self.output.lock().expect("duplex mutex poisoned").closed = true;
-            }
-        }
-        Ok(())
-    }
-}
 struct ModelIpcListener(Profile);
 impl IpcListener for ModelIpcListener {
     fn accept(&self) -> Result<Option<Box<dyn Stream>>> {
@@ -14072,24 +14003,22 @@ impl<D: Dispatch> StdioServer<D> {
             output.flush().map_err(FrameError::Io)?;
             Ok::<_, FrameError>(count)
         });
-        let (done_tx, done_rx) =
-            mpsc::channel::<(String, Value, Result<Vec<Value>, DispatchError>)>();
+        let (done_tx, done_rx) = mpsc::channel::<(String, Result<(), DispatchError>)>();
         let mut active = BTreeMap::<String, Cancellation>::new();
         let mut summary = ServerSummary::default();
         let mut workers = Vec::new();
         let mut terminal_error = None;
-        'input: loop {
-            while let Ok((key, id, result)) = done_rx.try_recv() {
-                active.remove(&key);
-                if enqueue_result(&write_tx, &id, result).is_err() {
-                    terminal_error = Some(FrameError::Io(std::io::Error::new(
-                        std::io::ErrorKind::BrokenPipe,
-                        "writer closed",
-                    )));
-                    break 'input;
-                }
+        loop {
+            if let Err(error) = drain_worker_completions(&done_rx, &mut active) {
+                terminal_error = Some(error);
+                break;
             }
-            let message = match framer.read(&mut input) {
+            let framed = framer.read(&mut input);
+            if let Err(error) = drain_worker_completions(&done_rx, &mut active) {
+                terminal_error = Some(error);
+                break;
+            }
+            let message = match framed {
                 Ok(Some(value)) => value,
                 Ok(None) => break,
                 Err(error) => {
@@ -14141,6 +14070,7 @@ impl<D: Dispatch> StdioServer<D> {
             let wire_id = message["id"].clone();
             let dispatch = Arc::clone(&self.dispatch);
             let done = done_tx.clone();
+            let worker_write_tx = write_tx.clone();
             let meta = message
                 .get("params")
                 .and_then(|p| p.get("_meta"))
@@ -14152,7 +14082,8 @@ impl<D: Dispatch> StdioServer<D> {
                     meta,
                     cancellation,
                 });
-                let _ = done.send((id, wire_id, result));
+                let write_result = enqueue_result(&worker_write_tx, &wire_id, result);
+                let _ = done.send((id, write_result));
             }));
         }
         for token in active.values() {
@@ -14162,13 +14093,16 @@ impl<D: Dispatch> StdioServer<D> {
             );
         }
         for worker in workers {
-            let _ = worker.join();
-        }
-        while let Ok((key, id, result)) = done_rx.try_recv() {
-            active.remove(&key);
-            if terminal_error.is_none() {
-                let _ = enqueue_result(&write_tx, &id, result);
+            if worker.join().is_err() && terminal_error.is_none() {
+                terminal_error = Some(FrameError::Io(std::io::Error::other(
+                    "dispatch worker panicked",
+                )));
             }
+        }
+        if let Err(error) = drain_worker_completions(&done_rx, &mut active)
+            && terminal_error.is_none()
+        {
+            terminal_error = Some(error);
         }
         drop(write_tx);
         summary.messages_written = writer
@@ -14179,6 +14113,19 @@ impl<D: Dispatch> StdioServer<D> {
         }
         Ok(summary)
     }
+}
+
+fn drain_worker_completions(
+    receiver: &mpsc::Receiver<(String, Result<(), DispatchError>)>,
+    active: &mut BTreeMap<String, Cancellation>,
+) -> Result<(), FrameError> {
+    while let Ok((key, result)) = receiver.try_recv() {
+        active.remove(&key);
+        result.map_err(|error| {
+            FrameError::Io(std::io::Error::new(std::io::ErrorKind::BrokenPipe, error.0))
+        })?;
+    }
+    Ok(())
 }
 
 fn request_id(value: &Value) -> Option<String> {

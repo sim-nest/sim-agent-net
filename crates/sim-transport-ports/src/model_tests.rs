@@ -59,3 +59,23 @@ fn domain_failures_and_optional_ipc_are_explicit() {
         TransportErrorKind::Unsupported
     );
 }
+
+#[test]
+fn duplex_timeout_delivery_and_peer_close_match_stream_semantics() {
+    let (mut client, mut server) = duplex();
+    client
+        .set_read_timeout(Some(Duration::ZERO))
+        .expect("set model timeout");
+    let mut byte = [0];
+    assert_eq!(
+        client.read(&mut byte).unwrap_err().kind(),
+        io::ErrorKind::TimedOut
+    );
+
+    server.write_all(b"x").expect("write modeled response");
+    assert_eq!(client.read(&mut byte).expect("read modeled response"), 1);
+    assert_eq!(byte, *b"x");
+
+    drop(server);
+    assert_eq!(client.read(&mut byte).expect("observe peer close"), 0);
+}
