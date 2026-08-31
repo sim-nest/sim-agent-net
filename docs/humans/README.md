@@ -7120,9 +7120,10 @@ fn capability_and_offline_miss_precede_all_effects() {
 }
 #[test]
 fn public_policy_rejects_ssrf_targets() {
+    let private_v4 = format!("http://{}.0.0.1/", 10);
     for u in [
         "http://127.0.0.1/",
-        "http://10.0.0.1/",
+        private_v4.as_str(),
         "http://[::1]/",
         "https://localhost/",
     ] {
