@@ -3,7 +3,6 @@ mod agent_runtime;
 pub(crate) mod shared;
 mod swarm;
 mod topology;
-#[cfg(test)]
 pub(crate) mod topology_data;
 mod topology_helpers;
 mod topology_pipeline_sites;

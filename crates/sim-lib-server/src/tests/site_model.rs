@@ -10,8 +10,9 @@ use sim_lib_stream_core::{
 };
 
 use crate::{
-    Coroutine, CoroutineEvalSite, FabricEvalSite, LocalEvalSite, LoopEvalSite, PipelineEvalSite,
-    ServerAddress, Site, SiteKind, realize_stream_events,
+    Coroutine, CoroutineEvalSite, EvalSite, FabricEvalSite, FrameEnvelope, FrameKind,
+    LocalEvalSite, LoopEvalSite, PipelineEvalSite, ServerAddress, ServerFrame, Site, SiteKind,
+    realize_stream_events,
 };
 
 use super::{cx, installed_codecs};
@@ -50,6 +51,35 @@ fn eval_site_family_implements_site_trait() -> Result<()> {
     assert_site(&pipeline, SiteKind::Pipeline);
     assert_site(&loop_site, SiteKind::Loop);
     assert_site(&fabric, SiteKind::Fabric);
+    Ok(())
+}
+
+#[test]
+fn fabric_site_preserves_stream_frames_without_realizing_them() -> Result<()> {
+    let mut cx = cx();
+    let site = FabricEvalSite::new(
+        "fabric",
+        ServerAddress::Local,
+        installed_codecs(),
+        Arc::new(EchoFabric),
+    );
+
+    for kind in [
+        FrameKind::StreamStart,
+        FrameKind::StreamChunk,
+        FrameKind::StreamEnd,
+    ] {
+        let mut frame = ServerFrame::new(
+            Symbol::qualified("codec", "lisp"),
+            kind,
+            FrameEnvelope::default(),
+            vec![0xde, 0xad, 0xbe, 0xef],
+        );
+        frame.msg_id = Some(17);
+        frame.correlate = Some(9);
+
+        assert_eq!(site.answer(&mut cx, frame.clone())?, frame);
+    }
     Ok(())
 }
 

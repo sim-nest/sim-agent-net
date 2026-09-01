@@ -1,0 +1,9 @@
+id = "legacy-stdio"
+title = "Enable initialize-era compatibility explicitly"
+summary = "Compose the removable legacy adapter only at construction."
+codec = "lisp"
+purpose = "purpose.md"
+setup = "setup.siml"
+order = 20
+tags = ["mcp", "stdio", "legacy", "sandbox-descriptor"]
+requires = ["mcp"]

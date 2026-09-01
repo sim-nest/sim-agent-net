@@ -8,7 +8,11 @@ use sim_lib_agent_runner_core::{
 use sim_shape::{ExprKind, ExprKindShape, GrammarDialect, Shape};
 
 fn main() -> Result<()> {
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x7ccd_50fc_a0ab_8385),
+    );
     let shape = ExprKindShape::new(ExprKind::Bool);
     let shape_expr = Expr::Symbol(Symbol::qualified("shape", "Bool"));
     let contract = OutputContract::for_shape(q("codec", "bridge"), shape_expr, &shape, true);

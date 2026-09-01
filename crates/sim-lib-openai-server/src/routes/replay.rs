@@ -279,7 +279,11 @@ where
         )
     })?;
     let forked_request = forked_request(&source_request, patch)?;
-    let (mut cx, seat) = Cx::new_seated(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x0A11_CE00),
+    );
     grant_capability_set(&seat, &mut cx, context.capabilities)
         .map_err(OpenAiRouteError::internal)?;
     let mut cache = OpenAiPlanCache::new();

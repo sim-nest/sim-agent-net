@@ -1,0 +1,7 @@
+(expr:map
+  [kind "oauth-metadata-refresh"]
+  [scheme "HTTPS required"]
+  [redirects "disabled"]
+  [bytes "bounded"]
+  [refresh-clock "explicit"]
+  [proof "crate HTTP policy tests"])

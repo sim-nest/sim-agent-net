@@ -13,7 +13,7 @@
 //! stack MCP and other serve libraries onto one bootloader.
 
 use std::io;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use sim_codec_mcp::McpCodecLib;
 use sim_kernel::{
@@ -45,6 +45,22 @@ use crate::{McpProfile, McpRouter, McpSession, install_mcp_lib};
 
 /// The verb the bootloader dispatches to this library (`sim mcp ...`).
 pub const MCP_SERVE_VERB: &str = "mcp";
+
+/// Product-owned HTTP binding seam. The protocol crate does not own sockets or
+/// OAuth providers; the final product installs exactly one launcher before boot.
+pub trait HttpLauncher: Send + Sync {
+    /// Binds and serves the validated HTTP configuration for the bootloader lifetime.
+    fn serve(&self, cx: &mut Cx, options: &CliOptions) -> Result<()>;
+}
+
+static HTTP_LAUNCHER: OnceLock<Box<dyn HttpLauncher>> = OnceLock::new();
+
+/// Installs the final product's HTTP binding composition.
+pub fn install_http_launcher(launcher: impl HttpLauncher + 'static) -> Result<()> {
+    HTTP_LAUNCHER
+        .set(Box::new(launcher))
+        .map_err(|_| Error::Eval("MCP HTTP launcher already installed".into()))
+}
 
 /// Returns the function symbol exported for the bootloader handoff.
 pub fn mcp_serve_entrypoint_symbol() -> Symbol {
@@ -109,19 +125,24 @@ impl ObjectCompat for McpServeEntrypoint {
 impl Callable for McpServeEntrypoint {
     fn call(&self, cx: &mut Cx, args: Args) -> Result<Value> {
         let opts = options_from_envelope(cx, args.values().first())?;
-        match &opts.transport {
-            Transport::Stdio => {}
-            Transport::Http { .. } => {
-                return Err(Error::Eval(
-                    "sim-mcp-server --http is disabled; use --stdio".to_owned(),
-                ));
-            }
+        if matches!(opts.transport, Transport::Http { .. }) {
+            HTTP_LAUNCHER
+                .get()
+                .ok_or_else(|| {
+                    Error::Eval("MCP HTTP binding provider was not installed by the product".into())
+                })?
+                .serve(cx, &opts)?;
+            return cx.factory().bool(true);
         }
 
         // Stand up the MCP runtime in the bootloader-provided cx. No Cx::new here.
         // The bootloader already loaded the `codec/mcp` boot codec; install the MCP
         // method surface so the router can dispatch protocol calls.
         install_mcp_lib(cx)?;
+        // Search remains an ordinary Skill: MCP derives the exact Cards,
+        // Shapes, capability checks, execution, and audit path.
+        sim_lib_skill::install_skill_lib(cx)?;
+        sim_lib_search::install_search_skill(cx, sim_lib_search::SearchProduct::default())?;
 
         let mut session =
             McpSession::new("stdio", opts.profile).with_granted_capability(mcp_stdio_capability());
@@ -190,6 +211,31 @@ pub struct CliOptions {
     pub capabilities: Vec<CapabilityName>,
     /// Whether to log diagnostics to stderr.
     pub log_stderr: bool,
+    /// Exact browser origins accepted by HTTP. Empty is valid only in explicit
+    /// anonymous loopback mode.
+    pub origins: Vec<String>,
+    /// Enables unauthenticated HTTP only when the bind address is loopback.
+    pub anonymous_loopback: bool,
+    /// Configured verifier reference (never token or key material).
+    pub oauth_verifier: Option<String>,
+    /// Exact OAuth issuer URL.
+    pub oauth_issuer: Option<String>,
+    /// Exact protected resource URL.
+    pub oauth_resource: Option<String>,
+    /// RFC 9728 protected-resource metadata URL.
+    pub oauth_metadata: Option<String>,
+    /// Required OAuth scopes.
+    pub oauth_scopes: Vec<String>,
+    /// Configured protected-state key-ring reference.
+    pub key_ring: Option<String>,
+    /// Maximum request body bytes.
+    pub max_body_bytes: usize,
+    /// Per-request timeout in milliseconds.
+    pub timeout_ms: u64,
+    /// Optional distinct initialize-era endpoint.
+    pub legacy_endpoint: Option<String>,
+    /// Maximum bounded discovery/cache entries.
+    pub cache_entries: usize,
 }
 
 /// Transport the MCP server listens on.
@@ -197,7 +243,7 @@ pub struct CliOptions {
 pub enum Transport {
     /// Line-delimited MCP over standard input and output.
     Stdio,
-    /// MCP over HTTP (currently rejected by the serve entrypoint).
+    /// MCP over Streamable HTTP.
     Http {
         /// `host:port` address to bind.
         address: String,
@@ -214,6 +260,18 @@ impl CliOptions {
         let mut capabilities = Vec::new();
         let mut route = "/mcp".to_owned();
         let mut log_stderr = false;
+        let mut origins = Vec::new();
+        let mut anonymous_loopback = false;
+        let mut oauth_verifier = None;
+        let mut oauth_issuer = None;
+        let mut oauth_resource = None;
+        let mut oauth_metadata = None;
+        let mut oauth_scopes = Vec::new();
+        let mut key_ring = None;
+        let mut max_body_bytes = 1024 * 1024;
+        let mut timeout_ms = 30_000;
+        let mut legacy_endpoint = None;
+        let mut cache_entries = 1024;
 
         let mut iter = args.into_iter();
         while let Some(arg) = iter.next() {
@@ -264,6 +322,64 @@ impl CliOptions {
                     profile = profile.with_denied_name("*");
                 }
                 "--log-stderr" => log_stderr = true,
+                "--origin" => {
+                    origins.push(next_arg(&mut iter, "--origin expects an exact origin")?)
+                }
+                "--anonymous-loopback" => anonymous_loopback = true,
+                "--oauth-verifier" => {
+                    oauth_verifier = Some(next_arg(
+                        &mut iter,
+                        "--oauth-verifier expects a provider reference",
+                    )?)
+                }
+                "--oauth-issuer" => {
+                    oauth_issuer = Some(next_arg(&mut iter, "--oauth-issuer expects an HTTPS URL")?)
+                }
+                "--oauth-resource" => {
+                    oauth_resource = Some(next_arg(
+                        &mut iter,
+                        "--oauth-resource expects an HTTPS URL",
+                    )?)
+                }
+                "--oauth-metadata" => {
+                    oauth_metadata = Some(next_arg(
+                        &mut iter,
+                        "--oauth-metadata expects an HTTPS URL",
+                    )?)
+                }
+                "--oauth-scope" => {
+                    oauth_scopes.push(next_arg(&mut iter, "--oauth-scope expects a scope")?)
+                }
+                "--key-ring" => {
+                    key_ring = Some(next_arg(
+                        &mut iter,
+                        "--key-ring expects a protected-state reference",
+                    )?)
+                }
+                "--max-body-bytes" => {
+                    max_body_bytes = parse_nonzero(
+                        &next_arg(&mut iter, "--max-body-bytes expects a number")?,
+                        "max body bytes",
+                    )?
+                }
+                "--timeout-ms" => {
+                    timeout_ms = parse_nonzero(
+                        &next_arg(&mut iter, "--timeout-ms expects a number")?,
+                        "timeout",
+                    )?
+                }
+                "--legacy-endpoint" => {
+                    legacy_endpoint = Some(next_arg(
+                        &mut iter,
+                        "--legacy-endpoint expects an absolute path",
+                    )?)
+                }
+                "--cache-entries" => {
+                    cache_entries = parse_nonzero(
+                        &next_arg(&mut iter, "--cache-entries expects a number")?,
+                        "cache entries",
+                    )?
+                }
                 other => {
                     return Err(Error::Eval(format!(
                         "unknown sim-mcp-server option {other}"
@@ -272,13 +388,80 @@ impl CliOptions {
             }
         }
 
-        Ok(Self {
+        let options = Self {
             transport: transport.unwrap_or(Transport::Stdio),
             profile,
             capabilities,
             log_stderr,
-        })
+            origins,
+            anonymous_loopback,
+            oauth_verifier,
+            oauth_issuer,
+            oauth_resource,
+            oauth_metadata,
+            oauth_scopes,
+            key_ring,
+            max_body_bytes,
+            timeout_ms,
+            legacy_endpoint,
+            cache_entries,
+        };
+        options.validate()?;
+        Ok(options)
     }
+
+    /// Validates security-sensitive product composition before any listener is bound.
+    pub fn validate(&self) -> Result<()> {
+        let Transport::Http { address, route } = &self.transport else {
+            return Ok(());
+        };
+        if !route.starts_with('/')
+            || self
+                .legacy_endpoint
+                .as_ref()
+                .is_some_and(|p| !p.starts_with('/') || p == route)
+        {
+            return Err(Error::Eval(
+                "HTTP endpoints must be absolute and distinct".into(),
+            ));
+        }
+        let host = address
+            .rsplit_once(':')
+            .map_or(address.as_str(), |(host, _)| host)
+            .trim_matches(['[', ']']);
+        let loopback = matches!(host, "127.0.0.1" | "::1" | "localhost");
+        if self.anonymous_loopback {
+            if !loopback || !self.origins.is_empty() || self.oauth_verifier.is_some() {
+                return Err(Error::Eval(
+                    "anonymous HTTP requires a loopback bind, no Origin allowlist, and no verifier"
+                        .into(),
+                ));
+            }
+        } else if self.origins.is_empty()
+            || self.oauth_verifier.is_none()
+            || self.oauth_issuer.is_none()
+            || self.oauth_resource.is_none()
+            || self.oauth_metadata.is_none()
+            || self.oauth_scopes.is_empty()
+            || self.key_ring.is_none()
+        {
+            return Err(Error::Eval("authenticated HTTP requires exact origin, OAuth verifier/issuer/resource/metadata/scopes, and protected-state key ring configuration".into()));
+        }
+        Ok(())
+    }
+}
+
+fn parse_nonzero<T>(text: &str, label: &str) -> Result<T>
+where
+    T: std::str::FromStr + Default + PartialEq,
+{
+    let value = text
+        .parse()
+        .map_err(|_| Error::Eval(format!("invalid {label}")))?;
+    if value == T::default() {
+        return Err(Error::Eval(format!("{label} must be non-zero")));
+    }
+    Ok(value)
 }
 
 fn set_transport(slot: &mut Option<Transport>, transport: Transport) -> Result<()> {
@@ -303,49 +486,5 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, message: &'static str) -> R
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn serve_lib_exports_cli_main_mcp() {
-        let manifest = McpServeLib::new().manifest();
-        assert!(manifest.exports.iter().any(|export| matches!(
-            export,
-            Export::Function { symbol, .. } if symbol == &mcp_serve_entrypoint_symbol()
-        )));
-    }
-
-    #[test]
-    fn parses_stdio_profile_caps_and_filters() {
-        let opts = CliOptions::parse_from([
-            "--stdio".to_owned(),
-            "--profile".to_owned(),
-            "default".to_owned(),
-            "--allow-tool".to_owned(),
-            "core.*".to_owned(),
-            "--deny-tool".to_owned(),
-            "*.danger*".to_owned(),
-            "--cap".to_owned(),
-            "mcp.tools.call".to_owned(),
-            "--log-stderr".to_owned(),
-        ])
-        .unwrap();
-
-        assert_eq!(opts.transport, Transport::Stdio);
-        assert_eq!(
-            opts.capabilities,
-            vec![CapabilityName::new("mcp.tools.call")]
-        );
-        assert!(opts.log_stderr);
-        assert!(opts.profile.allows_name("core.echo"));
-        assert!(!opts.profile.allows_name("core.dangerous"));
-    }
-
-    #[test]
-    fn duplicate_transport_is_rejected() {
-        let err =
-            CliOptions::parse_from(["--stdio".to_owned(), "--http".to_owned(), "x:1".to_owned()])
-                .unwrap_err();
-        assert!(format!("{err}").contains("one transport"));
-    }
-}
+#[path = "serve_tests.rs"]
+mod tests;

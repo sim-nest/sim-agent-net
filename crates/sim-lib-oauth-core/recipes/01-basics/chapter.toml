@@ -1,0 +1,4 @@
+chapter = "01-basics"
+title = "Resource-bound client"
+order = 10
+recipes = ["authorization-code"]

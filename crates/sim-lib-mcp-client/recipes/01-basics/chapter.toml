@@ -1,0 +1,4 @@
+title = "Client bindings and flows"
+order = 10
+summary = "Modern-first client boundary specimens."
+recipes = ["http-client", "stdio-client", "legacy-fallback", "mrtr-input", "subscription"]

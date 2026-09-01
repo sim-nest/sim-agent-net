@@ -1,0 +1,6 @@
+(expr:map
+  [kind "legacy-mcp-stdio-boundary"]
+  [legacy "construction-time only"]
+  [auto-upgrade false]
+  [stdout "protocol only"]
+  [proof "legacy adapter tests"])

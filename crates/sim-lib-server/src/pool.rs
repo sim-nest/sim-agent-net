@@ -3,12 +3,14 @@ use std::thread::JoinHandle;
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
+/// A fixed-size pool for dispatching thread-independent work.
 pub struct WorkerPool {
     sender: Option<mpsc::Sender<Job>>,
     workers: Vec<JoinHandle<()>>,
 }
 
 impl WorkerPool {
+    /// Starts a pool with at least one worker.
     pub fn new(size: usize) -> Self {
         let (sender, receiver) = mpsc::channel::<Job>();
         let receiver = Arc::new(Mutex::new(receiver));
@@ -34,6 +36,7 @@ impl WorkerPool {
         }
     }
 
+    /// Queues one owned job for execution.
     pub fn execute<F: FnOnce() + Send + 'static>(&self, f: F) {
         if let Some(sender) = &self.sender {
             let _ = sender.send(Box::new(f));
@@ -50,6 +53,7 @@ impl Drop for WorkerPool {
     }
 }
 
+/// Returns the process-wide worker pool sized to available parallelism.
 pub fn default_worker_pool() -> &'static WorkerPool {
     static POOL: OnceLock<WorkerPool> = OnceLock::new();
     POOL.get_or_init(|| {

@@ -1,0 +1,23 @@
+[package]
+name = "sim-lib-agent-conduct-core"
+version = "0.1.1"
+edition = "2024"
+license = "MPL-2.0"
+description = "Pure, codec-stable agent conduct records for SIM."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+sim-citizen = { version = "0.3.0" }
+sim-citizen-derive = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0" }
+sim-value = { version = "0.3.0" }
+sim-shape = { version = "0.3.0" }
+
+[lints]
+workspace = true

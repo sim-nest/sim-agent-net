@@ -1,17 +1,14 @@
-use std::{
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicU8, AtomicU64, Ordering},
-    },
-    time::Instant,
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicU8, AtomicU64, Ordering},
 };
 
 use sim_citizen_derive::non_citizen;
 use sim_kernel::{ClassRef, Cx, Expr, Object, Result, Symbol, Value};
 
 use crate::{
-    EvalSite, FrameRouter, IsolationPolicy, ServerAddress, ServerFrame, ServerRuntime,
-    SystemWallClock, TriggerHandle, WallClock, symbol_list_value,
+    DeterministicWallClock, EvalSite, FrameRouter, IsolationPolicy, ServerAddress, ServerFrame,
+    ServerRuntime, TriggerHandle, WallClock, symbol_list_value,
 };
 
 static NEXT_SERVER_ID: AtomicU64 = AtomicU64::new(1);
@@ -158,7 +155,7 @@ pub struct Server {
     triggers: Arc<Mutex<Vec<Arc<TriggerHandle>>>>,
     runtime: Option<Arc<ServerRuntime>>,
     wall_clock: Arc<dyn WallClock>,
-    started_at: Instant,
+    started_at_ms: u64,
 }
 
 impl Server {
@@ -202,6 +199,8 @@ impl Server {
         runtime: Option<Arc<ServerRuntime>>,
     ) -> Result<Self> {
         address.ensure_transport_available()?;
+        let wall_clock: Arc<dyn WallClock> = Arc::new(DeterministicWallClock::new(0, 1));
+        let started_at_ms = wall_clock.now_ms()?;
         Ok(Self {
             id: NEXT_SERVER_ID.fetch_add(1, Ordering::Relaxed),
             name,
@@ -216,8 +215,8 @@ impl Server {
             router: Arc::new(FrameRouter::default()),
             triggers: Arc::new(Mutex::new(Vec::new())),
             runtime,
-            wall_clock: Arc::new(SystemWallClock),
-            started_at: Instant::now(),
+            wall_clock,
+            started_at_ms,
         })
     }
 
@@ -225,6 +224,7 @@ impl Server {
     ///
     /// Configure the clock before sharing the server or registering triggers.
     pub fn with_wall_clock(mut self, wall_clock: Arc<dyn WallClock>) -> Self {
+        self.started_at_ms = wall_clock.now_ms().unwrap_or(0);
         self.wall_clock = wall_clock;
         self
     }
@@ -296,7 +296,10 @@ impl Server {
 
     /// Returns the elapsed time since the server started, in milliseconds.
     pub fn uptime_millis(&self) -> u64 {
-        self.started_at.elapsed().as_millis() as u64
+        self.wall_clock
+            .now_ms()
+            .unwrap_or(self.started_at_ms)
+            .saturating_sub(self.started_at_ms)
     }
 
     /// Registers a trigger handle to be tracked and stopped with the server.
@@ -439,7 +442,7 @@ impl Clone for Server {
             triggers: self.triggers.clone(),
             runtime: self.runtime.clone(),
             wall_clock: self.wall_clock.clone(),
-            started_at: self.started_at,
+            started_at_ms: self.started_at_ms,
         }
     }
 }

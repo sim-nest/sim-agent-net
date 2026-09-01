@@ -1,0 +1,5 @@
+book = "mcp-client"
+title = "Modern-first MCP client"
+summary = "Checked HTTP, stdio, legacy, MRTR, and subscription composition."
+order = 352
+chapters = ["01-basics"]

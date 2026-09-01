@@ -1,0 +1,14 @@
+[package]
+name = "sim-lib-roadmap-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+sim-lib-roadmap = { path = ".." }
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
+sim-codec = { version = "0.2.0" }
+sim-codec-json = { version = "0.3.0" }
+sim-codec-lisp = { version = "0.3.0" }

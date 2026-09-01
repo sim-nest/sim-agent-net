@@ -188,6 +188,37 @@ fn a6_phase7_market_race_chooses_earliest_successful_runner() {
 }
 
 #[test]
+fn provider_fanout_parallel_mode_reuses_market_and_reports_serialized_runners() {
+    let mut cx = phase7_cx();
+    let alpha = fake_runner(
+        &mut cx,
+        "alpha",
+        0.01,
+        text_response(Symbol::new("alpha"), "alpha/model", "alpha"),
+    );
+    let beta = fake_runner(
+        &mut cx,
+        "beta",
+        0.02,
+        text_response(Symbol::new("beta"), "beta/model", "beta"),
+    );
+    let policy = policy(&mut cx, "parallel-all", None, None, None);
+    let market = market(&mut cx, vec![alpha, beta], policy);
+
+    let expr = realize(&mut cx, &market, "fan out");
+    let fanout = field(&expr, "fan-out").expect("parallel market reports fan-out rows");
+    let Expr::List(rows) = fanout else {
+        panic!("fan-out report must be a list");
+    };
+    assert_eq!(rows.len(), 2);
+    assert!(format!("{rows:?}").contains("alpha"));
+    assert!(format!("{rows:?}").contains("beta"));
+    assert!(rows.iter().all(|row| {
+        matches!(field(row, "status"), Some(Expr::Symbol(status)) if status.name.as_ref() == "serialized")
+    }));
+}
+
+#[test]
 fn a6_phase7_market_speculate_keeps_expensive_when_verifier_rejects_cheap() {
     let mut cx = phase7_cx();
     let cheap = fake_runner(

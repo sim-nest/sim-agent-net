@@ -1,0 +1,20 @@
+graph:
+topology agent/default-v1
+node in verb=in output=agent/RunFrame
+node step verb=call target=agent.step/model-turn role=runner
+node finish verb=call target=agent.step/finish
+node stop verb=call target=agent.step/stop
+node out verb=out input=agent/RunFrame
+wire in -> step
+wire step -> finish when=agent/outcome-final
+wire step -> finish when=agent/outcome-tool-calls
+wire step -> stop when=agent/outcome-error
+wire finish -> out
+wire stop -> out
+budget max-steps=12 max-node-visits=4 max-edge-visits=4
+metadata:
+profile=agent/conduct-v1
+requires-roles=[runner]
+result-shape=agent/RunFrame
+domain-budget="model-turns=1 effects=modeled"
+replay-policy=agent.replay/recorded

@@ -1,6 +1,7 @@
+use super::port_io::{PortTcpListener as TcpListener, PortTcpStream as TcpStream};
 use std::{
     io::{BufReader, ErrorKind, Write},
-    net::{Shutdown, TcpListener, TcpStream},
+    net::Shutdown,
     sync::Arc,
     time::Duration,
 };

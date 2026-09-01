@@ -1,0 +1,27 @@
+[package]
+name = "sim-lib-mcp-client"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Modern-first, transport-neutral MCP client for SIM."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+serde_json = "1"
+sim-cancel = { version = "0.1.0" }
+sim-cookbook = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0" }
+sim-lib-skill = { version = "0.3.0", path = "../sim-lib-skill" }
+sim-shape = { version = "0.3.0" }
+
+[build-dependencies]
+sim-cookbook-build = { version = "0.1.0" }
+
+[dev-dependencies]
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
+
+[lints]
+workspace = true

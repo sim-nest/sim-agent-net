@@ -1,0 +1,9 @@
+id = "provider-cli-descriptor"
+title = "Describe provider CLI"
+summary = "Render redaction-safe provider inventory while leaving registry and authentication policy in sim-lib-provider."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["provider", "cli", "sandbox-descriptor"]
+requires = ["provider"]

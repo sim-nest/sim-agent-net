@@ -1,0 +1,19 @@
+[package]
+name = "sim-roadmap-exec-core"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Pure execution and reconciliation laws for SIM roadmaps"
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sim-citizen = "0.3.0"
+sim-citizen-derive = "0.3.0"
+sim-kernel = "0.3.0"
+sim-roadmap-core = { version = "0.1.0", path = "../sim-roadmap-core" }
+
+[lints]
+workspace = true

@@ -1,0 +1,10 @@
+id = "bounded-retry"
+title = "Admit one bounded retry"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["roadmap", "execution", "recovery", "effect-free", "sandbox-descriptor"]
+requires = ["core", "codec/lisp"]
+assert_tags = ["roadmap", "execution", "recovery", "effect-free", "sandbox-descriptor"]
+assert_setup_codec = "lisp"

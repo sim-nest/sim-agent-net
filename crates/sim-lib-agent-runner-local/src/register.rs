@@ -47,6 +47,7 @@ pub fn realize_site_args(args: Vec<Expr>) -> Result<Expr> {
     let mut cx = Cx::new(
         Arc::new(sim_kernel::NoopEvalPolicy),
         Arc::new(sim_kernel::DefaultFactory),
+        sim_kernel::HandleSeed::new(0x4c4d_4f44),
     );
     let response = LocalModelBackend::new().infer(&mut cx, request)?;
     Ok(response.into())

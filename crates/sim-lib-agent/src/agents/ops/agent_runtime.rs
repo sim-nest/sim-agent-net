@@ -36,6 +36,8 @@ pub(crate) fn agent_attach_value(cx: &mut Cx, args: Args) -> Result<Value> {
             .lock()
             .map_err(|_| Error::PoisonedLock("agent manifest"))?;
         match slot.as_str() {
+            "conduct" => manifest.conduct = Some(attachment.clone()),
+            "result-shape" => manifest.result_shape = Some(attachment.clone()),
             "tools" | "tool" => manifest.tools.push(attachment.clone()),
             "memories" | "memory" => manifest.memories.push(attachment.clone()),
             "retrievers" | "retriever" => manifest.retrievers.push(attachment.clone()),

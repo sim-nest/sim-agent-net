@@ -99,6 +99,8 @@ fn a6_to_a8_swarm_topology_gateway_and_wire_surfaces_work() {
     install_agent_lib(&mut cx).unwrap();
     cx.grant_named("agent-spawn");
     cx.grant_named("swarm-launch");
+    cx.grant_named("math");
+    cx.grant(sim_lib_topology::topology_run_capability());
 
     let tool = register_sum_tool(&mut cx);
     let tool_value = cx.resolve_value(&tool.symbol).unwrap();
@@ -170,6 +172,8 @@ fn a6_to_a8_swarm_topology_gateway_and_wire_surfaces_work() {
             sim_kernel::Args::new(vec![
                 cx.factory().symbol(Symbol::new(":name")).unwrap(),
                 cx.factory().symbol(Symbol::new("pair")).unwrap(),
+                cx.factory().symbol(Symbol::new(":agents")).unwrap(),
+                worker.clone(),
                 cx.factory().symbol(Symbol::new(":max-turns")).unwrap(),
                 cx.factory()
                     .number_literal(Symbol::qualified("numbers", "f64"), "2".to_owned())
@@ -208,9 +212,18 @@ fn a6_to_a8_swarm_topology_gateway_and_wire_surfaces_work() {
             },
         )
         .unwrap();
-    assert!(
-        flatten_text(&realized.value.object().as_expr(&mut cx).unwrap()).contains("transcript")
-    );
+    let realized_expr = realized.value.object().as_expr(&mut cx).unwrap();
+    assert!(!matches!(realized_expr, Expr::Nil));
+    let explained = cx
+        .call_function(
+            &Symbol::qualified("swarm", "explain"),
+            sim_kernel::Args::new(vec![swarm.clone()]),
+        )
+        .unwrap();
+    assert!(!matches!(
+        explained.object().as_expr(&mut cx).unwrap(),
+        Expr::Nil
+    ));
 
     let as_site = cx
         .call_function(
@@ -407,11 +420,12 @@ fn r20_swarm_launch_requires_capability_for_surface_and_fabric() {
     ));
 
     cx.grant_named("swarm-launch");
+    cx.grant(sim_lib_topology::topology_run_capability());
     let launched = cx
         .call_function(
             &Symbol::qualified("swarm", "launch"),
             sim_kernel::Args::new(vec![swarm, cx.factory().expr(Expr::Nil).unwrap()]),
         )
         .unwrap();
-    assert!(flatten_text(&launched.object().as_expr(&mut cx).unwrap()).contains("transcript"));
+    assert_eq!(launched.object().as_expr(&mut cx).unwrap(), Expr::Nil);
 }

@@ -5,19 +5,50 @@
 | Package | Group | Summary |
 | --- | --- | --- |
 | `sim-lib-agent` | `workspace` | Agent runtime surfaces for SIM: agents, tools, memory, patterns, fixtures, fairness facets, and model-fabric contract re-exports. |
+| `sim-lib-agent-conduct` | `workspace` | Agent-conduct certification and topology execution adapter. |
+| `sim-lib-agent-conduct-core` | `workspace` | Pure, codec-stable data contracts for agent conduct. |
+| `sim-lib-agent-conduct-core-recipe-pure-journal` | `workspace` | Pure conduct journal cookbook recipe. |
+| `sim-lib-agent-conduct-recipe-echo` | `workspace` | SIM workspace package for sim lib agent conduct recipe echo. |
 | `sim-lib-agent-runner-core` | `workspace` | Provider-neutral runner contracts for SIM model fabrics. |
 | `sim-lib-agent-runner-core-recipe-output-contract-repair` | `workspace` | Runnable output contract repair cookbook recipe. |
 | `sim-lib-agent-runner-http` | `workspace` | HTTP-backed model runners for SIM. |
 | `sim-lib-agent-runner-local` | `workspace` | Loadable local model runner for SIM. |
 | `sim-lib-agent-runner-process` | `workspace` | Local subprocess-backed model runners for SIM. |
 | `sim-lib-bridge` | `workspace` | Checked BRIDGE packet runtime for SIM model exchanges. |
+| `sim-lib-capability-pack` | `workspace` | Content-addressed, checked composition of loadable SIM capabilities. |
+| `sim-lib-capability-pack-recipe-checked-pack` | `workspace` | SIM workspace package for sim lib capability pack recipe checked pack. |
+| `sim-lib-continuity` | `workspace` | Pure continuity planning and replay. |
+| `sim-lib-continuity-recipe-hostile-replay` | `workspace` | Hostile continuity replay cookbook recipe. |
 | `sim-lib-cookbook` | `workspace` | Runtime cookbook: operations for SIM. |
 | `sim-lib-forge` | `workspace` | Compiled intent records, BRIDGE lifts, and reusable packet-program lookup. |
-| `sim-lib-mcp` | `workspace` | Library-only MCP surface projection for SIM. |
+| `sim-lib-mcp` | `workspace` | Stateless MCP application service for SIM. |
+| `sim-lib-mcp-client` | `workspace` | Modern-first, transport-neutral MCP client. |
+| `sim-lib-mcp-http` | `workspace` | Final-protocol Streamable HTTP adapter for stateless MCP. |
+| `sim-lib-mcp-legacy` | `workspace` | Compatibility adapter for initialize-era MCP connections. |
+| `sim-lib-mcp-stdio` | `workspace` | Bounded newline framing and request-owned lifetimes for MCP over stdio. |
+| `sim-lib-model-test` | `workspace` | Immutable-enough identities for model products observed through provider seats. |
+| `sim-lib-model-test-packs` | `workspace` | Frozen, validated model-test task packs. |
+| `sim-lib-oauth-core` | `workspace` | Effect-free OAuth 2.1 resource/client state and authority facts. |
+| `sim-lib-oauth-http` | `workspace` | Policy-bounded OAuth metadata and JWK retrieval over sim-lib-net-http. |
+| `sim-lib-oauth-jose` | `workspace` | Local JWT/JWK-set verification with no I/O and no algorithm inference. |
 | `sim-lib-openai-server` | `workspace` | OpenAI-shaped gateway routes for SIM. |
+| `sim-lib-provider` | `workspace` | Reusable provider identity, discovery, and seat-opening contracts. |
+| `sim-lib-provider-cli` | `workspace` | Loadable sim provider command surface. |
+| `sim-lib-roadmap` | `workspace` | Bounded native SIM value faces for grounded roadmaps |
+| `sim-lib-roadmap-runner` | `workspace` | Durable journal adapter for SIM roadmap executions |
+| `sim-lib-search` | `workspace` | Deterministic federation of provider-neutral search skills. |
+| `sim-lib-search-http` | `workspace` | Provider-neutral HTTP execution for SearchWireCodec implementations. |
 | `sim-lib-server` | `workspace` | SIM's server library: a loadable lib that serves eval and agents over a transport. It exposes sites (local, coroutine, pipeline, loop, fabric), frame routing, REPL drivers, connections, and transports so callers can request evaluation, stream replies, and run agent loops across the runtime. |
 | `sim-lib-skill` | `workspace` | Agent skills for the SIM runtime. |
 | `sim-lib-stream-fabric` | `workspace` | Content-addressed distributed evaluation for remote stream realization. |
+| `sim-lib-web-fetch` | `workspace` | Policy-gated, content-addressed web capture. |
 | `sim-mcp-server` | `workspace` | The sim-mcp-server binary: a thin bootloader that serves MCP over stdio. |
+| `sim-roadmap-core` | `workspace` | Pure content-addressed roadmap specifications and implementation guides for SIM |
+| `sim-roadmap-exec-core` | `workspace` | Pure execution and reconciliation laws for SIM roadmaps |
+| `sim-roadmap-plan` | `workspace` | Grounded, explainable compilation of immutable SIM roadmaps |
+| `sim-roadmap-refine` | `workspace` | Certified, immutable refinement of grounded SIM roadmaps |
+| `sim-roadmap-refine-recipe-certified-descent` | `workspace` | Certified roadmap descent cookbook recipe. |
+| `sim-source-deck` | `workspace` | Immutable bounded source-context values for SIM |
 | `sim-table-remote` | `workspace` | Remote-backed SIM table directory. |
+| `sim-transport-ports` | `workspace` | Narrow, host-neutral ports at SIM's connection, listener, resolver, and IPC boundary. |
 | `xtask` | `workspace` | Repository maintenance tasks for sim-agent-net. |

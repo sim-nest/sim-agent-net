@@ -1,0 +1,8 @@
+id = "fixture-site"
+title = "Provider-neutral fixture search site"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["search", "http", "skill", "cassette", "fixture"]
+requires = ["search-http", "net/http"]

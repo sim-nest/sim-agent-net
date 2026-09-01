@@ -1,0 +1,16 @@
+[package]
+name = "sim-roadmap-refine-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[lib]
+name = "sim_roadmap_refine"
+path = "../src/lib.rs"
+
+[dependencies]
+sim-roadmap-core = { path = "../../sim-roadmap-core" }
+sim-source-deck = { path = "../../sim-source-deck" }
+sim-kernel = { version = "0.3.0", features = ["test-support"] }

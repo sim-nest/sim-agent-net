@@ -1,0 +1,9 @@
+id = "oauth-metadata-refresh"
+title = "Retrieve bounded discovery and rotating keys"
+summary = "Use the shared HTTP policy with HTTPS, byte caps, redirects off, and an explicit refresh clock."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["oauth", "http", "discovery", "sandbox-descriptor"]
+requires = ["oauth-http", "net-http"]

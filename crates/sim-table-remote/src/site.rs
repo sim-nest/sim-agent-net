@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
-use sim_kernel::{Consistency, Cx, Error, EvalReply, Expr, Result, Symbol, Value};
+use sim_kernel::{
+    Consistency, Cx, Error, EvalReply, Expr, Result, Symbol, TableExpected, TableObserved,
+    TableReplacement, Value,
+};
 use sim_lib_server::{
     EvalSite, FrameKind, ServerAddress, ServerFrame, eval_request_from_frame,
     server_frame_from_reply,
 };
-use sim_table_core::{TableOp, TableOpError, decode_table_op};
+use sim_table_core::{CompareExpected, CompareReplacement, TableOp, TableOpError, decode_table_op};
 
 /// Wraps `inner` so table operations dispatch against the table `root`.
 pub fn wrap_remote_table_site(inner: Arc<dyn EvalSite>, root: Value) -> Arc<dyn EvalSite> {
@@ -75,6 +78,7 @@ impl RemoteTableSite {
         match name {
             "get" => "table/get expects path and key".to_owned(),
             "set" => "table/set expects path, key, and value".to_owned(),
+            "cas" => "table/cas expects path, key, expected, and replacement".to_owned(),
             "has" => "table/has expects path and key".to_owned(),
             "del" => "table/del expects path and key".to_owned(),
             "keys" => "table/keys expects only a path".to_owned(),
@@ -170,6 +174,33 @@ impl RemoteTableSite {
             TableOp::Set(key, value) => {
                 table.set(cx, key, cx.factory().expr(value)?)?;
                 cx.factory().nil()
+            }
+            TableOp::CompareExchange(key, expected, replacement) => {
+                let expected = match expected {
+                    CompareExpected::Absent => TableExpected::Absent,
+                    CompareExpected::Value(expr) => TableExpected::Value(expr),
+                };
+                let replacement = match replacement {
+                    CompareReplacement::Delete => TableReplacement::Delete,
+                    CompareReplacement::Value(expr) => {
+                        TableReplacement::Value(cx.factory().expr(expr)?)
+                    }
+                };
+                let outcome = table.compare_exchange(cx, key, expected, replacement)?;
+                let observed = match outcome.observed {
+                    TableObserved::Absent => Expr::Call {
+                        operator: Box::new(Expr::Symbol(Symbol::qualified("table", "absent"))),
+                        args: vec![],
+                    },
+                    TableObserved::Value(expr) => Expr::Call {
+                        operator: Box::new(Expr::Symbol(Symbol::qualified("table", "value"))),
+                        args: vec![expr],
+                    },
+                };
+                cx.factory().expr(Expr::Call {
+                    operator: Box::new(Expr::Symbol(Symbol::qualified("table", "cas-result"))),
+                    args: vec![Expr::Bool(outcome.exchanged), observed],
+                })
             }
             TableOp::Has(key) => {
                 let present = table.has(cx, key)?;

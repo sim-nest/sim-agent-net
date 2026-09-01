@@ -1,0 +1,7 @@
+id = "roadmap-interrupted-mutation"
+title = "Recover an interrupted disposable mutation"
+purpose = "Resume a journaled mutation under its original execution generation."
+summary = "Resume one journaled mutation under its original generation."
+level = "basics"
+tags = ["roadmap", "resume", "recovery"]
+requires = ["sim-lib-roadmap-runner"]

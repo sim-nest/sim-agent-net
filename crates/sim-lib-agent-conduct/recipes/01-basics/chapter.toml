@@ -1,0 +1,4 @@
+title = "Basics"
+
+[[recipe]]
+path = "echo-conduct/recipe.toml"

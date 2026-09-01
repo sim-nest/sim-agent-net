@@ -1,0 +1,15 @@
+[package]
+name = "sim-lib-continuity-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "hostile-replay"
+path = "../recipes/01-basics/hostile-replay/src/main.rs"
+
+[dependencies]
+sim-citizen = "0.3.0"
+sim-lib-continuity = { path = ".." }
+sim-kernel = "0.3.0"
+[workspace]

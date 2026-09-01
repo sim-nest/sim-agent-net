@@ -18,9 +18,8 @@ use serde_json::{Map as JsonMap, Number as JsonNumber, Value as JsonValue};
 use sim_codec_json::{JsonProjectionMode, project_json_to_expr};
 use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, ShapeRef, Symbol, Value};
 use sim_lib_agent_runner_core::{ModelEvent, ModelUsage};
-use sim_lib_agent_runner_process::{
-    ProcessCommandSpec, run_process_command, stream_process_command_lines,
-};
+use sim_lib_agent_runner_process::{BrokerProcessSpec, frame_stdout, run_broker_process};
+use sim_lib_exec::{ProcessCancellation, ProgramRef, ProjectRootRef, SealedBindings};
 
 use crate::{
     SkillCard, SkillEventSink, SkillPolicy, SkillRole, SkillTransport,
@@ -198,7 +197,12 @@ fn card_for_operation(transport_id: &str, operation: &ProcessSkillOperation) -> 
 
 fn call_json_stdio(cx: &mut Cx, operation: &ProcessSkillOperation, args: Value) -> Result<Value> {
     let stdin = json_stdin(cx, args)?;
-    let stdout = run_process_command(&command_spec(operation), stdin)?;
+    let stdout = run_broker_process(
+        cx,
+        &command_spec(operation)?,
+        stdin,
+        &ProcessCancellation::default(),
+    )?;
     let json: JsonValue = serde_json::from_slice(&stdout)
         .map_err(|err| Error::Eval(format!("{PROCESS_LABEL} returned invalid json: {err}")))?;
     cx.factory().expr(project_json_to_expr(
@@ -218,10 +222,20 @@ fn call_line_text(
     let stdout = if card.roles.contains(&SkillRole::Model) {
         match events {
             Some(sink) => stream_line_text(cx, card, operation, stdin, sink)?,
-            None => run_process_command(&command_spec(operation), stdin)?,
+            None => run_broker_process(
+                cx,
+                &command_spec(operation)?,
+                stdin,
+                &ProcessCancellation::default(),
+            )?,
         }
     } else {
-        run_process_command(&command_spec(operation), stdin)?
+        run_broker_process(
+            cx,
+            &command_spec(operation)?,
+            stdin,
+            &ProcessCancellation::default(),
+        )?
     };
     let text = String::from_utf8(stdout)
         .map_err(|_| Error::Eval(format!("{PROCESS_LABEL} returned non-utf8 text")))?;
@@ -244,8 +258,14 @@ fn stream_line_text(
     let mut line_count = 0_u64;
     let runner = card.symbol.clone();
     let model = card.id.clone();
-    let stdout = stream_process_command_lines(&command_spec(operation), stdin, |line| {
-        let line = std::str::from_utf8(line)
+    let stdout = run_broker_process(
+        cx,
+        &command_spec(operation)?,
+        stdin,
+        &ProcessCancellation::default(),
+    )?;
+    for line in frame_stdout(stdout.clone(), "lines")? {
+        let line = std::str::from_utf8(&line)
             .map_err(|_| Error::Eval(format!("{PROCESS_LABEL} returned non-utf8 text")))?;
         let line = line.trim_end_matches(['\r', '\n']);
         line_count += 1;
@@ -253,8 +273,8 @@ fn stream_line_text(
             cx,
             sink,
             ModelEvent::delta_text(runner.clone(), model.clone(), span_id.clone(), line),
-        )
-    })?;
+        )?;
+    }
     emit_model_event(
         cx,
         sink,
@@ -277,9 +297,13 @@ fn emit_model_event(cx: &mut Cx, sink: &mut dyn SkillEventSink, event: ModelEven
     sink.emit(cx, value)
 }
 
-fn command_spec(operation: &ProcessSkillOperation) -> ProcessCommandSpec {
-    ProcessCommandSpec::new(
-        operation.spec.command_template.clone(),
+fn command_spec(operation: &ProcessSkillOperation) -> Result<BrokerProcessSpec> {
+    BrokerProcessSpec::new(
+        ProgramRef::new(operation.spec.command_template.clone())?,
+        Vec::new(),
+        ProjectRootRef::new("skill-process")?,
+        SealedBindings::empty(),
+        Vec::new(),
         PROCESS_LABEL,
         operation.spec.timeout,
         operation.spec.max_output_bytes,

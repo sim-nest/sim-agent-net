@@ -1,0 +1,3 @@
+book = "local-roadmap-runner"
+title = "Local roadmap execution"
+summary = "Public, hermetic specimens for the loadable local roadmap runner."

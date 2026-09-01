@@ -1,0 +1,5 @@
+book = "model-test/packs"
+title = "Model Test Packs"
+summary = "Freeze, validate, and select immutable public model-test task packs."
+order = 360
+chapters = ["01-basics"]

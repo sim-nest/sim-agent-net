@@ -1,7 +1,7 @@
+#[cfg(feature = "trigger-webhook")]
+use crate::transport::port_io::PortTcpListener as TcpListener;
 #[cfg(any(feature = "trigger-imap", feature = "trigger-smtp"))]
 use std::io::{BufReader, Write};
-#[cfg(feature = "trigger-webhook")]
-use std::net::TcpListener;
 use std::time::Duration;
 
 use sim_kernel::{Cx, Error, Result};

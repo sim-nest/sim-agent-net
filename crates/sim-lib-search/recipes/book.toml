@@ -1,0 +1,5 @@
+book = "search"
+title = "Federated Research"
+summary = "Deterministic claims, capture, selectors, and replay."
+order = 390
+chapters = ["01-fixture"]

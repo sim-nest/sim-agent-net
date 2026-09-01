@@ -1,0 +1,5 @@
+book = "roadmap-exec-core"
+title = "Roadmap Execution Core"
+summary = "Reduce execution observations and admit bounded recovery as pure data."
+order = 83
+chapters = ["01-basics"]

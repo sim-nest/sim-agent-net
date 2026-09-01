@@ -1,0 +1,10 @@
+id = "grounded-evidence"
+title = "Ground exact source evidence"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["source-deck", "grounding", "content-addressed", "offline", "sandbox-descriptor"]
+requires = ["core", "codec/lisp"]
+assert_tags = ["source-deck", "grounding", "content-addressed", "offline", "sandbox-descriptor"]
+assert_setup_codec = "lisp"

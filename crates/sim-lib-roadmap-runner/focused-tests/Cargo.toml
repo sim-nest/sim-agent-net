@@ -1,0 +1,20 @@
+[package]
+name = "sim-lib-roadmap-runner-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+sim-kernel = { version = "0.3.0" }
+sim-lib-journal = { version = "0.1.0" }
+sim-lib-exec = { version = "0.2.0" }
+sim-cookbook = { version = "0.3.0" }
+sim-cookbook-build = { version = "0.1.0" }
+sim-lib-roadmap-runner = { path = ".." }
+sim-roadmap-core = { path = "../../sim-roadmap-core" }
+sim-roadmap-exec-core = { path = "../../sim-roadmap-exec-core" }
+sim-roadmap-refine = { path = "../../sim-roadmap-refine" }
+sim-source-deck = { path = "../../sim-source-deck" }
+sim-shape = { version = "0.3.0" }

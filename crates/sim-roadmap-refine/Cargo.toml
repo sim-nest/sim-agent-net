@@ -1,0 +1,18 @@
+[package]
+name = "sim-roadmap-refine"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Certified, immutable refinement of grounded SIM roadmaps"
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sim-kernel = "0.3.0"
+sim-roadmap-core = { version = "0.1.0", path = "../sim-roadmap-core" }
+sim-source-deck = { version = "0.1.0", path = "../sim-source-deck" }
+
+[lints]
+workspace = true

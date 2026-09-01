@@ -1,7 +1,7 @@
+#[cfg(any(feature = "trigger-imap", feature = "trigger-smtp"))]
+use crate::transport::port_io::PortTcpListener;
 #[cfg(feature = "trigger-imap")]
 use std::io::{BufRead, BufReader, Write};
-#[cfg(any(feature = "trigger-imap", feature = "trigger-smtp"))]
-use std::net::TcpListener;
 #[cfg(feature = "trigger-imap")]
 use std::sync::mpsc;
 use std::{thread, time::Duration};
@@ -20,10 +20,10 @@ fn wait_until(timeout_ms: u64, predicate: impl Fn() -> bool) {
 }
 
 #[cfg(any(feature = "trigger-imap", feature = "trigger-smtp"))]
-fn bind_loopback_listener() -> Option<TcpListener> {
+fn bind_loopback_listener() -> Option<PortTcpListener> {
     let mut last_error = None;
     for _ in 0..10 {
-        match TcpListener::bind(("127.0.0.1", 0)) {
+        match PortTcpListener::bind(("127.0.0.1", 0)) {
             Ok(listener) => return Some(listener),
             Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
                 last_error = Some(error);
@@ -39,6 +39,23 @@ fn bind_loopback_listener() -> Option<TcpListener> {
             .unwrap_or_else(|| "unknown error".to_owned())
     );
     None
+}
+
+#[cfg(any(feature = "trigger-imap", feature = "trigger-smtp"))]
+fn accept_loopback(listener: &PortTcpListener) -> crate::transport::port_io::PortTcpStream {
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        match listener.accept() {
+            Ok((stream, _)) => return stream,
+            Err(error)
+                if error.kind() == std::io::ErrorKind::WouldBlock
+                    && std::time::Instant::now() < deadline =>
+            {
+                thread::yield_now();
+            }
+            Err(error) => panic!("test transport accept failed: {error}"),
+        }
+    }
 }
 
 fn install_recording_decoder(cx: &mut sim_kernel::Cx) -> Arc<Mutex<Vec<String>>> {
@@ -204,14 +221,14 @@ fn imap_loopback_trigger_uses_queue_double() {
 
 #[cfg(feature = "trigger-smtp")]
 #[test]
-fn smtp_trigger_delivers_over_real_smtp_session() {
+fn smtp_trigger_delivers_over_transport_session() {
     let Some(listener) = bind_loopback_listener() else {
         return;
     };
     let address = format!("127.0.0.1:{}", listener.local_addr().unwrap().port());
     let (tx, rx) = mpsc::channel();
     let smtp_thread = thread::spawn(move || {
-        let (stream, _) = listener.accept().unwrap();
+        let stream = accept_loopback(&listener);
         let mut reader = BufReader::new(stream);
         reader.get_mut().write_all(b"220 local ESMTP\r\n").unwrap();
         reader.get_mut().flush().unwrap();
@@ -296,7 +313,7 @@ fn smtp_trigger_delivers_over_real_smtp_session() {
 
 #[cfg(feature = "trigger-imap")]
 #[test]
-fn imap_trigger_fetches_unseen_message_and_marks_it_seen() {
+fn imap_trigger_fetches_unseen_message_and_marks_it_seen_over_transport_session() {
     let Some(listener) = bind_loopback_listener() else {
         return;
     };

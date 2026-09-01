@@ -1,0 +1,7 @@
+id = "roadmap-no-model-replay"
+title = "Replay without a model"
+purpose = "Replay recorded roadmap evidence without requesting a model effect."
+summary = "Replay an empty or recorded journal without requesting an effect."
+level = "basics"
+tags = ["roadmap", "replay", "no-model"]
+requires = ["sim-lib-roadmap-runner"]

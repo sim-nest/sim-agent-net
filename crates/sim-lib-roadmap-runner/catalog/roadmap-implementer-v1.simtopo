@@ -1,0 +1,32 @@
+graph:
+topology roadmap/implementer-v1
+node in verb=in output=roadmap/ImplementerFrame
+node receive verb=call target=roadmap.implementer/receive
+node inspect verb=call target=roadmap.implementer/inspect
+node propose verb=call target=roadmap.implementer/propose role=implementer
+node validate verb=call target=roadmap.implementer/validate-proposal
+node review verb=call target=roadmap.implementer/review role=reviewer
+node revise verb=call target=roadmap.implementer/revise role=implementer
+node finish verb=call target=roadmap.implementer/finish
+node out verb=out input=roadmap/ImplementerFrame
+wire in -> receive
+wire receive -> inspect
+wire inspect -> propose
+wire propose -> validate
+wire validate -> review when=roadmap/outcome-admissible
+wire validate -> revise when=roadmap/outcome-rejected max-visits=3
+wire review -> finish when=roadmap/outcome-accept
+wire review -> revise when=roadmap/outcome-revise max-visits=3
+wire revise -> propose max-visits=3
+wire finish -> out
+budget max-steps=32 max-node-visits=6 max-edge-visits=4
+
+metadata:
+profile=roadmap/implementer-v1
+proposal-shape=roadmap/ImplementerReply-v1
+result-shape=roadmap/SealedMutationPlan-v1
+extension-target=roadmap/implementer-v1
+domain-budget="observations=8 files=64 bytes=33554432 revisions=3"
+
+tests:
+normalized input=roadmap/test-implementer-frame expect=roadmap/implementer-v1

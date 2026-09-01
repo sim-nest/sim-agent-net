@@ -1,0 +1,13 @@
+id = "hostile-replay"
+title = "Replay a hostile intermittent trace"
+codec = "rust"
+setup = "src/main.rs"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["continuity", "journal", "pure", "replay", "rust"]
+requires = ["sim-lib-continuity"]
+
+[[expect]]
+form = 0
+result = "stable turns: 2; stable intents: 2"

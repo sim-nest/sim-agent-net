@@ -67,6 +67,15 @@ pub(crate) enum AgentFnKind {
     Wire,
     Pattern,
     RecipeResult,
+    ConductList,
+    ConductShow,
+    ConductExplain,
+    ConductRun,
+    RunInspect,
+    RunSuspend,
+    RunResume,
+    RunReplay,
+    RunFork,
     MemoryWorking,
     MemoryFile,
     MemoryVector,
@@ -247,6 +256,33 @@ fn dispatch_value_call(kind: AgentFnKind, cx: &mut Cx, args: Args) -> Result<Val
         AgentFnKind::Wire => agent_wire_value(cx, args),
         AgentFnKind::Pattern => agent_pattern_value(cx, args),
         AgentFnKind::RecipeResult => agent_recipe_result_value(cx, args),
+        AgentFnKind::ConductList => {
+            crate::conduct_functions::conduct_command_value(cx, "conduct", "list", args)
+        }
+        AgentFnKind::ConductShow => {
+            crate::conduct_functions::conduct_command_value(cx, "conduct", "show", args)
+        }
+        AgentFnKind::ConductExplain => {
+            crate::conduct_functions::conduct_command_value(cx, "conduct", "explain", args)
+        }
+        AgentFnKind::ConductRun => {
+            crate::conduct_functions::conduct_command_value(cx, "conduct", "run", args)
+        }
+        AgentFnKind::RunInspect => {
+            crate::conduct_functions::conduct_command_value(cx, "run", "inspect", args)
+        }
+        AgentFnKind::RunSuspend => {
+            crate::conduct_functions::conduct_command_value(cx, "run", "suspend", args)
+        }
+        AgentFnKind::RunResume => {
+            crate::conduct_functions::conduct_command_value(cx, "run", "resume", args)
+        }
+        AgentFnKind::RunReplay => {
+            crate::conduct_functions::conduct_command_value(cx, "run", "replay", args)
+        }
+        AgentFnKind::RunFork => {
+            crate::conduct_functions::conduct_command_value(cx, "run", "fork", args)
+        }
         AgentFnKind::MemoryWorking => memory_working_value(cx, args),
         AgentFnKind::MemoryFile => memory_file_value(cx, args),
         AgentFnKind::MemoryVector => memory_vector_value(cx, args),

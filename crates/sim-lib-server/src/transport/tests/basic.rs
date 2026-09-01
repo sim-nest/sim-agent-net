@@ -1,4 +1,9 @@
-use std::{io::Cursor, path::PathBuf, sync::Arc};
+use sim_transport_ports::model::{ModelStream, Profile};
+use std::{
+    io::{Cursor, Read, Write},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use sim_kernel::{Consistency, EvalRequest, Expr, ReadPolicy, Symbol, eval_remote_capability};
 
@@ -57,6 +62,30 @@ fn stream_helpers_round_trip_transport_frames() {
     let decoded = read_frame_from(&mut cursor).unwrap().unwrap();
     assert_eq!(decoded, frame);
     assert!(read_frame_from(&mut cursor).unwrap().is_none());
+}
+
+#[test]
+fn modeled_fragmentation_preserves_the_exact_frame_capture() {
+    let frame = ServerFrame {
+        version: 1,
+        codec: Symbol::qualified("codec", "binary"),
+        msg_id: Some(19),
+        correlate: None,
+        kind: FrameKind::Request,
+        envelope: FrameEnvelope::default(),
+        payload: b"protocol-bytes-do-not-change".to_vec(),
+    };
+    let expected = encode_transport_frame(&frame).unwrap();
+    let mut stream = ModelStream::new(Profile {
+        fragment: Some(3),
+        capacity: Some(expected.len()),
+        ..Profile::default()
+    });
+    stream.write_all(&expected).unwrap();
+    let mut captured = vec![0; expected.len()];
+    stream.read_exact(&mut captured).unwrap();
+    assert_eq!(captured, expected);
+    assert_eq!(decode_transport_frame(&captured).unwrap(), frame);
 }
 
 #[test]

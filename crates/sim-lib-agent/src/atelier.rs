@@ -1,12 +1,15 @@
 //! Atelier agent-facing retrieval contracts.
 
 pub mod capsule;
+pub mod channel;
 mod contract_native;
 pub mod guard;
+pub mod instrument_adoption;
 pub mod mission;
 pub mod mission_control;
 mod mission_handoff;
 mod mission_lease;
+pub mod mission_policy;
 /// Ranked retrieval of Atelier code/memory hints from an indexed corpus.
 pub mod radar;
 pub mod self_hosting;
@@ -17,6 +20,7 @@ pub use capsule::{
     CapsulePush, CapsuleReview, CapsuleScope, ChangeCapsule, GeneratedArtifact, JobSite,
     PinPlanEntry, PlacedJob, fake_change_capsule, review_change_capsule,
 };
+pub use channel::{Channel, ChannelCeiling, ChannelPassport, HandoffError, ReturnShape};
 pub use contract_native::{
     AtelierBackend, CONTRACT_NATIVE_SCHEMA, ContractNativeAtelierReport, ContractNativeDeckSummary,
     ContractNativeGrammarSummary, ContractNativeGuardDenial, ContractNativeProjectionSummary,
@@ -27,12 +31,21 @@ pub use guard::{
     AtelierAction, GuardCapability, GuardDecision, GuardEvaluation, GuardRefusal,
     evaluate_guarded_action, guard_action,
 };
+pub use instrument_adoption::{
+    AdoptionError, AdoptionJournalReceipt, AdoptionPreview, AdoptionState, ArtifactDigest,
+    BridgeInstrumentBrief, FrozenInstrumentRecipe, InstrumentAdoption, InstrumentGeneration,
+    InstrumentProposal, PackClosure, RollbackPoint,
+};
 pub use mission::{AgentMission, AtelierAgentRole, HumanDecisionPoint, MissionRun, MissionScope};
 pub use mission_control::{MissionControlFixture, fake_mission_control_fixture};
 pub use mission_handoff::{MissionHandoffReport, run_mission_handoff};
 pub use mission_lease::{
     WorkspaceLease, WorkspaceLeaseConflict, WorkspaceLeaseKind, WorkspaceLeaseMode,
     detect_workspace_lease_conflicts,
+};
+pub use mission_policy::{
+    AuthorityLevel, CrewTopology, MissionAdmission, MissionPlan, MissionPlanError, MissionRequest,
+    MissionRole, MissionVeto, Placement, ToolCeiling,
 };
 pub use radar::{
     RadarChunk, RadarError, RadarHint, RadarIndex, RadarQuery, RadarReport, RadarResult,
@@ -58,7 +71,13 @@ mod contract_native_tests;
 mod guard_tests;
 
 #[cfg(test)]
+mod instrument_adoption_tests;
+
+#[cfg(test)]
 mod mission_tests;
+
+#[cfg(test)]
+mod mission_policy_tests;
 
 #[cfg(test)]
 mod mission_control_tests;

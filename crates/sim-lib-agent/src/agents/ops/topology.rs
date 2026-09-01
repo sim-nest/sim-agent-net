@@ -1,7 +1,9 @@
 use super::shared::values_option;
-use super::topology_runtime::{
-    build_debate_connection, build_market_connection, build_mesh_connection, build_ring_connection,
-    build_speculate_verify_connection, build_star_connection, pipeline_connection,
+use super::topology_data::{
+    build_debate_data_graph_connection, build_market_data_graph_connection,
+    build_mesh_data_graph_connection, build_open_claw_data_graph_connection,
+    build_ring_data_graph_connection, build_speculate_verify_data_graph_connection,
+    build_star_data_graph_connection,
 };
 use crate::{maybe_u32_option, parse_component_options, symbol_from_value, symbol_option};
 use sim_kernel::{Args, Cx, Error, Result, Symbol, Value};
@@ -16,7 +18,7 @@ pub(crate) fn topology_ring_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let role_cycle = role_cycle_option(cx, &options)?;
     let max_turns = maybe_u32_option(cx, &options, "max-turns")?
         .unwrap_or_else(|| u32::try_from(agents.len().max(1)).unwrap_or(u32::MAX));
-    let connection = build_ring_connection(cx, agents, role_cycle, max_turns)?;
+    let connection = build_ring_data_graph_connection(cx, agents, role_cycle, max_turns)?;
     cx.factory().opaque(connection)
 }
 
@@ -29,7 +31,7 @@ pub(crate) fn topology_star_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let spokes = values_option(cx, &options, "spokes")?;
     let hub_role = symbol_option(cx, &options, "hub-role", Symbol::new("planner"))?;
     let spoke_role = symbol_option(cx, &options, "spoke-role", Symbol::new("worker"))?;
-    let connection = build_star_connection(cx, hub, spokes, hub_role, spoke_role)?;
+    let connection = build_star_data_graph_connection(cx, hub, spokes, hub_role, spoke_role)?;
     cx.factory().opaque(connection)
 }
 
@@ -41,7 +43,7 @@ pub(crate) fn topology_mesh_value(cx: &mut Cx, args: Args) -> Result<Value> {
         .cloned()
         .ok_or_else(|| Error::Eval("topology/mesh requires :judge".to_owned()))?;
     let max_rounds = maybe_u32_option(cx, &options, "max-rounds")?.unwrap_or(2);
-    let connection = build_mesh_connection(cx, agents, judge, max_rounds)?;
+    let connection = build_mesh_data_graph_connection(cx, agents, judge, max_rounds)?;
     cx.factory().opaque(connection)
 }
 
@@ -52,7 +54,7 @@ pub(crate) fn topology_market_value(cx: &mut Cx, args: Args) -> Result<Value> {
         .get("router")
         .cloned()
         .ok_or_else(|| Error::Eval("topology/market requires :router".to_owned()))?;
-    let connection = build_market_connection(cx, workers, router)?;
+    let connection = build_market_data_graph_connection(cx, workers, router)?;
     cx.factory().opaque(connection)
 }
 
@@ -71,7 +73,7 @@ pub(crate) fn topology_debate_value(cx: &mut Cx, args: Args) -> Result<Value> {
         .cloned()
         .ok_or_else(|| Error::Eval("topology/debate requires :judge".to_owned()))?;
     let rounds = maybe_u32_option(cx, &options, "rounds")?.unwrap_or(1);
-    let connection = build_debate_connection(cx, pro, con, judge, rounds)?;
+    let connection = build_debate_data_graph_connection(cx, pro, con, judge, rounds)?;
     cx.factory().opaque(connection)
 }
 
@@ -86,7 +88,8 @@ pub(crate) fn topology_speculate_verify_value(cx: &mut Cx, args: Args) -> Result
         .cloned()
         .ok_or_else(|| Error::Eval("topology/speculate-verify requires :verifier".to_owned()))?;
     let on_mismatch = mismatch_policy(cx, &options)?;
-    let connection = build_speculate_verify_connection(cx, speculator, verifier, on_mismatch)?;
+    let connection =
+        build_speculate_verify_data_graph_connection(cx, speculator, verifier, on_mismatch)?;
     cx.factory().opaque(connection)
 }
 
@@ -98,13 +101,7 @@ pub(crate) fn topology_open_claw_value(cx: &mut Cx, args: Args) -> Result<Value>
             "topology/open-claw requires at least one step".to_owned(),
         ));
     }
-    let connection = pipeline_connection(
-        cx,
-        steps
-            .into_iter()
-            .map(super::shared::agent_connection_for_value)
-            .collect::<Result<Vec<_>>>()?,
-    )?;
+    let connection = build_open_claw_data_graph_connection(cx, steps)?;
     cx.factory().opaque(connection)
 }
 

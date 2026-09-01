@@ -1,0 +1,5 @@
+book = "model-test"
+title = "Model Test"
+summary = "Seal, run, and grade reproducible model trials without hidden ambient authority."
+order = 361
+chapters = ["01-basics", "02-product"]

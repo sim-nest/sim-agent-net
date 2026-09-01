@@ -136,18 +136,23 @@ impl EvalSite for FabricEvalSite {
 
     fn answer(&self, cx: &mut Cx, frame: ServerFrame) -> Result<ServerFrame> {
         match frame.kind {
-            FrameKind::Trigger { .. } => {
-                let request = eval_request_from_trigger_frame(cx, &frame)?;
-                let _ = self.fabric.realize(cx, request)?;
-                Ok(frame)
-            }
-            _ => {
+            FrameKind::Request => {
                 let consistency = frame.envelope.consistency;
                 let reply_codec = reply_codec_for_frame(self, &frame);
                 let request = eval_request_from_frame(cx, &frame)?;
                 let reply = self.fabric.realize(cx, request)?;
                 server_frame_from_reply(cx, &reply_codec, reply, consistency)
             }
+            FrameKind::Trigger { .. } => {
+                let request = eval_request_from_trigger_frame(cx, &frame)?;
+                let _ = self.fabric.realize(cx, request)?;
+                Ok(frame)
+            }
+            FrameKind::StreamStart | FrameKind::StreamChunk | FrameKind::StreamEnd => Ok(frame),
+            _ => Err(Error::Eval(format!(
+                "fabric eval site cannot answer frame kind {}",
+                frame.kind.as_symbol()
+            ))),
         }
     }
 

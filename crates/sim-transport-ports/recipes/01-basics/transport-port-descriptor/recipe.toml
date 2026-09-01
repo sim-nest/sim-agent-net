@@ -1,0 +1,9 @@
+id = "transport-port-descriptor"
+title = "Describe transport ports"
+summary = "Keep sockets, DNS, and IPC behind host-injected ports instead of ambient process access."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["transport", "ports", "sandbox-descriptor"]
+requires = ["transport"]

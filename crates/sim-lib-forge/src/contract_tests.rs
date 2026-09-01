@@ -17,7 +17,11 @@ use crate::{
 
 #[test]
 fn contract_deck_assembles_runtime_cards_and_round_trips() {
-    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x32ae_8033_293a_a887),
+    );
     seat.grant(&mut cx, CapabilityName::new("forge.fixture"))
         .unwrap();
     cx.load_lib(&FixtureContracts).unwrap();
@@ -67,7 +71,11 @@ fn contract_deck_assembles_runtime_cards_and_round_trips() {
 
 #[test]
 fn shape_query_ranks_filters_reports_and_reuses_cached_deck() {
-    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x7be6_2cb5_cc74_0b3b),
+    );
     seat.grant(&mut cx, CapabilityName::new("forge.fixture"))
         .unwrap();
     cx.load_lib(&FixtureContracts).unwrap();

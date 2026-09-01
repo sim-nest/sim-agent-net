@@ -1,0 +1,9 @@
+id = "modern-stdio"
+title = "Serve independent modern requests over stdio"
+summary = "Compose stateless modern MCP with bounded stdio framing."
+codec = "lisp"
+purpose = "purpose.md"
+setup = "setup.siml"
+order = 10
+tags = ["mcp", "stdio", "modern", "sandbox-descriptor"]
+requires = ["mcp"]

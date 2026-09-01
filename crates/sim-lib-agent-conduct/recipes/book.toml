@@ -1,0 +1,5 @@
+book = "agent/conduct"
+title = "Agent Conduct Recipes"
+summary = "Compose checked agent conduct policies."
+order = 10
+chapters = ["01-basics"]

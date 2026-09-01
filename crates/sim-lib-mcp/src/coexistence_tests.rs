@@ -105,7 +105,11 @@ fn skill_policy_denial_is_consistent_across_direct_agent_openai_and_mcp() {
 }
 
 fn coexistence_cx(grant_specific_skill: bool) -> Cx {
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x782e_2668_03b1_7ca5),
+    );
     sim_lib_skill::install_skill_lib(&mut cx).unwrap();
     install_openai_gateway_lib(&mut cx).unwrap();
     cx.grant(sim_lib_skill::skill_call_capability());

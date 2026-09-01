@@ -14,6 +14,7 @@ use sim_kernel::{
     Cx, Datum, DatumStore, Diagnostic, Effect, Error, EvalRequest, Expr, Ref, RefResolver, Result,
     ShapeRef, Symbol, TemporaryRefResolver, core_any_ref, effect, value_from_ref,
 };
+use sim_lib_agent_conduct::{BoundedEdgeStep, run_catalog_bounded_edge};
 use sim_lib_agent_runner_core::{ModelEvent, ModelEventSink, ModelResponse, fenced_data_text};
 use std::collections::BTreeSet;
 
@@ -30,44 +31,78 @@ pub(super) fn run_with_tool_loop<F>(
 where
     F: FnMut(&mut Cx, &EvalRequest) -> Result<Expr>,
 {
-    let mut state = ToolLoopState::new(&request)?;
-    let mut request = request;
-    loop {
-        let response = infer_once(cx, &request)?;
-        let tool_calls = match tool_calls_from_response(&response) {
-            Ok(tool_calls) => tool_calls,
-            Err(err) => {
-                return Ok(model_error_for_response(
+    let max_rounds = max_tool_rounds(&request.expr)?;
+    let state = ToolRunState::new(&request)?;
+    run_catalog_bounded_edge(
+        "agent/react-v1",
+        "answer",
+        "tools",
+        max_rounds,
+        (request, state),
+        |(mut request, mut state), round| {
+            let response = infer_once(cx, &request)?;
+            let tool_calls = match tool_calls_from_response(&response) {
+                Ok(tool_calls) => tool_calls,
+                Err(err) => {
+                    let response = model_error_for_response(component, &response, err.to_string());
+                    return Ok(BoundedEdgeStep::Complete((
+                        EvalRequest {
+                            expr: response,
+                            ..request
+                        },
+                        state,
+                    )));
+                }
+            };
+            if tool_calls.is_empty() {
+                return Ok(BoundedEdgeStep::Complete((
+                    EvalRequest {
+                        expr: response,
+                        ..request
+                    },
+                    state,
+                )));
+            }
+            if round >= max_rounds {
+                let response = model_error_for_response(
                     component,
                     &response,
-                    err.to_string(),
-                ));
+                    format!("tool turn budget exhausted after {max_rounds} rounds"),
+                );
+                return Ok(BoundedEdgeStep::Complete((
+                    EvalRequest {
+                        expr: response,
+                        ..request
+                    },
+                    state,
+                )));
             }
-        };
-        if tool_calls.is_empty() {
-            return Ok(response);
-        }
-        if state.rounds_used >= state.max_rounds {
-            return Ok(model_error_for_response(
-                component,
-                &response,
-                format!(
-                    "tool turn budget exhausted after {} rounds",
-                    state.max_rounds
-                ),
-            ));
-        }
-        match run_tool_round(cx, component, &response, tool_calls, &mut state, None)? {
-            ToolRound::Continue(messages) => {
-                request.expr = append_tool_messages(request.expr, messages)?;
-                state.rounds_used += 1;
+            match execute_tool_batch_once(cx, component, &response, tool_calls, &mut state, None)? {
+                ToolRound::Continue(messages) => {
+                    request.expr = append_tool_messages(request.expr, messages)?;
+                    Ok(BoundedEdgeStep::Continue((request, state)))
+                }
+                ToolRound::Submitted(response) => Ok(BoundedEdgeStep::Complete((
+                    EvalRequest {
+                        expr: response,
+                        ..request
+                    },
+                    state,
+                ))),
+                ToolRound::Fatal(message) => {
+                    let response = model_error_for_response(component, &response, message);
+                    Ok(BoundedEdgeStep::Complete((
+                        EvalRequest {
+                            expr: response,
+                            ..request
+                        },
+                        state,
+                    )))
+                }
             }
-            ToolRound::Submitted(response) => return Ok(response),
-            ToolRound::Fatal(message) => {
-                return Ok(model_error_for_response(component, &response, message));
-            }
-        }
-    }
+        },
+    )
+    .map(|(request, _)| request.expr)
 }
 
 pub(super) fn run_stream_with_tool_loop<F>(
@@ -80,63 +115,104 @@ pub(super) fn run_stream_with_tool_loop<F>(
 where
     F: FnMut(&mut Cx, &EvalRequest, &mut dyn ModelEventSink) -> Result<ModelResponse>,
 {
-    let mut state = ToolLoopState::new(&request)?;
-    let mut request = request;
-    loop {
-        let response = infer_once(cx, &request, events)?;
-        let response_expr = Expr::from(response.clone());
-        let tool_calls = match tool_calls_from_response(&response_expr) {
-            Ok(tool_calls) => tool_calls,
-            Err(err) => {
-                return emit_stream_error(component, &response_expr, err.to_string(), events);
+    let max_rounds = max_tool_rounds(&request.expr)?;
+    let state = ToolRunState::new(&request)?;
+    let (request, _) = run_catalog_bounded_edge(
+        "agent/react-v1",
+        "answer",
+        "tools",
+        max_rounds,
+        (request, state),
+        |(mut request, mut state), round| {
+            let response = infer_once(cx, &request, events)?;
+            let response_expr = Expr::from(response.clone());
+            let tool_calls = match tool_calls_from_response(&response_expr) {
+                Ok(tool_calls) => tool_calls,
+                Err(err) => {
+                    let response =
+                        emit_stream_error(component, &response_expr, err.to_string(), events)?;
+                    return Ok(BoundedEdgeStep::Complete((
+                        EvalRequest {
+                            expr: Expr::from(response),
+                            ..request
+                        },
+                        state,
+                    )));
+                }
+            };
+            if tool_calls.is_empty() {
+                return Ok(BoundedEdgeStep::Complete((
+                    EvalRequest {
+                        expr: response_expr,
+                        ..request
+                    },
+                    state,
+                )));
             }
-        };
-        if tool_calls.is_empty() {
-            return Ok(response);
-        }
-        if state.rounds_used >= state.max_rounds {
-            return emit_stream_error(
+            if round >= max_rounds {
+                let response = emit_stream_error(
+                    component,
+                    &response_expr,
+                    format!("tool turn budget exhausted after {max_rounds} rounds"),
+                    events,
+                )?;
+                return Ok(BoundedEdgeStep::Complete((
+                    EvalRequest {
+                        expr: Expr::from(response),
+                        ..request
+                    },
+                    state,
+                )));
+            }
+            match execute_tool_batch_once(
+                cx,
                 component,
                 &response_expr,
-                format!(
-                    "tool turn budget exhausted after {} rounds",
-                    state.max_rounds
-                ),
-                events,
-            );
-        }
-        match run_tool_round(
-            cx,
-            component,
-            &response_expr,
-            tool_calls,
-            &mut state,
-            Some(events),
-        )? {
-            ToolRound::Continue(messages) => {
-                request.expr = append_tool_messages(request.expr, messages)?;
-                state.rounds_used += 1;
+                tool_calls,
+                &mut state,
+                Some(events),
+            )? {
+                ToolRound::Continue(messages) => {
+                    request.expr = append_tool_messages(request.expr, messages)?;
+                    Ok(BoundedEdgeStep::Continue((request, state)))
+                }
+                ToolRound::Submitted(response) => Ok(BoundedEdgeStep::Complete((
+                    EvalRequest {
+                        expr: response,
+                        ..request
+                    },
+                    state,
+                ))),
+                ToolRound::Fatal(message) => {
+                    let response = emit_stream_error(component, &response_expr, message, events)?;
+                    Ok(BoundedEdgeStep::Complete((
+                        EvalRequest {
+                            expr: Expr::from(response),
+                            ..request
+                        },
+                        state,
+                    )))
+                }
             }
-            ToolRound::Submitted(response) => return ModelResponse::try_from(response),
-            ToolRound::Fatal(message) => {
-                return emit_stream_error(component, &response_expr, message, events);
-            }
-        }
-    }
+        },
+    )?;
+    ModelResponse::try_from(request.expr)
 }
 
 #[derive(Clone)]
-struct ToolLoopState {
+pub(super) struct ToolRunState {
     declared_tools: Option<BTreeSet<Symbol>>,
+    phase_tools: Option<BTreeSet<Symbol>>,
     seen_calls: BTreeSet<String>,
     privacy_policy: PrivacyPolicy,
     submit_shape: Option<ShapeRef>,
     allow_repeated: bool,
-    max_rounds: u32,
-    rounds_used: u32,
+    max_calls: Option<u64>,
+    calls_used: u64,
+    isolation_admitted: bool,
 }
 
-impl ToolLoopState {
+impl ToolRunState {
     fn new(request: &EvalRequest) -> Result<Self> {
         let mut declared = declared_tools(&request.expr)?;
         let submit_shape = bool_field(&request.expr, "submit-shape")
@@ -150,33 +226,45 @@ impl ToolLoopState {
         }
         Ok(Self {
             declared_tools: declared,
+            phase_tools: symbol_set_field(&request.expr, "phase-tools")?,
             seen_calls: BTreeSet::new(),
             privacy_policy: PrivacyPolicy::from_request_expr(&request.expr)?,
             submit_shape,
             allow_repeated: bool_field(&request.expr, "allow-repeated-tool-calls").unwrap_or(false),
-            max_rounds: max_tool_rounds(&request.expr)?,
-            rounds_used: 0,
+            max_calls: nested_u64_field(&request.expr, "budget", "max-tool-calls")?,
+            calls_used: 0,
+            isolation_admitted: bool_field(&request.expr, "tool-isolation").unwrap_or(true),
         })
     }
 }
 
-enum ToolRound {
+pub(super) enum ToolRound {
     Continue(Vec<Expr>),
     Submitted(Expr),
     Fatal(String),
 }
 
-fn run_tool_round(
+/// Executes exactly one already-parsed model tool-call batch.
+///
+/// All final authorization remains inside this boundary immediately before
+/// effect resolution. The surrounding compatibility functions own repetition.
+pub(super) fn execute_tool_batch_once(
     cx: &mut Cx,
     component: &AgentComponent,
     response: &Expr,
     tool_calls: Vec<ToolCall>,
-    state: &mut ToolLoopState,
+    state: &mut ToolRunState,
     mut events: Option<&mut dyn ModelEventSink>,
 ) -> Result<ToolRound> {
     let mut messages = Vec::new();
     let model = response_model(response).unwrap_or_else(|| component.symbol.to_string());
     for call in tool_calls {
+        if state
+            .max_calls
+            .is_some_and(|limit| state.calls_used >= limit)
+        {
+            return Ok(ToolRound::Fatal("budget-exhausted".to_owned()));
+        }
         if call.name == submit_shape_tool() {
             let Some(shape) = state.submit_shape.as_ref() else {
                 return Ok(ToolRound::Fatal(
@@ -214,6 +302,22 @@ fn run_tool_round(
                 call.name
             )));
         }
+        if state
+            .phase_tools
+            .as_ref()
+            .is_some_and(|tools| !tools.contains(&call.name))
+        {
+            return Ok(ToolRound::Fatal(format!(
+                "current phase denied tool {}",
+                call.name
+            )));
+        }
+        if !state.isolation_admitted {
+            return Ok(ToolRound::Fatal(format!(
+                "isolation policy denied tool {}",
+                call.name
+            )));
+        }
         let fingerprint = tool_call_fingerprint(&call);
         if !state.allow_repeated && !state.seen_calls.insert(fingerprint) {
             return Ok(ToolRound::Fatal(format!(
@@ -238,6 +342,7 @@ fn run_tool_round(
                 )));
             }
         };
+        state.calls_used += 1;
         let outcome = call_tool(cx, &tool, &call);
         if let Some(sink) = events.as_deref_mut() {
             sink.emit(tool_result_event(component, &model, &call, &outcome))?;
@@ -245,6 +350,55 @@ fn run_tool_round(
         messages.push(tool_result_message(&call, &outcome)?);
     }
     Ok(ToolRound::Continue(messages))
+}
+
+fn symbol_set_field(expr: &Expr, name: &str) -> Result<Option<BTreeSet<Symbol>>> {
+    let Expr::Map(entries) = expr else {
+        return Ok(None);
+    };
+    let Some(value) = entries.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if symbol.name.as_ref().replace('_', "-") == name)
+            .then_some(value)
+    }) else {
+        return Ok(None);
+    };
+    let (Expr::List(items) | Expr::Vector(items)) = value else {
+        return Err(Error::Eval(format!("{name} must be a symbol list")));
+    };
+    items
+        .iter()
+        .map(|item| match item {
+            Expr::Symbol(symbol) => Ok(symbol.clone()),
+            _ => Err(Error::Eval(format!("{name} must contain only symbols"))),
+        })
+        .collect::<Result<BTreeSet<_>>>()
+        .map(Some)
+}
+
+fn nested_u64_field(expr: &Expr, outer: &str, inner: &str) -> Result<Option<u64>> {
+    let Expr::Map(entries) = expr else {
+        return Ok(None);
+    };
+    let Some(Expr::Map(budget)) = entries.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if symbol.name.as_ref().replace('_', "-") == outer)
+            .then_some(value)
+    }) else {
+        return Ok(None);
+    };
+    let Some(value) = budget.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if symbol.name.as_ref().replace('_', "-") == inner)
+            .then_some(value)
+    }) else {
+        return Ok(None);
+    };
+    let Expr::Number(number) = value else {
+        return Err(Error::Eval(format!("{outer} {inner} must be an integer")));
+    };
+    number
+        .canonical
+        .parse::<u64>()
+        .map(Some)
+        .map_err(|_| Error::Eval(format!("{outer} {inner} must be a non-negative integer")))
 }
 
 fn call_tool(cx: &mut Cx, tool: &crate::Tool, call: &ToolCall) -> ToolOutcome {
@@ -284,6 +438,7 @@ fn tool_call_effect(cx: &mut Cx, tool: &crate::Tool, call: &ToolCall) -> Result<
         None => core_any_ref(),
     };
     Effect::new(
+        cx.fresh_handle(),
         tool_call_effect_kind(),
         Ref::Symbol(tool.symbol.clone()),
         input_ref,

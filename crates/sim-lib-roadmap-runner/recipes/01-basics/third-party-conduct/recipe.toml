@@ -1,0 +1,7 @@
+id = "roadmap-third-party-conduct"
+title = "Replace conduct by content identity"
+purpose = "Load a compatible third-party conduct package by immutable identity."
+summary = "Start a new execution with a compatible third-party conduct package."
+level = "basics"
+tags = ["roadmap", "conduct", "hotload"]
+requires = ["sim-lib-roadmap-runner"]

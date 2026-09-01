@@ -1,17 +1,6 @@
-use std::{
-    fs,
-    io::ErrorKind,
-    net::{Shutdown, TcpListener, TcpStream},
-    path::Path,
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
-#[cfg(unix)]
-use std::os::unix::{
-    fs::FileTypeExt,
-    net::{UnixListener, UnixStream},
-};
+use sim_transport_ports::{Half, IpcAddress, IpcListener, Listener, SocketAddress, Stream};
 
 use sim_kernel::{Cx, Error, Result, Symbol};
 
@@ -19,14 +8,14 @@ use crate::{EvalSite, FrameKind, ServerAddress, ServerFrame, ServerRuntime};
 
 use super::{
     ConnectionTransport, SERVER_CONNECTION_IO_TIMEOUT_MS, ServerTransport, answer_or_negotiate,
-    error_frame_from_error, io_to_host, is_timeout, read_frame_from,
+    bound_transport_services, error_frame_from_error, is_timeout, read_frame_from,
     update_negotiated_codec_from_reply, write_frame_to,
 };
 
 /// TCP listener transport for server-frame connections.
 pub struct TcpServerTransport {
     address: ServerAddress,
-    listener: TcpListener,
+    listener: Box<dyn Listener>,
 }
 
 impl TcpServerTransport {
@@ -37,13 +26,20 @@ impl TcpServerTransport {
                 "tcp transport requires a tcp address".to_owned(),
             ));
         };
-        let listener = TcpListener::bind((host.as_str(), *port)).map_err(io_to_host)?;
-        listener.set_nonblocking(true).map_err(io_to_host)?;
-        let local_addr = listener.local_addr().map_err(io_to_host)?;
+        let ports = bound_transport_services().map_err(port_error)?;
+        let resolved = ports.dns.resolve(host, *port).map_err(port_error)?;
+        let target = resolved
+            .first()
+            .ok_or_else(|| Error::HostError("DNS returned no addresses".to_owned()))?;
+        let listener = ports.sockets.listen_tcp(target).map_err(port_error)?;
+        let local_addr = listener.local_address().map_err(port_error)?;
+        let SocketAddress::Ip {
+            port: local_port, ..
+        } = local_addr;
         Ok(Self {
             address: ServerAddress::Tcp {
                 host: host.clone(),
-                port: local_addr.port(),
+                port: local_port,
             },
             listener,
         })
@@ -52,7 +48,8 @@ impl TcpServerTransport {
     #[cfg_attr(not(test), allow(dead_code))]
     /// Returns the bound local port.
     pub fn local_port(&self) -> Result<u16> {
-        Ok(self.listener.local_addr().map_err(io_to_host)?.port())
+        let SocketAddress::Ip { port, .. } = self.listener.local_address().map_err(port_error)?;
+        Ok(port)
     }
 }
 
@@ -78,19 +75,20 @@ impl ServerTransport for TcpServerTransport {
         _cx: &mut Cx,
         _timeout: Duration,
     ) -> Result<Option<Box<dyn ConnectionTransport>>> {
-        match self.listener.accept() {
-            Ok((stream, _peer)) => {
-                stream.set_nodelay(true).map_err(io_to_host)?;
-                Ok(Some(Box::new(TcpConnectionTransport::server_side(stream))))
-            }
-            Err(error) if error.kind() == ErrorKind::WouldBlock => Ok(None),
-            Err(error) => Err(io_to_host(error)),
-        }
+        self.listener
+            .accept()
+            .map(|stream| {
+                stream.map(|stream| {
+                    Box::new(TcpConnectionTransport::server_side(stream))
+                        as Box<dyn ConnectionTransport>
+                })
+            })
+            .map_err(port_error)
     }
 }
 
 pub struct TcpConnectionTransport {
-    stream: TcpStream,
+    stream: Box<dyn Stream>,
 }
 
 impl TcpConnectionTransport {
@@ -98,12 +96,16 @@ impl TcpConnectionTransport {
         let ServerAddress::Tcp { host, port } = address else {
             return Err(Error::Eval("tcp connect requires a tcp address".to_owned()));
         };
-        let stream = TcpStream::connect((host.as_str(), *port)).map_err(io_to_host)?;
-        stream.set_nodelay(true).map_err(io_to_host)?;
+        let ports = bound_transport_services().map_err(port_error)?;
+        let resolved = ports.dns.resolve(host, *port).map_err(port_error)?;
+        let target = resolved
+            .first()
+            .ok_or_else(|| Error::HostError("DNS returned no addresses".to_owned()))?;
+        let stream = ports.sockets.connect_tcp(target).map_err(port_error)?;
         Ok(Self { stream })
     }
 
-    fn server_side(stream: TcpStream) -> Self {
+    fn server_side(stream: Box<dyn Stream>) -> Self {
         Self { stream }
     }
 
@@ -178,7 +180,7 @@ impl TcpConnectionTransport {
     fn recv_frame_for_serve(&mut self) -> Result<Option<Option<ServerFrame>>> {
         self.stream
             .set_read_timeout(Some(Duration::from_millis(SERVER_CONNECTION_IO_TIMEOUT_MS)))
-            .map_err(io_to_host)?;
+            .map_err(port_error)?;
         match read_frame_from(&mut self.stream) {
             Ok(frame) => Ok(Some(frame)),
             Err(error) if is_timeout(&error) => Ok(None),
@@ -197,7 +199,7 @@ impl ConnectionTransport for TcpConnectionTransport {
         _cx: &mut Cx,
         timeout: Option<Duration>,
     ) -> Result<Option<ServerFrame>> {
-        self.stream.set_read_timeout(timeout).map_err(io_to_host)?;
+        self.stream.set_read_timeout(timeout).map_err(port_error)?;
         match read_frame_from(&mut self.stream) {
             Ok(frame) => Ok(frame),
             Err(error) if is_timeout(&error) => Ok(None),
@@ -206,7 +208,7 @@ impl ConnectionTransport for TcpConnectionTransport {
     }
 
     fn close(&mut self, _cx: &mut Cx) -> Result<()> {
-        let _ = self.stream.shutdown(Shutdown::Both);
+        let _ = self.stream.shutdown(Half::Both);
         Ok(())
     }
 
@@ -226,7 +228,7 @@ impl ConnectionTransport for TcpConnectionTransport {
 #[cfg(unix)]
 pub struct UnixServerTransport {
     address: ServerAddress,
-    listener: UnixListener,
+    listener: Box<dyn IpcListener>,
 }
 
 #[cfg(unix)]
@@ -237,9 +239,12 @@ impl UnixServerTransport {
                 "unix transport requires a unix address".to_owned(),
             ));
         };
-        remove_stale_unix_socket(path)?;
-        let listener = UnixListener::bind(path).map_err(io_to_host)?;
-        listener.set_nonblocking(true).map_err(io_to_host)?;
+        let listener = bound_transport_services()
+            .map_err(port_error)?
+            .ipc
+            .ok_or_else(|| Error::HostError("local IPC service is unavailable".to_owned()))?
+            .listen(&IpcAddress::UnixPath(path.clone()))
+            .map_err(port_error)?;
         Ok(Self { address, listener })
     }
 }
@@ -259,10 +264,7 @@ impl ServerTransport for UnixServerTransport {
     }
 
     fn shutdown(&self, _cx: &mut Cx) -> Result<()> {
-        let ServerAddress::Unix { path } = &self.address else {
-            return Ok(());
-        };
-        remove_bound_unix_socket(path)
+        self.listener.close().map_err(port_error)
     }
 
     fn accept_timeout(
@@ -270,17 +272,21 @@ impl ServerTransport for UnixServerTransport {
         _cx: &mut Cx,
         _timeout: Duration,
     ) -> Result<Option<Box<dyn ConnectionTransport>>> {
-        match self.listener.accept() {
-            Ok((stream, _peer)) => Ok(Some(Box::new(UnixConnectionTransport::server_side(stream)))),
-            Err(error) if error.kind() == ErrorKind::WouldBlock => Ok(None),
-            Err(error) => Err(io_to_host(error)),
-        }
+        self.listener
+            .accept()
+            .map(|stream| {
+                stream.map(|stream| {
+                    Box::new(UnixConnectionTransport::server_side(stream))
+                        as Box<dyn ConnectionTransport>
+                })
+            })
+            .map_err(port_error)
     }
 }
 
 #[cfg(unix)]
 pub struct UnixConnectionTransport {
-    stream: UnixStream,
+    stream: Box<dyn Stream>,
 }
 
 #[cfg(unix)]
@@ -291,11 +297,16 @@ impl UnixConnectionTransport {
                 "unix connect requires a unix address".to_owned(),
             ));
         };
-        let stream = UnixStream::connect(path).map_err(io_to_host)?;
+        let stream = bound_transport_services()
+            .map_err(port_error)?
+            .ipc
+            .ok_or_else(|| Error::HostError("local IPC service is unavailable".to_owned()))?
+            .connect(&IpcAddress::UnixPath(path.clone()))
+            .map_err(port_error)?;
         Ok(Self { stream })
     }
 
-    fn server_side(stream: UnixStream) -> Self {
+    fn server_side(stream: Box<dyn Stream>) -> Self {
         Self { stream }
     }
 
@@ -370,7 +381,7 @@ impl UnixConnectionTransport {
     fn recv_frame_for_serve(&mut self) -> Result<Option<Option<ServerFrame>>> {
         self.stream
             .set_read_timeout(Some(Duration::from_millis(SERVER_CONNECTION_IO_TIMEOUT_MS)))
-            .map_err(io_to_host)?;
+            .map_err(port_error)?;
         match read_frame_from(&mut self.stream) {
             Ok(frame) => Ok(Some(frame)),
             Err(error) if is_timeout(&error) => Ok(None),
@@ -390,7 +401,7 @@ impl ConnectionTransport for UnixConnectionTransport {
         _cx: &mut Cx,
         timeout: Option<Duration>,
     ) -> Result<Option<ServerFrame>> {
-        self.stream.set_read_timeout(timeout).map_err(io_to_host)?;
+        self.stream.set_read_timeout(timeout).map_err(port_error)?;
         match read_frame_from(&mut self.stream) {
             Ok(frame) => Ok(frame),
             Err(error) if is_timeout(&error) => Ok(None),
@@ -415,28 +426,6 @@ impl ConnectionTransport for UnixConnectionTransport {
     }
 }
 
-#[cfg(unix)]
-fn remove_stale_unix_socket(path: &Path) -> Result<()> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_socket() => {
-            fs::remove_file(path).map_err(io_to_host)?;
-            Ok(())
-        }
-        Ok(_) => Ok(()),
-        Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(io_to_host(error)),
-    }
-}
-
-#[cfg(unix)]
-fn remove_bound_unix_socket(path: &Path) -> Result<()> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_socket() => {
-            fs::remove_file(path).map_err(io_to_host)?;
-            Ok(())
-        }
-        Ok(_) => Ok(()),
-        Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(io_to_host(error)),
-    }
+fn port_error(error: sim_transport_ports::TransportError) -> Error {
+    Error::HostError(error.to_string())
 }

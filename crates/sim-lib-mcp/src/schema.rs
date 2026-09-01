@@ -1,4 +1,8 @@
-use sim_kernel::{Cx, Expr, Result, ShapeRef, Symbol};
+use serde_json::{Map as JsonMap, Value as JsonValue};
+use sim_codec_json::{
+    JsonProjectionMode, ResourceIdentity, SchemaDocument, SchemaLimits, project_json_to_expr,
+};
+use sim_kernel::{Cx, Error, Expr, Result, ShapeRef, Symbol};
 
 /// Converts a SIM `shape` into a JSON-Schema [`Expr`] map for MCP clients.
 ///
@@ -6,14 +10,28 @@ use sim_kernel::{Cx, Expr, Result, ShapeRef, Symbol};
 /// to their JSON-Schema `type`, and other shapes are carried through an
 /// `x-sim-shape` extension key.
 pub fn shape_to_json_schema(cx: &mut Cx, shape: Option<&ShapeRef>) -> Result<Expr> {
-    let Some(shape) = shape else {
-        return Ok(any_schema());
+    let value = if let Some(shape) = shape {
+        let expr = shape.object().as_expr(cx)?;
+        schema_from_shape_expr(&expr)
+    } else {
+        any_schema()
     };
-    let expr = shape.object().as_expr(cx)?;
-    Ok(schema_from_shape_expr(&expr))
+    let document = SchemaDocument::from_value(
+        value,
+        ResourceIdentity {
+            base_uri: "sim://mcp/shape-schema".to_owned(),
+            source: "mcp shape projection".to_owned(),
+        },
+        SchemaLimits::default(),
+    )
+    .map_err(|error| Error::Eval(format!("invalid MCP shape JSON Schema: {error}")))?;
+    Ok(project_json_to_expr(
+        document.value(),
+        JsonProjectionMode::UntaggedInterop,
+    ))
 }
 
-fn schema_from_shape_expr(expr: &Expr) -> Expr {
+fn schema_from_shape_expr(expr: &Expr) -> JsonValue {
     match expr {
         Expr::Symbol(symbol) if symbol == &Symbol::qualified("core", "Any") => any_schema(),
         Expr::Symbol(symbol) if symbol == &Symbol::qualified("core", "String") => {
@@ -31,16 +49,18 @@ fn schema_from_shape_expr(expr: &Expr) -> Expr {
     }
 }
 
-fn any_schema() -> Expr {
-    Expr::Map(Vec::new())
+fn any_schema() -> JsonValue {
+    JsonValue::Object(JsonMap::new())
 }
 
-fn typed_schema(kind: &str) -> Expr {
-    Expr::Map(vec![field("type", Expr::String(kind.to_owned()))])
+fn typed_schema(kind: &str) -> JsonValue {
+    let mut object = JsonMap::new();
+    object.insert("type".to_owned(), JsonValue::String(kind.to_owned()));
+    JsonValue::Object(object)
 }
 
-fn schema_with_sim_shape(shape: String) -> Expr {
-    Expr::Map(vec![field("x-sim-shape", Expr::String(shape))])
+fn schema_with_sim_shape(shape: String) -> JsonValue {
+    let mut object = JsonMap::new();
+    object.insert("x-sim-shape".to_owned(), JsonValue::String(shape));
+    JsonValue::Object(object)
 }
-
-use sim_value::build::entry as field;

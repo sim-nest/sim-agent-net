@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, ShapeRef, Symbol};
+use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, ShapeRef, Symbol};
 use sim_shape::{AnyShape, shape_value};
 
 use crate::{
@@ -57,7 +57,11 @@ fn serve_mcp_returns_filtered_in_process_projection() {
 }
 
 fn skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0007),
+    );
     install_skill_lib(&mut cx).unwrap();
     cx
 }

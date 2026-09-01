@@ -217,6 +217,14 @@ fn phase0_agent_tool_calls_still_route_through_tool_call_values() {
 
     let source = include_str!("../components/runtime/runner_tools.rs");
     assert!(source.contains("tool.call_values(cx, args)?"));
+    let declared = source
+        .find("was not declared on the model request")
+        .unwrap();
+    let phase = source.find("current phase denied tool").unwrap();
+    let privacy = source.find("privacy policy denied tool").unwrap();
+    let isolation = source.find("isolation policy denied tool").unwrap();
+    let effect = source.find("effect::resolve_effect(cx, effect").unwrap();
+    assert!(declared < effect && phase < effect && privacy < effect && isolation < effect);
 }
 
 #[test]
@@ -260,6 +268,18 @@ fn phase0_streaming_agent_tool_calls_emit_model_events() {
         .collect::<Vec<_>>();
     assert!(events.contains(&Expr::Symbol(Symbol::new("tool-call"))));
     assert!(events.contains(&Expr::Symbol(Symbol::new("tool-result"))));
+    let tool_call = events
+        .iter()
+        .position(|event| event == &Expr::Symbol(Symbol::new("tool-call")))
+        .unwrap();
+    let tool_result = events
+        .iter()
+        .position(|event| event == &Expr::Symbol(Symbol::new("tool-result")))
+        .unwrap();
+    assert!(
+        tool_call < tool_result,
+        "tool call event must precede its result"
+    );
     assert!(
         sink.chunks
             .iter()

@@ -1,0 +1,21 @@
+[package]
+name = "sim-lib-agent-conduct"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Validated agent-conduct profile over SIM topology packages."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-agent-net"
+homepage = "https://github.com/sim-nest/sim-agent-net"
+
+[dependencies]
+sim-kernel = { version = "0.3.0" }
+sim-lib-agent-conduct-core = { version = "0.1.1", path = "../sim-lib-agent-conduct-core" }
+sim-lib-topology = { version = "0.2.0" }
+
+[dev-dependencies]
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
+
+[lints]
+workspace = true

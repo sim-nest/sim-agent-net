@@ -1,0 +1,10 @@
+id = "echo-conduct"
+title = "Certify and run an echo conduct"
+purpose = "Bind and execute a certified echo conduct through the topology runtime."
+summary = "Load one agent/conduct-v1 topology, bind its Card, and run it through sim-lib-topology."
+language = "rust"
+entry = "src/main.rs"
+expected = "expected.txt"
+
+[[expect]]
+result = "completed"

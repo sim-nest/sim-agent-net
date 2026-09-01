@@ -18,10 +18,12 @@ pub mod atelier;
 mod capabilities;
 mod cli;
 mod components;
+mod conduct_functions;
 mod config_probe;
 #[cfg(feature = "cookbook")]
 mod cookbook_tools;
 mod core_tools;
+mod durable_memory;
 mod embed;
 mod fairness;
 mod functions;
@@ -33,6 +35,7 @@ mod planning;
 mod reply;
 mod roles;
 mod runner_projection;
+mod steps;
 /// Cookbook recipes for this lib, embedded at build time.
 pub static RECIPES: sim_cookbook::EmbeddedDir =
     include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
@@ -106,6 +109,7 @@ pub use config_probe::{
     AgentModelConfigProbe, AgentModelProviderPresence, agent_model_config_probe_symbol,
     model_defaults_config_lib_symbol,
 };
+pub use durable_memory::MemoryJournalStore;
 pub(crate) use embed::{cosine, embed};
 pub use fairness::*;
 use functions::{agent_exports, register_agent_functions};
@@ -125,9 +129,20 @@ pub use planning::{
 };
 pub use roles::{AgentRole, stamp_envelope_role, stamp_frame_role};
 pub use runner_projection::{ExternalRunnerSpec, external_runner_value};
+pub use sim_lib_agent_conduct_core::{
+    Counterfactual, DurableAgentRun, DurableRunHandle, EffectRecovery, LifecycleError,
+    MissionJournalRow, ModelExchange, ParentJournalRef, SuspendReason,
+};
 pub use sim_lib_agent_runner_core::{
     ModelBid, ModelCard, ModelEvent, ModelEventSink, ModelRequest, ModelResponse, ModelRunner,
     ModelUsage,
+};
+pub use steps::{
+    AgentStep, AgentStepFactory, AgentStepRegistry, AgentStepTargetFactory, DelegatedObservation,
+    ModelTurnOptions, ModelTurnResult, PhaseOptions, ReviewOutcome, admit_phase_tool,
+    complete_phase, enter_phase, execute_checkpoint, execute_component_once, execute_delegate_once,
+    execute_finish, execute_model_turn_once, execute_plan_once, execute_replan_once,
+    execute_review_once, execute_stop, model_turn_card, standard_step_cards, tool_batch_card,
 };
 pub use tool_projection::{ToolSpec, install_tool};
 pub use tools::Tool;
@@ -170,6 +185,7 @@ pub fn install_agent_lib(cx: &mut Cx) -> Result<()> {
     install_server_lib(cx)?;
     register_address_resolver(Symbol::new("agent"), resolve_agent_address)?;
     register_line_driver(Symbol::new("agent"), agent_line_driver_factory)?;
+    sim_lib_core::install_once(cx, &sim_citizen::CitizenLib::namespace("agent"))?;
     sim_lib_core::install_once(cx, &AgentLib)?;
     core_tools::install_core_tools(cx)?;
     #[cfg(feature = "cookbook")]

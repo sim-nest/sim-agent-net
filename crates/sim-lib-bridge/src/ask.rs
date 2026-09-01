@@ -6,6 +6,7 @@ use sim_codec_bridge::{
 use sim_kernel::{
     Cx, Datum, EncodeOptions, EvalFabric, Expr, ReadPolicy, Result, Symbol, encode::EncodePosition,
 };
+use sim_lib_agent_conduct::{BoundedEdgeStep, run_catalog_bounded_edge};
 use sim_lib_agent_runner_core::{
     InjectionFence, ModelResponse, OutputContract, terminal_model_content,
 };
@@ -110,32 +111,70 @@ pub fn run_ask(cx: &mut Cx, target: &dyn EvalFabric, packet: BridgePacket) -> Re
 pub fn run_ask_with_policy(
     cx: &mut Cx,
     target: &dyn EvalFabric,
-    mut packet: BridgePacket,
+    packet: BridgePacket,
     policy: RepairPolicy,
 ) -> Result<BridgePacket> {
-    let book = BridgeBook::standard();
     let max_retries = policy.retries();
-    for attempt in 0..=max_retries {
-        let checked = prepare_packet(cx, &book, &packet)?;
-        let request = eval_request_for_checked_packet(cx, &book, &checked)?;
-        let caps = effective_caps(cx, &checked)?;
-        let reply = cx.with_capabilities(caps, |cx| target.realize(cx, request))?;
-        let response = ModelResponse::try_from(reply.value.object().as_expr(cx)?)?;
-        match answer_packet(cx, &book, &checked, &response)? {
-            Ok(answer) => return Ok(answer),
-            Err(failure) if attempt < max_retries => {
-                packet = repair_packet_for_failure(cx, &checked, &failure, attempt + 1)?;
+    run_catalog_bounded_edge(
+        "agent/verify-retry-v1",
+        "verify",
+        "act",
+        u32::from(max_retries),
+        packet,
+        |packet, attempt| match run_ask_once(cx, target, packet)? {
+            AskAttempt::Answer(answer) => Ok(BoundedEdgeStep::Complete(answer)),
+            AskAttempt::RepairNeeded { checked, failure } if attempt < u32::from(max_retries) => {
+                let repaired = repair_packet_for_failure(
+                    cx,
+                    &checked,
+                    &failure,
+                    u8::try_from(attempt + 1).unwrap_or(u8::MAX),
+                )?;
+                Ok(BoundedEdgeStep::Continue(repaired))
             }
-            Err(failure) => {
-                return Err(sim_kernel::Error::Eval(format!(
-                    "bridge ask failed after {} attempt(s): {}",
-                    attempt + 1,
-                    failure.message()
-                )));
-            }
-        }
+            AskAttempt::RepairNeeded { failure, .. } => Err(sim_kernel::Error::Eval(format!(
+                "bridge ask failed after {} attempt(s): {}",
+                attempt + 1,
+                failure.message()
+            ))),
+        },
+    )
+}
+
+/// Result of one checked ASK exchange, with repair kept as typed control flow.
+#[derive(Clone, Debug, PartialEq)]
+pub enum AskAttempt {
+    /// The single exchange produced a checked BRIDGE reply packet.
+    Answer(BridgePacket),
+    /// The model replied, but decoding or the declared return Shape requires repair.
+    RepairNeeded {
+        /// Exact checked request packet that the repair must parent.
+        checked: BridgePacket,
+        /// Typed failure used to construct a bounded repair request.
+        failure: AskFailure,
+    },
+}
+
+/// Performs exactly one ASK exchange: TX checks, one model call, and RX checks.
+///
+/// This function never retries. Callers that own repetition can use the typed
+/// [`AskAttempt::RepairNeeded`] result; [`run_ask_with_policy`] maps the
+/// compatibility policy onto the checked `agent/verify-retry-v1` edge.
+pub fn run_ask_once(
+    cx: &mut Cx,
+    target: &dyn EvalFabric,
+    packet: BridgePacket,
+) -> Result<AskAttempt> {
+    let book = BridgeBook::standard();
+    let checked = prepare_packet(cx, &book, &packet)?;
+    let request = eval_request_for_checked_packet(cx, &book, &checked)?;
+    let caps = effective_caps(cx, &checked)?;
+    let reply = cx.with_capabilities(caps, |cx| target.realize(cx, request))?;
+    let response = ModelResponse::try_from(reply.value.object().as_expr(cx)?)?;
+    match answer_packet(cx, &book, &checked, &response)? {
+        Ok(answer) => Ok(AskAttempt::Answer(answer)),
+        Err(failure) => Ok(AskAttempt::RepairNeeded { checked, failure }),
     }
-    unreachable!("bounded ASK loop always returns inside the retry range")
 }
 
 pub(crate) fn pack_argument(

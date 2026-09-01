@@ -1,6 +1,7 @@
 mod basics;
 mod capabilities;
 mod clock;
+#[cfg(feature = "cookbook-web")]
 mod cookbook_web;
 mod lifecycle;
 mod lifecycle_roundtrip;

@@ -1,0 +1,5 @@
+book = "agent-conduct-core"
+title = "Agent Conduct Core"
+summary = "Pure run and journal data contracts."
+order = 85
+chapters = ["01-basics"]

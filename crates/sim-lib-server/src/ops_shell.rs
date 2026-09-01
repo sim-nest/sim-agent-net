@@ -1,18 +1,24 @@
 use std::sync::Arc;
 
-use sim_kernel::{
-    CapabilityName, Cx, Error, Expr, RawArgs, Result, Symbol, Value, eval_fabric_capability,
-};
+use sim_kernel::{Cx, Error, Expr, RawArgs, Result, Symbol, Value, eval_fabric_capability};
 
 use crate::helpers::{
     connect_target_value, ensure_installed_codec, literal_expr, normalize_codec_expr,
-    parse_server_options, string_like_from_value, symbol_from_value, symbol_of,
-    wasm_module_bytes_from_value,
+    parse_server_options, symbol_from_value, symbol_of,
 };
 use crate::isolation::IsolationPolicy;
 use crate::trigger::register_trigger;
-use crate::{Server, ServerAddress, TriggerHandle, register_wasm_region, repl};
+use crate::{Server, ServerAddress, TriggerHandle, repl};
 
+#[cfg(feature = "wasm")]
+use crate::{
+    helpers::{string_like_from_value, wasm_module_bytes_from_value},
+    register_wasm_region,
+};
+#[cfg(feature = "wasm")]
+use sim_kernel::CapabilityName;
+
+#[cfg(feature = "wasm")]
 const SANDBOX_WASM_CAPABILITY: &str = "sandbox-wasm";
 
 pub(crate) fn server_repl(cx: &mut Cx, args: RawArgs) -> Result<Value> {
@@ -111,6 +117,7 @@ pub(crate) fn server_repl(cx: &mut Cx, args: RawArgs) -> Result<Value> {
     )
 }
 
+#[cfg(feature = "wasm")]
 pub(crate) fn server_wasm_region(cx: &mut Cx, args: RawArgs) -> Result<Value> {
     cx.require(&CapabilityName::new(SANDBOX_WASM_CAPABILITY))?;
     let exprs = args.into_exprs();
@@ -152,6 +159,11 @@ pub(crate) fn server_wasm_region(cx: &mut Cx, args: RawArgs) -> Result<Value> {
         module.ok_or_else(|| Error::Eval("server/wasm-region requires :module".to_owned()))?;
     register_wasm_region(&region, &module)?;
     cx.factory().nil()
+}
+
+#[cfg(not(feature = "wasm"))]
+pub(crate) fn server_wasm_region(_cx: &mut Cx, _args: RawArgs) -> Result<Value> {
+    Err(Error::Eval("server wasm feature disabled".to_owned()))
 }
 
 pub(crate) fn server_trigger(cx: &mut Cx, args: RawArgs) -> Result<Value> {

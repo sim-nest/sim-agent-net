@@ -1,0 +1,24 @@
+[package]
+name = "sim-lib-oauth-jose"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Local JOSE access-token verification for SIM OAuth"
+readme = "README.md"
+publish = true
+
+[dependencies]
+base64 = "0.22"
+ring = "0.17"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sim-cookbook = "0.3.0"
+sim-lib-oauth-core = { path = "../sim-lib-oauth-core", version = "0.1.0" }
+
+[build-dependencies]
+sim-cookbook-build = "0.1.0"
+
+[lints]
+workspace = true

@@ -1,0 +1,8 @@
+(expr:map
+  [kind "bounded-roadmap-retry"]
+  [failure "classified"]
+  [identities "unchanged"]
+  [effects "resolved"]
+  [retry "one policy step"]
+  [loop "caller-owned"]
+  [proof "focused execution tests"])

@@ -1,0 +1,5 @@
+book = "provider-cli"
+title = "Provider CLI"
+summary = "Expose provider inventory and seat selection through the loadable SIM command surface."
+order = 82
+chapters = ["01-basics"]

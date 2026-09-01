@@ -1,0 +1,4 @@
+; Host setup composes HttpSearchTransport<FixtureCodec>, a sim-config site,
+; an injected SearchHttpClient, and an S1 SecretResolver. The checked Rust
+; specimen in src/tests.rs executes live, multi-page record, and offline replay.
+'search/fixture-site

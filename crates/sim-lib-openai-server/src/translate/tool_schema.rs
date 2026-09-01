@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 
-use serde_json::{Map, Value};
-use sim_codec_json::{JsonProjectionMode, project_expr_to_json, project_json_to_expr};
+use serde_json::Value;
+use sim_codec_json::{
+    JsonProjectionMode, ResourceIdentity, SchemaDocument, SchemaLimits, project_expr_to_json,
+    project_json_to_expr,
+};
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 
 pub(crate) fn default_parameters() -> Value {
@@ -33,58 +36,33 @@ pub(crate) fn validate_schema(
     value: &Value,
     path: &str,
 ) -> std::result::Result<(), String> {
-    validate_supported_schema(schema, path)?;
-    if let Some(kind) = schema.get("type").and_then(Value::as_str) {
-        validate_type(kind, value, path)?;
-    }
-    if let Some(object) = value.as_object() {
-        validate_required(schema, object, path)?;
-        validate_properties(schema, object, path)?;
-    }
-    Ok(())
+    let document = compile_schema(schema, path)?;
+    document.validate(value).map_err(|errors| {
+        errors
+            .into_iter()
+            .map(|e| e.to_string())
+            .collect::<Vec<_>>()
+            .join("; ")
+    })
 }
 
 pub(crate) fn validate_supported_schema(
     schema: &Value,
     path: &str,
 ) -> std::result::Result<(), String> {
-    let object = schema
-        .as_object()
-        .ok_or_else(|| format!("{path} schema must be an object"))?;
-    for keyword in object.keys() {
-        if !is_supported_keyword(keyword) {
-            return Err(format!(
-                "{path} uses unsupported json schema keyword {keyword}"
-            ));
-        }
-    }
-    if let Some(type_value) = object.get("type") {
-        let kind = type_value
-            .as_str()
-            .ok_or_else(|| format!("{path}.type must be a string"))?;
-        validate_type_name(kind, path)?;
-    }
-    if let Some(required_value) = object.get("required") {
-        ensure_object_schema(object, path, "required")?;
-        let required = required_value
-            .as_array()
-            .ok_or_else(|| format!("{path}.required must be an array"))?;
-        for item in required {
-            if !item.is_string() {
-                return Err(format!("{path}.required must contain strings"));
-            }
-        }
-    }
-    if let Some(properties_value) = object.get("properties") {
-        ensure_object_schema(object, path, "properties")?;
-        let properties = properties_value
-            .as_object()
-            .ok_or_else(|| format!("{path}.properties must be an object"))?;
-        for (name, property_schema) in properties {
-            validate_supported_schema(property_schema, &format!("{path}.properties.{name}"))?;
-        }
-    }
-    Ok(())
+    compile_schema(schema, path).map(|_| ())
+}
+
+fn compile_schema(schema: &Value, source: &str) -> std::result::Result<SchemaDocument, String> {
+    SchemaDocument::from_value(
+        schema.clone(),
+        ResourceIdentity {
+            base_uri: format!("sim://openai-tool/{source}"),
+            source: source.to_owned(),
+        },
+        SchemaLimits::default(),
+    )
+    .map_err(|error| error.to_string())
 }
 
 pub(crate) fn json_to_expr(value: &Value) -> Expr {
@@ -141,86 +119,4 @@ pub(crate) fn expr_text(expr: &Expr) -> String {
         Expr::Nil => "nil".to_owned(),
         other => format!("{other:?}"),
     }
-}
-
-fn validate_type(kind: &str, value: &Value, path: &str) -> std::result::Result<(), String> {
-    validate_type_name(kind, path)?;
-    let ok = match kind {
-        "object" => value.is_object(),
-        "array" => value.is_array(),
-        "string" => value.is_string(),
-        "number" => value.is_number(),
-        "integer" => value.as_i64().is_some() || value.as_u64().is_some(),
-        "boolean" => value.is_boolean(),
-        "null" => value.is_null(),
-        _ => false,
-    };
-    if ok {
-        Ok(())
-    } else {
-        Err(format!("{path} must be {kind}"))
-    }
-}
-
-fn validate_type_name(kind: &str, path: &str) -> std::result::Result<(), String> {
-    match kind {
-        "object" | "array" | "string" | "number" | "integer" | "boolean" | "null" => Ok(()),
-        other => Err(format!("{path} uses unsupported json schema type {other}")),
-    }
-}
-
-fn ensure_object_schema(
-    object: &Map<String, Value>,
-    path: &str,
-    keyword: &str,
-) -> std::result::Result<(), String> {
-    match object.get("type").and_then(Value::as_str) {
-        Some("object") => Ok(()),
-        Some(kind) => Err(format!(
-            "{path}.{keyword} is only supported for object schemas, found {kind}"
-        )),
-        None => Err(format!("{path}.{keyword} requires type object")),
-    }
-}
-
-fn is_supported_keyword(keyword: &str) -> bool {
-    matches!(
-        keyword,
-        "type" | "properties" | "required" | "description" | "title"
-    )
-}
-
-fn validate_required(
-    schema: &Value,
-    object: &Map<String, Value>,
-    path: &str,
-) -> std::result::Result<(), String> {
-    let Some(required) = schema.get("required").and_then(Value::as_array) else {
-        return Ok(());
-    };
-    for item in required {
-        let Some(name) = item.as_str() else {
-            return Err(format!("{path}.required must contain strings"));
-        };
-        if !object.contains_key(name) {
-            return Err(format!("{path}.{name} is required"));
-        }
-    }
-    Ok(())
-}
-
-fn validate_properties(
-    schema: &Value,
-    object: &Map<String, Value>,
-    path: &str,
-) -> std::result::Result<(), String> {
-    let Some(properties) = schema.get("properties").and_then(Value::as_object) else {
-        return Ok(());
-    };
-    for (name, property_schema) in properties {
-        if let Some(value) = object.get(name) {
-            validate_schema(property_schema, value, &format!("{path}.{name}"))?;
-        }
-    }
-    Ok(())
 }

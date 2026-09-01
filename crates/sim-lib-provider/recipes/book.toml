@@ -1,0 +1,5 @@
+book = "provider"
+title = "Provider Control"
+summary = "Discover open provider families and selectable seats."
+order = 81
+chapters = ["01-basics"]

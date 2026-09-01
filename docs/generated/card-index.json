@@ -1,5 +1,5 @@
 {
-  "card_count": 17,
+  "card_count": 43,
   "cards": [
     {
       "id": "browse/catalog",
@@ -12,6 +12,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-agent",
       "summary": "Agent components, memories, and offline runner descriptors."
+    },
+    {
+      "id": "cookbook/agent-conduct-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-agent-conduct-core",
+      "summary": "Pure run and journal data contracts."
     },
     {
       "id": "cookbook/agent-runner-core",
@@ -38,10 +44,28 @@
       "summary": "Process runner descriptors expressed as local fixtures."
     },
     {
+      "id": "cookbook/agent/conduct",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-agent-conduct",
+      "summary": "Compose checked agent conduct policies."
+    },
+    {
       "id": "cookbook/bridge",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-bridge",
       "summary": "Checked BRIDGE packet send and receive runtime."
+    },
+    {
+      "id": "cookbook/capability/pack",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-capability-pack",
+      "summary": "Checked content-addressed runtime compositions."
+    },
+    {
+      "id": "cookbook/continuity",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-continuity",
+      "summary": "Pure plans, hostile replay, and fenced journal composition."
     },
     {
       "id": "cookbook/cookbook",
@@ -56,22 +80,136 @@
       "summary": "Compiled intent records for reusable BRIDGE packet programs."
     },
     {
+      "id": "cookbook/local-roadmap-runner",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-roadmap-runner",
+      "summary": "Public, hermetic specimens for the loadable local roadmap runner."
+    },
+    {
       "id": "cookbook/mcp",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-mcp",
       "summary": "MCP JSON-RPC descriptors and cassette replay."
     },
     {
+      "id": "cookbook/mcp-client",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-client",
+      "summary": "Checked HTTP, stdio, legacy, MRTR, and subscription composition."
+    },
+    {
+      "id": "cookbook/mcp-http",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-http",
+      "summary": "Checked server and client assembly for final-protocol MCP HTTP."
+    },
+    {
+      "id": "cookbook/mcp-legacy",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-legacy",
+      "summary": "Initialize-era compatibility over the stateless MCP service."
+    },
+    {
       "id": "cookbook/mcp-server",
       "kind": "cookbook-recipe",
       "owner": "sim-mcp-server",
-      "summary": "Stdio MCP bootloader descriptors."
+      "summary": "Final stdio and configured Streamable HTTP MCP product descriptors."
+    },
+    {
+      "id": "cookbook/mcp-stdio",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-mcp-stdio",
+      "summary": "Bounded modern and explicit legacy MCP process boundaries."
+    },
+    {
+      "id": "cookbook/model-test",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-model-test",
+      "summary": "Seal, run, and grade reproducible model trials without hidden ambient authority."
+    },
+    {
+      "id": "cookbook/model-test/packs",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-model-test-packs",
+      "summary": "Freeze, validate, and select immutable public model-test task packs."
+    },
+    {
+      "id": "cookbook/oauth-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-oauth-core",
+      "summary": "Effect-free resource-bound authorization-code composition."
+    },
+    {
+      "id": "cookbook/oauth-http",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-oauth-http",
+      "summary": "Retrieve discovery and JWK documents through the shared HTTP policy."
+    },
+    {
+      "id": "cookbook/oauth-jose",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-oauth-jose",
+      "summary": "Verify resource-bound access tokens against injected rotating JWK sets."
     },
     {
       "id": "cookbook/openai-gateway",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-openai-server",
       "summary": "OpenAI-shaped gateway request descriptors and local replay."
+    },
+    {
+      "id": "cookbook/provider",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-provider",
+      "summary": "Discover open provider families and selectable seats."
+    },
+    {
+      "id": "cookbook/provider-cli",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-provider-cli",
+      "summary": "Expose provider inventory and seat selection through the loadable SIM command surface."
+    },
+    {
+      "id": "cookbook/roadmap",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-roadmap",
+      "summary": "Caller-owned specimens for loadable roadmap intent operations."
+    },
+    {
+      "id": "cookbook/roadmap-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-core",
+      "summary": "Author immutable bounded roadmap intent and reviewed guides."
+    },
+    {
+      "id": "cookbook/roadmap-exec-core",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-exec-core",
+      "summary": "Reduce execution observations and admit bounded recovery as pure data."
+    },
+    {
+      "id": "cookbook/roadmap-plan",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-plan",
+      "summary": "Compile grounded roadmap readiness with exact invalidation."
+    },
+    {
+      "id": "cookbook/roadmap-refine",
+      "kind": "cookbook-recipe",
+      "owner": "sim-roadmap-refine",
+      "summary": "Derive and certify strictly descending roadmap work."
+    },
+    {
+      "id": "cookbook/search",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-search",
+      "summary": "Deterministic claims, capture, selectors, and replay."
+    },
+    {
+      "id": "cookbook/search-http",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-search-http",
+      "summary": "Provider-neutral bounded search execution."
     },
     {
       "id": "cookbook/server",
@@ -86,6 +224,12 @@
       "summary": "Skill cards, fixture transports, cassette replay, and audit policy."
     },
     {
+      "id": "cookbook/source-deck",
+      "kind": "cookbook-recipe",
+      "owner": "sim-source-deck",
+      "summary": "Ground bounded source evidence without ambient effects."
+    },
+    {
       "id": "cookbook/stream-fabric",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-stream-fabric",
@@ -96,6 +240,18 @@
       "kind": "cookbook-recipe",
       "owner": "sim-table-remote",
       "summary": "Remote table directory descriptors."
+    },
+    {
+      "id": "cookbook/transport-ports",
+      "kind": "cookbook-recipe",
+      "owner": "sim-transport-ports",
+      "summary": "Bind provider-neutral transport services and test network faults deterministically."
+    },
+    {
+      "id": "cookbook/web/fetch",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-web-fetch",
+      "summary": "Policy-gated capture and deterministic offline replay of immutable web evidence."
     },
     {
       "id": "registry/catalog",

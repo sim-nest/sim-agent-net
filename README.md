@@ -67,6 +67,14 @@ Server and distributed-eval substrate:
 
 Agent and model fabric:
 
+- `sim-roadmap-exec-core` -- effect-free execution and reconciliation values for
+  one admitted roadmap phase. Its pure reducer correlates journal observations,
+  emits effect requests as data, and mints a success receipt only after every
+  mutation, source-deck, promise, parent-acceptance, and proof invariant holds.
+- `sim-lib-roadmap-runner` -- the durable roadmap journal, mutation/proof
+  adapters, content-pinned conduct, and the loadable local-only `sim roadmap`
+  runner (`run --observe`, `resume`, `status`, `explain`, and `replay`).
+
 - `sim-lib-agent-runner-core` -- provider-neutral runner contracts: the
   transcript objects (`ModelRequest`, `ModelResponse`, `ModelUsage`), the
   streaming surface (`ModelEvent`, `ModelEventSink`, `VecEventSink`), the
@@ -94,6 +102,17 @@ Skills, tools, and gateways:
 - `sim-lib-mcp` -- library-only MCP projection. Projects native browse Cards and
   optional `SkillCard` records into redacted `McpSurfaceCard` rows; routing,
   transport, and callable execution layer on top behind features.
+- `sim-lib-mcp-http` -- final-protocol Streamable HTTP server/client boundary:
+  exact endpoint, Origin and projection checks, bounded JSON/SSE delivery,
+  request-owned cancellation, reusable OAuth authentication before request
+  context construction, and no MCP session semantics.
+- `sim-lib-oauth-core` -- effect-free protected-resource/authorization metadata,
+  PKCE authorization-code state, challenges, registrations, and immutable
+  verified-principal contracts.
+- `sim-lib-oauth-jose` -- local JWT verification against injected rotating JWK
+  sets with explicit algorithm, issuer, audience/resource, scope, and clock policy.
+- `sim-lib-oauth-http` -- bounded discovery and JWK refresh over the shared
+  `sim-lib-net-http` policy; redirects and refresh are explicit.
 - `sim-lib-openai-server` -- OpenAI-shaped gateway routes: health route, OpenAI
   JSON transcript codec, model discovery, supported chat, response, and
   embedding request flows, fixture/subset file, audio, image, and vector-store
@@ -104,8 +123,9 @@ Skills, tools, and gateways:
 
 Binary:
 
-- `sim-mcp-server` -- a stdio MCP server binary. HTTP transport is disabled in
-  this binary.
+- `sim-mcp-server` -- a stdio-by-default MCP server binary. Streamable HTTP is
+  selected explicitly with fail-closed bind, origin, verifier, key-ring, body,
+  timeout, legacy-endpoint, cache, and diagnostics configuration.
 
 ## Model fabric contract
 

@@ -11,6 +11,8 @@ use super::market_policy::MarketPolicy;
 use crate::model_privacy::PrivacyPolicy;
 use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, Symbol, Value};
 use sim_lib_agent_runner_core::{ModelRequest, ModelResponse};
+use sim_lib_provider::{Fanout, FanoutMode, FanoutSeat, FanoutStatus, PlannedSeat};
+use sim_lib_server::ThreadMode;
 
 pub(crate) fn execute_market(
     cx: &mut Cx,
@@ -41,6 +43,9 @@ pub(crate) fn execute_market_with_capabilities(
         "speculate" => executor.execute_speculate(cx, &request, &mut decision)?,
         "debate" => executor.execute_debate(cx, &request, &mut decision)?,
         "escalate" => executor.execute_escalate(cx, &request, &mut decision)?,
+        "parallel-all" | "parallel-first-good" | "parallel-quorum" => {
+            executor.execute_parallel(cx, &request, &mut decision)?
+        }
         _ => executor.execute_select(cx, &request, &mut decision)?,
     };
     decision.selected_response = Some(Expr::from(response.clone()));
@@ -57,6 +62,28 @@ struct MarketExecutor<'a> {
     required_capabilities: Vec<CapabilityName>,
 }
 
+struct MarketFanoutSeat {
+    id: String,
+    runner: Value,
+    deadline: Option<std::time::Duration>,
+    required_capabilities: Vec<CapabilityName>,
+}
+
+impl FanoutSeat for MarketFanoutSeat {
+    fn seat_id(&self) -> &str {
+        &self.id
+    }
+
+    fn plan(&self, _cx: &mut Cx, request: ModelRequest) -> Result<PlannedSeat> {
+        let runner = self.runner.clone();
+        let deadline = self.deadline;
+        let required_capabilities = self.required_capabilities.clone();
+        Ok(PlannedSeat::serialized(move |cx| {
+            realize_runner(cx, &runner, &request, deadline, &required_capabilities)
+        }))
+    }
+}
+
 impl MarketExecutor<'_> {
     fn execution_mode(&self) -> &str {
         let mode = self
@@ -67,9 +94,99 @@ impl MarketExecutor<'_> {
             .name
             .as_ref();
         match mode {
-            "race" | "speculate" | "debate" | "escalate" => mode,
+            "race"
+            | "speculate"
+            | "debate"
+            | "escalate"
+            | "parallel-all"
+            | "parallel-first-good"
+            | "parallel-quorum" => mode,
             _ => "select",
         }
+    }
+
+    fn execute_parallel(
+        &mut self,
+        cx: &mut Cx,
+        request: &ModelRequest,
+        decision: &mut MarketDecision,
+    ) -> Result<ModelResponse> {
+        if !request_allows_branching(request) {
+            decision.failure(
+                Symbol::qualified("runner", "market"),
+                "non-idempotent tool continuation used select execution".to_owned(),
+            );
+            return self.execute_select(cx, request, decision);
+        }
+        let candidates = self.branch_candidates(cx, request, decision)?;
+        let deadline = policy_deadline(&self.policy)?;
+        let seats: Vec<_> = candidates
+            .iter()
+            .map(|candidate| MarketFanoutSeat {
+                id: candidate.symbol().to_string(),
+                runner: candidate.runner.clone(),
+                deadline,
+                required_capabilities: self.required_capabilities.clone(),
+            })
+            .collect();
+        for candidate in &candidates {
+            decision.run(candidate.symbol(), "parallel");
+        }
+        let refs: Vec<&dyn FanoutSeat> = seats.iter().map(|seat| seat as &dyn FanoutSeat).collect();
+        let mode = match self.execution_mode() {
+            "parallel-all" => FanoutMode::All,
+            "parallel-quorum" => FanoutMode::Quorum(self.policy.quorum.unwrap_or(2) as usize),
+            _ => FanoutMode::FirstGood,
+        };
+        let report = Fanout::default().execute(cx, &refs, mode, ThreadMode::Pool, request.clone());
+        let mut row_exprs = Vec::with_capacity(report.rows.len());
+        let mut responses = Vec::new();
+        for (candidate, row) in candidates.iter().zip(report.rows) {
+            let status = match row.status {
+                FanoutStatus::Parallel => "parallel",
+                FanoutStatus::Serialized => "serialized",
+                FanoutStatus::Unavailable => "unavailable",
+            };
+            match row.result {
+                Ok(response) => {
+                    decision.response(candidate.symbol(), "parallel", &response);
+                    row_exprs.push(Expr::Map(vec![
+                        super::market_policy::key_expr("seat", Expr::String(row.seat)),
+                        super::market_policy::key_expr("status", Expr::Symbol(Symbol::new(status))),
+                        super::market_policy::key_expr("response", Expr::from(response.clone())),
+                    ]));
+                    responses.push(response);
+                }
+                Err(error) => {
+                    decision.failure(candidate.symbol(), error.to_string());
+                    row_exprs.push(Expr::Map(vec![
+                        super::market_policy::key_expr("seat", Expr::String(row.seat)),
+                        super::market_policy::key_expr("status", Expr::Symbol(Symbol::new(status))),
+                        super::market_policy::key_expr("error", Expr::String(error.to_string())),
+                    ]));
+                }
+            }
+        }
+        let required = match mode {
+            FanoutMode::All => candidates.len(),
+            FanoutMode::FirstGood => 1,
+            FanoutMode::Quorum(required) => required,
+        };
+        if responses.len() < required {
+            return Err(Error::Eval(format!(
+                "runner/market parallel mode required {required} successes, got {}",
+                responses.len()
+            )));
+        }
+        let mut response = responses.into_iter().next().ok_or_else(|| {
+            Error::Eval("runner/market parallel mode found no valid runner".to_owned())
+        })?;
+        decision.selected = Some(response.runner.clone());
+        response.extra.push(super::market_policy::key_expr(
+            "fan-out",
+            Expr::List(row_exprs),
+        ));
+        Ok(response)
     }
 
     fn execute_select(

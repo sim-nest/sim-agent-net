@@ -1,4 +1,4 @@
-use sim_kernel::{Cx, Expr, Result, Symbol};
+use sim_kernel::{Cx, Expr, HandleSeed, Result, Symbol};
 use sim_lib_agent_runner_core::{ModelEvent, ModelEventSink};
 use sim_lib_server::{
     FrameEnvelope, StreamSink, stream_chunk_frame_from_expr, stream_end_frame,
@@ -119,7 +119,7 @@ pub(super) fn model_stream_metadata(runner: Symbol, model: String) -> Expr {
 }
 
 fn clone_stream_cx(seed: &Cx) -> Cx {
-    seed.fork_from_seed()
+    seed.fork_from_seed(HandleSeed::new(1))
 }
 
 #[cfg(test)]

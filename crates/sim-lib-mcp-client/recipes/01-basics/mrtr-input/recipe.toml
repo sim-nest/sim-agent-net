@@ -1,0 +1,14 @@
+id = "mcp-client-mrtr"
+title = "Answer bounded input_required"
+summary = "Validate capabilities and retry with exact requestState and a fresh id."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 40
+tags = ["mcp", "client", "mrtr"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:input-capabilities (\"input.confirm\") :maximum-rounds 3 :fresh-ids true)"

@@ -1,0 +1,11 @@
+[package]
+name = "sim-transport-ports"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Host-neutral socket, DNS, and local IPC ports for SIM transports"
+publish = true
+
+[lints]
+workspace = true

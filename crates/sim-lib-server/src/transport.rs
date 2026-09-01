@@ -10,6 +10,8 @@ mod backends;
 mod framing;
 #[cfg(feature = "server-net-http")]
 mod http_transport;
+#[allow(dead_code)]
+pub(crate) mod port_io;
 mod site;
 mod socket;
 #[cfg(feature = "server-net-http")]
@@ -37,14 +39,37 @@ pub use ws_transport::{WsConnectionTransport, WsServerTransport};
 
 pub(crate) use backends::TransportEndpoint;
 use backends::{has_registered_endpoint, register_endpoint, unregister_endpoint};
+#[cfg(feature = "server-net-http")]
+use framing::io_to_host;
 use framing::{
-    answer_or_negotiate, error_frame_from_error, io_to_host, is_timeout, read_frame_from,
-    route_frame_bytes, update_negotiated_codec_from_reply, write_frame_to,
+    answer_or_negotiate, error_frame_from_error, is_timeout, read_frame_from, route_frame_bytes,
+    update_negotiated_codec_from_reply, write_frame_to,
 };
 
 pub(crate) const MAX_TRANSPORT_FRAME_BYTES: usize = 8 * 1024 * 1024;
 pub(crate) const SERVER_CONNECTION_IO_TIMEOUT_MS: u64 = 250;
 pub(crate) const DEFAULT_MAX_INFLIGHT_FRAMES: usize = 8;
+fn bound_transport_services()
+-> std::result::Result<sim_transport_ports::TransportServices, sim_transport_ports::TransportError>
+{
+    match sim_transport_ports::services() {
+        Ok(value) => Ok(value),
+        #[cfg(test)]
+        Err(_) => {
+            let mut model = sim_transport_ports::model::ModelPorts::new(Default::default());
+            model.ipc = true;
+            let model = Arc::new(model);
+            sim_transport_ports::bind_services(sim_transport_ports::TransportServices {
+                sockets: model.clone(),
+                dns: model.clone(),
+                ipc: Some(model),
+            })?;
+            sim_transport_ports::services()
+        }
+        #[cfg(not(test))]
+        Err(error) => Err(error),
+    }
+}
 pub(crate) const WEBHOOK_SERVE_CAPABILITY: &str = "webhook-serve";
 #[cfg(feature = "server-net-http")]
 pub(crate) const HTTP_TRANSPORT_PATH: &str = "/sim/frame";
@@ -135,10 +160,7 @@ pub fn start_server_transport(server: &Server) -> Result<()> {
                 }
             }
         }
-        ServerAddress::Wasm { region } => {
-            let _ = crate::wasm::lookup_wasm_region(region)?;
-            Ok(())
-        }
+        ServerAddress::Wasm { region } => require_wasm_region(region),
         _ => register_endpoint(TransportEndpoint {
             address: server.address().clone(),
             site: server.site().clone(),
@@ -428,10 +450,7 @@ pub fn open_server_transport(address: ServerAddress) -> Result<Option<Arc<dyn Se
         ServerAddress::InProcess { .. } => Ok(Some(
             Arc::new(RegistryTransport::new(address)) as Arc<dyn ServerTransport>
         )),
-        ServerAddress::Wasm { region } => {
-            let _ = crate::wasm::lookup_wasm_region(region)?;
-            Ok(None)
-        }
+        ServerAddress::Wasm { region } => require_wasm_region(region).map(|()| None),
         ServerAddress::Http { .. } => open_http_server_transport(address),
         ServerAddress::Sse { .. } => open_sse_server_transport(address),
         ServerAddress::Ws { .. } => open_ws_server_transport(address),
@@ -453,44 +472,20 @@ pub(crate) fn transport_kind(address: &ServerAddress) -> &'static str {
     }
 }
 
+#[cfg(feature = "wasm")]
+fn require_wasm_region(region: &str) -> Result<()> {
+    let _ = crate::wasm::lookup_wasm_region(region)?;
+    Ok(())
+}
+
+#[cfg(not(feature = "wasm"))]
+fn require_wasm_region(_region: &str) -> Result<()> {
+    Err(Error::Eval("server wasm feature disabled".to_owned()))
+}
+
 #[cfg(not(feature = "server-net-http"))]
 fn http_transport_disabled_error() -> Error {
     Error::Eval("http transport requires the server-net-http feature".to_owned())
 }
 
-fn run_accept_loop(runtime: Arc<ServerRuntime>, site: Arc<dyn EvalSite>) {
-    while !runtime.is_stopping() {
-        let accepted = match runtime.accept_timeout(Duration::from_millis(25)) {
-            Ok(connection) => connection,
-            Err(_) => break,
-        };
-        let Some(mut connection) = accepted else {
-            thread::sleep(Duration::from_millis(25));
-            continue;
-        };
-        match runtime.thread_mode() {
-            ThreadMode::Main | ThreadMode::Coop => {
-                let _ = connection.serve_connection(&runtime, &site);
-            }
-            ThreadMode::Spawn => {
-                let runtime_for_worker = runtime.clone();
-                let site_for_worker = site.clone();
-                let handle = thread::spawn(move || {
-                    let _ = connection.serve_connection(&runtime_for_worker, &site_for_worker);
-                });
-                if runtime.register_worker_thread(handle).is_err() {
-                    runtime.begin_stop();
-                    break;
-                }
-            }
-            ThreadMode::Pool => {
-                let runtime_for_worker = runtime.clone();
-                let site_for_worker = site.clone();
-                default_worker_pool().execute(move || {
-                    let _ = connection.serve_connection(&runtime_for_worker, &site_for_worker);
-                });
-            }
-            ThreadMode::Coroutine(_) => {}
-        }
-    }
-}
+include!("transport/accept_loop.rs");

@@ -1,0 +1,8 @@
+[package]
+name = "sim-lib-capability-pack-recipe-checked-pack"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+sim-lib-capability-pack = { path = "../../.." }

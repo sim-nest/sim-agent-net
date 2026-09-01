@@ -63,6 +63,18 @@ fn write_basic_recipe(root: &Path, member: &str) {
     fs::write(dir.join("purpose.md"), "Documents the descriptor.").unwrap();
 }
 
+#[test]
+fn skips_generated_sim_workspaces() {
+    let root = temp_root("generated-sim");
+    let generated = root.join(".sim/check/crate/recipes/01-basics/generated");
+    fs::create_dir_all(&generated).unwrap();
+    fs::write(generated.join("recipe.toml"), "[unsupported]\n").unwrap();
+
+    let summary = check_repo(&root).unwrap();
+    assert_eq!(summary.checked_recipes, 0);
+    let _ = fs::remove_dir_all(root);
+}
+
 fn valid_recipe() -> &'static str {
     r#"
 id = "a30-001-autonomous-decision"

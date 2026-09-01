@@ -1,0 +1,41 @@
+graph:
+topology agent/react-v1
+node in verb=in output=agent/RunFrame
+node model verb=call target=agent.step/model-turn role=runner
+node tools verb=call target=agent.step/tool-batch role=tools
+node answer verb=call target=agent.step/model-turn role=runner
+node review verb=call target=agent.step/review role=reviewer
+node revise verb=call target=agent.step/model-turn role=runner
+node finish verb=call target=agent.step/finish
+node stop verb=call target=agent.step/stop
+node out verb=out input=agent/RunFrame
+wire in -> model
+wire model -> tools when=agent/outcome-tool-calls
+wire model -> review when=agent/outcome-final
+wire model -> stop when=agent/outcome-error
+wire tools -> answer when=agent/outcome-continue
+wire tools -> review when=agent/outcome-final
+wire tools -> stop when=agent/outcome-error
+wire answer -> review when=agent/outcome-final
+wire answer -> tools when=agent/outcome-tool-calls max-visits=2
+wire answer -> stop when=agent/outcome-error
+wire review -> finish when=agent/outcome-accept
+wire review -> revise when=agent/outcome-revise
+wire review -> stop when=agent/outcome-reject
+wire review -> stop when=agent/outcome-error
+wire revise -> review when=agent/outcome-final max-visits=2
+wire revise -> tools when=agent/outcome-tool-calls max-visits=2
+wire revise -> stop when=agent/outcome-error
+wire finish -> out
+wire stop -> out
+budget max-steps=32 max-node-visits=8 max-edge-visits=4
+
+metadata:
+profile=agent/conduct-v1
+requires-roles=[reviewer,runner,tools]
+result-shape=agent/RunFrame
+domain-budget="model-turns=4 tool-batches=3 revisions=2"
+diagram="model -> tools -> answer -> review <-> revise"
+
+tests:
+normalized input=agent/test-frame expect=agent/react-v1

@@ -2,11 +2,12 @@ use std::{sync::Arc, time::Duration};
 
 use sim_kernel::{
     Consistency, Cx, Error, EvalMode, EvalRequest, Expr, Object, ObjectEncode, ObjectEncoding,
-    Result, Symbol, Table, Value, capability::eval_remote_capability, id::CORE_TABLE_CLASS_ID,
-    object::ClassRef, table::Dir,
+    Result, Symbol, Table, TableCompareExchange, TableExpected, TableObserved, TableReplacement,
+    Value, capability::eval_remote_capability, id::CORE_TABLE_CLASS_ID, object::ClassRef,
+    table::Dir,
 };
 use sim_lib_server::{EvalSite, eval_reply_from_frame, server_frame_from_request};
-use sim_table_core::{TableOp, encode_table_op};
+use sim_table_core::{CompareExpected, CompareReplacement, TableOp, encode_table_op};
 
 use crate::{citizen::remote_dir_class_symbol, table_remote_capability};
 
@@ -183,6 +184,60 @@ impl Table for RemoteDir {
     fn set(&self, cx: &mut Cx, key: Symbol, value: Value) -> Result<()> {
         let expr = value.object().as_expr(cx)?;
         self.call(cx, &TableOp::Set(key, expr)).map(|_| ())
+    }
+
+    fn compare_exchange(
+        &self,
+        cx: &mut Cx,
+        key: Symbol,
+        expected: TableExpected,
+        replacement: TableReplacement,
+    ) -> Result<TableCompareExchange> {
+        let expected = match expected {
+            TableExpected::Absent => CompareExpected::Absent,
+            TableExpected::Value(expr) => CompareExpected::Value(expr),
+        };
+        let replacement = match replacement {
+            TableReplacement::Delete => CompareReplacement::Delete,
+            TableReplacement::Value(value) => {
+                CompareReplacement::Value(value.object().as_expr(cx)?)
+            }
+        };
+        let reply = self
+            .call(cx, &TableOp::CompareExchange(key, expected, replacement))?
+            .object()
+            .as_expr(cx)?;
+        let Expr::Call { operator, args } = reply else {
+            return Err(Error::Eval("table/remote: malformed cas result".into()));
+        };
+        if operator.as_ref() != &Expr::Symbol(Symbol::qualified("table", "cas-result")) {
+            return Err(Error::Eval("table/remote: malformed cas result".into()));
+        }
+        let [Expr::Bool(exchanged), observed] = args.as_slice() else {
+            return Err(Error::Eval("table/remote: malformed cas result".into()));
+        };
+        let Expr::Call { operator, args } = observed else {
+            return Err(Error::Eval(
+                "table/remote: malformed cas observation".into(),
+            ));
+        };
+        let observed = match (operator.as_ref(), args.as_slice()) {
+            (Expr::Symbol(s), []) if *s == Symbol::qualified("table", "absent") => {
+                TableObserved::Absent
+            }
+            (Expr::Symbol(s), [value]) if *s == Symbol::qualified("table", "value") => {
+                TableObserved::Value(value.clone())
+            }
+            _ => {
+                return Err(Error::Eval(
+                    "table/remote: malformed cas observation".into(),
+                ));
+            }
+        };
+        Ok(TableCompareExchange {
+            exchanged: *exchanged,
+            observed,
+        })
     }
 
     fn has(&self, cx: &mut Cx, key: Symbol) -> Result<bool> {

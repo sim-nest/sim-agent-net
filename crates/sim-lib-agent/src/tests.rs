@@ -31,6 +31,7 @@ mod agent_ai_tool_injection;
 mod agent_ai_tools;
 #[cfg(feature = "cookbook")]
 mod agent_cookbook;
+mod agent_manifest_conduct;
 mod agent_patterns;
 mod agent_r16;
 mod agent_r17;
@@ -57,7 +58,9 @@ mod retrievers;
 mod runner_core;
 mod runner_fabric;
 mod sandbox_r13;
+mod standard_steps;
 mod support;
+mod support_ports;
 mod tools_memory;
 mod voice_recorder_r14;
 mod workflow_r12;

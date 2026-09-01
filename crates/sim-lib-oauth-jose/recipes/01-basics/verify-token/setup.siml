@@ -1,0 +1,7 @@
+(expr:map
+  [kind "oauth-token-verification"]
+  [token "redacted fixture"]
+  [algorithm "explicit allowlist"]
+  [authority "exact issuer and audience"]
+  [key-generation "current injected JWK set"]
+  [proof "crate JOSE tests"])

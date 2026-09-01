@@ -1,0 +1,4 @@
+title = "Basics"
+order = 10
+summary = "Describe the provider command adapter boundary."
+recipes = ["provider-cli-descriptor"]

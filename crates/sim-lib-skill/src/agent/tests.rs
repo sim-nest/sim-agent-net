@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, ShapeRef, Symbol};
+use sim_kernel::{Args, Cx, DefaultFactory, EagerPolicy, Expr, HandleSeed, ShapeRef, Symbol};
 use sim_shape::{ListShape, NumberValueShape, shape_value};
 
 use crate::{
@@ -54,7 +54,11 @@ fn skill_tool_call_uses_bound_skill_callable_once() {
 }
 
 fn skill_cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0004),
+    );
     install_skill_lib(&mut cx).unwrap();
     sim_lib_agent::install_agent_lib(&mut cx).unwrap();
     cx

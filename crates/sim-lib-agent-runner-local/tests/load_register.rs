@@ -13,7 +13,11 @@ use sim_lib_agent_runner_local::{
 };
 
 fn eval_cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x4152_4c54),
+    )
 }
 
 fn install_binary_codec(cx: &mut Cx) {

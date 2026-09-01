@@ -15,9 +15,10 @@ use sim_lib_stream_fabric::ContentKey;
 use sim_value::build::entry;
 
 use crate::{
-    BridgeFunction, BridgeFunctionKind, BridgeLib, RepairPolicy, ask_packet_with_model_params,
-    bridge_ask_symbol, bridge_request_content_key, bridge_run_ask_symbol, install_bridge_lib,
-    render_model_face, run_ask, run_ask_with_policy,
+    AskAttempt, BridgeFunction, BridgeFunctionKind, BridgeLib, RepairPolicy,
+    ask_packet_with_model_params, bridge_ask_symbol, bridge_request_content_key,
+    bridge_run_ask_symbol, install_bridge_lib, render_model_face, run_ask, run_ask_once,
+    run_ask_with_policy,
 };
 
 use super::{cx, text_content};
@@ -198,6 +199,20 @@ fn return_shape_validation_rejects_bad_answer() {
     let err = run_ask_with_policy(&mut cx, &fabric, packet, RepairPolicy::new(0)).unwrap_err();
 
     assert!(err.to_string().contains("shape"));
+}
+
+#[test]
+fn one_ask_attempt_returns_typed_repair_without_retrying() {
+    let mut cx = cx();
+    let packet = ask_request(&mut cx, Expr::Symbol(Symbol::qualified("core", "String")));
+    let fabric = SequenceFabric::new(vec![json_response(vec![Expr::String(json_text(
+        &Expr::Bool(false),
+    ))])]);
+
+    let result = run_ask_once(&mut cx, &fabric, packet).unwrap();
+
+    assert!(matches!(result, AskAttempt::RepairNeeded { .. }));
+    assert_eq!(fabric.keys().len(), 1);
 }
 
 #[test]

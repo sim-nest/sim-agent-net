@@ -1,0 +1,3 @@
+title = "Basics"
+order = 10
+summary = "Compose a fixture SearchWireCodec with the HTTP skill transport."

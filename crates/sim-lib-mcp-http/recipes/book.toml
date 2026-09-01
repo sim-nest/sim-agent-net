@@ -1,0 +1,5 @@
+book = "mcp-http"
+title = "MCP Streamable HTTP"
+summary = "Checked server and client assembly for final-protocol MCP HTTP."
+order = 349
+chapters = ["01-basics"]

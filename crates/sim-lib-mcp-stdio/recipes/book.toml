@@ -1,0 +1,5 @@
+book = "mcp-stdio"
+title = "MCP stdio lifetime adapter"
+summary = "Bounded modern and explicit legacy MCP process boundaries."
+order = 348
+chapters = ["01-basics"]

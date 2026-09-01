@@ -1,0 +1,1 @@
+(:input-capabilities ("input.confirm") :maximum-rounds 3 :fresh-ids true)

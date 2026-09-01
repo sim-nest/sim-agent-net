@@ -1,17 +1,11 @@
-use super::super::tool_injection::{inject_manifest_tools, is_model_request};
-use super::super::{collect_agent_components, first_codec};
+use super::super::collect_agent_components;
 use super::types::AgentState;
 use super::{
-    Agent, AgentFabric, AgentManifest, LoopbackStream, RuntimeValueSite, connection_from_value,
-    site_from_value, swarm_status_value_for_table,
+    Agent, AgentFabric, AgentManifest, LoopbackStream, RuntimeValueSite,
+    swarm_status_value_for_table,
 };
-use crate::{AgentComponent, BlackboardMemory, FileMemory, Tool, WorkingMemory, value_from_expr};
-use crate::{PersonaMemory, VectorMemory};
-use sim_kernel::{ClassRef, Cx, Error, EvalReply, Expr, Object, Result, Symbol, Value};
-use sim_lib_server::{
-    EvalSite, FrameKind, ServerAddress, ServerFrame, eval_reply_from_frame,
-    eval_request_from_frame, server_frame_from_reply,
-};
+use sim_kernel::{ClassRef, Cx, Error, Expr, Object, Result, Symbol, Value};
+use sim_lib_server::{EvalSite, ServerAddress, ServerFrame};
 use std::{
     any::Any,
     sync::{Arc, Mutex, OnceLock},
@@ -19,7 +13,6 @@ use std::{
 
 #[derive(Clone)]
 pub(crate) struct AgentEvalSite {
-    pub(crate) name: Symbol,
     pub(crate) manifest: AgentManifest,
     pub(crate) codecs: Vec<Symbol>,
     pub(crate) capabilities: Vec<sim_kernel::CapabilityName>,
@@ -47,76 +40,8 @@ impl EvalSite for AgentEvalSite {
     }
 
     fn answer(&self, cx: &mut Cx, frame: ServerFrame) -> Result<ServerFrame> {
-        for capability in &self.capabilities {
-            if frame
-                .envelope
-                .required_capabilities
-                .iter()
-                .any(|required| required == capability)
-            {
-                cx.require(capability)?;
-            }
-        }
-        if frame.kind != FrameKind::Request {
-            return Err(Error::Eval(format!(
-                "agent {} only answers request frames",
-                self.name
-            )));
-        }
-        let consistency = frame.envelope.consistency;
-        notify_recorders(cx, &self.manifest.recorders, &frame)?;
-        let mut expr = eval_request_from_frame(cx, &frame)?.expr;
-        if let Some(router) = &self.manifest.router {
-            let _ = evaluate_component_expr(cx, router, expr.clone())?;
-        }
-        for retriever in &self.manifest.retrievers {
-            expr = evaluate_component_expr(cx, retriever, expr)?;
-        }
-        if let Some(planner) = &self.manifest.planner {
-            expr = evaluate_component_expr(cx, planner, expr)?;
-        }
-        if let Some(sandbox) = &self.manifest.sandbox {
-            expr = evaluate_component_expr(cx, sandbox, expr)?;
-        }
-        if is_model_request(&expr) && !self.manifest.runners.is_empty() {
-            expr = inject_manifest_tools(cx, expr, &self.manifest.tools)?;
-            expr = evaluate_component_expr(cx, &self.manifest.runners[0], expr)?;
-        } else {
-            if !self.manifest.tools.is_empty() {
-                let mut outputs = Vec::new();
-                for tool in &self.manifest.tools {
-                    outputs.push(evaluate_component_expr(cx, tool, expr.clone())?);
-                }
-                expr = if outputs.len() == 1 {
-                    outputs.remove(0)
-                } else {
-                    Expr::List(outputs)
-                };
-            }
-            if let Some(judge) = &self.manifest.judge {
-                expr = evaluate_component_expr(cx, judge, expr)?;
-            }
-            if let Some(persona) = &self.manifest.persona {
-                expr = evaluate_component_expr(cx, persona, expr)?;
-            }
-            if let Some(voice) = &self.manifest.voice {
-                expr = evaluate_component_expr(cx, voice, expr)?;
-            }
-        }
-        let reply_value = value_from_expr(cx, &expr)?;
-        let diagnostics = cx.take_diagnostics();
-        let reply = server_frame_from_reply(
-            cx,
-            &frame.codec,
-            EvalReply {
-                value: reply_value,
-                diagnostics,
-                trace: None,
-            },
-            consistency,
-        )?;
-        notify_recorders(cx, &self.manifest.recorders, &reply)?;
-        Ok(reply)
+        super::super::build_agent_runtime_site(&self.manifest, &self.codecs, &self.capabilities)?
+            .answer(cx, frame)
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -181,6 +106,29 @@ impl sim_kernel::ObjectCompat for Agent {
             None => cx.factory().symbol(Symbol::new("local"))?,
         };
         let components = cx.factory().list(collect_agent_components(&manifest))?;
+        let conduct_id = super::super::conduct_id(cx, &manifest)?;
+        let graph_fingerprint = super::super::graph_fingerprint(cx, &manifest)?;
+        let required_roles = match &manifest.conduct {
+            Some(conduct) => super::super::required_roles_from_expr(&conduct.object().as_expr(cx)?),
+            None => vec![Symbol::new("provider-0")],
+        };
+        let required_roles = cx.factory().list(
+            required_roles
+                .into_iter()
+                .map(|role| cx.factory().symbol(role))
+                .collect::<Result<Vec<_>>>()?,
+        )?;
+        let effective_capabilities = cx.factory().list(
+            self.capabilities
+                .iter()
+                .map(|capability| cx.factory().symbol(capability.as_symbol()))
+                .collect::<Result<Vec<_>>>()?,
+        )?;
+        let budget = match manifest.budget {
+            Some(value) => cx.factory().string(value.to_string())?,
+            None => cx.factory().nil()?,
+        };
+        let result_contract = manifest.result_shape.clone().unwrap_or(cx.factory().nil()?);
         cx.factory().table(vec![
             (
                 Symbol::new("kind"),
@@ -189,6 +137,18 @@ impl sim_kernel::ObjectCompat for Agent {
             (Symbol::new("id"), cx.factory().string(self.id.to_string())?),
             (Symbol::new("name"), cx.factory().symbol(self.name.clone())?),
             (Symbol::new("components"), components),
+            (Symbol::new("conduct-id"), cx.factory().symbol(conduct_id)?),
+            (
+                Symbol::new("graph-fingerprint"),
+                cx.factory().string(graph_fingerprint)?,
+            ),
+            (Symbol::new("required-roles"), required_roles),
+            (
+                Symbol::new("effective-capabilities"),
+                effective_capabilities,
+            ),
+            (Symbol::new("budget-defaults"), budget),
+            (Symbol::new("result-contract"), result_contract),
             (Symbol::new("address"), address_value),
         ])
     }
@@ -291,50 +251,4 @@ impl EvalSite for RuntimeValueSite {
     fn as_any(&self) -> &dyn Any {
         self
     }
-}
-
-fn notify_recorders(cx: &mut Cx, recorders: &[Value], frame: &ServerFrame) -> Result<()> {
-    for recorder in recorders {
-        let site = site_from_value(recorder)?;
-        let mut notify = frame.clone();
-        notify.kind = FrameKind::Notify;
-        let _ = site.answer(cx, notify)?;
-    }
-    Ok(())
-}
-
-pub(crate) fn evaluate_component_expr(cx: &mut Cx, value: &Value, expr: Expr) -> Result<Expr> {
-    if let Some(connection) = connection_from_value(value) {
-        return connection
-            .request(cx, expr, None, Vec::new())?
-            .object()
-            .as_expr(cx);
-    }
-    let site = site_from_value(value)?;
-    let request = ServerFrame::from_expr(
-        cx,
-        first_codec(site.codecs()),
-        FrameKind::Request,
-        &expr,
-        sim_kernel::Consistency::LocalFirst,
-        Vec::new(),
-        false,
-    )?;
-    let reply = site.answer(cx, request)?;
-    eval_reply_from_frame(cx, &reply)?
-        .value
-        .object()
-        .as_expr(cx)
-}
-
-#[allow(dead_code)]
-fn _assert_types(
-    _: &Tool,
-    _: &AgentComponent,
-    _: &WorkingMemory,
-    _: &FileMemory,
-    _: &VectorMemory,
-    _: &BlackboardMemory,
-    _: &PersonaMemory,
-) {
 }

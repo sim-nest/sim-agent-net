@@ -1,0 +1,3 @@
+title = "Replay a bounded research run"
+order = 10
+summary = "Uses deterministic fixture retrievers and no network."

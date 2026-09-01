@@ -1,8 +1,11 @@
-//! Library-only MCP surface projection for SIM.
+//! Stateless MCP application service for SIM.
 //!
-//! This crate projects native browse Cards and optional `SkillCard` records
-//! into redacted `McpSurfaceCard` rows. Routing, transport, and callable
-//! execution are implemented by later MCP layers.
+//! [`McpService`] keeps only an immutable [`ServerDescription`]. A hosting
+//! boundary supplies a fresh [`Cx`](sim_kernel::Cx), a complete
+//! [`RequestContext`], and one decoded request. Native Cards and optional
+//! `SkillCard` records still share the canonical projection, lookup, Shape
+//! validation, execution, content validation, and result-mapping paths.
+//! Initialize-era connection behavior belongs in `sim-lib-mcp-legacy`.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -13,11 +16,10 @@ mod cassette;
 mod client;
 mod content;
 mod exec;
-#[cfg(feature = "http")]
-mod http;
 mod install;
 mod manifest;
 mod methods;
+mod modern;
 mod native;
 mod ops;
 mod profile;
@@ -27,6 +29,7 @@ mod sampling;
 mod schema;
 #[cfg(feature = "serve")]
 mod serve;
+mod service;
 mod session;
 #[cfg(feature = "skill")]
 mod skill;
@@ -46,8 +49,6 @@ mod cassette_tests;
 mod client_tests;
 #[cfg(all(test, feature = "skill"))]
 mod coexistence_tests;
-#[cfg(all(test, feature = "http"))]
-mod http_tests;
 #[cfg(test)]
 mod prompts_tests;
 #[cfg(test)]
@@ -80,10 +81,12 @@ pub use client::{
 pub use exec::{
     mcp_prompts_get_capability, mcp_resources_read_capability, mcp_tools_call_capability,
 };
-#[cfg(feature = "http")]
-pub use http::{McpHttpAdapter, mcp_http_capability};
 pub use install::install_mcp_lib;
 pub use manifest::{McpLib, manifest_name};
+pub use modern::{
+    DurableProvider, EventProvider, McpContinuation, McpProviders, McpSubscription, OperationKind,
+    ProviderConcurrency, SubscriptionEvent, SubscriptionMessage, validate_input_required,
+};
 pub use native::{
     McpExportFacet, McpNativeCard, NativeFacet, mcp_export_facet_name, mcp_export_operation_symbol,
     native_surface_rows,
@@ -103,8 +106,12 @@ pub use sampling::{
 pub use schema::shape_to_json_schema;
 #[cfg(feature = "serve")]
 pub use serve::{
-    CliOptions, McpServeLib, Transport, configure_mcp_bootloader, mcp_bootloader,
-    mcp_serve_entrypoint_symbol,
+    CliOptions, HttpLauncher, McpServeLib, Transport, configure_mcp_bootloader,
+    install_http_launcher, mcp_bootloader, mcp_serve_entrypoint_symbol,
+};
+pub use service::{
+    CachePolicy, McpService, NegotiatedExtensions, Principal, RequestContext, RequestCxFactory,
+    ServerDescription, ServiceResponseStream,
 };
 pub use session::McpSession;
 #[cfg(feature = "skill")]

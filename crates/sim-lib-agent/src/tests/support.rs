@@ -19,7 +19,22 @@ use std::{
 pub(super) use crate::install_agent_lib;
 
 pub(super) fn eval_cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    super::support_ports::bind_transport();
+    let cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    );
+    #[cfg(feature = "runner-process")]
+    {
+        let mut cx = cx;
+        super::support_ports::bind_process(&mut cx);
+        cx
+    }
+    #[cfg(not(feature = "runner-process"))]
+    {
+        cx
+    }
 }
 
 pub(super) fn install_test_codec(cx: &mut Cx) {

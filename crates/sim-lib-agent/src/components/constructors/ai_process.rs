@@ -6,7 +6,8 @@ use crate::{
     AI_RUNNER_CAPABILITY, AI_RUNNER_LOCAL_CAPABILITY, ComponentKind, util::installed_codecs,
 };
 use sim_kernel::{Args, CapabilityName, Cx, Error, Expr, Result, Symbol, Value};
-use sim_lib_agent_runner_process::{ProcessProtocol, ProcessRunner};
+use sim_lib_agent_runner_process::{BrokerProcessSpec, ProcessProtocol, ProcessRunner};
+use sim_lib_exec::{ProgramRef, ProjectRootRef, SealedBindings};
 use sim_lib_server::{ServerAddress, parse_duration};
 use sim_shape::{ExprKind, ExprKindShape, OptionFieldSpec, OrShape, Shape, TableExtraPolicy};
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -28,6 +29,16 @@ pub(crate) fn runner_process_value(cx: &mut Cx, args: Args) -> Result<Value> {
     let protocol = protocol_option(cx, &options)?;
     let timeout = timeout_option(cx, &options)?;
     let max_output_bytes = max_output_bytes_option(cx, &options)?;
+    let process = BrokerProcessSpec::new(
+        ProgramRef::new(command.clone())?,
+        Vec::new(),
+        ProjectRootRef::new("runner-process")?,
+        SealedBindings::empty(),
+        Vec::new(),
+        "runner/process",
+        timeout,
+        max_output_bytes,
+    )?;
     check_runner_process_option_shape(cx, &options)?;
     component_value(
         cx,
@@ -42,14 +53,7 @@ pub(crate) fn runner_process_value(cx: &mut Cx, args: Args) -> Result<Value> {
             codecs: installed_codecs(cx),
             spec: runner_spec(&model, &command, protocol, timeout, max_output_bytes),
             backend: ComponentBackend::Runner(RunnerBackend::External {
-                runner: Arc::new(ProcessRunner::new(
-                    symbol,
-                    model,
-                    command,
-                    protocol,
-                    timeout,
-                    max_output_bytes,
-                )),
+                runner: Arc::new(ProcessRunner::new(symbol, model, process, protocol)),
             }),
         },
     )

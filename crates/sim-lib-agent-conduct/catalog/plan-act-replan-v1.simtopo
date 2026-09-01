@@ -1,0 +1,42 @@
+graph:
+topology agent/plan-act-replan-v1
+node in verb=in output=agent/RunFrame
+node plan verb=call target=agent.step/plan role=runner
+node act verb=call target=agent.step/model-turn role=runner
+node tools verb=call target=agent.step/tool-batch role=tools
+node replan verb=call target=agent.step/replan role=runner
+node review verb=call target=agent.step/review role=reviewer
+node finish verb=call target=agent.step/finish
+node stop verb=call target=agent.step/stop
+node out verb=out input=agent/RunFrame
+wire in -> plan
+wire plan -> act when=agent/outcome-created
+wire plan -> stop when=agent/outcome-error
+wire act -> tools when=agent/outcome-tool-calls
+wire act -> replan when=agent/outcome-final
+wire act -> stop when=agent/outcome-error
+wire tools -> replan when=agent/outcome-continue
+wire tools -> replan when=agent/outcome-final
+wire tools -> stop when=agent/outcome-error
+wire replan -> act when=agent/outcome-keep max-visits=3
+wire replan -> act when=agent/outcome-replace max-visits=3
+wire replan -> review when=agent/outcome-done
+wire replan -> stop when=agent/outcome-stop
+wire replan -> stop when=agent/outcome-error
+wire review -> finish when=agent/outcome-accept
+wire review -> act when=agent/outcome-revise max-visits=2
+wire review -> stop when=agent/outcome-reject
+wire review -> stop when=agent/outcome-error
+wire finish -> out
+wire stop -> out
+budget max-steps=40 max-node-visits=10 max-edge-visits=5
+
+metadata:
+profile=agent/conduct-v1
+requires-roles=[reviewer,runner,tools]
+result-shape=agent/RunFrame
+domain-budget="plans=1 actions=4 tool-batches=4 replans=4 reviews=3"
+diagram="plan -> act -> tools -> replan -> review -> finish"
+
+tests:
+normalized input=agent/test-frame expect=agent/plan-act-replan-v1

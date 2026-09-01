@@ -1,5 +1,5 @@
 book = "mcp-server"
 title = "MCP Server"
-summary = "Stdio MCP bootloader descriptors."
+summary = "Final stdio and configured Streamable HTTP MCP product descriptors."
 order = 410
 chapters = ["01-basics"]

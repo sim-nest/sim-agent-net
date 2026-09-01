@@ -1,0 +1,11 @@
+id = "conduct-verify-retry"
+title = "verify-retry conduct"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+requires = ["agent", "codec/lisp"]
+runner_mode = "fake"
+capabilities = ["fixture-tools", "cassette", "modeled-effects"]
+[[expect]]
+form = 0
+result = "(conduct-spec (kind verify-retry) (runner fake) (cassette fixture) (effects modeled))"

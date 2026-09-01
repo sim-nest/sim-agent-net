@@ -1,0 +1,8 @@
+id = "honest-candidate"
+title = "Identify a model candidate"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["model", "test", "identity", "provider"]
+requires = ["core", "codec/lisp"]

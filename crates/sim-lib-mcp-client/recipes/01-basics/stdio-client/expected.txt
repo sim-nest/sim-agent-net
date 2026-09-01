@@ -1,0 +1,1 @@
+(:endpoint "process:child-1" :probe "server/discover" :calls 1)

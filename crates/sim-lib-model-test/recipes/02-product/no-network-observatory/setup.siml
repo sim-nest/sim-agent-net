@@ -1,0 +1,8 @@
+; Product specimen: fixture census -> smoke/screen -> interrupted resume ->
+; confirmation/replay -> role decision -> portfolio disposition -> pick.
+; The executable assertion is the adjacent Rust integration test; this data
+; records the provider-free path a SIM recipe reader can inspect.
+(model-test-observatory
+  (evidence-class deterministic)
+  (provider-contact none)
+  (steps census packs run resume status verify report decide disposition pick export))

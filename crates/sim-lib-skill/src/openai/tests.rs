@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde_json::{Map, Value as JsonValue, json};
-use sim_kernel::{Args, Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeRef, Symbol};
+use sim_kernel::{Args, Cx, DefaultFactory, Expr, HandleSeed, NoopEvalPolicy, ShapeRef, Symbol};
 use sim_lib_openai_server::{
     DeterministicWallClock, GatewayEvent, GatewayRequest, MemoryGatewayStore, OpenAiTool,
     OpenAiToolRegistry, RESPONSES_PATH, ResponseIdGenerators, execute_response_request,
@@ -121,7 +121,11 @@ fn missing_skill_call_capability_denies_before_skill_execution() {
 }
 
 fn skill_gateway_cx(openai_tools: bool, specific_skill_call: bool) -> Cx {
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x5A11_0A01),
+    );
     install_skill_lib(&mut cx).unwrap();
     install_openai_gateway_lib(&mut cx).unwrap();
     cx.grant(skill_install_capability());

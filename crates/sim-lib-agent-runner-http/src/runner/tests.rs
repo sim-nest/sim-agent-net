@@ -5,14 +5,12 @@ use sim_lib_agent_runner_core::{
     ModelRequest, ModelRunner, OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA,
     OUTPUT_GRAMMAR_REQUIRED_EXTRA, RETURN_CODEC_EXTRA, RETURN_SHAPE_EXTRA,
 };
-use std::{
-    collections::HashMap,
-    io::{ErrorKind, Read, Write},
-    net::{TcpListener, TcpStream},
-    sync::Arc,
-    thread::{self, JoinHandle},
-    time::Duration,
-};
+use sim_lib_provider::Secret;
+use sim_lib_provider::{ProviderDispatch, ProviderSeatExecution};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+
+mod transport;
+use transport::LoopbackOrScriptedPort;
 
 #[test]
 fn new_provider_maps_config_onto_existing_runner_fields() {
@@ -24,6 +22,7 @@ fn new_provider_maps_config_onto_existing_runner_fields() {
         endpoint: "https://api.anthropic.com/v1".to_owned(),
         model: "claude-sonnet-latest".to_owned(),
         api_key_env: Some("ANTHROPIC_API_KEY".to_owned()),
+        secret: Some(Secret::new("seat-alpha").unwrap()),
         locality: Symbol::new("network"),
         timeout: Duration::from_secs(45),
         stream: true,
@@ -41,7 +40,7 @@ fn new_provider_maps_config_onto_existing_runner_fields() {
     assert_eq!(runner.runner_label, "runner/provider");
     assert_eq!(runner.request_path, "/messages");
     assert_eq!(runner.endpoint, "https://api.anthropic.com/v1");
-    assert_eq!(runner.api_key_env, Some("ANTHROPIC_API_KEY".to_owned()));
+    assert_eq!(runner.secret.as_ref().unwrap().expose(), "seat-alpha");
     assert_eq!(
         runner.auth,
         ProviderAuth::HeaderEnv {
@@ -56,6 +55,46 @@ fn new_provider_maps_config_onto_existing_runner_fields() {
     assert_eq!(runner.max_response_bytes, 8192);
     assert!(runner.grammar_dialects.is_empty());
     assert_eq!(profile.chat_path, "/messages");
+}
+
+#[test]
+fn two_open_seats_keep_distinct_credentials_without_ambient_lookup() {
+    let profile = provider_profiles::openai();
+    let runner = |name: &str, material: &str| {
+        HttpRunner::new_provider(ProviderConfig {
+            profile: profile.clone(),
+            runner: Symbol::qualified("runner", name),
+            codec: profile.codec.clone(),
+            endpoint: "https://provider.example/v1".to_owned(),
+            model: "model".to_owned(),
+            api_key_env: None,
+            secret: Some(Secret::new(material).unwrap()),
+            locality: Symbol::new("network"),
+            timeout: Duration::from_secs(1),
+            stream: false,
+            tools: false,
+            max_output_bytes: 4096,
+            grammar_dialects: Vec::new(),
+        })
+    };
+    let first = runner("first-seat", "alpha-credential");
+    let second = runner("second-seat", "beta-credential");
+
+    assert_eq!(
+        first.request_headers(first.secret.as_ref().map(Secret::expose))[1]
+            .1
+            .expose(),
+        "Bearer alpha-credential"
+    );
+    assert_eq!(
+        second.request_headers(second.secret.as_ref().map(Secret::expose))[1]
+            .1
+            .expose(),
+        "Bearer beta-credential"
+    );
+    let printable = format!("{first:?} {second:?}");
+    assert!(!printable.contains("alpha-credential"));
+    assert!(!printable.contains("beta-credential"));
 }
 
 #[test]
@@ -82,6 +121,7 @@ fn openai_provider_selects_json_schema_output_dialect() {
         endpoint: "http://127.0.0.1:9/v1".to_owned(),
         model: "gpt-test".to_owned(),
         api_key_env: Some("CARGO_MANIFEST_DIR".to_owned()),
+        secret: Some(Secret::new("fixture").unwrap()),
         locality: Symbol::new("network"),
         timeout: Duration::from_secs(1),
         stream: false,
@@ -158,6 +198,7 @@ fn provider_without_grammar_support_strips_grammar_for_repair() {
         endpoint: "http://127.0.0.1:9/v1".to_owned(),
         model: "claude-test".to_owned(),
         api_key_env: Some("CARGO_MANIFEST_DIR".to_owned()),
+        secret: Some(Secret::new("fixture").unwrap()),
         locality: Symbol::new("network"),
         timeout: Duration::from_secs(1),
         stream: false,
@@ -184,6 +225,7 @@ fn openai_compatible_without_grammar_support_does_not_derive_schema() {
         endpoint: "http://127.0.0.1:9/v1".to_owned(),
         model: "provider/model".to_owned(),
         api_key_env: Some("CARGO_MANIFEST_DIR".to_owned()),
+        secret: Some(Secret::new("fixture").unwrap()),
         locality: Symbol::new("network"),
         timeout: Duration::from_secs(1),
         stream: false,
@@ -201,14 +243,11 @@ fn openai_compatible_without_grammar_support_does_not_derive_schema() {
 
 #[test]
 fn anthropic_headers_include_secret_version_and_json_content_type() {
-    assert_eq!(
-        anthropic_headers("secret-token"),
-        vec![
-            ("x-api-key".to_owned(), "secret-token".to_owned()),
-            ("anthropic-version".to_owned(), "2023-06-01".to_owned()),
-            ("content-type".to_owned(), "application/json".to_owned()),
-        ]
-    );
+    let headers = anthropic_headers("secret-token");
+    assert_eq!(headers[0].0, "x-api-key");
+    assert_eq!(headers[0].1.expose(), "secret-token");
+    assert_eq!(headers[1].1.expose(), "2023-06-01");
+    assert_eq!(headers[2].1.expose(), "application/json");
 }
 
 #[test]
@@ -238,16 +277,23 @@ fn direct_http_runner_denies_without_runner_capabilities() {
 }
 
 #[test]
-fn direct_http_runner_allows_with_runner_network_and_secret_capabilities() {
-    let Some(listener) = bind_loopback_listener() else {
-        return;
-    };
-    let port = listener.local_addr().unwrap().port();
-    let server = spawn_openai_mock(listener);
+fn direct_and_split_http_paths_are_identical_and_thread_safe() {
+    let body = r#"{"id":"chatcmpl-direct","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"direct ok"}}],"usage":{"prompt_tokens":2,"completion_tokens":1,"total_tokens":3}}"#;
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let transport = Arc::new(LoopbackOrScriptedPort::new([
+        response.clone().into_bytes(),
+        response.clone().into_bytes(),
+        response.into_bytes(),
+    ]));
+    sim_transport_ports::bind_services(transport.services()).unwrap();
     let runner = HttpRunner::new_openai_compatible(
         Symbol::qualified("runner", "direct-allowed"),
         "gpt-test",
-        format!("http://127.0.0.1:{port}/v1"),
+        "http://provider.test:8080/v1",
         "CARGO_MANIFEST_DIR",
         Symbol::qualified("codec", "openai"),
         Duration::from_secs(2),
@@ -269,16 +315,73 @@ fn direct_http_runner_allows_with_runner_network_and_secret_capabilities() {
             )
         })
         .unwrap();
-    let request = server.join().unwrap();
+    let request = String::from_utf8(transport.requests().into_iter().next().unwrap()).unwrap();
 
     assert_eq!(response.stop_reason, Symbol::new("stop"));
     assert!(format!("{:?}", response.content).contains("direct ok"));
     assert!(request.starts_with("POST /v1/chat/completions HTTP/1.1"));
     assert!(request.contains("allowed direct"));
+
+    let request = ModelRequest::new(Expr::String("threaded split".to_owned()), Vec::new());
+
+    let planning_runner = runner.clone();
+    let planning_request = request.clone();
+    let call = std::thread::spawn(move || {
+        let mut planning_cx = test_cx();
+        planning_runner.plan(&mut planning_cx, planning_request)
+    })
+    .join()
+    .unwrap()
+    .unwrap();
+    let outcome = std::thread::spawn(move || HttpRunner::dispatch(call))
+        .join()
+        .unwrap()
+        .unwrap();
+    let mut landing_cx = test_cx();
+    let split_response = runner.land(&mut landing_cx, outcome).unwrap();
+
+    let mut direct_cx = test_cx();
+    let direct_response = runner.infer_inner(&mut direct_cx, request).unwrap();
+
+    assert_eq!(split_response, direct_response);
+    assert_eq!(transport.requests().len(), 3);
+}
+
+#[test]
+fn split_planning_rejects_streaming_explicitly() {
+    let runner = HttpRunner::new_ollama(
+        Symbol::qualified("runner", "streaming"),
+        "qwen-test",
+        Symbol::new("local"),
+        "http://provider.test:8080",
+        Symbol::qualified("codec", "ollama"),
+        Duration::from_secs(1),
+        true,
+        false,
+        4096,
+    );
+    let mut cx = test_cx();
+
+    let error = runner
+        .plan(
+            &mut cx,
+            ModelRequest::new(Expr::String("stream".to_owned()), Vec::new()),
+        )
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("split-mode streaming is unsupported")
+    );
 }
 
 fn test_cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(1),
+    )
 }
 
 fn shape_model_request() -> ModelRequest {
@@ -335,77 +438,4 @@ fn extra<'a>(request: &'a ModelRequest, name: &str) -> Option<&'a Expr> {
         matches!(key, Expr::Symbol(symbol) if symbol.namespace.is_none() && symbol.name.as_ref() == name)
             .then_some(value)
     })
-}
-
-fn spawn_openai_mock(listener: TcpListener) -> JoinHandle<String> {
-    thread::spawn(move || {
-        let (mut stream, _) = listener.accept().unwrap();
-        stream
-            .set_read_timeout(Some(Duration::from_secs(2)))
-            .unwrap();
-        let request = read_http_request(&mut stream);
-        let body = r#"{"id":"chatcmpl-direct","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"direct ok"}}],"usage":{"prompt_tokens":2,"completion_tokens":1,"total_tokens":3}}"#;
-        stream
-            .write_all(
-                format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                    body.len(),
-                    body
-                )
-                .as_bytes(),
-            )
-            .unwrap();
-        request
-    })
-}
-
-fn read_http_request(stream: &mut TcpStream) -> String {
-    let mut request = Vec::new();
-    let mut chunk = [0u8; 1024];
-    let header_end = loop {
-        let read = stream.read(&mut chunk).unwrap();
-        assert_ne!(read, 0, "mock provider received EOF before request headers");
-        request.extend_from_slice(&chunk[..read]);
-        if let Some(end) = find_header_end(&request) {
-            break end;
-        }
-    };
-    let head = std::str::from_utf8(&request[..header_end]).unwrap();
-    let content_length = content_length(head);
-    while request.len() < header_end + content_length {
-        let read = stream.read(&mut chunk).unwrap();
-        assert_ne!(read, 0, "mock provider received EOF before request body");
-        request.extend_from_slice(&chunk[..read]);
-    }
-    String::from_utf8(request).unwrap()
-}
-
-fn find_header_end(bytes: &[u8]) -> Option<usize> {
-    bytes
-        .windows(4)
-        .position(|window| window == b"\r\n\r\n")
-        .map(|index| index + 4)
-}
-
-fn content_length(head: &str) -> usize {
-    head.lines()
-        .find_map(|line| {
-            let (key, value) = line.split_once(':')?;
-            key.eq_ignore_ascii_case("Content-Length")
-                .then(|| value.trim().parse::<usize>().unwrap())
-        })
-        .unwrap_or(0)
-}
-
-fn bind_loopback_listener() -> Option<TcpListener> {
-    for _ in 0..3 {
-        match TcpListener::bind(("127.0.0.1", 0)) {
-            Ok(listener) => return Some(listener),
-            Err(error) if error.kind() == ErrorKind::PermissionDenied => {
-                thread::sleep(Duration::from_millis(25));
-            }
-            Err(error) => panic!("failed to bind loopback listener: {error}"),
-        }
-    }
-    None
 }

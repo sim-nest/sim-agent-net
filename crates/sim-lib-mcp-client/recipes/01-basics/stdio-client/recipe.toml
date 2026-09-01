@@ -1,0 +1,14 @@
+id = "mcp-client-stdio"
+title = "Compose a structured stdio peer"
+summary = "Adapt McpProcessClient and use one identity for one child lifetime."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 20
+tags = ["mcp", "client", "stdio"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:endpoint \"process:child-1\" :probe \"server/discover\" :calls 1)"

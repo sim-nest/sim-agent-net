@@ -1,0 +1,5 @@
+book = "oauth-core"
+title = "OAuth protocol state"
+summary = "Effect-free resource-bound authorization-code composition."
+order = 350
+chapters = ["01-basics"]

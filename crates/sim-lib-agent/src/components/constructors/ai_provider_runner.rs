@@ -19,7 +19,8 @@ pub(super) fn provider_runner_options(
     parse_component_options(cx, args, runner_label)
 }
 
-pub(super) fn provider_runner_value(cx: &mut Cx, config: ProviderConfig) -> Result<Value> {
+pub(super) fn provider_runner_value(cx: &mut Cx, mut config: ProviderConfig) -> Result<Value> {
+    config.resolve_compatibility_credential(cx)?;
     let symbol = config.runner.clone();
     let capabilities = provider_runner_capabilities(&config);
     let spec = provider_runner_spec(&config);
@@ -46,7 +47,7 @@ fn provider_runner_capabilities(config: &ProviderConfig) -> Vec<CapabilityName> 
     } else {
         capabilities.push(CapabilityName::new(AI_RUNNER_NETWORK_CAPABILITY));
     }
-    if config.api_key_env.is_some() {
+    if config.has_credential() {
         capabilities.push(CapabilityName::new(AI_RUNNER_SECRET_CAPABILITY));
     }
     capabilities

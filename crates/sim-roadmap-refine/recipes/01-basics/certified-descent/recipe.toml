@@ -1,0 +1,13 @@
+id = "certified-roadmap-descent"
+title = "Certify roadmap descent"
+codec = "rust"
+setup = "src/main.rs"
+purpose = "README.md"
+expected = "expected.txt"
+order = 10
+tags = ["roadmap", "refinement", "certificate", "rank", "rust"]
+requires = ["sim-roadmap-refine"]
+
+[[expect]]
+form = 0
+result = "strict descent at mutable owners: 1 < 2"

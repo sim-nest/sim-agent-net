@@ -1,0 +1,14 @@
+id = "mcp-client-subscription"
+title = "Consume a checked subscription"
+summary = "Verify acknowledgement, every id, backpressured events, and dated terminal."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 50
+tags = ["mcp", "client", "subscription"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:sequence (\"acknowledged\" \"event\" \"complete\") :backpressure true)"

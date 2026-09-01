@@ -1,0 +1,18 @@
+[package]
+name = "sim-source-deck-focused-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[lib]
+name = "sim_source_deck"
+path = "../src/lib.rs"
+
+[[example]]
+name = "grounded_declaration"
+path = "../examples/grounded_declaration.rs"
+
+[dependencies]
+sim-kernel = "0.3.0"

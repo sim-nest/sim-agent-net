@@ -10,8 +10,13 @@
 
 use std::ffi::OsString;
 use std::process;
+mod http;
 
 fn main() {
+    if let Err(error) = sim_lib_mcp::install_http_launcher(http::ProductHttpLauncher) {
+        eprintln!("sim-mcp-server: {error}");
+        process::exit(2);
+    }
     // parse_args drops argv[0]; set the mcp boot codec and inject the `mcp` verb so
     // `sim-mcp-server --stdio` dispatches the serve library like `sim mcp --stdio`.
     let mut args: Vec<OsString> = ["sim-mcp-server", "--codec", "mcp", "mcp"]

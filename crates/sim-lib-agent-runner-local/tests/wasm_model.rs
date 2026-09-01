@@ -18,7 +18,11 @@ use sim_wasm_abi::{
 };
 
 fn eval_cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x3c55_425a_b30e_cc05),
+    )
 }
 
 fn grant_wasm_model_caps(cx: &mut Cx) {

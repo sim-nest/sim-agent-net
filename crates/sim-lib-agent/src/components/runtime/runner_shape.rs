@@ -4,6 +4,7 @@ use super::runner_tools::{run_stream_with_tool_loop, run_with_tool_loop};
 use crate::util::{shape_from_expr, shape_protocol, value_from_expr};
 use sim_codec_chat::validate_chat_transcript;
 use sim_kernel::{Cx, Diagnostic, Error, EvalRequest, Expr, Result, ShapeRef, Symbol};
+use sim_lib_agent_conduct::{BoundedEdgeStep, run_catalog_bounded_edge};
 use sim_lib_agent_runner_core::{
     ModelEventSink, ModelResponse, OUTPUT_GRAMMAR_DIALECT_EXTRA, shape_to_grammar,
 };
@@ -129,16 +130,29 @@ where
         record_shape_failure(cx, &validated.diagnostics);
         return Ok(validated.response);
     }
-    let repair_request = build_repair_request(
-        request,
-        &contract,
-        &validated.response,
-        &validated.diagnostics,
+    let repaired = run_catalog_bounded_edge(
+        "agent/react-v1",
+        "review",
+        "revise",
+        1,
+        validated,
+        |candidate, visit| {
+            if visit == 1 {
+                return Ok(BoundedEdgeStep::Complete(candidate));
+            }
+            let repair_request = build_repair_request(
+                request.clone(),
+                &contract,
+                &candidate.response,
+                &candidate.diagnostics,
+            )?;
+            let response = run_with_tool_loop(cx, component, repair_request, |cx, request| {
+                infer_once(cx, request)
+            })?;
+            let repaired = validate_shape_response(cx, &contract, response, true)?;
+            Ok(BoundedEdgeStep::Continue(repaired))
+        },
     )?;
-    let repaired = run_with_tool_loop(cx, component, repair_request, |cx, request| {
-        infer_once(cx, request)
-    })?;
-    let repaired = validate_shape_response(cx, &contract, repaired, true)?;
     if !repaired.ok {
         record_shape_failure(cx, &repaired.diagnostics);
     }

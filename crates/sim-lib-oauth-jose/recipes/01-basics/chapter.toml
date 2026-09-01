@@ -1,0 +1,4 @@
+chapter = "01-basics"
+title = "Local verifier"
+order = 10
+recipes = ["verify-token"]

@@ -1,17 +1,24 @@
 [package]
 name = "sim-mcp-server"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 license = "MPL-2.0"
-description = "Stdio MCP server bootloader for SIM."
+description = "Final stdio and Streamable HTTP MCP server bootloader for SIM."
 readme = "README.md"
 publish = true
 repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
-sim-lib-mcp = { version = "0.1.8", features = ["serve"], path = "../sim-lib-mcp" }
-sim-run-core = { version = "0.3.0" }
+sim-lib-mcp = { version = "0.2.0", features = ["serve"], path = "../sim-lib-mcp" }
+sim-lib-mcp-http = { version = "0.1.0", path = "../sim-lib-mcp-http" }
+sim-lib-mcp-legacy = { version = "0.1.0", path = "../sim-lib-mcp-legacy" }
+sim-lib-oauth-core = { version = "0.1.0", path = "../sim-lib-oauth-core" }
+sim-lib-server = { version = "0.2.0", path = "../sim-lib-server" }
+sim-codec-mcp = { version = "0.2.0" }
+sim-cancel = { version = "0.1.0" }
+sim-kernel = { version = "0.3.0" }
+sim-run-core = { version = "0.4.0" }
 
 
 

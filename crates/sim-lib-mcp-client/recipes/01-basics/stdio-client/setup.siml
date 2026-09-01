@@ -1,0 +1,2 @@
+; ProcessProgram owns launch and the host assigns a fresh child instance id.
+(:endpoint "process:child-1" :probe "server/discover" :calls 1)

@@ -181,6 +181,7 @@ fn server_realize_drives_gateway_fabric_value() {
     let mut cx = sim_kernel::Cx::new(
         std::sync::Arc::new(sim_kernel::EagerPolicy),
         std::sync::Arc::new(sim_kernel::DefaultFactory),
+        sim_kernel::HandleSeed::new(0x0A11_CE10),
     );
     let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&binary).unwrap();
@@ -225,6 +226,7 @@ fn gateway_eval_site_answer_delegates_to_fabric_realize() {
     let mut cx = sim_kernel::Cx::new(
         std::sync::Arc::new(sim_kernel::NoopEvalPolicy),
         std::sync::Arc::new(sim_kernel::DefaultFactory),
+        sim_kernel::HandleSeed::new(0x0A11_CE11),
     );
     let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&binary).unwrap();

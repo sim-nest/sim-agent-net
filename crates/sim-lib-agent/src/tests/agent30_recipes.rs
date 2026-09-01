@@ -103,7 +103,7 @@ fn agent30_recipe_scaffold_records_stable_ids_without_placeholder_dirs() {
     let recipes = recipe_root();
     let book = fs::read_to_string(recipes.join("book.toml")).unwrap();
     assert!(
-        book.contains("chapters = [\"01-basics\", \"30-agents\", \"40-atelier\"]"),
+        book.contains("chapters = [\"01-basics\", \"30-agents\", \"40-atelier\", \"50-conducts\"]"),
         "{book}"
     );
 

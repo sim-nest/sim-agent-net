@@ -1,0 +1,10 @@
+id = "grounded-readiness"
+title = "Compile grounded readiness"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["roadmap", "planning", "readiness", "incremental", "sandbox-descriptor"]
+requires = ["core", "codec/lisp"]
+assert_tags = ["roadmap", "planning", "readiness", "incremental", "sandbox-descriptor"]
+assert_setup_codec = "lisp"

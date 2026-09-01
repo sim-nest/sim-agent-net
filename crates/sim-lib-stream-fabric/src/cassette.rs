@@ -3,7 +3,10 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use sim_kernel::{ContentId, Error, EvalReply, HandleId, Ref, Result, effect_ledger::EffectLedger};
+use sim_kernel::{
+    ContentId, Error, EvalReply, HandleSeed, HandleSequence, Ref, Result,
+    effect_ledger::EffectLedger,
+};
 
 use crate::content_key::ContentKey;
 
@@ -26,10 +29,20 @@ pub trait EvalCassetteLedger: Send + Sync {
 /// The kernel ledger stores replay hints as `ContentId -> Ref`. This adapter
 /// records that hint in the ledger and keeps the reply objects alongside it so a
 /// cassette created from the adapter can rebuild its hot-path map immediately.
-#[derive(Default)]
 pub struct EffectLedgerCassette {
     ledger: Mutex<EffectLedger>,
     entries: Mutex<Vec<(ContentKey, EvalReply)>>,
+    handles: Mutex<HandleSequence>,
+}
+
+impl Default for EffectLedgerCassette {
+    fn default() -> Self {
+        Self {
+            ledger: Mutex::new(EffectLedger::default()),
+            entries: Mutex::new(Vec::new()),
+            handles: Mutex::new(HandleSeed::new(1).sequence()),
+        }
+    }
 }
 
 impl EffectLedgerCassette {
@@ -43,6 +56,7 @@ impl EffectLedgerCassette {
         Self {
             ledger: Mutex::new(ledger),
             entries: Mutex::new(Vec::new()),
+            handles: Mutex::new(HandleSeed::new(1).sequence()),
         }
     }
 
@@ -61,7 +75,7 @@ impl EvalCassetteLedger for EffectLedgerCassette {
         }
 
         let key_id = content_key_id(key)?;
-        let result_ref = Ref::Handle(HandleId::fresh());
+        let result_ref = Ref::Handle(lock(&self.handles, "cassette handles")?.next_handle());
         lock(&self.ledger, "effect ledger")?.insert_cassette_result(key_id, result_ref);
         lock(&self.entries, "cassette entries")?.push((key.clone(), reply.clone()));
         Ok(())

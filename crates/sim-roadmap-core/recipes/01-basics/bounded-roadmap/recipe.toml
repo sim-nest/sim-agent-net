@@ -1,0 +1,10 @@
+id = "bounded-roadmap"
+title = "Admit bounded roadmap intent"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["roadmap", "intent", "guide", "offline", "sandbox-descriptor"]
+requires = ["core", "codec/lisp"]
+assert_tags = ["roadmap", "intent", "guide", "offline", "sandbox-descriptor"]
+assert_setup_codec = "lisp"

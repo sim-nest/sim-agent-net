@@ -1,0 +1,5 @@
+book = "continuity"
+title = "Intermittent Continuity"
+summary = "Pure plans, hostile replay, and fenced journal composition."
+order = 86
+chapters = ["01-basics"]

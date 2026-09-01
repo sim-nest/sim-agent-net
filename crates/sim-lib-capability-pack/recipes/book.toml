@@ -1,0 +1,5 @@
+book = "capability/pack"
+title = "Capability Pack Recipes"
+summary = "Checked content-addressed runtime compositions."
+order = 10
+chapters = ["01-basics"]

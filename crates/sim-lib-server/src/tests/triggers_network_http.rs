@@ -2,7 +2,13 @@
     feature = "server-net-http",
     any(feature = "trigger-telegram", feature = "trigger-matrix")
 ))]
-use std::{net::TcpListener, thread, time::Duration};
+use std::{thread, time::Duration};
+
+#[cfg(all(
+    feature = "server-net-http",
+    any(feature = "trigger-telegram", feature = "trigger-matrix")
+))]
+use crate::transport::port_io::PortTcpListener;
 
 #[cfg(all(
     feature = "server-net-http",
@@ -29,10 +35,10 @@ fn wait_until(timeout_ms: u64, predicate: impl Fn() -> bool) {
     feature = "server-net-http",
     any(feature = "trigger-telegram", feature = "trigger-matrix")
 ))]
-fn bind_loopback_listener() -> Option<TcpListener> {
+fn bind_loopback_listener() -> Option<PortTcpListener> {
     let mut last_error = None;
     for _ in 0..10 {
-        match TcpListener::bind(("127.0.0.1", 0)) {
+        match PortTcpListener::bind(("127.0.0.1", 0)) {
             Ok(listener) => return Some(listener),
             Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
                 last_error = Some(error);
@@ -120,7 +126,7 @@ fn stop_server(cx: &mut sim_kernel::Cx, name: &str) {
 
 #[cfg(all(feature = "server-net-http", feature = "trigger-telegram"))]
 #[test]
-fn telegram_trigger_polls_real_http_endpoint() {
+fn telegram_trigger_polls_http_transport_endpoint() {
     let Some(listener) = bind_loopback_listener() else {
         return;
     };
@@ -179,7 +185,7 @@ fn telegram_trigger_polls_real_http_endpoint() {
 
 #[cfg(all(feature = "server-net-http", feature = "trigger-matrix"))]
 #[test]
-fn matrix_trigger_polls_real_http_sync_endpoint() {
+fn matrix_trigger_polls_http_transport_sync_endpoint() {
     let Some(listener) = bind_loopback_listener() else {
         return;
     };
@@ -238,7 +244,7 @@ fn matrix_trigger_polls_real_http_sync_endpoint() {
     any(feature = "trigger-telegram", feature = "trigger-matrix")
 ))]
 fn spawn_json_http_server(
-    listener: TcpListener,
+    listener: PortTcpListener,
     handler: impl Fn(usize, crate::http::HttpRequest) -> crate::http::HttpResponse + Send + 'static,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {

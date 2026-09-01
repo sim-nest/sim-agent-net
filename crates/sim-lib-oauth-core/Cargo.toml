@@ -1,0 +1,23 @@
+[package]
+name = "sim-lib-oauth-core"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Effect-free OAuth 2.1 resource and client state machines for SIM"
+readme = "README.md"
+publish = true
+
+[dependencies]
+base64 = "0.22"
+sim-cookbook = "0.3.0"
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+url = "2.5"
+
+[build-dependencies]
+sim-cookbook-build = "0.1.0"
+
+[lints]
+workspace = true

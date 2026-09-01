@@ -1,0 +1,5 @@
+book = "web/fetch"
+title = "Web Fetch"
+summary = "Policy-gated capture and deterministic offline replay of immutable web evidence."
+order = 100
+chapters = ["01-basics"]

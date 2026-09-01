@@ -1,0 +1,34 @@
+graph:
+topology agent/router-crew-v1
+node in verb=in output=agent/RunFrame
+node route verb=call target=agent.step/component role=component
+node delegate verb=call target=agent.step/delegate role=delegate fanout=4
+node merge verb=call target=agent.step/component role=component merge=topology
+node judge verb=call target=agent.step/review role=reviewer
+node finish verb=call target=agent.step/finish
+node stop verb=call target=agent.step/stop
+node out verb=out input=agent/RunFrame
+wire in -> route
+wire route -> delegate when=agent/outcome-continue
+wire route -> stop when=agent/outcome-error
+wire delegate -> merge when=agent/outcome-continue
+wire delegate -> stop when=agent/outcome-error
+wire merge -> judge when=agent/outcome-continue
+wire merge -> stop when=agent/outcome-error
+wire judge -> finish when=agent/outcome-accept
+wire judge -> delegate when=agent/outcome-revise max-visits=2
+wire judge -> stop when=agent/outcome-reject
+wire judge -> stop when=agent/outcome-error
+wire finish -> out
+wire stop -> out
+budget max-steps=30 max-node-visits=8 max-edge-visits=3
+
+metadata:
+profile=agent/conduct-v1
+requires-roles=[component,delegate,reviewer]
+result-shape=agent/RunFrame
+domain-budget="fanout=4 child-runs=8 merge-rounds=3 judgments=3"
+diagram="route -> delegate/fanout -> merge -> judge -> finish"
+
+tests:
+normalized input=agent/test-frame expect=agent/router-crew-v1

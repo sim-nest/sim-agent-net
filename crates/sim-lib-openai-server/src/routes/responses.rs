@@ -49,7 +49,11 @@ type RouteResult<T> = std::result::Result<T, OpenAiRouteError>;
 pub fn handle_responses(request: &GatewayRequest, state: &GatewayRouteState) -> GatewayResponse {
     let clock = SystemWallClock;
     let seed = clock.now_ms().unwrap_or(1);
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(seed),
+    );
     let fabric = OpenAiGatewayFabric::with_state_system(state.clone(), seed);
     match state
         .keys()

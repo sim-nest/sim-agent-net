@@ -1,5 +1,7 @@
 use serde_json::{Map, Value as JsonValue};
-use sim_codec_json::{JsonProjectionMode, project_json_to_expr};
+use sim_codec_json::{
+    JsonProjectionMode, ResourceIdentity, SchemaDocument, SchemaLimits, project_json_to_expr,
+};
 use sim_kernel::{Args, Cx, Error, Expr, Result, Shape, Symbol, Value};
 
 use crate::registry::card_from_value;
@@ -147,15 +149,31 @@ fn ensure_tool_role(card: &SkillCard) -> Result<()> {
 
 fn parameters_for_shape(cx: &mut Cx, shape: &Value) -> Result<JsonValue> {
     let Some(shape) = shape.object().as_shape() else {
-        return Ok(empty_parameters());
+        return checked_parameters(empty_parameters(), "skill-openai-empty");
     };
     let doc = shape.describe(cx)?;
     if doc.name == "list shape" {
-        return Ok(list_parameters_from_doc(&doc.details));
+        return checked_parameters(list_parameters_from_doc(&doc.details), "skill-openai-list");
     }
     let mut properties = Map::new();
     properties.insert("value".to_owned(), schema_for_shape(cx, shape)?);
-    Ok(parameters_object(properties, vec!["value".to_owned()]))
+    checked_parameters(
+        parameters_object(properties, vec!["value".to_owned()]),
+        "skill-openai-value",
+    )
+}
+
+fn checked_parameters(parameters: JsonValue, source: &str) -> Result<JsonValue> {
+    SchemaDocument::from_value(
+        parameters.clone(),
+        ResourceIdentity {
+            base_uri: format!("sim://{source}"),
+            source: source.to_owned(),
+        },
+        SchemaLimits::default(),
+    )
+    .map_err(|error| Error::Eval(format!("invalid generated skill OpenAI schema: {error}")))?;
+    Ok(parameters)
 }
 
 fn list_parameters_from_doc(details: &[String]) -> JsonValue {

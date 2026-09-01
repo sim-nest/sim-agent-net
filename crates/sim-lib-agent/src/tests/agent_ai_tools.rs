@@ -12,6 +12,8 @@ use std::{
     },
 };
 
+// conformance: bounded agent tool turns continue once and stop at their declared budget.
+
 #[test]
 fn a5_phase8_fake_runner_continues_after_tool_call() {
     let mut cx = phase8_cx();
@@ -41,17 +43,18 @@ fn a5_phase8_fake_runner_continues_after_tool_call() {
     let (expr, diagnostics) = reply_expr_and_diagnostics(&mut cx, &reply);
     assert!(diagnostics.is_empty());
     assert!(format!("{expr:?}").contains("continued after tool"));
+    let effects = cx.effect_ledger().events_for_run();
+    let requested = effects
+        .iter()
+        .position(|event| matches!(event.kind, EventKind::EffectRequested { .. }))
+        .expect("tool effect request recorded");
+    let resolved = effects
+        .iter()
+        .position(|event| matches!(event.kind, EventKind::EffectResolved { .. }))
+        .expect("tool effect resolution recorded");
     assert!(
-        cx.effect_ledger()
-            .events_for_run()
-            .iter()
-            .any(|event| matches!(event.kind, EventKind::EffectRequested { .. }))
-    );
-    assert!(
-        cx.effect_ledger()
-            .events_for_run()
-            .iter()
-            .any(|event| matches!(event.kind, EventKind::EffectResolved { .. }))
+        requested < resolved,
+        "effect request must precede resolution"
     );
 }
 

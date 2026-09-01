@@ -1,0 +1,14 @@
+id = "mcp-client-legacy"
+title = "Classify legacy before application traffic"
+summary = "Recognize only the pinned discovery refusal, initialize, then call once."
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 30
+tags = ["mcp", "client", "legacy"]
+requires = ["mcp"]
+
+[[expect]]
+form = 0
+result = "(:sequence (\"server/discover\" \"initialize\" \"tools/call\") :application-calls 1)"
