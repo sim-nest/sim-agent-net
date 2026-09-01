@@ -56,15 +56,22 @@ fn bound_transport_services()
         Ok(value) => Ok(value),
         #[cfg(test)]
         Err(_) => {
-            let mut model = sim_transport_ports::model::ModelPorts::new(Default::default());
-            model.ipc = true;
-            let model = Arc::new(model);
-            sim_transport_ports::bind_services(sim_transport_ports::TransportServices {
-                sockets: model.clone(),
-                dns: model.clone(),
-                ipc: Some(model),
-            })?;
-            sim_transport_ports::services()
+            static TEST_SERVICES: std::sync::OnceLock<sim_transport_ports::TransportServices> =
+                std::sync::OnceLock::new();
+            let services = TEST_SERVICES
+                .get_or_init(|| {
+                    let mut model = sim_transport_ports::model::ModelPorts::new(Default::default());
+                    model.ipc = true;
+                    let model = Arc::new(model);
+                    sim_transport_ports::TransportServices {
+                        sockets: model.clone(),
+                        dns: model.clone(),
+                        ipc: Some(model),
+                    }
+                })
+                .clone();
+            sim_transport_ports::bind_services(services.clone())?;
+            Ok(services)
         }
         #[cfg(not(test))]
         Err(error) => Err(error),

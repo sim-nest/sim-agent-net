@@ -2,6 +2,8 @@
 name = "sim-lib-capability-pack-recipe-checked-pack"
 version = "0.0.0"
 edition = "2024"
+description = "SIM workspace package for sim lib capability pack recipe checked pack."
+readme = "README.md"
 publish = false
 
 [dependencies]

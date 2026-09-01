@@ -6,6 +6,10 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 
 | Package | Publish | Targets | Description |
 | --- | --- | --- | --- |
+| `sim-lib-agent-conduct-core` | `true` | `lib` | Pure, codec-stable agent conduct records for SIM. |
+| `sim-lib-agent-conduct-core-recipe-pure-journal` | `false` | `bin` | Pure conduct journal cookbook recipe. |
+| `sim-lib-agent-conduct` | `true` | `lib` | Validated agent-conduct profile over SIM topology packages. |
+| `sim-lib-agent-conduct-recipe-echo` | `false` | `bin` | SIM workspace package for sim lib agent conduct recipe echo. |
 | `sim-lib-agent-runner-core` | `true` | `custom-build, lib` | Provider-neutral runner contracts for SIM model fabrics. |
 | `sim-lib-agent-runner-core-recipe-output-contract-repair` | `false` | `bin` | Runnable output contract repair cookbook recipe. |
 | `sim-lib-agent-runner-http` | `true` | `custom-build, lib, test` | HTTP-backed model runners for SIM. |
@@ -13,13 +17,40 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-agent-runner-process` | `true` | `custom-build, lib` | Local subprocess-backed model runners for SIM. |
 | `sim-lib-agent` | `true` | `custom-build, lib` | Agent runtime surfaces for SIM. |
 | `sim-lib-bridge` | `true` | `custom-build, lib` | Checked BRIDGE packet runtime for SIM model exchanges. |
+| `sim-lib-capability-pack` | `true` | `lib` | Content-addressed, authority-bounded runtime capability-pack composition for SIM. |
+| `sim-lib-capability-pack-recipe-checked-pack` | `false` | `bin` | SIM workspace package for sim lib capability pack recipe checked pack. |
+| `sim-lib-continuity` | `true` | `lib` | Pure, replayable continuity planning for intermittent SIM sessions. |
+| `sim-lib-continuity-recipe-hostile-replay` | `false` | `bin` | Hostile continuity replay cookbook recipe. |
 | `sim-lib-cookbook` | `true` | `custom-build, lib` | Runtime cookbook: operations for SIM. |
 | `sim-lib-forge` | `true` | `custom-build, lib` | Compiled intent records and one-shot BRIDGE lifts for reusable packet programs. |
+| `sim-lib-mcp-client` | `true` | `custom-build, lib, test` | Modern-first, transport-neutral MCP client for SIM. |
+| `sim-lib-mcp-http` | `true` | `custom-build, lib, test` | Final-protocol Streamable HTTP adapter for SIM MCP services. |
+| `sim-lib-mcp-legacy` | `true` | `custom-build, lib` | Initialize-era MCP compatibility adapter for SIM. |
+| `sim-lib-mcp-stdio` | `true` | `custom-build, lib` | Bounded request-lifetime stdio adapter for stateless SIM MCP. |
 | `sim-lib-mcp` | `true` | `custom-build, lib, test` | Library-only MCP surface projection for SIM. |
+| `sim-lib-model-test-packs` | `true` | `lib` | Immutable public and private-local task packs for SIM model tests. |
+| `sim-lib-model-test` | `true` | `lib, test` | Loadable self-checking model tasks and honest candidate identity for SIM studies. |
+| `sim-lib-oauth-core` | `true` | `custom-build, lib` | Effect-free OAuth 2.1 resource and client state machines for SIM. |
+| `sim-lib-oauth-http` | `true` | `custom-build, lib` | Bounded OAuth metadata and JWK retrieval over SIM HTTP. |
+| `sim-lib-oauth-jose` | `true` | `custom-build, lib` | Local JOSE access-token verification for SIM OAuth. |
 | `sim-lib-openai-server` | `true` | `custom-build, lib` | OpenAI-shaped gateway routes and fixture media surfaces for SIM. |
+| `sim-lib-provider-cli` | `true` | `lib` | Loadable provider command surface for the SIM bootloader. |
+| `sim-lib-provider` | `true` | `custom-build, lib` | Reusable provider identity, discovery, and seat-opening contracts for SIM. |
+| `sim-lib-roadmap-runner` | `true` | `lib` | Durable journal adapter for SIM roadmap executions. |
+| `sim-lib-roadmap` | `true` | `lib` | Bounded native SIM value faces for grounded roadmaps. |
+| `sim-lib-search-http` | `true` | `custom-build, lib` | Provider-neutral, policy-bounded HTTP transport for SIM search codecs. |
+| `sim-lib-search` | `true` | `custom-build, lib` | Deterministic, policy-bounded federation and research bundles for SIM. |
 | `sim-lib-server` | `true` | `custom-build, lib` | Location-transparent server, transport, and eval-fabric runtime for SIM. |
 | `sim-lib-skill` | `true` | `custom-build, lib, test` | Skill cards, policy records, browse metadata, and projections for SIM. |
-| `sim-lib-stream-fabric` | `true` | `bin, custom-build, lib, test` | Content-addressed distributed evaluation for remote stream realization. |
-| `sim-mcp-server` | `true` | `bin` | Stdio MCP server bootloader for SIM. |
+| `sim-lib-stream-fabric` | `true` | `custom-build, lib, test` | Content-addressed distributed evaluation for remote stream realization. |
+| `sim-lib-web-fetch` | `true` | `custom-build, lib` | Policy-gated immutable web capture for SIM. |
+| `sim-mcp-server` | `true` | `bin` | Final stdio and Streamable HTTP MCP server bootloader for SIM. |
+| `sim-roadmap-core` | `true` | `example, lib` | Pure content-addressed roadmap specifications and implementation guides for SIM. |
+| `sim-roadmap-exec-core` | `true` | `lib` | Pure execution and reconciliation laws for SIM roadmaps. |
+| `sim-roadmap-plan` | `true` | `lib` | Grounded, explainable compilation of immutable SIM roadmaps. |
+| `sim-roadmap-refine` | `true` | `lib` | Certified, immutable refinement of grounded SIM roadmaps. |
+| `sim-roadmap-refine-recipe-certified-descent` | `false` | `bin` | Certified roadmap descent cookbook recipe. |
+| `sim-source-deck` | `true` | `example, lib` | Immutable bounded source-context values for SIM. |
 | `sim-table-remote` | `true` | `lib` | Remote directory adapter for SIM table operations over eval fabric. |
+| `sim-transport-ports` | `true` | `lib` | Host-neutral socket, DNS, and local IPC ports for SIM transports. |
 | `xtask` | `false` | `bin` | Repository maintenance tasks for sim-agent-net. |
