@@ -13,7 +13,7 @@ struct Interleaved {
 }
 
 enum SlowRelease {
-    AfterFastOutput(Arc<FastOutput>),
+    AfterFastOutputAndCancellation(Arc<FastOutput>),
     OnCancellation,
 }
 
@@ -24,10 +24,10 @@ struct FastOutput {
 }
 
 impl Interleaved {
-    fn after_fast_output(output: Arc<FastOutput>) -> Self {
+    fn after_fast_output_and_cancellation(output: Arc<FastOutput>) -> Self {
         Self {
             calls: Mutex::default(),
-            slow_release: SlowRelease::AfterFastOutput(output),
+            slow_release: SlowRelease::AfterFastOutputAndCancellation(output),
         }
     }
 
@@ -48,12 +48,13 @@ impl Dispatch for Interleaved {
             .push((id.clone(), call.meta.clone(), call.cancellation.clone()));
         if id == "s:slow" {
             match &self.slow_release {
-                SlowRelease::AfterFastOutput(output) => {
+                SlowRelease::AfterFastOutputAndCancellation(output) => {
                     let written = output.written.lock().unwrap();
                     let _written = output
                         .release
                         .wait_while(written, |written| !*written)
                         .unwrap();
+                    wait_for_cancellation(&call.cancellation);
                 }
                 SlowRelease::OnCancellation => {
                     wait_for_cancellation(&call.cancellation);
@@ -86,7 +87,9 @@ fn wait_for_cancellation(cancellation: &Cancellation) {
 #[test]
 fn interleaves_principals_out_of_order_and_cancels_only_addressed_request() {
     let fast_output = Arc::new(FastOutput::default());
-    let dispatch = Arc::new(Interleaved::after_fast_output(Arc::clone(&fast_output)));
+    let dispatch = Arc::new(Interleaved::after_fast_output_and_cancellation(Arc::clone(
+        &fast_output,
+    )));
     let server = StdioServer::new(Arc::clone(&dispatch), ServerOptions::default()).unwrap();
     let input = concat!(
         "{\"jsonrpc\":\"2.0\",\"id\":\"slow\",\"method\":\"tools/call\",\"params\":{\"_meta\":{\"principal\":\"a\",\"version\":\"v1\"}}}\n",

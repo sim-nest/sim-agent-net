@@ -77,6 +77,13 @@ pub fn eval_request_from_frame(cx: &mut Cx, frame: &ServerFrame) -> Result<EvalR
 ///
 /// Returns an error when the frame is not a response frame.
 pub fn eval_reply_from_frame(cx: &mut Cx, frame: &ServerFrame) -> Result<EvalReply> {
+    if frame.kind == FrameKind::Error {
+        let detail = match frame.decode_expr(cx, ReadPolicy::default())? {
+            Expr::String(detail) => detail,
+            detail => format!("{detail:?}"),
+        };
+        return Err(Error::Eval(format!("remote evaluation failed: {detail}")));
+    }
     if frame.kind != FrameKind::Response {
         return Err(Error::Eval(format!(
             "expected response frame, found {}",
@@ -336,4 +343,30 @@ fn parse_optional_value_expr(cx: &mut Cx, expr: &Expr) -> Result<Option<Value>> 
         return Ok(None);
     }
     value_from_expr(cx, expr).map(Some)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn remote_error_frames_preserve_the_server_diagnostic() {
+        let mut cx = crate::tests::cx();
+        let frame = ServerFrame::from_expr(
+            &mut cx,
+            Symbol::qualified("codec", "binary"),
+            FrameKind::Error,
+            &Expr::String("unknown symbol shared".to_owned()),
+            Consistency::RemoteOnly,
+            Vec::new(),
+            false,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            eval_reply_from_frame(&mut cx, &frame),
+            Err(Error::Eval(message))
+                if message == "remote evaluation failed: unknown symbol shared"
+        ));
+    }
 }
