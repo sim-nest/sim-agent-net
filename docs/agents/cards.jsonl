@@ -598,6 +598,7 @@
 {"kind":"recipe","path":"crates/sim-lib-bridge/recipes/01-basics/loom-woven-repair/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-bridge/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/Cargo.toml"}
+{"kind":"recipe","path":"crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/README.md"}
 {"kind":"recipe","path":"crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/expected.txt"}
 {"kind":"recipe","path":"crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/recipe.toml"}

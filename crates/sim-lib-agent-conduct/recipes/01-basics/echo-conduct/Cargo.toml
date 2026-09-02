@@ -2,6 +2,8 @@
 name = "sim-lib-agent-conduct-recipe-echo"
 version = "0.0.0"
 edition = "2024"
+description = "SIM workspace package for sim lib agent conduct recipe echo."
+readme = "README.md"
 publish = false
 
 [dependencies]

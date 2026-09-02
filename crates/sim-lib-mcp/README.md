@@ -12,4 +12,4 @@ Library-only MCP surface projection for SIM.
 
 ## Crate Documentation
 
-Library-only MCP surface projection for SIM.
+Stateless MCP application service for SIM.

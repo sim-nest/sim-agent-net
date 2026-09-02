@@ -715,6 +715,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-bridge/recipes/01-basics/loom-woven-repair/setup.siml`
 - `crates/sim-lib-bridge/recipes/book.toml`
 - `crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/Cargo.toml`
+- `crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/README.md`
 - `crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/expected.txt`
 - `crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/purpose.md`
 - `crates/sim-lib-capability-pack/recipes/01-basics/checked-pack/recipe.toml`
