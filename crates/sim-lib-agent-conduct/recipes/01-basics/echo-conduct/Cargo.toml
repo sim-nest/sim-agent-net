@@ -7,7 +7,7 @@ readme = "README.md"
 publish = false
 
 [dependencies]
-sim-kernel = { version = "0.3.0", features = ["test-support"] }
+sim-kernel = { version = "0.4.0", features = ["test-support"] }
 sim-lib-agent-conduct = { path = "../../.." }
-sim-lib-agent-conduct-core = { version = "0.1.0", path = "../../../../sim-lib-agent-conduct-core" }
-sim-lib-topology = { version = "0.2.0" }
+sim-lib-agent-conduct-core = { version = "0.2.0", path = "../../../../sim-lib-agent-conduct-core" }
+sim-lib-topology = { version = "0.3.0" }

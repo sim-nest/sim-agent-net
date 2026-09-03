@@ -1,6 +1,6 @@
 [package]
 name = "sim-source-deck"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "Immutable bounded source-context values for SIM"
@@ -10,7 +10,7 @@ repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
-sim-kernel = "0.3.0"
+sim-kernel = "0.4.0"
 
 [lints]
 workspace = true

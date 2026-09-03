@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-provider"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "Reusable provider identity, discovery, and seat-opening contracts for SIM."
@@ -13,15 +13,15 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 path = "src/lib.rs"
 
 [dependencies]
-sim-citizen = { version = "0.3.0" }
-sim-citizen-derive = { version = "0.3.0" }
-sim-cookbook = { version = "0.3.0" }
-sim-kernel = { version = "0.3.0" }
-sim-lib-agent-runner-core = { version = "0.3.0", path = "../sim-lib-agent-runner-core" }
-sim-lib-server = { version = "0.2.0", path = "../sim-lib-server" }
+sim-citizen = { version = "0.4.0" }
+sim-citizen-derive = { version = "0.4.0" }
+sim-cookbook = { version = "0.4.0" }
+sim-kernel = { version = "0.4.0" }
+sim-lib-agent-runner-core = { version = "0.4.0", path = "../sim-lib-agent-runner-core" }
+sim-lib-server = { version = "0.3.0", path = "../sim-lib-server" }
 
 [build-dependencies]
-sim-cookbook-build = { version = "0.1.0" }
+sim-cookbook-build = { version = "0.2.0" }
 
 [lints]
 workspace = true

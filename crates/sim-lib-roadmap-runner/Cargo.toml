@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-roadmap-runner"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Durable journal adapter for SIM roadmap executions"
@@ -14,16 +14,16 @@ test-support = []
 
 [dependencies]
 sha2 = "0.10"
-sim-kernel = "0.3.0"
-sim-shape = "0.3.0"
-sim-lib-journal = "0.1.0"
-sim-lib-exec = "0.2.0"
-sim-lib-agent-conduct-core = { version = "0.1.1", path = "../sim-lib-agent-conduct-core" }
-sim-roadmap-core = { version = "0.1.0", path = "../sim-roadmap-core" }
-sim-roadmap-exec-core = { version = "0.1.0", path = "../sim-roadmap-exec-core" }
-sim-roadmap-plan = { version = "0.1.0", path = "../sim-roadmap-plan" }
-sim-roadmap-refine = { version = "0.1.0", path = "../sim-roadmap-refine" }
-sim-source-deck = { version = "0.1.0", path = "../sim-source-deck" }
+sim-kernel = "0.4.0"
+sim-shape = "0.4.0"
+sim-lib-journal = "0.2.0"
+sim-lib-exec = "0.3.0"
+sim-lib-agent-conduct-core = { version = "0.2.0", path = "../sim-lib-agent-conduct-core" }
+sim-roadmap-core = { version = "0.2.0", path = "../sim-roadmap-core" }
+sim-roadmap-exec-core = { version = "0.2.0", path = "../sim-roadmap-exec-core" }
+sim-roadmap-plan = { version = "0.2.0", path = "../sim-roadmap-plan" }
+sim-roadmap-refine = { version = "0.2.0", path = "../sim-roadmap-refine" }
+sim-source-deck = { version = "0.2.0", path = "../sim-source-deck" }
 thiserror = "2"
 
 [lints]

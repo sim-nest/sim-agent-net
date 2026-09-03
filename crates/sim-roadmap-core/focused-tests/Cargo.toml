@@ -9,4 +9,4 @@ publish = false
 [dependencies]
 sim-roadmap-core = { path = ".." }
 sim-source-deck = { path = "../../sim-source-deck" }
-sim-kernel = { version = "0.3.0" }
+sim-kernel = { version = "0.4.0" }

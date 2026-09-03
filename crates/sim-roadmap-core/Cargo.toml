@@ -1,6 +1,6 @@
 [package]
 name = "sim-roadmap-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "Pure content-addressed roadmap specifications and implementation guides for SIM"
@@ -10,8 +10,8 @@ repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
-sim-kernel = "0.3.0"
-sim-source-deck = { version = "0.1.0", path = "../sim-source-deck" }
+sim-kernel = "0.4.0"
+sim-source-deck = { version = "0.2.0", path = "../sim-source-deck" }
 
 [lints]
 workspace = true

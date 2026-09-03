@@ -8,9 +8,9 @@ readme = "README.md"
 publish = false
 
 [dependencies]
-sim-kernel = "0.3.0"
+sim-kernel = "0.4.0"
 sim-lib-agent-runner-core = { path = "../../.." }
-sim-shape = "0.3.0"
+sim-shape = "0.4.0"
 
 [lints]
 workspace = true
