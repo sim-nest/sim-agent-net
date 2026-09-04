@@ -9,7 +9,7 @@ name = "hostile-replay"
 path = "../recipes/01-basics/hostile-replay/src/main.rs"
 
 [dependencies]
-sim-citizen = "0.3.0"
+sim-citizen = "0.4.0"
 sim-lib-continuity = { path = ".." }
-sim-kernel = "0.3.0"
+sim-kernel = "0.4.0"
 [workspace]

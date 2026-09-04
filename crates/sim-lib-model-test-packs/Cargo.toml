@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-model-test-packs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Immutable public and private-local task packs for SIM model tests."
@@ -14,8 +14,8 @@ path = "src/lib.rs"
 
 [dependencies]
 sha2 = "0.10"
-sim-lib-model-test = { version = "0.1.0", path = "../sim-lib-model-test" }
-sim-study-core = { version = "0.1.0" }
+sim-lib-model-test = { version = "0.2.0", path = "../sim-lib-model-test" }
+sim-study-core = { version = "0.2.0" }
 
 [lints]
 workspace = true

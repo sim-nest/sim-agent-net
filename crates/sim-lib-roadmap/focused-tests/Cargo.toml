@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 sim-lib-roadmap = { path = ".." }
-sim-kernel = { version = "0.3.0", features = ["test-support"] }
-sim-codec = { version = "0.2.0" }
-sim-codec-json = { version = "0.3.0" }
-sim-codec-lisp = { version = "0.3.0" }
+sim-kernel = { version = "0.4.0", features = ["test-support"] }
+sim-codec = { version = "0.3.0" }
+sim-codec-json = { version = "0.4.0" }
+sim-codec-lisp = { version = "0.4.0" }

@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-continuity"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "Pure, replayable continuity planning for intermittent SIM sessions."
@@ -13,9 +13,9 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 path = "src/lib.rs"
 
 [dependencies]
-sim-citizen = { version = "0.3.0" }
-sim-citizen-derive = { version = "0.3.0" }
-sim-kernel = { version = "0.3.0" }
+sim-citizen = { version = "0.4.0" }
+sim-citizen-derive = { version = "0.4.0" }
+sim-kernel = { version = "0.4.0" }
 
 [lints]
 workspace = true

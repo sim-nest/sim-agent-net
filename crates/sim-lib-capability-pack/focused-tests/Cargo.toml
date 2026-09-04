@@ -6,6 +6,6 @@ publish = false
 
 [dependencies]
 sim-lib-capability-pack = { path = ".." }
-sim-kernel = "0.3.0"
+sim-kernel = "0.4.0"
 
 [workspace]

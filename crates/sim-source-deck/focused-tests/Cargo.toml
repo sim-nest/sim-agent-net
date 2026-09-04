@@ -15,4 +15,4 @@ name = "grounded_declaration"
 path = "../examples/grounded_declaration.rs"
 
 [dependencies]
-sim-kernel = "0.3.0"
+sim-kernel = "0.4.0"

@@ -14,5 +14,5 @@ path = "../src/lib.rs"
 sim-roadmap-core = { path = "../../sim-roadmap-core" }
 sim-roadmap-refine = { path = "../../sim-roadmap-refine" }
 sim-source-deck = { path = "../../sim-source-deck" }
-sim-incremental-core = { version = "0.2.0" }
-sim-kernel = { version = "0.3.0", features = ["test-support"] }
+sim-incremental-core = { version = "0.3.0" }
+sim-kernel = { version = "0.4.0", features = ["test-support"] }

@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-capability-pack"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Content-addressed, authority-bounded runtime capability-pack composition for SIM."
@@ -10,9 +10,9 @@ repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
-sim-citizen = { version = "0.3.0" }
-sim-citizen-derive = { version = "0.3.0" }
-sim-kernel = { version = "0.3.0" }
+sim-citizen = { version = "0.4.0" }
+sim-citizen-derive = { version = "0.4.0" }
+sim-kernel = { version = "0.4.0" }
 
 [lints]
 workspace = true

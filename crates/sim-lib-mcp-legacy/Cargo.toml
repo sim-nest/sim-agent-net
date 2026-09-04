@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-mcp-legacy"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "Initialize-era MCP compatibility adapter for SIM."
@@ -10,16 +10,16 @@ repository = "https://github.com/sim-nest/sim-agent-net"
 homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [dependencies]
-sim-codec-mcp = { version = "0.2.0" }
-sim-cookbook = { version = "0.3.0" }
-sim-kernel = { version = "0.3.0" }
-sim-lib-mcp = { version = "0.2.0", path = "../sim-lib-mcp" }
+sim-codec-mcp = { version = "0.3.0" }
+sim-cookbook = { version = "0.4.0" }
+sim-kernel = { version = "0.4.0" }
+sim-lib-mcp = { version = "0.3.0", path = "../sim-lib-mcp" }
 
 [build-dependencies]
-sim-cookbook-build = { version = "0.1.0" }
+sim-cookbook-build = { version = "0.2.0" }
 
 [dev-dependencies]
-sim-kernel = { version = "0.3.0", features = ["test-support"] }
+sim-kernel = { version = "0.4.0", features = ["test-support"] }
 
 [lints]
 workspace = true
