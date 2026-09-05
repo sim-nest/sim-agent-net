@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent-runner-http"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "HTTP-backed model runners for SIM."
@@ -24,7 +24,7 @@ sim-lib-provider = { version = "0.2.0", path = "../sim-lib-provider" }
 sim-lib-net-http = { version = "0.2.0" }
 sim-lib-net-core = { version = "0.4.0" }
 sim-lib-openai-server = { version = "0.5.0", path = "../sim-lib-openai-server" }
-sim-shape = { version = "0.4.0" }
+sim-shape = { version = "0.4.1" }
 sim-transport-ports = { version = "0.2.0", path = "../sim-transport-ports" }
 [build-dependencies]
 sim-cookbook-build = { version = "0.2.0" }
