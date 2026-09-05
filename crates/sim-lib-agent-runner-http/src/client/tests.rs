@@ -18,7 +18,7 @@ fn https_post_json_supports_tls_and_chunked_bodies() {
     let Some(listener) = bind_loopback_listener() else {
         return;
     };
-    let cert = generate_simple_self_signed(vec!["localhost".to_owned()]).unwrap();
+    let cert = generate_simple_self_signed(vec!["127.0.0.1".to_owned()]).unwrap();
     let cert_der = CertificateDer::from(cert.cert.der().to_vec());
     let key_der = PrivateKeyDer::from(PrivatePkcs8KeyDer::from(cert.key_pair.serialize_der()));
     let server_config = Arc::new(
@@ -58,7 +58,7 @@ fn https_post_json_supports_tls_and_chunked_bodies() {
     let response = post_json_with_tls_roots(
         HttpRunnerRequest {
             runner_label: "runner/openai-compatible",
-            endpoint: format!("https://localhost:{port}/v1"),
+            endpoint: format!("https://127.0.0.1:{port}/v1"),
             path: "/chat/completions",
             headers: vec![
                 (
