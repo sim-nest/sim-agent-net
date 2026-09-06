@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-18T14:40:47+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "f82a086d2a867c5bb53fa65e0781d148e2ed54b7",
+  "git_commit": "ffd7373448e2346614014e190d63f9caaa02d0f5",
   "repo": "sim-agent-net",
   "schema": "sim.provenance.v1",
-  "source_commit": "f82a086d2a867c5bb53fa65e0781d148e2ed54b7",
+  "source_commit": "ffd7373448e2346614014e190d63f9caaa02d0f5",
   "source_remote": "https://github.com/sim-nest/sim-agent-net",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "0b7cbfc4c5a5d715",
+  "workspace_hash": "8b3cdea7c621f773",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 1121,
+  "workspace_hash_input_count": 1122,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-agent/Cargo.toml",
@@ -826,6 +826,7 @@
     "crates/sim-lib-roadmap-runner/src/mutation/fs_workspace.rs",
     "crates/sim-lib-roadmap-runner/src/mutation.rs",
     "crates/sim-lib-roadmap-runner/src/proof/normalization.rs",
+    "crates/sim-lib-roadmap-runner/src/proof/receipt.rs",
     "crates/sim-lib-roadmap-runner/src/proof/tests.rs",
     "crates/sim-lib-roadmap-runner/src/proof.rs",
     "crates/sim-lib-roadmap-runner/src/reconcile.rs",

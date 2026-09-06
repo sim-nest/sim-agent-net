@@ -1,5 +1,9 @@
 use super::*;
 use crate::{ExecutionPins, Limits};
+use sim_conformance_core::{
+    CheckArgument, CheckScopeId, CheckTemplate, CheckerBinding, CheckerReceipt, EvidenceGrade,
+    IdKind, RevocationStatus, SemanticId,
+};
 use sim_kernel::{ContentId, Symbol};
 use sim_lib_exec::{SandboxEvidence, SandboxReport, SandboxResult};
 use sim_lib_journal::MemoryBackend;
@@ -135,6 +139,37 @@ fn pins() -> ExecutionPins {
     }
 }
 
+fn sid<K: IdKind>(value: &str) -> SemanticId<K> {
+    SemanticId::from_text(value).unwrap()
+}
+
+fn checker_binding() -> CheckerBinding {
+    CheckerBinding::new(
+        "checker/test".into(),
+        sid("owner/test"),
+        "test::check".into(),
+        vec![sid("pack/test")],
+        sid("shape/check-receipt"),
+        sid("revocation/test"),
+        sid("command/validate"),
+        sid("command/docs"),
+        BTreeSet::<CheckScopeId>::from([sid("scope/test")]),
+        CheckTemplate::new(
+            "check".into(),
+            vec![
+                CheckArgument::BindingSlot,
+                CheckArgument::SubjectSlot,
+                CheckArgument::ScopeSlot,
+            ],
+            sid("cwd/source"),
+            sid("environment/sealed"),
+            sid("shape/check-result"),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
+
 #[test]
 fn catalog_rejects_every_policy_widening_and_shell_escape() {
     let mut cases = Vec::new();
@@ -225,6 +260,86 @@ fn pure_leaves_are_deterministic_and_never_launch() {
             ProofDisposition::Passed
         );
     }
+}
+
+#[test]
+fn catalog_retains_only_exact_current_checker_receipts() {
+    let binding = checker_binding();
+    let invocation = binding
+        .instantiate(
+            sid("code/test"),
+            sid("pack/test"),
+            sid("subject/a"),
+            sid("scope/test"),
+            sid("closure/test"),
+        )
+        .unwrap();
+    let receipt = CheckerReceipt::passing(
+        &invocation,
+        sid("result/pass"),
+        EvidenceGrade::Bootstrap,
+        sid("provenance/test"),
+        sid("policy/test"),
+        sid("support/test"),
+        RevocationStatus::Current,
+    )
+    .unwrap();
+    let id = receipt.id().clone();
+    let catalog = ProofCatalog::new([ProofLeaf::ArtifactEquality {
+        name: "anchor".into(),
+        left: vec![],
+        right: vec![],
+    }])
+    .unwrap()
+    .with_checker_receipt(
+        RetainedCheckerReceipt::new(binding.clone(), invocation.clone(), receipt),
+        RevocationStatus::Current,
+    )
+    .unwrap();
+    assert_eq!(
+        catalog
+            .checker_receipt(&id, RevocationStatus::Current)
+            .unwrap()
+            .id(),
+        &id
+    );
+    assert!(matches!(
+        catalog.checker_receipt(&id, RevocationStatus::Unknown),
+        Err(ProofError::InvalidCheckerReceipt(_))
+    ));
+
+    let substituted = binding
+        .instantiate(
+            sid("code/test"),
+            sid("pack/test"),
+            sid("subject/b"),
+            sid("scope/test"),
+            sid("closure/test"),
+        )
+        .unwrap();
+    let original_receipt = CheckerReceipt::passing(
+        &invocation,
+        sid("result/pass"),
+        EvidenceGrade::Bootstrap,
+        sid("provenance/test"),
+        sid("policy/test"),
+        sid("support/test"),
+        RevocationStatus::Current,
+    )
+    .unwrap();
+    assert!(matches!(
+        ProofCatalog::new([ProofLeaf::ArtifactEquality {
+            name: "anchor".into(),
+            left: vec![],
+            right: vec![],
+        }])
+        .unwrap()
+        .with_checker_receipt(
+            RetainedCheckerReceipt::new(binding, substituted, original_receipt),
+            RevocationStatus::Current,
+        ),
+        Err(ProofError::InvalidCheckerReceipt(_))
+    ));
 }
 
 #[test]

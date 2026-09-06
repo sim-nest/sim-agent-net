@@ -52,14 +52,15 @@ pub fn classify_image(
     post: &PortableImage,
     actual: &PortableImage,
 ) -> PathState {
-    if pre == post && actual == pre {
-        PathState::Unchanged
-    } else if actual == post {
-        PathState::Postimage
-    } else if actual == pre {
-        PathState::Preimage
-    } else {
-        PathState::Foreign
+    let convert = |image: &PortableImage| sim_artifact_facet::PortableImage {
+        bytes: image.bytes.clone(),
+        mode: image.mode,
+    };
+    match sim_artifact_facet::classify_transition(&convert(pre), &convert(post), &convert(actual)) {
+        Ok(sim_artifact_facet::TransitionState::Unchanged) => PathState::Unchanged,
+        Ok(sim_artifact_facet::TransitionState::Base) => PathState::Preimage,
+        Ok(sim_artifact_facet::TransitionState::Intended) => PathState::Postimage,
+        Ok(sim_artifact_facet::TransitionState::Foreign) | Err(_) => PathState::Foreign,
     }
 }
 

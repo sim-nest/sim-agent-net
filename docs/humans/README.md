@@ -2593,6 +2593,30 @@ fn foreign_bytes_never_request_mutation_in_randomized_sequences() {
         assert!(terminal_requests_no_effects(&effect));
     }
 }
+
+#[test]
+fn mutation_reconciliation_uses_the_shared_facet_classifier() {
+    let unchanged = PortableImage::file(b"same plan".to_vec(), 0o644);
+    let foreign = PortableImage::file(b"independent user edit".to_vec(), 0o644);
+    assert_eq!(
+        classify_image(&unchanged, &unchanged, &foreign),
+        PathState::Unchanged
+    );
+
+    let intended = PortableImage::file(b"intended".to_vec(), 0o644);
+    assert_eq!(
+        classify_image(&unchanged, &intended, &unchanged),
+        PathState::Preimage
+    );
+    assert_eq!(
+        classify_image(&unchanged, &intended, &intended),
+        PathState::Postimage
+    );
+    assert_eq!(
+        classify_image(&unchanged, &intended, &foreign),
+        PathState::Foreign
+    );
+}
 ```
 
 ### `feature/sim-agent-net/loadable-local-roadmap-runner`
@@ -6072,6 +6096,7 @@ Source `crates/sim-lib-roadmap-runner/src/proof.rs`:
 use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
+use sim_conformance_core::CheckerReceiptId;
 use sim_lib_exec::{
     ArgAtom, MountAccess, ProcessCancellation, ProgramRef, SandboxAttempt, SandboxControl,
     SandboxLauncher, SandboxLimits, SandboxMount, SandboxPolicy, SandboxRequest,
@@ -6089,6 +6114,7 @@ const SCRATCH_ROOT: &str = "/scratch";
 #[derive(Clone, Debug)]
 pub struct ProofCatalog {
     leaves: BTreeMap<String, ProofLeaf>,
+    checker_receipts: BTreeMap<CheckerReceiptId, RetainedCheckerReceipt>,
 }
 
 impl ProofCatalog {
@@ -6104,7 +6130,10 @@ impl ProofCatalog {
         if by_name.is_empty() {
             return Err(ProofError::Invalid("empty proof catalog".into()));
         }
-        Ok(Self { leaves: by_name })
+        Ok(Self {
+            leaves: by_name,
+            checker_receipts: BTreeMap::new(),
+        })
     }
 
     pub fn leaf(&self, name: &str) -> Result<&ProofLeaf, ProofError> {
@@ -6338,6 +6367,10 @@ pub enum ProofError {
     NotCatalogued(String),
     #[error("invalid proof leaf: {0}")]
     Invalid(String),
+    #[error("checker receipt is absent from the grounded proof catalog")]
+    CheckerReceiptNotCatalogued,
+    #[error("invalid checker receipt: {0}")]
+    InvalidCheckerReceipt(String),
     #[error(transparent)]
     Journal(#[from] ExecutionJournalError),
     #[error("an already-launched proof effect has no conclusive launcher receipt")]
@@ -6508,6 +6541,9 @@ fn pure_receipt(name: &str, passed: bool, observed_at: String, detail: &str) -> 
 }
 
 include!("proof/normalization.rs");
+
+mod receipt;
+pub use receipt::RetainedCheckerReceipt;
 
 #[cfg(test)]
 mod tests;
