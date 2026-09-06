@@ -48,6 +48,11 @@ artifact-equality and source-deck predicate leaves never launch. Use
 intent before launch, persists the launcher receipt before journal completion,
 and reconciles any unresolved intent without dispatching it again.
 
+The same `ProofCatalog` retains neutral `CheckerReceipt` values together with
+their exact binding and invocation. Admission verifies all copied identities;
+lookup repeats that verification against current revocation state. The
+conformance harness therefore introduces no parallel receipt database.
+
 For execution source truth, construct `SourceDeckProvider` with the boot-selected
 `SandboxLauncher`, a read-only `SourceRepository`, the published repo-contract
 decoder, and the Index fragment decoder. `provide` runs only the request's
@@ -84,6 +89,9 @@ postimages resumes deterministically; any foreign path returns `Ambiguous` and
 preserves its bytes. `inverse_plan` is an explicit second sealed transaction and
 is available only while every relevant path still equals the first plan's
 postimage. Adapters report the durability they actually provide in the receipt.
+Classification delegates to the public `sim-artifact-facet` law. When preimage
+and postimage are equal, an independently changed observed image is retained as
+an unchanged proposal rather than treated as mutation conflict.
 
 Pass that freshly observed `ResumeDecision` through
 `plan_retry_after_reconciliation` or `plan_refinement_after_reconciliation`

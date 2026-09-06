@@ -338,6 +338,7 @@ audiences = ["code", "framework"]
 guidance = "Expand structural edits to exact PortableImage values before SealedMutationPlan::seal, then execute through MutationEngine with a durable MutationJournal and an adapter whose Durability is honest. On restart, use classify_plan and resume only preimages; preserve and report every foreign path. Use inverse_plan only while all paths still equal the sealed postimages."
 claims_anchors = []
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/mutation"]
+depends_on = ["feature/sim-storage/artifact-facet-law"]
 
 [[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"

@@ -420,3 +420,27 @@ fn foreign_bytes_never_request_mutation_in_randomized_sequences() {
         assert!(terminal_requests_no_effects(&effect));
     }
 }
+
+#[test]
+fn mutation_reconciliation_uses_the_shared_facet_classifier() {
+    let unchanged = PortableImage::file(b"same plan".to_vec(), 0o644);
+    let foreign = PortableImage::file(b"independent user edit".to_vec(), 0o644);
+    assert_eq!(
+        classify_image(&unchanged, &unchanged, &foreign),
+        PathState::Unchanged
+    );
+
+    let intended = PortableImage::file(b"intended".to_vec(), 0o644);
+    assert_eq!(
+        classify_image(&unchanged, &intended, &unchanged),
+        PathState::Preimage
+    );
+    assert_eq!(
+        classify_image(&unchanged, &intended, &intended),
+        PathState::Postimage
+    );
+    assert_eq!(
+        classify_image(&unchanged, &intended, &foreign),
+        PathState::Foreign
+    );
+}

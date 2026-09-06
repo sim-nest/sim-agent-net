@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-roadmap-runner"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MPL-2.0"
 description = "Durable journal adapter for SIM roadmap executions"
@@ -14,6 +14,8 @@ test-support = []
 
 [dependencies]
 sha2 = "0.10"
+sim-artifact-facet = "0.2.0"
+sim-conformance-core = "0.2.0"
 sim-kernel = "0.4.0"
 sim-shape = "0.4.0"
 sim-lib-journal = "0.2.0"
