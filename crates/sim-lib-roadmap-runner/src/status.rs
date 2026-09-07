@@ -175,6 +175,8 @@ fn record_tag(record: &ExecutionRecord) -> String {
         ExecutionRecord::Discharge { .. } => "discharge",
         ExecutionRecord::Ambiguity { .. } => "ambiguity",
         ExecutionRecord::TerminalReceipt { .. } => "terminal-receipt",
+        ExecutionRecord::SemanticDelta { .. } => "semantic-delta",
+        ExecutionRecord::Snapshot { .. } => "snapshot",
     }
     .into()
 }
@@ -225,6 +227,9 @@ mod tests {
                 entry: id(2),
             },
             total_bytes: 10,
+            causal: crate::CausalState::default(),
+            snapshots: vec![],
+            retention: crate::RetentionRoots::default(),
         }
     }
 

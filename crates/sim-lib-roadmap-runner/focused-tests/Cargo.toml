@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 sim-kernel = { version = "0.4.0" }
-sim-lib-journal = { version = "0.2.0" }
+sim-lib-journal = { version = "0.3.0" }
 sim-lib-exec = { version = "0.3.0" }
 sim-cookbook = { version = "0.4.0" }
 sim-cookbook-build = { version = "0.2.0" }

@@ -63,7 +63,7 @@
         .unwrap_err();
         assert_eq!(report.last_verified_head, Some(opened.head));
         assert!(matches!(
-            ExecutionJournal::new(
+            *ExecutionJournal::new(
                 Arc::new(SnapshotBackend(state)),
                 "foreign-exec",
                 Limits::default()

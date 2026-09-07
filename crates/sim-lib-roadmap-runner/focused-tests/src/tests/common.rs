@@ -1,6 +1,7 @@
-    use sim_kernel::{ContentId, Lib, Symbol};
+    use sim_kernel::{ContentId, Datum, Lib, Symbol};
     use sim_lib_journal::{
-        Admission, JournalBackend, JournalError, JournalHead, Lease, MemoryBackend, StoredState,
+        Admission, JournalBackend, JournalError, JournalHead, JournalObject, Lease, MemoryBackend,
+        StoredDatumRef, StoredState,
     };
     use sim_lib_roadmap_runner::*;
     use std::sync::{
@@ -38,6 +39,56 @@
         }
     }
 
+    #[test]
+    fn stale_writers_duplicates_budgets_and_identity_changes_fail_closed() {
+        let log = ExecutionJournal::new(
+            Arc::new(MemoryBackend::new()),
+            "exec",
+            Limits {
+                max_object_bytes: 8,
+                ..Limits::default()
+            },
+        );
+        let opened = log.open(pins(1), None).unwrap();
+        assert!(matches!(
+            log.prepare_object(ObjectKind::Packet, b"secret=oops".to_vec(), "packet"),
+            Err(ExecutionJournalError::Budget("object"))
+        ));
+        assert!(matches!(
+            log.prepare_object(ObjectKind::Packet, b"password=x".to_vec(), "packet"),
+            Err(ExecutionJournalError::Budget("object"))
+        ));
+        let head = log
+            .append(
+                Some(&opened.head),
+                ExecutionRecord::EffectRequested {
+                    effect_id: "x".into(),
+                    kind: "write".into(),
+                    input: None,
+                },
+                vec![],
+            )
+            .unwrap();
+        assert!(matches!(
+            log.append(
+                Some(&opened.head),
+                ExecutionRecord::Ambiguity {
+                    reason: "stale".into()
+                },
+                vec![]
+            ),
+            Err(ExecutionJournalError::Journal(
+                JournalError::WrongHead | JournalError::ConflictingDelivery
+            ))
+        ));
+        let receipt = ExecutionRecord::EffectReceipt {
+            effect_id: "x".into(),
+            outcome: "ok".into(),
+            output: None,
+        };
+        let head = log.append(Some(&head), receipt.clone(), vec![]).unwrap();
+        assert!(matches!(
+            log.append(Some(&head), receipt, vec![]),
             Err(ExecutionJournalError::Illegal { .. })
         ));
         assert!(matches!(
@@ -72,6 +123,15 @@
                 self.inner.admit(a)
             }
         }
+        fn put_datum(&self, object: JournalObject) -> Result<StoredDatumRef, JournalError> {
+            self.inner.put_datum(object)
+        }
+        fn get_datum(&self, meaning: &ContentId) -> Result<Datum, JournalError> {
+            self.inner.get_datum(meaning)
+        }
+        fn rebuild_datum_index(&self) -> Result<Vec<StoredDatumRef>, JournalError> {
+            self.inner.rebuild_datum_index()
+        }
     }
     struct SnapshotBackend(StoredState);
     impl JournalBackend for SnapshotBackend {
@@ -83,5 +143,14 @@
         }
         fn admit(&self, _: Admission) -> Result<JournalHead, JournalError> {
             Err(JournalError::WriteRefused("snapshot"))
+        }
+        fn put_datum(&self, _: JournalObject) -> Result<StoredDatumRef, JournalError> {
+            Err(JournalError::WriteRefused("snapshot"))
+        }
+        fn get_datum(&self, _: &ContentId) -> Result<Datum, JournalError> {
+            Err(JournalError::WriteRefused("snapshot"))
+        }
+        fn rebuild_datum_index(&self) -> Result<Vec<StoredDatumRef>, JournalError> {
+            Ok(Vec::new())
         }
     }

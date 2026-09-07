@@ -64,21 +64,22 @@ steps = [
 [[feature]]
 id = "feature/sim-agent-net/durable-roadmap-execution-journal"
 title = "Durable fenced roadmap execution journal"
-summary = "Bind bounded, redacted roadmap execution records and typed object references to the generic atomic journal with effect-free fail-closed replay."
+summary = "Reduce canonical journal facts into cause-only semantic deltas, persistent evidence roots, verified snapshots, and explicit retention roots with effect-free fail-closed replay."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
-guidance = "Open ExecutionJournal with every conduct, policy, source-deck, model-pick, and runner-generation pin. Prepare bounded objects before append, retain the expected JournalHead, and replay after any fence conflict. Consume RebuiltExecution as a projection only: rebuild verifies closure and legality and never repeats an effect. Identity drift requires the deterministic child id; it never mutates an existing execution."
+guidance = "Open ExecutionJournal with every conduct, policy, source-deck, model-pick, and runner-generation pin. Use append_delta for semantic changes: unchanged revisions preserve the head and write nothing. Evidence is accumulated into a persistent semantic set root; snapshot writes a checked content-addressed reducer image. Consume RebuiltExecution retention roots as the reachability contract and keep TelemetrySink outside the durable journal. Replay after any fence conflict; identity drift requires the deterministic child id and never mutates an existing execution."
 claims_anchors = []
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/journal_contract_tests"]
 depends_on = ["feature/sim-agent-net/pure-roadmap-execution"]
+supports = ["feature/sim-storage/persistent-semantic-objects", "feature/sim-storage/atomic-content-journal"]
 
 [[route]]
 id = "route/resume-durable-roadmap-execution"
 task = "Resume a roadmap execution from durable history without repeating effects"
 audiences = ["framework"]
 steps = [
-  { feature = "feature/sim-agent-net/durable-roadmap-execution-journal", why = "The adapter verifies execution identity, legal record order, byte limits, and referenced-object closure over the generic fenced journal." },
-  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests", why = "The focused fixtures cover exact effect-free replay, stale writers, duplicate receipts, identity drift, and secret-shaped payload refusal." },
+  { feature = "feature/sim-agent-net/durable-roadmap-execution-journal", why = "The adapter verifies execution identity, legal cause order, persistent evidence closure, snapshots, retention roots, and byte limits over the canonical fenced journal." },
+  { specimen = "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/journal_contract_tests", why = "The focused fixtures cover effect-free replay, stale writers, cause-only no-ops across 10,000 unchanged revisions, snapshot damage, retention, and telemetry separation." },
 ]
 
 [[feature]]

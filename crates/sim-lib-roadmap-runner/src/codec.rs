@@ -1,7 +1,8 @@
-use sim_kernel::{ContentId, Symbol};
+use sim_kernel::{ContentId, Datum, NumberLiteral, Symbol};
 
 use crate::{
     ExecutionJournalError, ExecutionPins, ExecutionRecord, ObjectKind, ObjectRef, RECORD_VERSION,
+    SemanticChange,
 };
 
 pub(crate) fn encode(execution: &str, record: &ExecutionRecord) -> Vec<u8> {
@@ -56,8 +57,118 @@ pub(crate) fn encode(execution: &str, record: &ExecutionRecord) -> Vec<u8> {
         ExecutionRecord::Discharge { obligation } => w.text(obligation),
         ExecutionRecord::Ambiguity { reason } => w.text(reason),
         ExecutionRecord::TerminalReceipt { outcome } => w.text(outcome),
+        ExecutionRecord::SemanticDelta {
+            cause,
+            changes,
+            evidence_set,
+        } => {
+            w.text(cause);
+            w.u32(changes.len() as u32);
+            for change in changes {
+                w.text(&change.key);
+                w.optional_id(change.before.as_ref());
+                w.optional_id(change.after.as_ref());
+            }
+            w.id(evidence_set);
+        }
+        ExecutionRecord::Snapshot {
+            covers,
+            state,
+            evidence_set,
+        } => {
+            w.id(covers);
+            w.id(state);
+            w.id(evidence_set);
+        }
     }
     w.0
+}
+
+/// Builds the canonical typed payload stored by new journal writers.
+pub(crate) fn encode_datum(execution: &str, record: &ExecutionRecord) -> Datum {
+    Datum::Node {
+        tag: Symbol::qualified("roadmap-execution", "record-v2"),
+        fields: vec![
+            (
+                Symbol::new("version"),
+                Datum::Number(NumberLiteral {
+                    domain: Symbol::qualified("numbers", "u64"),
+                    canonical: RECORD_VERSION.to_string(),
+                }),
+            ),
+            (
+                Symbol::new("execution"),
+                Datum::String(execution.to_owned()),
+            ),
+            (
+                Symbol::new("kind"),
+                Datum::Symbol(Symbol::qualified("roadmap-execution", record.tag())),
+            ),
+            (Symbol::new("wire"), Datum::Bytes(encode(execution, record))),
+        ],
+    }
+}
+
+/// Checks the typed record Shape and canonical representation. Retained
+/// exact-byte objects are accepted only through the v1 compatibility branch.
+pub(crate) fn decode_datum(
+    value: &Datum,
+) -> Result<(String, ExecutionRecord), ExecutionJournalError> {
+    if let Some(bytes) = exact_bytes(value) {
+        return decode(bytes);
+    }
+    let Datum::Node { tag, fields } = value else {
+        return Err(ExecutionJournalError::Codec("record shape"));
+    };
+    if *tag != Symbol::qualified("roadmap-execution", "record-v2") || fields.len() != 4 {
+        return Err(ExecutionJournalError::Codec("record shape"));
+    }
+    let field = |name: &str| {
+        fields
+            .iter()
+            .find(|(field, _)| *field == Symbol::new(name))
+            .map(|(_, value)| value)
+            .ok_or(ExecutionJournalError::Codec("record shape"))
+    };
+    match field("version")? {
+        Datum::Number(number)
+            if number.domain == Symbol::qualified("numbers", "u64")
+                && number.canonical == RECORD_VERSION.to_string() => {}
+        _ => return Err(ExecutionJournalError::Codec("record version shape")),
+    }
+    let execution = match field("execution")? {
+        Datum::String(value) => value,
+        _ => return Err(ExecutionJournalError::Codec("record execution shape")),
+    };
+    let kind = match field("kind")? {
+        Datum::Symbol(value) => value,
+        _ => return Err(ExecutionJournalError::Codec("record kind shape")),
+    };
+    let wire = match field("wire")? {
+        Datum::Bytes(value) => value,
+        _ => return Err(ExecutionJournalError::Codec("record wire shape")),
+    };
+    let decoded = decode(wire)?;
+    if decoded.0 != *execution
+        || *kind != Symbol::qualified("roadmap-execution", decoded.1.tag())
+        || encode_datum(&decoded.0, &decoded.1) != *value
+    {
+        return Err(ExecutionJournalError::Codec("non-canonical typed record"));
+    }
+    Ok(decoded)
+}
+
+fn exact_bytes(value: &Datum) -> Option<&[u8]> {
+    let Datum::Node { tag, fields } = value else {
+        return None;
+    };
+    if *tag != Symbol::qualified("journal", "exact-bytes-v1") || fields.len() != 1 {
+        return None;
+    }
+    match &fields[0] {
+        (name, Datum::Bytes(bytes)) if *name == Symbol::new("bytes") => Some(bytes),
+        _ => None,
+    }
 }
 
 pub(crate) fn decode(bytes: &[u8]) -> Result<(String, ExecutionRecord), ExecutionJournalError> {
@@ -65,7 +176,8 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<(String, ExecutionRecord), Executio
     if r.take(29)? != b"sim-roadmap-execution-record\0" {
         return Err(ExecutionJournalError::Codec("magic"));
     }
-    if r.u16()? != RECORD_VERSION {
+    let version = r.u16()?;
+    if version != 1 && version != RECORD_VERSION {
         return Err(ExecutionJournalError::Codec("version"));
     }
     let execution = r.text()?;
@@ -103,6 +215,31 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<(String, ExecutionRecord), Executio
         },
         "ambiguity" => ExecutionRecord::Ambiguity { reason: r.text()? },
         "terminal-receipt" => ExecutionRecord::TerminalReceipt { outcome: r.text()? },
+        "semantic-delta" if version == RECORD_VERSION => {
+            let cause = r.text()?;
+            let count = r.u32()? as usize;
+            if count > 65_536 {
+                return Err(ExecutionJournalError::Codec("change bound"));
+            }
+            let mut changes = Vec::with_capacity(count);
+            for _ in 0..count {
+                changes.push(SemanticChange {
+                    key: r.text()?,
+                    before: r.optional_id()?,
+                    after: r.optional_id()?,
+                });
+            }
+            ExecutionRecord::SemanticDelta {
+                cause,
+                changes,
+                evidence_set: r.id()?,
+            }
+        }
+        "snapshot" if version == RECORD_VERSION => ExecutionRecord::Snapshot {
+            covers: r.id()?,
+            state: r.id()?,
+            evidence_set: r.id()?,
+        },
         _ => return Err(ExecutionJournalError::Codec("record tag")),
     };
     if !r.0.is_empty() {
@@ -142,6 +279,12 @@ impl Writer {
         self.text(&id.algorithm.as_qualified_str());
         self.raw(&id.bytes);
     }
+    fn optional_id(&mut self, id: Option<&ContentId>) {
+        self.u8(u8::from(id.is_some()));
+        if let Some(id) = id {
+            self.id(id);
+        }
+    }
     fn pins(&mut self, p: &ExecutionPins) {
         self.text(&p.conduct);
         self.text(&p.policy);
@@ -157,6 +300,8 @@ impl Writer {
                 ObjectKind::Deck => 1,
                 ObjectKind::ProcessOutput => 2,
                 ObjectKind::FileBytes => 3,
+                ObjectKind::EvidenceSet => 4,
+                ObjectKind::Snapshot => 5,
             });
             self.id(&v.content);
             self.u64(v.bytes);
@@ -215,6 +360,13 @@ impl<'a> Reader<'a> {
         let bytes = self.take(32)?.try_into().expect("length");
         Ok(ContentId::from_bytes(symbol, bytes))
     }
+    fn optional_id(&mut self) -> Result<Option<ContentId>, ExecutionJournalError> {
+        match self.u8()? {
+            0 => Ok(None),
+            1 => Ok(Some(self.id()?)),
+            _ => Err(ExecutionJournalError::Codec("optional id")),
+        }
+    }
     fn pins(&mut self) -> Result<ExecutionPins, ExecutionJournalError> {
         Ok(ExecutionPins {
             conduct: self.text()?,
@@ -233,6 +385,8 @@ impl<'a> Reader<'a> {
             1 => ObjectKind::Deck,
             2 => ObjectKind::ProcessOutput,
             3 => ObjectKind::FileBytes,
+            4 => ObjectKind::EvidenceSet,
+            5 => ObjectKind::Snapshot,
             _ => return Err(ExecutionJournalError::Codec("object kind")),
         };
         Ok(Some(ObjectRef {
@@ -241,5 +395,49 @@ impl<'a> Reader<'a> {
             bytes: self.u64()?,
             summary: self.text()?,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn record() -> ExecutionRecord {
+        ExecutionRecord::Discharge {
+            obligation: "verify canonical typed payload".into(),
+        }
+    }
+
+    #[test]
+    fn typed_record_shape_and_semantic_identity_are_exact() {
+        let value = encode_datum("execution-1", &record());
+        let identity = value.content_id().unwrap();
+        assert_eq!(
+            decode_datum(&value).unwrap(),
+            ("execution-1".into(), record())
+        );
+        assert_eq!(value.content_id().unwrap(), identity);
+
+        let mut wrong_shape = value;
+        let Datum::Node { fields, .. } = &mut wrong_shape else {
+            unreachable!()
+        };
+        fields[2].1 = Datum::Symbol(Symbol::qualified("roadmap-execution", "snapshot"));
+        assert!(decode_datum(&wrong_shape).is_err());
+    }
+
+    #[test]
+    fn retained_version_one_wire_record_decodes_only_through_exact_bytes() {
+        let mut bytes = encode("execution-1", &record());
+        bytes[29..31].copy_from_slice(&1_u16.to_be_bytes());
+        assert_eq!(decode(&bytes).unwrap(), ("execution-1".into(), record()));
+        let legacy = Datum::Node {
+            tag: Symbol::qualified("journal", "exact-bytes-v1"),
+            fields: vec![(Symbol::new("bytes"), Datum::Bytes(bytes))],
+        };
+        assert_eq!(
+            decode_datum(&legacy).unwrap(),
+            ("execution-1".into(), record())
+        );
     }
 }
