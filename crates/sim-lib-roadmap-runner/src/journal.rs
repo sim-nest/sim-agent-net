@@ -1,14 +1,18 @@
 use std::{collections::BTreeSet, sync::Arc};
 
-use sha2::{Digest, Sha256};
-use sim_kernel::Symbol;
+use sim_kernel::{ContentId, Datum, Symbol};
 use sim_lib_journal::{
-    Journal, JournalBackend, JournalEntry, JournalHead, JournalObject, StoredState,
+    Journal, JournalBackend, JournalEntry, JournalError, JournalHead, JournalObject,
+    PersistentObjectStore, PersistentSemanticObjects, StoredState,
 };
 
+use crate::causal::{apply_changes, causal_state_datum, evidence_set_datum, parse_evidence_set};
+use crate::journal_util::{bounded_summary, child_id, contains_secret, store_error};
+use crate::record_law::{record_refs, validate_next};
 use crate::{
-    ExecutionJournalError, ExecutionPins, ExecutionRecord, Limits, MutationError, MutationFence,
-    MutationJournal, ObjectKind, ObjectRef, PreparedObject, RebuiltExecution, ReplayFailure, codec,
+    CausalState, DeltaAppend, ExecutionJournalError, ExecutionPins, ExecutionRecord, Limits,
+    MutationError, MutationFence, MutationJournal, ObjectKind, ObjectRef, PreparedObject,
+    RebuiltExecution, ReplayFailure, RetentionRoots, SemanticChange, VerifiedSnapshot, codec,
     encode_plan, mutation_id_text,
 };
 
@@ -56,6 +60,114 @@ impl<B: JournalBackend> ExecutionJournal<B> {
         })
     }
 
+    /// Persists a semantic Datum through the journal's owned-return object
+    /// facet and prepares it as an entry payload.
+    pub fn prepare_datum(
+        &self,
+        kind: ObjectKind,
+        value: Datum,
+        summary: impl Into<String>,
+    ) -> Result<PreparedObject, ExecutionJournalError> {
+        let object = JournalObject::from_datum(value.clone())?;
+        if object.bytes.len() > self.limits.max_object_bytes {
+            return Err(ExecutionJournalError::Budget("object"));
+        }
+        let mut store = PersistentObjectStore::open(self.backend.clone()).map_err(store_error)?;
+        let stored = store.put(value).map_err(store_error)?;
+        if stored.meaning != object.id {
+            return Err(ExecutionJournalError::MissingObject);
+        }
+        Ok(PreparedObject {
+            reference: ObjectRef {
+                kind,
+                content: object.id.clone(),
+                bytes: object.bytes.len() as u64,
+                summary: bounded_summary(&summary.into()),
+            },
+            object,
+        })
+    }
+
+    /// Appends exactly one cause delta. A semantically unchanged revision is a
+    /// no-op and preserves the current head.
+    pub fn append_delta(
+        &self,
+        expected: &JournalHead,
+        cause: impl Into<String>,
+        changes: Vec<SemanticChange>,
+        evidence: BTreeSet<ContentId>,
+    ) -> Result<DeltaAppend, ExecutionJournalError> {
+        let cause = cause.into();
+        if cause.is_empty() {
+            return Err(ExecutionJournalError::Illegal {
+                sequence: expected.sequence + 1,
+                reason: "semantic delta cause is empty",
+            });
+        }
+        let current = self.rebuild()?;
+        if current.head != *expected {
+            return Err(JournalError::WrongHead.into());
+        }
+        let mut prospective = current.causal.clone();
+        let changed = apply_changes(&mut prospective.facts, &changes, expected.sequence + 1)?;
+        let before_evidence = prospective.evidence.len();
+        prospective.evidence.extend(evidence);
+        if !changed && prospective.evidence.len() == before_evidence {
+            return Ok(DeltaAppend::Unchanged(current.head));
+        }
+        let evidence_value = evidence_set_datum(&prospective.evidence);
+        let evidence_object = self.prepare_datum(
+            ObjectKind::EvidenceSet,
+            evidence_value,
+            "persistent evidence set root",
+        )?;
+        let evidence_set = evidence_object.reference.content.clone();
+        let head = self.append(
+            Some(expected),
+            ExecutionRecord::SemanticDelta {
+                cause,
+                changes,
+                evidence_set,
+            },
+            vec![evidence_object],
+        )?;
+        Ok(DeltaAppend::Appended(head))
+    }
+
+    /// Writes a content-addressed snapshot of the verified causal reducer state.
+    pub fn snapshot(
+        &self,
+        expected: &JournalHead,
+    ) -> Result<VerifiedSnapshot, ExecutionJournalError> {
+        let current = self.rebuild()?;
+        if current.head != *expected {
+            return Err(JournalError::WrongHead.into());
+        }
+        let evidence_set = evidence_set_datum(&current.causal.evidence)
+            .content_id()
+            .map_err(|_| ExecutionJournalError::Semantic("evidence set"))?;
+        let snapshot_object = self.prepare_datum(
+            ObjectKind::Snapshot,
+            causal_state_datum(&current.causal, &evidence_set),
+            "verified causal snapshot",
+        )?;
+        let state = snapshot_object.reference.content.clone();
+        self.append(
+            Some(expected),
+            ExecutionRecord::Snapshot {
+                covers: expected.entry.clone(),
+                state: state.clone(),
+                evidence_set: evidence_set.clone(),
+            },
+            vec![snapshot_object],
+        )?;
+        Ok(VerifiedSnapshot {
+            covers: expected.entry.clone(),
+            state,
+            evidence_set,
+        })
+    }
+
     pub fn open(
         &self,
         pins: ExecutionPins,
@@ -84,18 +196,23 @@ impl<B: JournalBackend> ExecutionJournal<B> {
         record: ExecutionRecord,
         objects: Vec<PreparedObject>,
     ) -> Result<JournalHead, ExecutionJournalError> {
-        let current = self.rebuild().ok();
-        validate_next(
-            current.as_ref(),
-            &record,
-            current.as_ref().map_or(0, |s| s.records.len() as u64),
-        )?;
-        let bytes = codec::encode(&self.execution_id, &record);
-        if bytes.len() > self.limits.max_record_bytes {
+        let current = match self.rebuild() {
+            Ok(state) => Some(state),
+            Err(ExecutionJournalError::Empty) => None,
+            Err(error) => return Err(error),
+        };
+        let records = current
+            .as_ref()
+            .map_or(&[][..], |state| state.records.as_slice());
+        validate_next(!records.is_empty(), records, &record, records.len() as u64)?;
+        let record_object =
+            JournalObject::from_datum(codec::encode_datum(&self.execution_id, &record))?;
+        if record_object.bytes.len() > self.limits.max_record_bytes {
             return Err(ExecutionJournalError::Budget("record"));
         }
         let before = current.as_ref().map_or(0, |s| s.total_bytes);
-        let added = bytes
+        let added = record_object
+            .bytes
             .len()
             .checked_add(objects.iter().map(|o| o.object.bytes.len()).sum())
             .ok_or(ExecutionJournalError::Budget("execution"))?;
@@ -111,7 +228,11 @@ impl<B: JournalBackend> ExecutionJournal<B> {
             .iter()
             .map(|o| o.reference.content.clone())
             .collect();
-        if !referenced.is_subset(&supplied) {
+        let mut available = supplied.clone();
+        if let Some(current) = &current {
+            available.extend(current.retention.objects.iter().cloned());
+        }
+        if !referenced.is_subset(&available) {
             return Err(ExecutionJournalError::MissingObject);
         }
         for object in &objects {
@@ -122,7 +243,6 @@ impl<B: JournalBackend> ExecutionJournal<B> {
                 return Err(ExecutionJournalError::MissingObject);
             }
         }
-        let record_object = JournalObject::from_bytes(bytes);
         let sequence = expected.map_or(0, |h| h.sequence + 1);
         let mut payloads = vec![record_object.id.clone()];
         payloads.extend(objects.iter().map(|o| o.object.id.clone()));
@@ -149,6 +269,12 @@ impl<B: JournalBackend> ExecutionJournal<B> {
         let mut records = Vec::new();
         let mut pins: Option<ExecutionPins> = None;
         let mut total = 0usize;
+        let mut causal = CausalState::default();
+        let mut snapshots = Vec::new();
+        let mut retention = RetentionRoots::default();
+        let mut current_evidence_set = evidence_set_datum(&causal.evidence)
+            .content_id()
+            .map_err(|_| ExecutionJournalError::Semantic("evidence set"))?;
         for entry in &verification.entries {
             if entry.payloads.is_empty()
                 || entry.kind.namespace.as_deref() != Some("roadmap-execution")
@@ -158,14 +284,20 @@ impl<B: JournalBackend> ExecutionJournal<B> {
                     reason: "foreign entry",
                 });
             }
+            let value = state
+                .datums
+                .get(&entry.payloads[0])
+                .ok_or(ExecutionJournalError::MissingObject)?;
             let bytes = state
                 .objects
                 .get(&entry.payloads[0])
                 .ok_or(ExecutionJournalError::MissingObject)?;
+            retention.entries.insert(entry.id.clone());
+            retention.objects.extend(entry.payloads.iter().cloned());
             total = total
                 .checked_add(bytes.len())
                 .ok_or(ExecutionJournalError::Budget("execution"))?;
-            let (execution, record) = codec::decode(bytes)?;
+            let (execution, record) = codec::decode_datum(value)?;
             if execution != self.execution_id {
                 return Err(ExecutionJournalError::ExecutionIdentity);
             }
@@ -185,16 +317,67 @@ impl<B: JournalBackend> ExecutionJournal<B> {
                     )
                     .ok_or(ExecutionJournalError::Budget("execution"))?;
             }
-            let partial = pins.as_ref().map(|p| RebuiltExecution {
-                execution_id: self.execution_id.clone(),
-                pins: p.clone(),
-                records: records.clone(),
-                head: head.clone(),
-                total_bytes: total,
-            });
-            validate_next(partial.as_ref(), &record, entry.sequence)?;
+            validate_next(pins.is_some(), &records, &record, entry.sequence)?;
             if let ExecutionRecord::ExecutionOpened { pins: opened, .. } = &record {
                 pins = Some(opened.clone());
+            }
+            match &record {
+                ExecutionRecord::SemanticDelta {
+                    changes,
+                    evidence_set,
+                    ..
+                } => {
+                    let changed = apply_changes(&mut causal.facts, changes, entry.sequence)?;
+                    let prior_evidence = causal.evidence.clone();
+                    let value = state
+                        .datums
+                        .get(evidence_set)
+                        .ok_or(ExecutionJournalError::MissingObject)?;
+                    let evidence = parse_evidence_set(value)?;
+                    if !causal.evidence.is_subset(&evidence) {
+                        return Err(ExecutionJournalError::Semantic(
+                            "evidence set dropped a retained member",
+                        ));
+                    }
+                    if !changed && evidence == prior_evidence {
+                        return Err(ExecutionJournalError::Illegal {
+                            sequence: entry.sequence,
+                            reason: "carry-state semantic delta",
+                        });
+                    }
+                    causal.evidence = evidence;
+                    current_evidence_set = evidence_set.clone();
+                }
+                ExecutionRecord::Snapshot {
+                    covers,
+                    state: state_id,
+                    evidence_set,
+                } => {
+                    if entry.previous.as_ref() != Some(covers)
+                        || evidence_set != &current_evidence_set
+                    {
+                        return Err(ExecutionJournalError::Semantic("snapshot prefix"));
+                    }
+                    let value = state
+                        .datums
+                        .get(state_id)
+                        .ok_or(ExecutionJournalError::MissingObject)?;
+                    let expected = causal_state_datum(&causal, evidence_set);
+                    if value != &expected
+                        || expected
+                            .content_id()
+                            .map_err(|_| ExecutionJournalError::Semantic("snapshot identity"))?
+                            != *state_id
+                    {
+                        return Err(ExecutionJournalError::Semantic("snapshot state"));
+                    }
+                    snapshots.push(VerifiedSnapshot {
+                        covers: covers.clone(),
+                        state: state_id.clone(),
+                        evidence_set: evidence_set.clone(),
+                    });
+                }
+                _ => {}
             }
             records.push(record);
         }
@@ -207,6 +390,9 @@ impl<B: JournalBackend> ExecutionJournal<B> {
             records,
             head,
             total_bytes: total,
+            causal,
+            snapshots,
+            retention,
         })
     }
 
@@ -219,6 +405,7 @@ impl<B: JournalBackend> ExecutionJournal<B> {
         })?;
         let mut prefix = StoredState {
             objects: state.objects.clone(),
+            datums: state.datums.clone(),
             ..StoredState::default()
         };
         let mut last = None;
@@ -292,128 +479,4 @@ impl<B: JournalBackend> MutationJournal for ExecutionJournal<B> {
         .map(|_| ())
         .map_err(|error| MutationError::Journal(error.to_string()))
     }
-}
-
-fn record_refs(record: &ExecutionRecord) -> BTreeSet<sim_kernel::ContentId> {
-    let mut ids = BTreeSet::new();
-    let mut add = |v: &Option<ObjectRef>| {
-        if let Some(v) = v {
-            ids.insert(v.content.clone());
-        }
-    };
-    match record {
-        ExecutionRecord::EffectRequested { input, .. } => add(input),
-        ExecutionRecord::EffectReceipt { output, .. } => add(output),
-        ExecutionRecord::ProofResult { evidence, .. } => add(evidence),
-        _ => {}
-    }
-    ids
-}
-fn validate_next(
-    state: Option<&RebuiltExecution>,
-    record: &ExecutionRecord,
-    sequence: u64,
-) -> Result<(), ExecutionJournalError> {
-    if state.is_none() {
-        return if matches!(record, ExecutionRecord::ExecutionOpened { .. }) {
-            Ok(())
-        } else {
-            Err(ExecutionJournalError::Illegal {
-                sequence,
-                reason: "genesis must open execution",
-            })
-        };
-    }
-    if matches!(record, ExecutionRecord::ExecutionOpened { .. }) {
-        return Err(ExecutionJournalError::Illegal {
-            sequence,
-            reason: "execution may only open once",
-        });
-    }
-    let records = &state.expect("checked").records;
-    if matches!(
-        records.last(),
-        Some(ExecutionRecord::TerminalReceipt { .. })
-    ) {
-        return Err(ExecutionJournalError::Illegal {
-            sequence,
-            reason: "terminal execution is sealed",
-        });
-    }
-    if let ExecutionRecord::EffectReceipt { effect_id, .. } = record {
-        let requested = records.iter().any(
-            |r| matches!(r,ExecutionRecord::EffectRequested{effect_id:id,..} if id==effect_id),
-        );
-        let duplicate = records
-            .iter()
-            .any(|r| matches!(r,ExecutionRecord::EffectReceipt{effect_id:id,..} if id==effect_id));
-        if !requested || duplicate {
-            return Err(ExecutionJournalError::Illegal {
-                sequence,
-                reason: "receipt must match one unresolved request",
-            });
-        }
-    }
-    if let ExecutionRecord::StateTransition { from, to } = record {
-        let current = records
-            .iter()
-            .rev()
-            .find_map(|r| {
-                if let ExecutionRecord::StateTransition { to, .. } = r {
-                    Some(to.as_str())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or("planned");
-        if current != from
-            || !matches!(
-                (from.as_str(), to.as_str()),
-                ("planned", "running")
-                    | ("running", "reconciling")
-                    | ("running", "failed")
-                    | ("reconciling", "succeeded")
-                    | ("reconciling", "failed")
-            )
-        {
-            return Err(ExecutionJournalError::Illegal {
-                sequence,
-                reason: "invalid state transition",
-            });
-        }
-    }
-    Ok(())
-}
-fn contains_secret(bytes: &[u8]) -> bool {
-    let lower = String::from_utf8_lossy(bytes).to_ascii_lowercase();
-    [
-        "api_key=",
-        "api-key:",
-        "authorization: bearer ",
-        "password=",
-        "private key-----",
-        "secret=",
-    ]
-    .iter()
-    .any(|p| lower.contains(p))
-}
-fn bounded_summary(value: &str) -> String {
-    value.chars().take(240).collect()
-}
-fn child_id(parent: &str, pins: &ExecutionPins) -> String {
-    let mut h = Sha256::new();
-    h.update(b"sim-roadmap-child-v1\0");
-    for s in [
-        parent,
-        &pins.conduct,
-        &pins.policy,
-        &pins.model_pick,
-        &pins.runner_generation,
-        &pins.source_deck.algorithm.as_qualified_str(),
-    ] {
-        h.update((s.len() as u64).to_be_bytes());
-        h.update(s.as_bytes());
-    }
-    h.update(pins.source_deck.bytes);
-    format!("{parent}-child-{:x}", h.finalize())
 }

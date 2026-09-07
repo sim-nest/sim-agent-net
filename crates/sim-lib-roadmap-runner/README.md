@@ -20,6 +20,15 @@ redaction and byte budgets, legal replay projection, and immutable identity
 branching. The storage crate remains the sole owner of objects, atomic fenced
 append, hash-chain verification, durable backends, and crash recovery.
 
+Semantic execution state is recorded as causes, not copied carry state.
+`append_delta` compares each fact's prior value, accumulates evidence in one
+persistent semantic set root, and emits nothing when a revision changes no
+meaning. `snapshot` persists the exact reducer state and binds it to the covered
+canonical head; replay verifies the snapshot before exposing it. A rebuilt
+execution publishes the entry and object retention roots needed for exact
+recovery. Optional `TelemetrySink` events stay outside this journal and cannot
+become execution truth.
+
 Roadmap refinement is loaded behavior, not a runner worker type. Load the
 shipped `roadmap/refiner-v1` `RefinerPackage` or a third-party package under the
 same proposal/result Shapes. `RefinerFace` exposes only grounded parent and

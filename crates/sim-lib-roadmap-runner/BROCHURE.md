@@ -4,7 +4,7 @@ In one line: Durable journal adapter for SIM work plan executions.
 
 ## What it gives you
 
-One bounded, redacted, hash-linked record family captures every work plan execution decision. Large data is stored once as content-addressed objects; replay verifies identity, order, legality, and complete object closure without repeating an effect. The same runner loads bounded work plan-refiner conduct as content-pinned data. Default and third-party strategies may suggest different decompositions, while one strict BRIDGE Shape and the public machine validator retain exclusive authority over grounding, lower-rank descent, complete promise coverage, global limits, and admission certificates. The loadable `work plan/implementer-v1` conduct turns grounded source and guide data into an. The contract keeps inputs, outputs, limits, and refusal cases explicit, so callers can compose the capability without acquiring unrelated host, transport, or product authority. Stable records make the result suitable for tests, inspection, and deterministic integration.
+One bounded, redacted, canonical record family captures every work plan execution decision. Cause-only semantic deltas avoid copied carry state, persistent evidence-set roots avoid linear reference lists, and verified snapshots bind exact reducer state to the covered head. Replay verifies identity, order, legality, retention roots, and complete object closure without repeating an effect. The same runner loads bounded plan-refiner and implementer conduct as content-pinned data while strict public validators retain authority over grounding, descent, promise coverage, limits, and admission.
 
 ## Why you will be glad
 

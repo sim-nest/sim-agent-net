@@ -132,3 +132,10 @@
         let head = log.append(Some(&head), receipt.clone(), vec![]).unwrap();
         assert!(matches!(
             log.append(Some(&head), receipt, vec![]),
+            Err(ExecutionJournalError::Illegal { .. })
+        ));
+        assert!(matches!(
+            log.open(pins(2), Some(&head)),
+            Err(ExecutionJournalError::ChildRequired { .. })
+        ));
+    }

@@ -6,7 +6,6 @@
 mod refiner_product;
 
 #[cfg(test)]
-
 #[cfg(test)]
 mod tests {
     include!("tests/common.rs");
@@ -16,10 +15,18 @@ mod tests {
 }
 
 #[cfg(test)]
-mod implementer_contract { include!("tests/implementer.rs"); }
+mod implementer_contract {
+    include!("tests/implementer.rs");
+}
 #[cfg(test)]
-mod supervisor_service { include!("tests/supervisor.rs"); }
+mod supervisor_service {
+    include!("tests/supervisor.rs");
+}
 #[cfg(test)]
-mod mutation_contract { include!("tests/mutation.rs"); }
+mod mutation_contract {
+    include!("tests/mutation.rs");
+}
 #[cfg(test)]
-mod proof_leaf_tests { include!("tests/proof_leaf.rs"); }
+mod proof_leaf_tests {
+    include!("tests/proof_leaf.rs");
+}
