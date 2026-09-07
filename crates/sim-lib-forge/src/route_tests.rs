@@ -5,8 +5,8 @@ use sim_codec_bridge::{
     stamp_packet_cid,
 };
 use sim_kernel::{
-    ContentId, Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, NumberLiteral, Result, Symbol,
-    testing::bare_cx,
+    ContentId, Cx, Datum, Error, EvalFabric, EvalReply, EvalRequest, Expr, NumberLiteral, Result,
+    Symbol, testing::bare_cx,
 };
 use sim_lib_agent_runner_core::ModelResponse;
 use sim_value::build::entry;
@@ -152,7 +152,7 @@ fn verifier_catalog(expected: &str) -> VerifyCatalog {
 }
 
 fn content_id(byte: u8) -> ContentId {
-    ContentId::from_bytes(Symbol::qualified("core", "sha256"), [byte; 32])
+    Datum::Bytes(vec![byte]).content_id().unwrap()
 }
 
 #[test]

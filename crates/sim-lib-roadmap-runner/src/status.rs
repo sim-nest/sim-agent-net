@@ -222,6 +222,10 @@ mod tests {
                 runner_generation: "runner".into(),
             },
             records,
+            opening_head: JournalHead {
+                sequence: 0,
+                entry: id(0),
+            },
             head: JournalHead {
                 sequence: 2,
                 entry: id(2),

@@ -19,12 +19,7 @@ impl Grounding {
             tag: Symbol::qualified("roadmap-refine", "grounding-v1"),
             fields: vec![(
                 Symbol::new("resolved"),
-                Datum::Vector(
-                    resolved
-                        .iter()
-                        .map(|q| Datum::String(format!("{q:?}")))
-                        .collect(),
-                ),
+                Datum::Vector(resolved.iter().map(source_query_datum).collect()),
             )],
         };
         Ok(Self {
@@ -53,12 +48,24 @@ pub struct RefinementProposal {
 
 pub fn phase_fingerprint(phase: &PhaseSpec) -> Result<ContentId, String> {
     Datum::Node {
-        tag: Symbol::qualified("roadmap-refine", "phase-fingerprint-v1"),
-        fields: vec![(
-            Symbol::new("normalized"),
-            Datum::String(format!("{phase:?}")),
-        )],
+        tag: Symbol::qualified("roadmap-refine", "PhaseFingerprintV2"),
+        fields: vec![(Symbol::new("phase"), phase.canonical_datum())],
     }
     .content_id()
     .map_err(|error| error.to_string())
+}
+
+fn source_query_datum(query: &SourceQuery) -> Datum {
+    let (kind, id) = match query {
+        SourceQuery::Anchor(id) => ("anchor", id),
+        SourceQuery::Excerpt(id) => ("excerpt", id),
+        SourceQuery::Specimen(id) => ("specimen", id),
+    };
+    Datum::Node {
+        tag: Symbol::qualified("roadmap-refine", "SourceQueryV1"),
+        fields: vec![
+            (Symbol::new("kind"), Datum::Symbol(Symbol::new(kind))),
+            (Symbol::new("id"), Datum::String(id.clone())),
+        ],
+    }
 }

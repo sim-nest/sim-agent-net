@@ -384,10 +384,18 @@ impl<B: JournalBackend> ExecutionJournal<B> {
         if total > self.limits.max_execution_bytes {
             return Err(ExecutionJournalError::Budget("execution"));
         }
+        let opening_entry = verification
+            .entries
+            .first()
+            .ok_or(ExecutionJournalError::Empty)?;
         Ok(RebuiltExecution {
             execution_id: self.execution_id.clone(),
             pins: pins.ok_or(ExecutionJournalError::ExecutionIdentity)?,
             records,
+            opening_head: JournalHead {
+                sequence: opening_entry.sequence,
+                entry: opening_entry.id.clone(),
+            },
             head,
             total_bytes: total,
             causal,
@@ -443,7 +451,7 @@ impl<B: JournalBackend> MutationJournal for ExecutionJournal<B> {
         self.append(
             Some(&state.head),
             ExecutionRecord::EffectRequested {
-                effect_id: format!("mutation:{}", mutation_id_text(plan.id)),
+                effect_id: format!("mutation:{}", mutation_id_text(&plan.id)),
                 kind: "sealed-mutation-plan".into(),
                 input: Some(input),
             },
@@ -455,7 +463,7 @@ impl<B: JournalBackend> MutationJournal for ExecutionJournal<B> {
 
     fn append_fence(
         &mut self,
-        plan_id: [u8; 32],
+        plan_id: ContentId,
         fence: MutationFence,
     ) -> Result<(), MutationError> {
         let state = self
@@ -471,7 +479,7 @@ impl<B: JournalBackend> MutationJournal for ExecutionJournal<B> {
         self.append(
             Some(&state.head),
             ExecutionRecord::MutationFence {
-                mutation_id: mutation_id_text(plan_id),
+                mutation_id: mutation_id_text(&plan_id),
                 expected,
             },
             Vec::new(),

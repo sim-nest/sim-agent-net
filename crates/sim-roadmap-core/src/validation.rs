@@ -60,6 +60,19 @@ fn validate_phase(phase: &PhaseSpec, spec: &RoadmapSpec) -> Result<(), Failure> 
         }
     }
     validate_guide(&phase.guide, l)?;
+    for statement in phase.acceptance.statements.values() {
+        for reference in std::iter::once(&statement.subject)
+            .chain(std::iter::once(&statement.object))
+            .chain(statement.supporting_refs.iter())
+        {
+            if matches!(reference, Ref::Handle(_)) {
+                return Err(Failure::InvalidText {
+                    kind: "acceptance reference",
+                    reason: "process-local handle",
+                });
+            }
+        }
+    }
     for dep in &phase.dependencies {
         validate_dependency(dep, spec)?;
     }

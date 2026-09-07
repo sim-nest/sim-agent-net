@@ -10,7 +10,7 @@
         program: "tool:harmless".into(), argv: vec!["literal;not-shell".into()], working_directory: "/source".into(),
         environment: BTreeMap::new(), allowed_environment_keys: BTreeSet::new(), source_mount: "source:deck".into(),
         scratch_mount: Some("scratch:proof".into()), source_read_only: true, limits: limits(),
-        expected: StructuredExpectation { stdout_sha256: "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df".into(), exit_code: 0 } } }
+        expected: StructuredExpectation { stdout: ProofOutputId::from_sha256_hex("2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df").unwrap(), exit_code: 0 } } }
     fn report(request: &SandboxRequest, hits: Vec<String>) -> SandboxReport { SandboxReport {
         launcher: "fixture".into(), controls: request.policy.requirements().keys().map(|control| SandboxEvidence {
             control: *control, achieved: true, detail: "isolated".into() }).collect(), limit_hits: hits, cleanup: "sandbox:bounded/reaped".into() } }
@@ -41,17 +41,17 @@
     #[test]
     fn hostile_catalog_and_sandbox_are_fail_closed() {
         let mut invalid = command("shell"); invalid.program = "sh -c env".into();
-        assert!(ProofCatalog::new([ProofLeaf::Command(invalid)]).is_err());
+        assert!(ProofCatalog::new([ProofLeaf::command(invalid)]).is_err());
         let mut invalid = command("ambient"); invalid.environment.insert("HOME".into(), "/host".into());
-        assert!(ProofCatalog::new([ProofLeaf::Command(invalid)]).is_err());
+        assert!(ProofCatalog::new([ProofLeaf::command(invalid)]).is_err());
         let mut invalid = command("secret"); invalid.environment.insert("API_TOKEN".into(), "steal".into()); invalid.allowed_environment_keys.insert("API_TOKEN".into());
-        assert!(ProofCatalog::new([ProofLeaf::Command(invalid)]).is_err());
+        assert!(ProofCatalog::new([ProofLeaf::command(invalid)]).is_err());
         let mut invalid = command("absolute"); invalid.source_mount = "/host/source".into();
-        assert!(ProofCatalog::new([ProofLeaf::Command(invalid)]).is_err());
+        assert!(ProofCatalog::new([ProofLeaf::command(invalid)]).is_err());
         let mut invalid = command("writeable"); invalid.source_read_only = false;
-        assert!(ProofCatalog::new([ProofLeaf::Command(invalid)]).is_err());
+        assert!(ProofCatalog::new([ProofLeaf::command(invalid)]).is_err());
         for mode in ["flood", "fork", "timeout", "malformed", "write", "network"] {
-            let catalog = ProofCatalog::new([ProofLeaf::Command(command(mode))]).unwrap();
+            let catalog = ProofCatalog::new([ProofLeaf::command(command(mode))]).unwrap();
             let receipt = execute_proof_leaf(&catalog, mode, &Launcher { calls: AtomicUsize::new(0), mode }, &ProcessCancellation::default(), "fixed").unwrap();
             assert_ne!(receipt.disposition, ProofDisposition::Passed, "{mode}");
         }
@@ -67,7 +67,7 @@
 
     #[test]
     fn recorded_no_model_command_replays_without_launch() {
-        let catalog = ProofCatalog::new([ProofLeaf::Command(command("no-model"))]).unwrap();
+        let catalog = ProofCatalog::new([ProofLeaf::command(command("no-model"))]).unwrap();
         let journal = ExecutionJournal::new(Arc::new(MemoryBackend::new()), "proof", Limits::default());
         let pins = ExecutionPins { conduct: "conduct".into(), policy: "policy".into(), source_deck: ContentId::from_bytes(Symbol::qualified("deck", "sha256-v1"), [1; 32]), model_pick: "none".into(), runner_generation: "runner".into() };
         let mut state = journal.open(pins, None).unwrap(); let store = Store::default();

@@ -1070,10 +1070,7 @@ fn fixture() -> (
     let execution = ExecutionId::new("execution").unwrap();
     let phase = PhaseId::new("phase").unwrap();
     let attempt = AttemptId::new("attempt").unwrap();
-    let transition = Transition {
-        journal_head: cid(0),
-        ..Transition::default()
-    };
+    let transition = Transition::planned(cid(0));
     (policy, plan, execution, phase, attempt, transition)
 }
 fn event(
@@ -1087,11 +1084,7 @@ fn event(
         execution: execution.clone(),
         phase: phase.clone(),
         attempt: attempt.clone(),
-        observation: Observation {
-            kind: Symbol::new(kind),
-            journal_head: cid(head),
-            ..Observation::default()
-        },
+        observation: Observation::new(Symbol::new(kind), cid(head)),
     }
 }
 
@@ -1941,6 +1934,10 @@ mod tests {
                 runner_generation: "runner".into(),
             },
             records,
+            opening_head: JournalHead {
+                sequence: 0,
+                entry: id(0),
+            },
             head: JournalHead {
                 sequence: 2,
                 entry: id(2),
@@ -2109,11 +2106,7 @@ mod bounded_service {
                 execution: identity.execution.clone(),
                 phase: phase.clone(),
                 attempt: AttemptId::new("attempt").unwrap(),
-                observation: Observation {
-                    kind: Symbol::new("start"),
-                    journal_head: cid(20),
-                    ..Default::default()
-                },
+                observation: Observation::new(Symbol::new("start"), cid(20)),
             };
             self.0.lock().unwrap().push(event.clone());
             Ok(event)
@@ -2923,7 +2916,7 @@ Source `crates/sim-lib-roadmap-runner/src/compatibility.rs`:
 //! path, or transition authority. A private host may compare them with an oracle;
 //! the public runner can only describe what it observed and propose a transition.
 
-use sha2::{Digest, Sha256};
+use sim_kernel::{ContentId, Datum, Symbol};
 
 /// The dimensions compared by shadow qualification. Explanatory prose is not a
 /// dimension: only its sanitized content identity is compared.
@@ -3012,11 +3005,53 @@ impl ShadowObservation {
         Ok(lines.join("\n") + "\n")
     }
 
-    pub fn content_id(&self) -> Result<String, &'static str> {
-        Ok(format!(
-            "sha256:{:x}",
-            Sha256::digest(self.canonical()?.as_bytes())
-        ))
+    pub fn content_id(&self) -> Result<ContentId, &'static str> {
+        self.validate()?;
+        Datum::Node {
+            tag: Symbol::qualified("roadmap-runner", "ShadowObservationIdentityV2"),
+            fields: vec![
+                (Symbol::new("case-id"), Datum::String(self.case_id.clone())),
+                (
+                    Symbol::new("category"),
+                    Datum::String(self.category.clone()),
+                ),
+                (
+                    Symbol::new("classification"),
+                    Datum::Symbol(Symbol::qualified(
+                        "shadow-classification",
+                        self.classification.as_str(),
+                    )),
+                ),
+                (
+                    Symbol::new("dimensions"),
+                    Datum::List(
+                        SHADOW_DIMENSIONS
+                            .iter()
+                            .zip(&self.dimensions)
+                            .map(|(name, value)| Datum::Node {
+                                tag: Symbol::qualified("roadmap-runner", "ShadowDimensionV1"),
+                                fields: vec![
+                                    (Symbol::new("name"), Datum::String((*name).to_owned())),
+                                    (Symbol::new("value"), Datum::String(value.clone())),
+                                ],
+                            })
+                            .collect(),
+                    ),
+                ),
+                (
+                    Symbol::new("evidence-refs"),
+                    Datum::Set(
+                        self.evidence_refs
+                            .iter()
+                            .cloned()
+                            .map(Datum::String)
+                            .collect(),
+                    ),
+                ),
+            ],
+        }
+        .content_id()
+        .map_err(|_| "shadow observation is not canonical")
     }
 }
 
@@ -3040,6 +3075,41 @@ mod tests {
             assert!(rendered.contains(&format!("dimension.{dimension}=")));
         }
         assert_eq!(value.content_id(), value.content_id());
+        let identity = value.content_id().unwrap();
+        assert_eq!(identity.algorithm, sim_kernel::datum_content_algorithm());
+        assert_eq!(identity.bytes.len(), 32);
+    }
+    #[test]
+    fn identity_covers_every_semantic_field_and_treats_evidence_as_a_set() {
+        let baseline = specimen();
+        let expected = baseline.content_id().unwrap();
+        let mut variants = Vec::new();
+        let mut value = baseline.clone();
+        value.case_id = "other-case".into();
+        variants.push(value);
+        let mut value = baseline.clone();
+        value.category = "other-category".into();
+        variants.push(value);
+        let mut value = baseline.clone();
+        value.classification = CompatibilityClass::IntentionallyChanged;
+        variants.push(value);
+        for index in 0..SHADOW_DIMENSIONS.len() {
+            let mut value = baseline.clone();
+            value.dimensions[index] = format!("other-{index}");
+            variants.push(value);
+        }
+        let mut value = baseline.clone();
+        value.evidence_refs.push("content:other".into());
+        variants.push(value);
+        for value in variants {
+            assert_ne!(value.content_id().unwrap(), expected);
+        }
+
+        let mut reordered = baseline;
+        reordered.evidence_refs.push("content:second".into());
+        let expected = reordered.content_id().unwrap();
+        reordered.evidence_refs.reverse();
+        assert_eq!(reordered.content_id().unwrap(), expected);
     }
     #[test]
     fn rejects_private_or_control_plane_values() {
@@ -4456,6 +4526,33 @@ impl Lower for RankRelation {
         matches!(self, Self::Lower { .. })
     }
 }
+
+#[test]
+fn grounding_and_phase_ids_use_complete_tagged_semantic_data() {
+    let left = Grounding::new(vec![
+        SourceQuery::Anchor("a".into()),
+        SourceQuery::Specimen("b".into()),
+    ])
+    .unwrap();
+    let reordered = Grounding::new(vec![
+        SourceQuery::Specimen("b".into()),
+        SourceQuery::Anchor("a".into()),
+    ])
+    .unwrap();
+    assert_eq!(left.id.0.algorithm, sim_kernel::datum_content_algorithm());
+    assert_ne!(left.id, reordered.id);
+
+    let phase = parent_phase("identity", 1);
+    let mut changed = phase.clone();
+    changed
+        .capabilities
+        .capabilities
+        .insert(CapabilityId::new("network").unwrap());
+    assert_ne!(
+        phase_fingerprint(&phase).unwrap(),
+        phase_fingerprint(&changed).unwrap()
+    );
+}
 ```
 
 ### `feature/sim-agent-net/loadable-roadmap-refiner-conduct`
@@ -5376,6 +5473,75 @@ fn claimed_revision_is_verified_without_self_hashing() {
         Err(Failure::ClaimedRevisionMismatch)
     ));
 }
+
+#[test]
+fn revision_identity_covers_limits_and_complete_phase_semantics() {
+    let change = RevisionChange {
+        id: ChangeId::new("identity").unwrap(),
+        rationale: "Exercise complete semantic identity".into(),
+    };
+    let base = spec([phase("root", ImplementationGuide::default())]);
+    let base_id = RoadmapRevision::new(None, base.clone(), change.clone())
+        .unwrap()
+        .id()
+        .clone();
+
+    let mut changed_limit = base.clone();
+    changed_limit.limits.document_bytes += 1;
+    assert_ne!(
+        base_id,
+        RoadmapRevision::new(None, changed_limit, change.clone())
+            .unwrap()
+            .id()
+            .clone()
+    );
+
+    let mut changed_phase = base;
+    changed_phase
+        .phases
+        .get_mut(&PhaseId::new("root").unwrap())
+        .unwrap()
+        .effects
+        .effects
+        .insert(EffectId::new("filesystem").unwrap());
+    assert_ne!(
+        base_id,
+        RoadmapRevision::new(None, changed_phase, change)
+            .unwrap()
+            .id()
+            .clone()
+    );
+}
+
+#[test]
+fn process_local_handles_are_refused_before_revision_identity() {
+    let mut root = phase("root", ImplementationGuide::default());
+    let obligation = ObligationId::new("stable").unwrap();
+    root.acceptance.statements.insert(
+        obligation.clone(),
+        AcceptanceStatement {
+            obligation,
+            subject: Ref::Handle(sim_kernel::HandleSeed::new(1).sequence().next_handle()),
+            predicate: Symbol::new("satisfies"),
+            object: Ref::Symbol(Symbol::new("contract")),
+            supporting_refs: Vec::new(),
+        },
+    );
+    assert!(matches!(
+        RoadmapRevision::new(
+            None,
+            spec([root]),
+            RevisionChange {
+                id: ChangeId::new("handle").unwrap(),
+                rationale: "Reject local authority".into(),
+            },
+        ),
+        Err(Failure::InvalidText {
+            kind: "acceptance reference",
+            reason: "process-local handle",
+        })
+    ));
+}
 // conformance: roadmap-core tests prove bounded admission, inheritance, and graph laws.
 ```
 
@@ -5927,6 +6093,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 use sim_conformance_core::CheckerReceiptId;
+use sim_kernel::{ContentId, Symbol};
 use sim_lib_exec::{
     ArgAtom, MountAccess, ProcessCancellation, ProgramRef, SandboxAttempt, SandboxControl,
     SandboxLauncher, SandboxLimits, SandboxMount, SandboxPolicy, SandboxRequest,
@@ -5975,7 +6142,7 @@ impl ProofCatalog {
 
 #[derive(Clone, Debug)]
 pub enum ProofLeaf {
-    Command(CommandProof),
+    Command(Box<CommandProof>),
     ArtifactEquality {
         name: String,
         left: Vec<u8>,
@@ -5991,6 +6158,11 @@ pub enum ProofLeaf {
 }
 
 impl ProofLeaf {
+    /// Wraps a command proof without inflating every pure proof leaf.
+    pub fn command(proof: CommandProof) -> Self {
+        Self::Command(Box::new(proof))
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Self::Command(v) => &v.name,
@@ -6044,8 +6216,46 @@ pub struct CommandProof {
 
 #[derive(Clone, Debug)]
 pub struct StructuredExpectation {
-    pub stdout_sha256: String,
+    pub stdout: ProofOutputId,
     pub exit_code: i32,
+}
+
+/// Byte-address identity for exact sandbox output.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProofOutputId(ContentId);
+
+impl ProofOutputId {
+    /// Addresses exact output bytes with the registered byte digest algorithm.
+    pub fn sha256(bytes: &[u8]) -> Self {
+        Self(ContentId::from_bytes(
+            Symbol::qualified("core", "sha256"),
+            Sha256::digest(bytes).into(),
+        ))
+    }
+
+    /// Decodes a configured lowercase or uppercase SHA-256 digest.
+    pub fn from_sha256_hex(hex: &str) -> Result<Self, ProofError> {
+        if hex.len() != 64 || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(ProofError::Invalid(
+                "expected result is not a sha256 digest".into(),
+            ));
+        }
+        let mut bytes = [0_u8; 32];
+        for (index, slot) in bytes.iter_mut().enumerate() {
+            let start = index * 2;
+            *slot = u8::from_str_radix(&hex[start..start + 2], 16)
+                .map_err(|_| ProofError::Invalid("invalid sha256 digest".into()))?;
+        }
+        Ok(Self(ContentId::from_bytes(
+            Symbol::qualified("core", "sha256"),
+            bytes,
+        )))
+    }
+
+    /// Returns the typed storage identity.
+    pub const fn content_id(&self) -> &ContentId {
+        &self.0
+    }
 }
 
 impl CommandProof {
@@ -6094,15 +6304,9 @@ impl CommandProof {
                 "credential-shaped environment key".into(),
             ));
         }
-        if self.expected.stdout_sha256.len() != 64
-            || !self
-                .expected
-                .stdout_sha256
-                .bytes()
-                .all(|v| v.is_ascii_hexdigit())
-        {
+        if self.expected.stdout.0.algorithm != Symbol::qualified("core", "sha256") {
             return Err(ProofError::Invalid(
-                "expected result is not a sha256 digest".into(),
+                "expected result uses a non-byte digest algorithm".into(),
             ));
         }
         Ok(())
@@ -6185,8 +6389,8 @@ pub struct TypedProofReceipt {
     pub truncated: bool,
     pub launcher_identity: Option<String>,
     pub sandbox_identity: Option<String>,
-    pub stdout_object: Option<String>,
-    pub stderr_object: Option<String>,
+    pub stdout_object: Option<ProofOutputId>,
+    pub stderr_object: Option<ProofOutputId>,
     pub observed_at: String,
     pub semantic_detail: String,
 }
@@ -6394,7 +6598,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use sha2::{Digest, Sha256};
+use sim_kernel::{ContentId, Datum, NumberLiteral, Symbol};
 use thiserror::Error;
 
 use crate::{ResumeDecision, classify_plan};
@@ -6449,7 +6653,7 @@ pub struct SealedEntry {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SealedMutationPlan {
-    pub id: [u8; 32],
+    pub id: ContentId,
     pub entries: Vec<SealedEntry>,
     pub total_postimage_bytes: usize,
 }
@@ -6499,7 +6703,7 @@ impl SealedMutationPlan {
                 postimage,
             })
             .collect();
-        let id = plan_digest(&entries);
+        let id = plan_digest(&entries)?;
         Ok(Self {
             id,
             entries,
@@ -6519,21 +6723,23 @@ fn validate_relative_path(path: &str) -> Result<(), MutationError> {
     Ok(())
 }
 
-fn plan_digest(entries: &[SealedEntry]) -> [u8; 32] {
-    let mut h = Sha256::new();
-    h.update(b"sim-roadmap-mutation-v1\0");
-    for e in entries {
-        digest_field(&mut h, e.path.as_bytes());
-        digest_image(&mut h, &e.preimage);
-        digest_image(&mut h, &e.postimage);
+fn plan_digest(entries: &[SealedEntry]) -> Result<ContentId, MutationError> {
+    Datum::Node {
+        tag: Symbol::qualified("roadmap-runner", "MutationPlanIdentityV2"),
+        fields: vec![(
+            Symbol::new("entries"),
+            Datum::List(entries.iter().map(entry_datum).collect()),
+        )],
     }
-    h.finalize().into()
+    .content_id()
+    .map_err(|error| MutationError::Identity(error.to_string()))
 }
 
 pub(crate) fn encode_plan(plan: &SealedMutationPlan) -> Vec<u8> {
     let mut out = Vec::new();
-    out.extend_from_slice(b"sim-roadmap-mutation-plan-v1\0");
-    out.extend_from_slice(&plan.id);
+    out.extend_from_slice(b"sim-roadmap-mutation-plan-v2\0");
+    encode_bytes(&mut out, plan.id.algorithm.as_qualified_str().as_bytes());
+    out.extend_from_slice(&plan.id.bytes);
     out.extend_from_slice(&(plan.entries.len() as u32).to_be_bytes());
     for entry in &plan.entries {
         encode_bytes(&mut out, entry.path.as_bytes());
@@ -6559,28 +6765,48 @@ fn encode_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
     out.extend_from_slice(bytes);
 }
 
-pub(crate) fn mutation_id_text(id: [u8; 32]) -> String {
+pub(crate) fn mutation_id_text(id: &ContentId) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut out = String::with_capacity(64);
-    for byte in id {
+    let mut out = format!("{}:", id.algorithm);
+    for byte in id.bytes {
         out.push(HEX[(byte >> 4) as usize] as char);
         out.push(HEX[(byte & 0xf) as usize] as char);
     }
     out
 }
-fn digest_field(h: &mut Sha256, bytes: &[u8]) {
-    h.update((bytes.len() as u64).to_be_bytes());
-    h.update(bytes);
-}
-fn digest_image(h: &mut Sha256, image: &PortableImage) {
-    match (&image.bytes, image.mode) {
-        (Some(bytes), Some(mode)) => {
-            h.update([1]);
-            h.update(mode.to_be_bytes());
-            digest_field(h, bytes);
-        }
-        _ => h.update([0]),
+
+fn entry_datum(entry: &SealedEntry) -> Datum {
+    Datum::Node {
+        tag: Symbol::qualified("roadmap-runner", "MutationEntryV1"),
+        fields: vec![
+            (Symbol::new("path"), Datum::String(entry.path.clone())),
+            (Symbol::new("preimage"), image_datum(&entry.preimage)),
+            (Symbol::new("postimage"), image_datum(&entry.postimage)),
+        ],
     }
+}
+
+fn image_datum(image: &PortableImage) -> Datum {
+    match (&image.bytes, image.mode) {
+        (Some(bytes), Some(mode)) => Datum::Node {
+            tag: Symbol::qualified("roadmap-runner", "FileImageV1"),
+            fields: vec![
+                (Symbol::new("mode"), u64_datum(u64::from(mode))),
+                (Symbol::new("bytes"), Datum::Bytes(bytes.clone())),
+            ],
+        },
+        _ => Datum::Node {
+            tag: Symbol::qualified("roadmap-runner", "AbsentImageV1"),
+            fields: Vec::new(),
+        },
+    }
+}
+
+fn u64_datum(value: u64) -> Datum {
+    Datum::Number(NumberLiteral {
+        domain: Symbol::qualified("numbers", "u64"),
+        canonical: value.to_string(),
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -6596,7 +6822,7 @@ pub trait MutationJournal {
     fn put_plan(&mut self, plan: &SealedMutationPlan) -> Result<(), MutationError>;
     fn append_fence(
         &mut self,
-        plan_id: [u8; 32],
+        plan_id: ContentId,
         fence: MutationFence,
     ) -> Result<(), MutationError>;
 }
@@ -6661,7 +6887,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
             }
             ResumeDecision::Committed => {
                 return Ok(MutationReceipt {
-                    plan_id: plan.id,
+                    plan_id: plan.id.clone(),
                     durability: self.workspace.durability(),
                 });
             }
@@ -6670,7 +6896,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
         fail(Failpoint::BeforeObjectPut)?;
         self.journal.put_plan(plan)?;
         fail(Failpoint::AfterObjectPut)?;
-        self.fence(plan.id, MutationFence::Prepared, &mut fail)?;
+        self.fence(&plan.id, MutationFence::Prepared, &mut fail)?;
         self.resume_apply(plan, &mut fail)
     }
 
@@ -6688,7 +6914,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
             ResumeDecision::Committed => Vec::new(),
             ResumeDecision::Apply { paths } => paths,
             ResumeDecision::Ambiguous { foreign_paths } => {
-                self.fence(plan.id, MutationFence::Ambiguous, fail)?;
+                self.fence(&plan.id, MutationFence::Ambiguous, fail)?;
                 return Err(MutationError::Ambiguous { foreign_paths });
             }
         };
@@ -6696,7 +6922,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
             if !paths.contains(&entry.path) {
                 continue;
             }
-            self.fence(plan.id, MutationFence::Applying(index), fail)?;
+            self.fence(&plan.id, MutationFence::Applying(index), fail)?;
             self.workspace.apply(entry, fail)?;
             fail(Failpoint::BeforePostimageObservation)?;
             let actual = self.workspace.observe(&entry.path)?;
@@ -6705,12 +6931,12 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
                 return Err(MutationError::PostimageMismatch(entry.path.clone()));
             }
         }
-        self.fence(plan.id, MutationFence::Verifying, fail)?;
+        self.fence(&plan.id, MutationFence::Verifying, fail)?;
         match classify_plan(plan, &self.observe_all(plan)?) {
             ResumeDecision::Committed => {
-                self.fence(plan.id, MutationFence::Committed, fail)?;
+                self.fence(&plan.id, MutationFence::Committed, fail)?;
                 Ok(MutationReceipt {
-                    plan_id: plan.id,
+                    plan_id: plan.id.clone(),
                     durability: self.workspace.durability(),
                 })
             }
@@ -6723,12 +6949,12 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
 
     fn fence(
         &mut self,
-        id: [u8; 32],
+        id: &ContentId,
         fence: MutationFence,
         fail: &mut dyn FnMut(Failpoint) -> Result<(), MutationError>,
     ) -> Result<(), MutationError> {
         fail(Failpoint::BeforeJournalAppend)?;
-        self.journal.append_fence(id, fence)?;
+        self.journal.append_fence(id.clone(), fence)?;
         fail(Failpoint::AfterJournalAppend)
     }
 
@@ -6762,7 +6988,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MutationReceipt {
-    pub plan_id: [u8; 32],
+    pub plan_id: ContentId,
     pub durability: Durability,
 }
 
@@ -6796,6 +7022,8 @@ pub enum MutationError {
     Io(#[from] io::Error),
     #[error("injected failure at {0:?}")]
     Injected(Failpoint),
+    #[error("mutation identity is not canonical: {0}")]
+    Identity(String),
     #[error("journal failure: {0}")]
     Journal(String),
 }

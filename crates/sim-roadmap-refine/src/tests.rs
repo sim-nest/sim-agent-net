@@ -397,3 +397,30 @@ impl Lower for RankRelation {
         matches!(self, Self::Lower { .. })
     }
 }
+
+#[test]
+fn grounding_and_phase_ids_use_complete_tagged_semantic_data() {
+    let left = Grounding::new(vec![
+        SourceQuery::Anchor("a".into()),
+        SourceQuery::Specimen("b".into()),
+    ])
+    .unwrap();
+    let reordered = Grounding::new(vec![
+        SourceQuery::Specimen("b".into()),
+        SourceQuery::Anchor("a".into()),
+    ])
+    .unwrap();
+    assert_eq!(left.id.0.algorithm, sim_kernel::datum_content_algorithm());
+    assert_ne!(left.id, reordered.id);
+
+    let phase = parent_phase("identity", 1);
+    let mut changed = phase.clone();
+    changed
+        .capabilities
+        .capabilities
+        .insert(CapabilityId::new("network").unwrap());
+    assert_ne!(
+        phase_fingerprint(&phase).unwrap(),
+        phase_fingerprint(&changed).unwrap()
+    );
+}

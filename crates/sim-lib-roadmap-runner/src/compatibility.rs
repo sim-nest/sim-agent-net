@@ -5,7 +5,7 @@
 //! path, or transition authority. A private host may compare them with an oracle;
 //! the public runner can only describe what it observed and propose a transition.
 
-use sha2::{Digest, Sha256};
+use sim_kernel::{ContentId, Datum, Symbol};
 
 /// The dimensions compared by shadow qualification. Explanatory prose is not a
 /// dimension: only its sanitized content identity is compared.
@@ -94,11 +94,53 @@ impl ShadowObservation {
         Ok(lines.join("\n") + "\n")
     }
 
-    pub fn content_id(&self) -> Result<String, &'static str> {
-        Ok(format!(
-            "sha256:{:x}",
-            Sha256::digest(self.canonical()?.as_bytes())
-        ))
+    pub fn content_id(&self) -> Result<ContentId, &'static str> {
+        self.validate()?;
+        Datum::Node {
+            tag: Symbol::qualified("roadmap-runner", "ShadowObservationIdentityV2"),
+            fields: vec![
+                (Symbol::new("case-id"), Datum::String(self.case_id.clone())),
+                (
+                    Symbol::new("category"),
+                    Datum::String(self.category.clone()),
+                ),
+                (
+                    Symbol::new("classification"),
+                    Datum::Symbol(Symbol::qualified(
+                        "shadow-classification",
+                        self.classification.as_str(),
+                    )),
+                ),
+                (
+                    Symbol::new("dimensions"),
+                    Datum::List(
+                        SHADOW_DIMENSIONS
+                            .iter()
+                            .zip(&self.dimensions)
+                            .map(|(name, value)| Datum::Node {
+                                tag: Symbol::qualified("roadmap-runner", "ShadowDimensionV1"),
+                                fields: vec![
+                                    (Symbol::new("name"), Datum::String((*name).to_owned())),
+                                    (Symbol::new("value"), Datum::String(value.clone())),
+                                ],
+                            })
+                            .collect(),
+                    ),
+                ),
+                (
+                    Symbol::new("evidence-refs"),
+                    Datum::Set(
+                        self.evidence_refs
+                            .iter()
+                            .cloned()
+                            .map(Datum::String)
+                            .collect(),
+                    ),
+                ),
+            ],
+        }
+        .content_id()
+        .map_err(|_| "shadow observation is not canonical")
     }
 }
 
@@ -122,6 +164,41 @@ mod tests {
             assert!(rendered.contains(&format!("dimension.{dimension}=")));
         }
         assert_eq!(value.content_id(), value.content_id());
+        let identity = value.content_id().unwrap();
+        assert_eq!(identity.algorithm, sim_kernel::datum_content_algorithm());
+        assert_eq!(identity.bytes.len(), 32);
+    }
+    #[test]
+    fn identity_covers_every_semantic_field_and_treats_evidence_as_a_set() {
+        let baseline = specimen();
+        let expected = baseline.content_id().unwrap();
+        let mut variants = Vec::new();
+        let mut value = baseline.clone();
+        value.case_id = "other-case".into();
+        variants.push(value);
+        let mut value = baseline.clone();
+        value.category = "other-category".into();
+        variants.push(value);
+        let mut value = baseline.clone();
+        value.classification = CompatibilityClass::IntentionallyChanged;
+        variants.push(value);
+        for index in 0..SHADOW_DIMENSIONS.len() {
+            let mut value = baseline.clone();
+            value.dimensions[index] = format!("other-{index}");
+            variants.push(value);
+        }
+        let mut value = baseline.clone();
+        value.evidence_refs.push("content:other".into());
+        variants.push(value);
+        for value in variants {
+            assert_ne!(value.content_id().unwrap(), expected);
+        }
+
+        let mut reordered = baseline;
+        reordered.evidence_refs.push("content:second".into());
+        let expected = reordered.content_id().unwrap();
+        reordered.evidence_refs.reverse();
+        assert_eq!(reordered.content_id().unwrap(), expected);
     }
     #[test]
     fn rejects_private_or_control_plane_values() {

@@ -328,6 +328,13 @@ pub struct PhaseSpec {
     pub origin: PhaseOrigin,
 }
 
+impl PhaseSpec {
+    /// Returns the complete canonical semantic form used by roadmap revisions.
+    pub fn canonical_datum(&self) -> Datum {
+        phase_datum(self)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RoadmapSpec {
     pub schema: SchemaId,

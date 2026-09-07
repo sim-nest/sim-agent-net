@@ -38,7 +38,7 @@ fn command(name: &str, output: &[u8]) -> CommandProof {
         source_read_only: true,
         limits: limits(),
         expected: StructuredExpectation {
-            stdout_sha256: hex_sha256(output),
+            stdout: ProofOutputId::sha256(output),
             exit_code: 0,
         },
     }
@@ -139,6 +139,25 @@ fn pins() -> ExecutionPins {
     }
 }
 
+#[test]
+fn proof_output_identity_is_a_typed_full_width_byte_address() {
+    let expected = ProofOutputId::sha256(b"output");
+    assert_eq!(
+        expected.content_id().algorithm,
+        Symbol::qualified("core", "sha256")
+    );
+    assert_eq!(expected.content_id().bytes.len(), 32);
+    assert_ne!(expected, ProofOutputId::sha256(b"other output"));
+    let text = expected
+        .content_id()
+        .bytes
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    assert_eq!(ProofOutputId::from_sha256_hex(&text).unwrap(), expected);
+    assert!(ProofOutputId::from_sha256_hex("short").is_err());
+}
+
 fn sid<K: IdKind>(value: &str) -> SemanticId<K> {
     SemanticId::from_text(value).unwrap()
 }
@@ -195,9 +214,9 @@ fn catalog_rejects_every_policy_widening_and_shell_escape() {
     cwd.working_directory = "/etc".into();
     cases.push(cwd);
     for leaf in cases {
-        assert!(ProofCatalog::new([ProofLeaf::Command(leaf)]).is_err());
+        assert!(ProofCatalog::new([ProofLeaf::command(leaf)]).is_err());
     }
-    let catalog = ProofCatalog::new([ProofLeaf::Command(command("known", b"ok"))]).unwrap();
+    let catalog = ProofCatalog::new([ProofLeaf::command(command("known", b"ok"))]).unwrap();
     assert!(matches!(
         catalog.leaf("conduct-injected"),
         Err(ProofError::NotCatalogued(_))
@@ -207,7 +226,7 @@ fn catalog_rejects_every_policy_widening_and_shell_escape() {
 #[test]
 fn hostile_process_specimens_are_denied_or_bounded_and_exit_zero_is_not_proof() {
     for mode in ["flood", "fork", "timeout", "malformed", "write", "network"] {
-        let catalog = ProofCatalog::new([ProofLeaf::Command(command(mode, b"ok"))]).unwrap();
+        let catalog = ProofCatalog::new([ProofLeaf::command(command(mode, b"ok"))]).unwrap();
         let launcher = FakeLauncher {
             calls: AtomicUsize::new(0),
             mode,
@@ -344,7 +363,7 @@ fn catalog_retains_only_exact_current_checker_receipts() {
 
 #[test]
 fn no_model_command_receipt_replays_with_a_launcher_that_panics_on_use() {
-    let catalog = ProofCatalog::new([ProofLeaf::Command(command("no-model", b"ok"))]).unwrap();
+    let catalog = ProofCatalog::new([ProofLeaf::command(command("no-model", b"ok"))]).unwrap();
     let journal = ExecutionJournal::new(
         Arc::new(MemoryBackend::new()),
         "proof-exec",

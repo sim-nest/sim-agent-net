@@ -181,6 +181,7 @@ pub struct RebuiltExecution {
     pub execution_id: String,
     pub pins: ExecutionPins,
     pub records: Vec<ExecutionRecord>,
+    pub opening_head: JournalHead,
     pub head: JournalHead,
     pub total_bytes: usize,
     pub causal: CausalState,

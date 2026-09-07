@@ -217,11 +217,12 @@ pub struct Observation {
     pub unresolved: Option<UnresolvedProof>,
     pub source_deck: Option<ContentId>,
 }
-impl Default for Observation {
-    fn default() -> Self {
+impl Observation {
+    /// Creates an observation bound to a real journal head.
+    pub fn new(kind: Symbol, journal_head: ContentId) -> Self {
         Self {
-            kind: Symbol::new("unspecified"),
-            journal_head: placeholder_content(),
+            kind,
+            journal_head,
             mutation: None,
             proof_cursor: None,
             image: None,
@@ -311,11 +312,12 @@ pub struct Transition {
     pub requested_effects: Vec<EffectRequest>,
     pub receipt: Option<PhaseReceipt>,
 }
-impl Default for Transition {
-    fn default() -> Self {
+impl Transition {
+    /// Creates the initial reducer state at an already persisted journal head.
+    pub fn planned(journal_head: ContentId) -> Self {
         Self {
             state: PhaseRunState::Planned,
-            journal_head: placeholder_content(),
+            journal_head,
             committed_postimages: vec![],
             discharges: vec![],
             parent_acceptance_retained: false,
@@ -341,10 +343,6 @@ impl Default for ExecutionValueFace {
             fields: Expr::Nil,
         }
     }
-}
-
-fn placeholder_content() -> ContentId {
-    ContentId::from_bytes(Symbol::qualified("core", "sha256-datum-v1"), [0; 32])
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

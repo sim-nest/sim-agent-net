@@ -36,10 +36,7 @@ fn fixture() -> (
     let execution = ExecutionId::new("execution").unwrap();
     let phase = PhaseId::new("phase").unwrap();
     let attempt = AttemptId::new("attempt").unwrap();
-    let transition = Transition {
-        journal_head: cid(0),
-        ..Transition::default()
-    };
+    let transition = Transition::planned(cid(0));
     (policy, plan, execution, phase, attempt, transition)
 }
 fn event(
@@ -53,11 +50,7 @@ fn event(
         execution: execution.clone(),
         phase: phase.clone(),
         attempt: attempt.clone(),
-        observation: Observation {
-            kind: Symbol::new(kind),
-            journal_head: cid(head),
-            ..Observation::default()
-        },
+        observation: Observation::new(Symbol::new(kind), cid(head)),
     }
 }
 

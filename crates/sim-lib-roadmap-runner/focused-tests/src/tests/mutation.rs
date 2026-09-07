@@ -29,10 +29,10 @@
         fn durability(&self) -> Durability { self.durability }
     }
     #[derive(Default)]
-    struct Journal { plans: Vec<[u8; 32]>, fences: Vec<MutationFence> }
+    struct Journal { plans: Vec<sim_kernel::ContentId>, fences: Vec<MutationFence> }
     impl MutationJournal for Journal {
-        fn put_plan(&mut self, plan: &SealedMutationPlan) -> Result<(), MutationError> { self.plans.push(plan.id); Ok(()) }
-        fn append_fence(&mut self, _: [u8; 32], fence: MutationFence) -> Result<(), MutationError> { self.fences.push(fence); Ok(()) }
+        fn put_plan(&mut self, plan: &SealedMutationPlan) -> Result<(), MutationError> { self.plans.push(plan.id.clone()); Ok(()) }
+        fn append_fence(&mut self, _: sim_kernel::ContentId, fence: MutationFence) -> Result<(), MutationError> { self.fences.push(fence); Ok(()) }
     }
     fn image(bytes: impl Into<Vec<u8>>, mode: u32) -> PortableImage { PortableImage::file(bytes, mode) }
     fn plan() -> SealedMutationPlan {
@@ -49,6 +49,19 @@
         assert_eq!(p.entries.iter().map(|e| e.path.as_str()).collect::<Vec<_>>(), ["a-create", "m-edit", "z-delete"]);
         let reversed = SealedMutationPlan::seal(p.entries.iter().rev().map(|e| StructuralEdit { path: e.path.clone(), preimage: e.preimage.clone(), postimage: e.postimage.clone() }).collect()).unwrap();
         assert_eq!(p.id, reversed.id);
+        assert_eq!(p.id.algorithm, sim_kernel::datum_content_algorithm());
+        assert_eq!(p.id.bytes.len(), 32);
+        for changed in [
+            StructuralEdit { path: "m-other".into(), preimage: image(vec![0xff, 0], 0o755), postimage: image(vec![0xfe, 1], 0o755) },
+            StructuralEdit { path: "m-edit".into(), preimage: image(vec![0xfd, 0], 0o755), postimage: image(vec![0xfe, 1], 0o755) },
+            StructuralEdit { path: "m-edit".into(), preimage: image(vec![0xff, 0], 0o700), postimage: image(vec![0xfe, 1], 0o755) },
+            StructuralEdit { path: "m-edit".into(), preimage: image(vec![0xff, 0], 0o755), postimage: image(vec![0xfc, 1], 0o755) },
+            StructuralEdit { path: "m-edit".into(), preimage: image(vec![0xff, 0], 0o755), postimage: image(vec![0xfe, 1], 0o700) },
+        ] {
+            let changed = SealedMutationPlan::seal(vec![changed]).unwrap();
+            let original = SealedMutationPlan::seal(vec![StructuralEdit { path: "m-edit".into(), preimage: image(vec![0xff, 0], 0o755), postimage: image(vec![0xfe, 1], 0o755) }]).unwrap();
+            assert_ne!(changed.id, original.id);
+        }
         let duplicate = vec![StructuralEdit { path: "a".into(), preimage: PortableImage::absent(), postimage: image(b"1".to_vec(), 0o644) }; 2];
         assert!(matches!(SealedMutationPlan::seal(duplicate), Err(MutationError::DuplicatePath)));
         let collision = vec![

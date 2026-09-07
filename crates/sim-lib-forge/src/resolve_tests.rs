@@ -5,7 +5,7 @@ use sim_codec_bridge::{
     BridgeProvenance, encode_bridge_text, packet_content_id, packet_to_expr, stamp_packet_cid,
 };
 use sim_kernel::{
-    ContentId, Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol,
+    ContentId, Cx, Datum, Error, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol,
     testing::bare_cx,
 };
 use sim_lib_agent_runner_core::ModelResponse;
@@ -171,7 +171,7 @@ fn candidate_payload(return_shape: Expr) -> Expr {
 }
 
 fn content_id(byte: u8) -> ContentId {
-    ContentId::from_bytes(Symbol::qualified("core", "sha256"), [byte; 32])
+    Datum::Bytes(vec![byte]).content_id().unwrap()
 }
 
 fn lift_options() -> LiftOptions {
@@ -187,8 +187,8 @@ fn golden_intent(source: ContentId, packet: ContentId, version: u32) -> Compiled
         version,
         source,
         packet,
-        verifiers: Vec::new(),
-        probes: Vec::new(),
+        verifiers: vec![Symbol::qualified("forge-test", "verified")],
+        probes: vec![content_id(199)],
         status: IntentStatus::Golden,
         compiler_card: None,
         approval: Some(content_id(200)),
@@ -214,7 +214,7 @@ fn golden_artifact_hit_skips_lift_runner() {
     let (_, source) = normalize_prose("summarize the transcript").unwrap();
     let golden = golden_intent(source, content_id(40), 3);
     let mut library = IntentLibrary::new();
-    library.store(golden.clone()).unwrap();
+    library.store_authorized(golden.clone()).unwrap();
     let fabric = FailingLiftFabric::default();
 
     let resolved = forge_resolve_with_options(
@@ -237,7 +237,7 @@ fn relift_does_not_clobber_golden() {
     let (_, source) = normalize_prose("summarize the transcript").unwrap();
     let golden = golden_intent(source, content_id(41), 1);
     let mut library = IntentLibrary::new();
-    library.store(golden.clone()).unwrap();
+    library.store_authorized(golden.clone()).unwrap();
     let fabric = ScriptedLiftFabric::new(vec![candidate_payload(Expr::Symbol(Symbol::qualified(
         "core", "String",
     )))]);
@@ -271,7 +271,7 @@ fn changed_prose_normal_form_recompiles() {
     ))))
     .unwrap();
     let mut library = IntentLibrary::new();
-    library.store(golden.clone()).unwrap();
+    library.store_authorized(golden.clone()).unwrap();
     let fabric = ScriptedLiftFabric::new(vec![packet_to_expr(&candidate)]);
 
     let resolved = forge_resolve_with_options(

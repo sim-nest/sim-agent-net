@@ -85,13 +85,14 @@ pub struct CompiledIntent {
     pub approval: Option<ContentId>,
 }
 
-impl Default for CompiledIntent {
-    fn default() -> Self {
+impl CompiledIntent {
+    /// Builds an explicitly identified candidate artifact.
+    pub fn candidate(name: Symbol, source: ContentId, packet: ContentId) -> Self {
         Self {
-            name: Symbol::qualified("forge", "fixture"),
+            name,
             version: 1,
-            source: fixture_content_id(1),
-            packet: fixture_content_id(2),
+            source,
+            packet,
             verifiers: Vec::new(),
             probes: Vec::new(),
             status: IntentStatus::Candidate,
@@ -101,8 +102,32 @@ impl Default for CompiledIntent {
     }
 }
 
-fn fixture_content_id(byte: u8) -> ContentId {
-    ContentId::from_bytes(Symbol::qualified("core", "sha256"), [byte; 32])
+impl Default for CompiledIntent {
+    fn default() -> Self {
+        Self::candidate(
+            Symbol::qualified("forge", "unbound-candidate"),
+            placeholder_content_id("source"),
+            placeholder_content_id("packet"),
+        )
+    }
+}
+
+pub(crate) fn is_placeholder_content_id(id: &ContentId) -> bool {
+    ["source", "packet"]
+        .into_iter()
+        .any(|role| placeholder_content_id(role) == *id)
+}
+
+fn placeholder_content_id(role: &str) -> ContentId {
+    sim_kernel::Datum::Node {
+        tag: Symbol::qualified("forge", "UnboundCandidateIdentityV1"),
+        fields: vec![(
+            Symbol::new("role"),
+            sim_kernel::Datum::String(role.to_owned()),
+        )],
+    }
+    .content_id()
+    .expect("unbound candidate marker has a fixed canonical shape")
 }
 
 mod content_id_field {

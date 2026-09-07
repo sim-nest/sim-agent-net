@@ -106,11 +106,7 @@ mod bounded_service {
                 execution: identity.execution.clone(),
                 phase: phase.clone(),
                 attempt: AttemptId::new("attempt").unwrap(),
-                observation: Observation {
-                    kind: Symbol::new("start"),
-                    journal_head: cid(20),
-                    ..Default::default()
-                },
+                observation: Observation::new(Symbol::new("start"), cid(20)),
             };
             self.0.lock().unwrap().push(event.clone());
             Ok(event)

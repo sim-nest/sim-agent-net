@@ -1,10 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use sim_codec_bridge::{BridgeBook, BridgePacket, BridgeVotePayload, content_id_string};
+use sim_codec_bridge::{BridgePacket, content_id_string};
 use sim_kernel::{ContentId, Cx, Error, Expr, Result, Symbol};
-use sim_lib_bridge::{effective_caps, rx_check};
+use sim_lib_bridge::effective_caps;
 use sim_value::{access::field, build::entry};
 
+use crate::verify_judge::check_judge;
 use crate::{CompiledIntent, lift::content_id_for_expr};
 
 /// Semantic verifier registered for a compiled intent.
@@ -165,14 +166,12 @@ impl VerifyCatalog {
     /// Registers a probe for an intent name and returns its content id.
     pub fn register_probe(&mut self, intent: Symbol, probe: VerifyProbe) -> Result<ContentId> {
         let id = probe.content_id()?;
-        self.insert_probe(intent, id.clone(), probe);
-        Ok(id)
-    }
-
-    /// Inserts a probe with an explicit content id.
-    pub fn insert_probe(&mut self, intent: Symbol, id: ContentId, probe: VerifyProbe) {
         self.probes.insert(id.clone(), probe);
-        self.intent_probes.entry(intent).or_default().insert(id);
+        self.intent_probes
+            .entry(intent)
+            .or_default()
+            .insert(id.clone());
+        Ok(id)
     }
 
     /// Returns probe ids attached to `intent`.
@@ -201,8 +200,18 @@ impl VerifyCatalog {
         intent: &CompiledIntent,
         answer: &Expr,
     ) -> Result<VerifyReport> {
+        self.verify_verifiers(cx, &intent.verifiers, answer)
+    }
+
+    /// Runs an explicit verifier set without constructing an intent artifact.
+    pub fn verify_verifiers(
+        &self,
+        cx: &mut Cx,
+        verifier_ids: &[Symbol],
+        answer: &Expr,
+    ) -> Result<VerifyReport> {
         let mut report = VerifyReport::default();
-        for id in &intent.verifiers {
+        for id in verifier_ids {
             match self.verifiers.get(id) {
                 Some(verifier) => match self.run_verifier(cx, verifier, answer) {
                     Ok(()) => report.pass(id.clone()),
@@ -450,50 +459,5 @@ fn integer_value(expr: &Expr) -> Result<Option<i64>> {
             .map(Some)
             .map_err(|_| Error::Eval(format!("{} is not an integer", number.canonical))),
         _ => Ok(None),
-    }
-}
-
-fn check_judge(
-    cx: &mut Cx,
-    seat: &str,
-    packet: &BridgePacket,
-    reply_to: Option<&BridgePacket>,
-    target: &str,
-    min_votes: u32,
-) -> Result<std::result::Result<(), String>> {
-    if min_votes == 0 {
-        return Ok(Err("judge quorum must require at least one vote".to_owned()));
-    }
-    if packet.header.from != seat {
-        return Ok(Err(format!(
-            "judge packet came from {}, expected {seat}",
-            packet.header.from
-        )));
-    }
-    let report = rx_check(cx, &BridgeBook::standard(), packet, reply_to)?;
-    if !report.accepted() {
-        return Ok(Err(format!(
-            "judge packet failed BRIDGE rx_check: {:?}",
-            report.obligations
-        )));
-    }
-
-    let mut votes = 0u32;
-    for part in &packet.body {
-        if part.kind != Symbol::qualified("bridge", "Vote") {
-            continue;
-        }
-        let vote = BridgeVotePayload::from_expr(&part.payload)?;
-        if vote.target == target && vote.scores.iter().any(|score| score.value > 0) {
-            votes = votes.saturating_add(1);
-        }
-    }
-
-    if votes >= min_votes {
-        Ok(Ok(()))
-    } else {
-        Ok(Err(format!(
-            "judge quorum for {target} has {votes} vote(s), needs {min_votes}"
-        )))
     }
 }
