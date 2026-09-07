@@ -5,7 +5,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use sha2::{Digest, Sha256};
+use sim_kernel::{ContentId, Datum, NumberLiteral, Symbol};
 use thiserror::Error;
 
 use crate::{ResumeDecision, classify_plan};
@@ -60,7 +60,7 @@ pub struct SealedEntry {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SealedMutationPlan {
-    pub id: [u8; 32],
+    pub id: ContentId,
     pub entries: Vec<SealedEntry>,
     pub total_postimage_bytes: usize,
 }
@@ -110,7 +110,7 @@ impl SealedMutationPlan {
                 postimage,
             })
             .collect();
-        let id = plan_digest(&entries);
+        let id = plan_digest(&entries)?;
         Ok(Self {
             id,
             entries,
@@ -130,21 +130,23 @@ fn validate_relative_path(path: &str) -> Result<(), MutationError> {
     Ok(())
 }
 
-fn plan_digest(entries: &[SealedEntry]) -> [u8; 32] {
-    let mut h = Sha256::new();
-    h.update(b"sim-roadmap-mutation-v1\0");
-    for e in entries {
-        digest_field(&mut h, e.path.as_bytes());
-        digest_image(&mut h, &e.preimage);
-        digest_image(&mut h, &e.postimage);
+fn plan_digest(entries: &[SealedEntry]) -> Result<ContentId, MutationError> {
+    Datum::Node {
+        tag: Symbol::qualified("roadmap-runner", "MutationPlanIdentityV2"),
+        fields: vec![(
+            Symbol::new("entries"),
+            Datum::List(entries.iter().map(entry_datum).collect()),
+        )],
     }
-    h.finalize().into()
+    .content_id()
+    .map_err(|error| MutationError::Identity(error.to_string()))
 }
 
 pub(crate) fn encode_plan(plan: &SealedMutationPlan) -> Vec<u8> {
     let mut out = Vec::new();
-    out.extend_from_slice(b"sim-roadmap-mutation-plan-v1\0");
-    out.extend_from_slice(&plan.id);
+    out.extend_from_slice(b"sim-roadmap-mutation-plan-v2\0");
+    encode_bytes(&mut out, plan.id.algorithm.as_qualified_str().as_bytes());
+    out.extend_from_slice(&plan.id.bytes);
     out.extend_from_slice(&(plan.entries.len() as u32).to_be_bytes());
     for entry in &plan.entries {
         encode_bytes(&mut out, entry.path.as_bytes());
@@ -170,28 +172,48 @@ fn encode_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
     out.extend_from_slice(bytes);
 }
 
-pub(crate) fn mutation_id_text(id: [u8; 32]) -> String {
+pub(crate) fn mutation_id_text(id: &ContentId) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut out = String::with_capacity(64);
-    for byte in id {
+    let mut out = format!("{}:", id.algorithm);
+    for byte in id.bytes {
         out.push(HEX[(byte >> 4) as usize] as char);
         out.push(HEX[(byte & 0xf) as usize] as char);
     }
     out
 }
-fn digest_field(h: &mut Sha256, bytes: &[u8]) {
-    h.update((bytes.len() as u64).to_be_bytes());
-    h.update(bytes);
-}
-fn digest_image(h: &mut Sha256, image: &PortableImage) {
-    match (&image.bytes, image.mode) {
-        (Some(bytes), Some(mode)) => {
-            h.update([1]);
-            h.update(mode.to_be_bytes());
-            digest_field(h, bytes);
-        }
-        _ => h.update([0]),
+
+fn entry_datum(entry: &SealedEntry) -> Datum {
+    Datum::Node {
+        tag: Symbol::qualified("roadmap-runner", "MutationEntryV1"),
+        fields: vec![
+            (Symbol::new("path"), Datum::String(entry.path.clone())),
+            (Symbol::new("preimage"), image_datum(&entry.preimage)),
+            (Symbol::new("postimage"), image_datum(&entry.postimage)),
+        ],
     }
+}
+
+fn image_datum(image: &PortableImage) -> Datum {
+    match (&image.bytes, image.mode) {
+        (Some(bytes), Some(mode)) => Datum::Node {
+            tag: Symbol::qualified("roadmap-runner", "FileImageV1"),
+            fields: vec![
+                (Symbol::new("mode"), u64_datum(u64::from(mode))),
+                (Symbol::new("bytes"), Datum::Bytes(bytes.clone())),
+            ],
+        },
+        _ => Datum::Node {
+            tag: Symbol::qualified("roadmap-runner", "AbsentImageV1"),
+            fields: Vec::new(),
+        },
+    }
+}
+
+fn u64_datum(value: u64) -> Datum {
+    Datum::Number(NumberLiteral {
+        domain: Symbol::qualified("numbers", "u64"),
+        canonical: value.to_string(),
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -207,7 +229,7 @@ pub trait MutationJournal {
     fn put_plan(&mut self, plan: &SealedMutationPlan) -> Result<(), MutationError>;
     fn append_fence(
         &mut self,
-        plan_id: [u8; 32],
+        plan_id: ContentId,
         fence: MutationFence,
     ) -> Result<(), MutationError>;
 }
@@ -272,7 +294,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
             }
             ResumeDecision::Committed => {
                 return Ok(MutationReceipt {
-                    plan_id: plan.id,
+                    plan_id: plan.id.clone(),
                     durability: self.workspace.durability(),
                 });
             }
@@ -281,7 +303,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
         fail(Failpoint::BeforeObjectPut)?;
         self.journal.put_plan(plan)?;
         fail(Failpoint::AfterObjectPut)?;
-        self.fence(plan.id, MutationFence::Prepared, &mut fail)?;
+        self.fence(&plan.id, MutationFence::Prepared, &mut fail)?;
         self.resume_apply(plan, &mut fail)
     }
 
@@ -299,7 +321,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
             ResumeDecision::Committed => Vec::new(),
             ResumeDecision::Apply { paths } => paths,
             ResumeDecision::Ambiguous { foreign_paths } => {
-                self.fence(plan.id, MutationFence::Ambiguous, fail)?;
+                self.fence(&plan.id, MutationFence::Ambiguous, fail)?;
                 return Err(MutationError::Ambiguous { foreign_paths });
             }
         };
@@ -307,7 +329,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
             if !paths.contains(&entry.path) {
                 continue;
             }
-            self.fence(plan.id, MutationFence::Applying(index), fail)?;
+            self.fence(&plan.id, MutationFence::Applying(index), fail)?;
             self.workspace.apply(entry, fail)?;
             fail(Failpoint::BeforePostimageObservation)?;
             let actual = self.workspace.observe(&entry.path)?;
@@ -316,12 +338,12 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
                 return Err(MutationError::PostimageMismatch(entry.path.clone()));
             }
         }
-        self.fence(plan.id, MutationFence::Verifying, fail)?;
+        self.fence(&plan.id, MutationFence::Verifying, fail)?;
         match classify_plan(plan, &self.observe_all(plan)?) {
             ResumeDecision::Committed => {
-                self.fence(plan.id, MutationFence::Committed, fail)?;
+                self.fence(&plan.id, MutationFence::Committed, fail)?;
                 Ok(MutationReceipt {
-                    plan_id: plan.id,
+                    plan_id: plan.id.clone(),
                     durability: self.workspace.durability(),
                 })
             }
@@ -334,12 +356,12 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
 
     fn fence(
         &mut self,
-        id: [u8; 32],
+        id: &ContentId,
         fence: MutationFence,
         fail: &mut dyn FnMut(Failpoint) -> Result<(), MutationError>,
     ) -> Result<(), MutationError> {
         fail(Failpoint::BeforeJournalAppend)?;
-        self.journal.append_fence(id, fence)?;
+        self.journal.append_fence(id.clone(), fence)?;
         fail(Failpoint::AfterJournalAppend)
     }
 
@@ -373,7 +395,7 @@ impl<W: MutationWorkspace, J: MutationJournal> MutationEngine<W, J> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MutationReceipt {
-    pub plan_id: [u8; 32],
+    pub plan_id: ContentId,
     pub durability: Durability,
 }
 
@@ -407,6 +429,8 @@ pub enum MutationError {
     Io(#[from] io::Error),
     #[error("injected failure at {0:?}")]
     Injected(Failpoint),
+    #[error("mutation identity is not canonical: {0}")]
+    Identity(String),
     #[error("journal failure: {0}")]
     Journal(String),
 }

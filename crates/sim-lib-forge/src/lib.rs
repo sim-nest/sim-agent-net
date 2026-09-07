@@ -82,6 +82,7 @@ mod shape_infer;
 mod tokens;
 mod verb;
 mod verify;
+mod verify_judge;
 
 #[cfg(test)]
 mod author_tests;

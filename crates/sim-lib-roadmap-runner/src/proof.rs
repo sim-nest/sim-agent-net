@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 use sim_conformance_core::CheckerReceiptId;
+use sim_kernel::{ContentId, Symbol};
 use sim_lib_exec::{
     ArgAtom, MountAccess, ProcessCancellation, ProgramRef, SandboxAttempt, SandboxControl,
     SandboxLauncher, SandboxLimits, SandboxMount, SandboxPolicy, SandboxRequest,
@@ -50,7 +51,7 @@ impl ProofCatalog {
 
 #[derive(Clone, Debug)]
 pub enum ProofLeaf {
-    Command(CommandProof),
+    Command(Box<CommandProof>),
     ArtifactEquality {
         name: String,
         left: Vec<u8>,
@@ -66,6 +67,11 @@ pub enum ProofLeaf {
 }
 
 impl ProofLeaf {
+    /// Wraps a command proof without inflating every pure proof leaf.
+    pub fn command(proof: CommandProof) -> Self {
+        Self::Command(Box::new(proof))
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Self::Command(v) => &v.name,
@@ -119,8 +125,46 @@ pub struct CommandProof {
 
 #[derive(Clone, Debug)]
 pub struct StructuredExpectation {
-    pub stdout_sha256: String,
+    pub stdout: ProofOutputId,
     pub exit_code: i32,
+}
+
+/// Byte-address identity for exact sandbox output.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProofOutputId(ContentId);
+
+impl ProofOutputId {
+    /// Addresses exact output bytes with the registered byte digest algorithm.
+    pub fn sha256(bytes: &[u8]) -> Self {
+        Self(ContentId::from_bytes(
+            Symbol::qualified("core", "sha256"),
+            Sha256::digest(bytes).into(),
+        ))
+    }
+
+    /// Decodes a configured lowercase or uppercase SHA-256 digest.
+    pub fn from_sha256_hex(hex: &str) -> Result<Self, ProofError> {
+        if hex.len() != 64 || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(ProofError::Invalid(
+                "expected result is not a sha256 digest".into(),
+            ));
+        }
+        let mut bytes = [0_u8; 32];
+        for (index, slot) in bytes.iter_mut().enumerate() {
+            let start = index * 2;
+            *slot = u8::from_str_radix(&hex[start..start + 2], 16)
+                .map_err(|_| ProofError::Invalid("invalid sha256 digest".into()))?;
+        }
+        Ok(Self(ContentId::from_bytes(
+            Symbol::qualified("core", "sha256"),
+            bytes,
+        )))
+    }
+
+    /// Returns the typed storage identity.
+    pub const fn content_id(&self) -> &ContentId {
+        &self.0
+    }
 }
 
 impl CommandProof {
@@ -169,15 +213,9 @@ impl CommandProof {
                 "credential-shaped environment key".into(),
             ));
         }
-        if self.expected.stdout_sha256.len() != 64
-            || !self
-                .expected
-                .stdout_sha256
-                .bytes()
-                .all(|v| v.is_ascii_hexdigit())
-        {
+        if self.expected.stdout.0.algorithm != Symbol::qualified("core", "sha256") {
             return Err(ProofError::Invalid(
-                "expected result is not a sha256 digest".into(),
+                "expected result uses a non-byte digest algorithm".into(),
             ));
         }
         Ok(())
@@ -260,8 +298,8 @@ pub struct TypedProofReceipt {
     pub truncated: bool,
     pub launcher_identity: Option<String>,
     pub sandbox_identity: Option<String>,
-    pub stdout_object: Option<String>,
-    pub stderr_object: Option<String>,
+    pub stdout_object: Option<ProofOutputId>,
+    pub stderr_object: Option<ProofOutputId>,
     pub observed_at: String,
     pub semantic_detail: String,
 }

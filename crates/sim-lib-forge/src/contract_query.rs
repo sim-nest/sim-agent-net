@@ -46,7 +46,7 @@ pub struct ContractQueryReport {
     pub matched_before_limit: usize,
 }
 
-/// Cached runtime contract deck keyed by a cheap registry generation marker.
+/// Cached runtime contract deck keyed by an exact registry projection.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ContractDeckCache {
     generation: Option<RegistryGeneration>,
@@ -181,7 +181,7 @@ pub fn query_contract_deck(
 
 fn ensure_cached_deck(cx: &mut Cx, cache: &mut ContractDeckCache) -> Result<bool> {
     let generation = registry_generation(cx);
-    if cache.generation == Some(generation) {
+    if cache.generation.as_ref() == Some(&generation) {
         cache.hits += 1;
         return Ok(true);
     }
@@ -193,58 +193,34 @@ fn ensure_cached_deck(cx: &mut Cx, cache: &mut ContractDeckCache) -> Result<bool
     Ok(false)
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct RegistryGeneration {
-    lib_count: usize,
-    export_count: usize,
-    fingerprint: u64,
+    libraries: Vec<RegistryLibrary>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct RegistryLibrary {
+    runtime_id: u32,
+    manifest_id: Symbol,
+    version: String,
+    trusted: bool,
+    exports: Vec<ExportRecord>,
 }
 
 fn registry_generation(cx: &Cx) -> RegistryGeneration {
-    let mut marker = RegistryGeneration {
-        lib_count: 0,
-        export_count: 0,
-        fingerprint: FNV_OFFSET,
-    };
-    for loaded in cx.registry().libs() {
-        marker.lib_count += 1;
-        marker.export_count += loaded.exports.len();
-        mix_loaded_lib(&mut marker.fingerprint, loaded);
-    }
-    marker
-}
-
-const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
-const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
-
-fn mix_loaded_lib(hash: &mut u64, loaded: &LoadedLib) {
-    mix_u64(hash, loaded.id.0 as u64);
-    mix_symbol(hash, &loaded.manifest.id);
-    mix_bytes(hash, loaded.manifest.version.0.as_bytes());
-    mix_u64(hash, loaded.trusted as u64);
-    for export in &loaded.exports {
-        mix_export(hash, export);
-    }
-}
-
-fn mix_export(hash: &mut u64, export: &ExportRecord) {
-    mix_symbol(hash, export.kind.symbol());
-    mix_symbol(hash, &export.symbol);
-    mix_bytes(hash, format!("{:?}", export.state).as_bytes());
-}
-
-fn mix_symbol(hash: &mut u64, symbol: &Symbol) {
-    mix_bytes(hash, symbol.as_qualified_str().as_bytes());
-}
-
-fn mix_u64(hash: &mut u64, value: u64) {
-    mix_bytes(hash, &value.to_le_bytes());
-}
-
-fn mix_bytes(hash: &mut u64, bytes: &[u8]) {
-    for byte in bytes {
-        *hash ^= u64::from(*byte);
-        *hash = hash.wrapping_mul(FNV_PRIME);
+    RegistryGeneration {
+        libraries: cx
+            .registry()
+            .libs()
+            .iter()
+            .map(|loaded: &LoadedLib| RegistryLibrary {
+                runtime_id: loaded.id.0,
+                manifest_id: loaded.manifest.id.clone(),
+                version: loaded.manifest.version.0.clone(),
+                trusted: loaded.trusted,
+                exports: loaded.exports.clone(),
+            })
+            .collect(),
     }
 }
 

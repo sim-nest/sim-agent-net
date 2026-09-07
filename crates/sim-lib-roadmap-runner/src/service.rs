@@ -61,6 +61,7 @@ pub struct RoadmapRunnerService<B, R, E, C> {
     cancellation: C,
     request: OpenRequest,
     transition: Transition,
+    opening_head: ContentId,
     opening_grant: ContentId,
 }
 
@@ -78,7 +79,8 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
         validate_request(&request)?;
         let execution_text = request.authority.identity.execution.to_string();
         let journal = ExecutionJournal::new(backend, execution_text, limits);
-        journal.open(pins(&request), None)?;
+        let opened = journal.open(pins(&request), None)?;
+        let opening_head = opened.opening_head.entry;
         let opening_grant = request.authority.grant.clone();
         Ok(Self {
             journal,
@@ -86,7 +88,8 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             effects,
             cancellation,
             request,
-            transition: Transition::default(),
+            transition: Transition::planned(opening_head.clone()),
+            opening_head,
             opening_grant,
         })
     }
@@ -167,7 +170,7 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             &self.request.authority.identity.execution,
             &self.request.phase,
             &self.request.attempt,
-            &Transition::default(),
+            &Transition::planned(self.opening_head.clone()),
             &events,
         )?)
     }
@@ -208,11 +211,10 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             execution: self.request.authority.identity.execution.clone(),
             phase: self.request.phase.clone(),
             attempt: self.request.attempt.clone(),
-            observation: sim_roadmap_exec_core::Observation {
-                kind: sim_kernel::Symbol::new("cancel"),
-                journal_head: state.head.entry.clone(),
-                ..Default::default()
-            },
+            observation: sim_roadmap_exec_core::Observation::new(
+                sim_kernel::Symbol::new("cancel"),
+                state.head.entry.clone(),
+            ),
         };
         let next = self.propose_transition(&event)?;
         self.journal.append(

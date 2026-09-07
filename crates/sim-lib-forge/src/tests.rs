@@ -6,7 +6,8 @@ use sim_codec_bridge::{
     BridgeProvenance, encode_bridge_text, packet_content_id, packet_to_expr, stamp_packet_cid,
 };
 use sim_kernel::{
-    ContentId, Cx, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol, testing::bare_cx as cx,
+    ContentId, Cx, Datum, EvalFabric, EvalReply, EvalRequest, Expr, Result, Symbol,
+    testing::bare_cx as cx,
 };
 use sim_lib_agent_runner_core::{
     ModelResponse, OUTPUT_GRAMMAR_DIALECT_EXTRA, OUTPUT_GRAMMAR_EXTRA,
@@ -14,19 +15,47 @@ use sim_lib_agent_runner_core::{
 };
 use sim_value::{access::field, build::entry};
 
-use crate::{CompiledIntent, IntentStatus, LiftOptions, forge_lift_frontier, forge_lift_once};
+use crate::{
+    CompiledIntent, IntentLibrary, IntentStatus, LiftOptions, forge_lift_frontier, forge_lift_once,
+};
 
 fn content_id(byte: u8) -> ContentId {
-    ContentId::from_bytes(Symbol::qualified("core", "sha256"), [byte; 32])
+    Datum::Bytes(vec![byte]).content_id().unwrap()
 }
 
 #[test]
-fn default_compiled_intent_starts_as_candidate() {
-    let intent = CompiledIntent::default();
+fn candidate_constructor_requires_explicit_content_ids() {
+    let intent = CompiledIntent::candidate(
+        Symbol::qualified("forge", "fixture"),
+        content_id(1),
+        content_id(2),
+    );
 
     assert_eq!(intent.status, IntentStatus::Candidate);
     assert!(intent.compiler_card.is_none());
     assert!(intent.approval.is_none());
+}
+
+#[test]
+fn fabricated_or_foreign_ids_cannot_mint_authority() {
+    let placeholder = CompiledIntent {
+        status: IntentStatus::Verified,
+        verifiers: vec![Symbol::qualified("forge-test", "check")],
+        probes: vec![content_id(3)],
+        ..CompiledIntent::default()
+    };
+    assert!(IntentLibrary::new().store(placeholder).is_err());
+
+    let mut foreign = CompiledIntent::candidate(
+        Symbol::qualified("forge", "foreign"),
+        ContentId::from_bytes(Symbol::qualified("core", "sha256"), [1; 32]),
+        content_id(4),
+    );
+    foreign.status = IntentStatus::Golden;
+    foreign.verifiers = vec![Symbol::qualified("forge-test", "check")];
+    foreign.probes = vec![content_id(5)];
+    foreign.approval = Some(content_id(6));
+    assert!(IntentLibrary::new().store(foreign).is_err());
 }
 
 #[test]

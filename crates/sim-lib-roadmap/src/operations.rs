@@ -301,13 +301,13 @@ fn render(values: &[RoadmapValue]) -> Result<RoadmapValue> {
     RoadmapValue::new(
         RoadmapValueKind::Explanation,
         fields([
-            ("subject", Expr::String(value.semantic_id().into())),
+            ("subject", Expr::String(value.semantic_id_text())),
             (
                 "prose",
                 Expr::String(format!(
                     "{} {}",
                     value.kind().wire_name(),
-                    value.semantic_id()
+                    value.semantic_id_text()
                 )),
             ),
             ("evidence", Expr::Vector(vec![roadmap_value_to_expr(value)])),

@@ -32,4 +32,6 @@ pub use v3_render::*;
 pub use value::*;
 
 #[cfg(test)]
+mod identity_tests;
+#[cfg(test)]
 mod tests;

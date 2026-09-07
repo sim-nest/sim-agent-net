@@ -13,7 +13,7 @@ pub fn roadmap_card(cx: &mut Cx, value: &RoadmapValue) -> Result<Value> {
         ),
         (
             Symbol::new("semantic-id"),
-            cx.factory().string(value.semantic_id().into())?,
+            cx.factory().string(value.semantic_id_text())?,
         ),
         (Symbol::new("summary"), cx.factory().string(summary)?),
         (

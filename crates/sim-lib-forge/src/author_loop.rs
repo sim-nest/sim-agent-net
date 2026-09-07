@@ -10,8 +10,7 @@ use sim_lib_stream_core::{DevCassette, DevEvent};
 use sim_value::{access::field, build::entry};
 
 use crate::{
-    AuthorTask, CompiledIntent, IntentStatus, RankedContractCard, RouteAttempt, RouteAttemptStatus,
-    RoutePolicy, RouteTarget,
+    AuthorTask, RankedContractCard, RouteAttempt, RouteAttemptStatus, RoutePolicy, RouteTarget,
     author::{author_model_request, project_contracts_with_cards},
 };
 
@@ -164,7 +163,7 @@ fn run_target_once(
 
     let verify_report = policy
         .verify_catalog
-        .verify_answer(cx, &author_intent(task), &realized)
+        .verify_verifiers(cx, &task.verifiers, &realized)
         .map_err(|err| format!("verifier check failed: {err}"))?;
     if !verify_report.accepted() {
         let reasons = verify_report
@@ -424,15 +423,6 @@ fn collect_required_capabilities(expr: &Expr, required: &mut BTreeSet<Symbol>) {
         | Expr::Local(_)
         | Expr::String(_)
         | Expr::Bytes(_) => {}
-    }
-}
-
-fn author_intent(task: &AuthorTask) -> CompiledIntent {
-    CompiledIntent {
-        name: task.name.clone(),
-        verifiers: task.verifiers.clone(),
-        status: IntentStatus::Verified,
-        ..CompiledIntent::default()
     }
 }
 

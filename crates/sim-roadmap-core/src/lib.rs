@@ -10,12 +10,15 @@ mod id;
 pub use id::*;
 mod admit;
 mod completion;
+mod datum_guide;
 mod inheritance;
 mod path;
 mod tree;
 pub use admit::{AdmittedPhase, AdmittedRoadmap};
 pub use completion::{AggregateAcceptance, ObligationDisposition};
 pub use path::CausalPath;
+
+use datum_guide::implementation_guide_datum;
 
 include!("types.rs");
 include!("validation.rs");

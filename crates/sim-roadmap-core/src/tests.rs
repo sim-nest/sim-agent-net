@@ -245,4 +245,73 @@ fn claimed_revision_is_verified_without_self_hashing() {
         Err(Failure::ClaimedRevisionMismatch)
     ));
 }
+
+#[test]
+fn revision_identity_covers_limits_and_complete_phase_semantics() {
+    let change = RevisionChange {
+        id: ChangeId::new("identity").unwrap(),
+        rationale: "Exercise complete semantic identity".into(),
+    };
+    let base = spec([phase("root", ImplementationGuide::default())]);
+    let base_id = RoadmapRevision::new(None, base.clone(), change.clone())
+        .unwrap()
+        .id()
+        .clone();
+
+    let mut changed_limit = base.clone();
+    changed_limit.limits.document_bytes += 1;
+    assert_ne!(
+        base_id,
+        RoadmapRevision::new(None, changed_limit, change.clone())
+            .unwrap()
+            .id()
+            .clone()
+    );
+
+    let mut changed_phase = base;
+    changed_phase
+        .phases
+        .get_mut(&PhaseId::new("root").unwrap())
+        .unwrap()
+        .effects
+        .effects
+        .insert(EffectId::new("filesystem").unwrap());
+    assert_ne!(
+        base_id,
+        RoadmapRevision::new(None, changed_phase, change)
+            .unwrap()
+            .id()
+            .clone()
+    );
+}
+
+#[test]
+fn process_local_handles_are_refused_before_revision_identity() {
+    let mut root = phase("root", ImplementationGuide::default());
+    let obligation = ObligationId::new("stable").unwrap();
+    root.acceptance.statements.insert(
+        obligation.clone(),
+        AcceptanceStatement {
+            obligation,
+            subject: Ref::Handle(sim_kernel::HandleSeed::new(1).sequence().next_handle()),
+            predicate: Symbol::new("satisfies"),
+            object: Ref::Symbol(Symbol::new("contract")),
+            supporting_refs: Vec::new(),
+        },
+    );
+    assert!(matches!(
+        RoadmapRevision::new(
+            None,
+            spec([root]),
+            RevisionChange {
+                id: ChangeId::new("handle").unwrap(),
+                rationale: "Reject local authority".into(),
+            },
+        ),
+        Err(Failure::InvalidText {
+            kind: "acceptance reference",
+            reason: "process-local handle",
+        })
+    ));
+}
 // conformance: roadmap-core tests prove bounded admission, inheritance, and graph laws.

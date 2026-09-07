@@ -42,17 +42,14 @@ mod tests {
         .unwrap();
         let mut state = Transition {
             state: PhaseRunState::Reconciling,
-            journal_head: content(3),
-            ..Transition::default()
+            ..Transition::planned(content(3))
         };
         let succeed = |head| ExecutionEvent {
             execution: execution.clone(),
             phase: phase.clone(),
             attempt: attempt.clone(),
             observation: Observation {
-                kind: Symbol::new("succeed"),
-                journal_head: content(head),
-                ..Observation::default()
+                ..Observation::new(Symbol::new("succeed"), content(head))
             },
         };
 

@@ -11,7 +11,7 @@
     struct Effects(Mutex<Vec<ExecutionEvent>>);
     impl EffectPort for Effects {
         fn invoke(&self, identity: &ExecutionIdentity, phase: &PhaseId, _: &Transition) -> Result<ExecutionEvent, ServiceError> {
-            let event = ExecutionEvent { execution: identity.execution.clone(), phase: phase.clone(), attempt: AttemptId::new("a").unwrap(), observation: Observation { kind: Symbol::new("start"), journal_head: id(20), ..Default::default() } };
+            let event = ExecutionEvent { execution: identity.execution.clone(), phase: phase.clone(), attempt: AttemptId::new("a").unwrap(), observation: Observation::new(Symbol::new("start"), id(20)) };
             self.0.lock().unwrap().push(event.clone()); Ok(event)
         }
         fn receipts(&self, _: &ExecutionIdentity) -> Result<Vec<ExecutionEvent>, ServiceError> { Ok(self.0.lock().unwrap().clone()) }

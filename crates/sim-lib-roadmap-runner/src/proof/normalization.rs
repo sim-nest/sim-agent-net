@@ -20,7 +20,7 @@ fn normalize(
     };
     match attempt {
         SandboxAttempt::Completed(result) => {
-            let digest = hex_sha256(&result.stdout);
+            let digest = ProofOutputId::sha256(&result.stdout);
             let controls = result
                 .report
                 .proves_required(&command.sandbox_request().expect("validated").policy);
@@ -28,7 +28,7 @@ fn normalize(
             let passed = controls
                 && !truncated
                 && result.exit_code == command.expected.exit_code
-                && digest == command.expected.stdout_sha256;
+                && digest == command.expected.stdout;
             TypedProofReceipt {
                 proof: command.name.clone(),
                 effect_id: Some(command.effect_id.clone()),
@@ -44,7 +44,7 @@ fn normalize(
                 launcher_identity: Some(result.report.launcher.clone()),
                 sandbox_identity: Some(result.report.cleanup.clone()),
                 stdout_object: Some(digest),
-                stderr_object: Some(hex_sha256(&result.stderr)),
+                stderr_object: Some(ProofOutputId::sha256(&result.stderr)),
                 observed_at,
                 semantic_detail: if passed {
                     "structured expectation matched"
@@ -67,11 +67,4 @@ fn normalize(
         SandboxAttempt::Refused(v) => base(ProofDisposition::Failed, Some(v.launcher), v.reason),
         SandboxAttempt::Unknown(v) => base(ProofDisposition::Ambiguous, Some(v.launcher), v.reason),
     }
-}
-
-fn hex_sha256(bytes: &[u8]) -> String {
-    Sha256::digest(bytes)
-        .iter()
-        .map(|v| format!("{v:02x}"))
-        .collect()
 }

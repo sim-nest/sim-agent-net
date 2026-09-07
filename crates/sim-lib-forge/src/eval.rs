@@ -4,7 +4,7 @@ use sim_codec_bridge::{
 use sim_kernel::{Cx, Error, Expr, NumberLiteral, Result, Symbol};
 use sim_value::build::entry;
 
-use crate::{CompiledIntent, Verifier, VerifyCatalog};
+use crate::{Verifier, VerifyCatalog};
 
 /// Recorded model answer and token cost for one deterministic eval playback.
 #[derive(Clone, Debug, PartialEq)]
@@ -349,12 +349,9 @@ fn verify_case(cx: &mut Cx, case: &EvalCase, answer: &Expr) -> Result<bool> {
             },
         );
     }
-    let intent = CompiledIntent {
-        name: case.name.clone(),
-        verifiers: case.verifiers.clone(),
-        ..CompiledIntent::default()
-    };
-    Ok(catalog.verify_answer(cx, &intent, answer)?.accepted())
+    Ok(catalog
+        .verify_verifiers(cx, &case.verifiers, answer)?
+        .accepted())
 }
 
 fn equals_predicate(expected: Expr) -> Expr {

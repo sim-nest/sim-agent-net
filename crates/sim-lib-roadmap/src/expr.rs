@@ -16,7 +16,7 @@ pub fn roadmap_value_to_expr(value: &RoadmapValue) -> Expr {
         ),
         (
             Expr::Symbol(Symbol::new("semantic-id")),
-            Expr::String(value.semantic_id().into()),
+            Expr::String(value.semantic_id_text()),
         ),
     ];
     fields.extend(
@@ -71,7 +71,7 @@ pub fn roadmap_value_from_expr_with_limits(
         _ => return Err(Error::Eval("roadmap value requires semantic-id".into())),
     };
     let value = RoadmapValue::with_limits(kind, map, limits)?;
-    if value.semantic_id() != claimed {
+    if value.semantic_id_text() != claimed {
         return Err(Error::Eval("forged roadmap semantic-id".into()));
     }
     Ok(value)

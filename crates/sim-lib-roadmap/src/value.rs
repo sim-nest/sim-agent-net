@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use sim_kernel::{Error, Expr, Result, Symbol};
+use sim_kernel::{ContentId, Datum, Error, Expr, Result, Symbol};
 
 /// Hard admission bounds applied before cloning an expression body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,7 +96,7 @@ pub const ALL_KINDS: [RoadmapValueKind; 15] = [
 #[derive(Clone, Debug)]
 pub struct RoadmapValue {
     kind: RoadmapValueKind,
-    semantic_id: String,
+    semantic_id: ContentId,
     fields: BTreeMap<Symbol, Expr>,
 }
 
@@ -126,7 +126,7 @@ impl RoadmapValue {
         limits: RoadmapValueLimits,
     ) -> Result<Self> {
         validate_fields(kind, &fields, limits)?;
-        let semantic_id = semantic_id(kind, &fields);
+        let semantic_id = semantic_id(kind, &fields)?;
         Ok(Self {
             kind,
             semantic_id,
@@ -137,8 +137,12 @@ impl RoadmapValue {
     pub fn kind(&self) -> RoadmapValueKind {
         self.kind
     }
-    pub fn semantic_id(&self) -> &str {
+    pub fn semantic_id(&self) -> &ContentId {
         &self.semantic_id
+    }
+    /// Renders the algorithm and complete digest for expression and Card faces.
+    pub fn semantic_id_text(&self) -> String {
+        content_id_text(&self.semantic_id)
     }
     pub fn fields(&self) -> &BTreeMap<Symbol, Expr> {
         &self.fields
@@ -327,13 +331,29 @@ fn measure(
     Ok(())
 }
 
-fn semantic_id(kind: RoadmapValueKind, fields: &BTreeMap<Symbol, Expr>) -> String {
-    use std::hash::{DefaultHasher, Hash, Hasher};
-    let mut hash = DefaultHasher::new();
-    kind.hash(&mut hash);
-    for (key, value) in fields {
-        key.hash(&mut hash);
-        value.hash(&mut hash);
+fn semantic_id(kind: RoadmapValueKind, fields: &BTreeMap<Symbol, Expr>) -> Result<ContentId> {
+    let fields = fields
+        .iter()
+        .map(|(key, value)| Ok((Datum::Symbol(key.clone()), Datum::try_from(value.clone())?)))
+        .collect::<Result<Vec<_>>>()?;
+    Datum::Node {
+        tag: Symbol::qualified("roadmap", "ValueIdentityV2"),
+        fields: vec![
+            (
+                Symbol::new("kind"),
+                Datum::Symbol(Symbol::qualified("roadmap-value", kind.wire_name())),
+            ),
+            (Symbol::new("fields"), Datum::Map(fields)),
+        ],
     }
-    format!("roadmap:{}:{:016x}", kind.wire_name(), hash.finish())
+    .content_id()
+}
+
+fn content_id_text(id: &ContentId) -> String {
+    let digest = id
+        .bytes
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("{}:{digest}", id.algorithm.as_qualified_str())
 }

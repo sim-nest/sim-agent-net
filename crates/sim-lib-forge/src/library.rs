@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use sim_kernel::{ContentId, Error, Result, Symbol};
+use sim_kernel::{ContentId, Error, Result, Symbol, datum_content_algorithm};
 
-use crate::{CompiledIntent, IntentStatus};
+use crate::{CompiledIntent, IntentStatus, intent::is_placeholder_content_id};
 
 /// Named index for compiled intent artifacts.
 ///
@@ -28,6 +28,16 @@ impl IntentLibrary {
     /// must become a new version. A stored golden record is immutable except
     /// for idempotent re-storage of the same record.
     pub fn store(&mut self, intent: CompiledIntent) -> Result<()> {
+        if intent.status != IntentStatus::Candidate {
+            return Err(Error::Eval(
+                "verified and golden intents must enter through checked promotion".to_owned(),
+            ));
+        }
+        self.store_authorized(intent)
+    }
+
+    pub(crate) fn store_authorized(&mut self, intent: CompiledIntent) -> Result<()> {
+        validate_authority(&intent)?;
         let key = IntentKey::new(&intent.name, intent.version);
         if let Some(existing) = self.intents.get(&key) {
             if existing.status == IntentStatus::Golden && existing != &intent {
@@ -92,7 +102,7 @@ impl IntentLibrary {
         intent.version = self
             .version_for_packet(&intent.name, &intent.source, &intent.packet)
             .unwrap_or_else(|| self.next_version(&intent.name));
-        self.store(intent.clone())?;
+        self.store_authorized(intent.clone())?;
         Ok(intent)
     }
 
@@ -115,6 +125,46 @@ impl IntentLibrary {
                 self.source_index.remove(source);
             }
         }
+    }
+}
+
+fn validate_authority(intent: &CompiledIntent) -> Result<()> {
+    if intent.status == IntentStatus::Candidate {
+        return Ok(());
+    }
+    if is_placeholder_content_id(&intent.source) || is_placeholder_content_id(&intent.packet) {
+        return Err(Error::Eval(
+            "unbound candidate identities cannot confer verified or golden authority".to_owned(),
+        ));
+    }
+    if intent.verifiers.is_empty() || intent.probes.is_empty() {
+        return Err(Error::Eval(
+            "verified and golden intents require verifier and probe evidence".to_owned(),
+        ));
+    }
+    let semantic = datum_content_algorithm();
+    let ids = std::iter::once((&intent.source, "source"))
+        .chain(std::iter::once((&intent.packet, "packet")))
+        .chain(intent.probes.iter().map(|id| (id, "probe")))
+        .chain(intent.compiler_card.iter().map(|id| (id, "compiler card")))
+        .chain(intent.approval.iter().map(|id| (id, "approval")));
+    for (id, role) in ids {
+        if id.algorithm != semantic {
+            return Err(Error::Eval(format!(
+                "{role} uses foreign identity algorithm {}; authority requires {semantic}",
+                id.algorithm
+            )));
+        }
+    }
+    match intent.status {
+        IntentStatus::Candidate => unreachable!(),
+        IntentStatus::Verified if intent.approval.is_some() => Err(Error::Eval(
+            "verified intent cannot carry golden approval authority".to_owned(),
+        )),
+        IntentStatus::Golden if intent.approval.is_none() => Err(Error::Eval(
+            "golden intent requires explicit approval identity".to_owned(),
+        )),
+        IntentStatus::Verified | IntentStatus::Golden => Ok(()),
     }
 }
 

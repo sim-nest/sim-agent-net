@@ -9,7 +9,7 @@ impl Object for RoadmapValue {
         Ok(format!(
             "#<roadmap/{} {}>",
             self.kind().wire_name(),
-            self.semantic_id()
+            self.semantic_id_text()
         ))
     }
     fn as_any(&self) -> &dyn Any {
