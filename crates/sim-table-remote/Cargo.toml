@@ -13,7 +13,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 sim-citizen = { version = "0.4.0" }
 sim-citizen-derive = { version = "0.4.0" }
 sim-kernel = { version = "0.4.0" }
-sim-lib-server = { version = "0.3.0", path = "../sim-lib-server" }
+sim-lib-server = { version = "0.3.1", path = "../sim-lib-server" }
 sim-table-core = { version = "0.3.0" }
 
 [dev-dependencies]
