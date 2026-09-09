@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-agent"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Agent runtime surfaces for SIM."
@@ -24,20 +24,20 @@ sim-kernel = { version = "0.4.0" }
 sim-lib-agent-runner-core = { version = "0.4.0", path = "../sim-lib-agent-runner-core" }
 sim-lib-agent-conduct-core = { version = "0.2.0", path = "../sim-lib-agent-conduct-core" }
 sim-lib-agent-conduct = { version = "0.2.0", path = "../sim-lib-agent-conduct" }
-sim-lib-bridge = { version = "0.3.0", path = "../sim-lib-bridge" }
-sim-lib-agent-runner-http = { version = "0.4.0", optional = true, path = "../sim-lib-agent-runner-http" }
-sim-lib-agent-runner-process = { version = "0.3.0", optional = true, path = "../sim-lib-agent-runner-process" }
-sim-lib-exec = { version = "0.3.0", optional = true }
-sim-lib-provider = { version = "0.2.0", path = "../sim-lib-provider" }
+sim-lib-bridge = { version = "0.3.1", path = "../sim-lib-bridge" }
+sim-lib-agent-runner-http = { version = "0.4.2", optional = true, path = "../sim-lib-agent-runner-http" }
+sim-lib-agent-runner-process = { version = "0.3.1", optional = true, path = "../sim-lib-agent-runner-process" }
+sim-lib-exec = { version = "0.4.0", optional = true }
+sim-lib-provider = { version = "0.2.1", path = "../sim-lib-provider" }
 sim-lib-topology = { version = "0.3.0" }
 sim-lib-cookbook = { version = "0.3.0", optional = true, path = "../sim-lib-cookbook" }
 sim-lib-core = { version = "0.4.0" }
 sim-lib-numbers-stats = { version = "0.6.0" }
 sim-lib-rank = { version = "0.3.0" }
-sim-lib-server = { version = "0.3.0", path = "../sim-lib-server" }
+sim-lib-server = { version = "0.3.1", path = "../sim-lib-server" }
 sim-lib-web-fetch = { version = "0.2.0", optional = true, path = "../sim-lib-web-fetch" }
 sim-lib-net-http = { version = "0.2.0", optional = true }
-sim-lib-stream-fabric = { version = "0.4.0", path = "../sim-lib-stream-fabric" }
+sim-lib-stream-fabric = { version = "0.4.1", path = "../sim-lib-stream-fabric" }
 sim-lib-stream-core = { version = "0.3.0" }
 sim-shape = { version = "0.4.0" }
 sim-value = { version = "0.4.0" }

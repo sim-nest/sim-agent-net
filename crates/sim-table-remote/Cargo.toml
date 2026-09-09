@@ -1,6 +1,6 @@
 [package]
 name = "sim-table-remote"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 license = "MPL-2.0"
 description = "Remote directory adapter for SIM table operations over eval fabric."
@@ -13,7 +13,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 sim-citizen = { version = "0.4.0" }
 sim-citizen-derive = { version = "0.4.0" }
 sim-kernel = { version = "0.4.0" }
-sim-lib-server = { version = "0.3.0", path = "../sim-lib-server" }
+sim-lib-server = { version = "0.3.1", path = "../sim-lib-server" }
 sim-table-core = { version = "0.3.0" }
 
 [dev-dependencies]

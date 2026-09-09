@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-openai-server"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "OpenAI-shaped gateway routes and fixture media surfaces for SIM."
@@ -24,7 +24,7 @@ sim-host-core = { version = "0.2.0" }
 sim-lib-agent-runner-core = { version = "0.4.0", path = "../sim-lib-agent-runner-core" }
 sim-lib-core = { version = "0.4.0" }
 sim-lib-net-core = { version = "0.4.0" }
-sim-lib-server = { version = "0.3.0", default-features = false, path = "../sim-lib-server" }
+sim-lib-server = { version = "0.3.1", default-features = false, path = "../sim-lib-server" }
 sim-lib-stream-core = { version = "0.3.0" }
 sim-value = { version = "0.4.0" }
 [build-dependencies]
