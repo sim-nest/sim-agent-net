@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 sha2 = "0.10"
-sim-lib-model-test = { version = "0.2.0", path = "../sim-lib-model-test" }
+sim-lib-model-test = { version = "0.2.1", path = "../sim-lib-model-test" }
 sim-study-core = { version = "0.2.0" }
 
 [lints]

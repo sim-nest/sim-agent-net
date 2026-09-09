@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-model-test"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Loadable self-checking model tasks and honest candidate identity for SIM studies."

@@ -16,7 +16,7 @@ sim-codec-mcp = "0.3.0"
 sim-cookbook = "0.4.0"
 sim-kernel = "0.4.0"
 sim-lib-mcp = { version = "0.3.1", path = "../sim-lib-mcp" }
-sim-lib-mcp-legacy = { version = "0.2.0", path = "../sim-lib-mcp-legacy" }
+sim-lib-mcp-legacy = { version = "0.2.1", path = "../sim-lib-mcp-legacy" }
 sim-lib-net-http = "0.2.0"
 sim-lib-oauth-core = { version = "0.2.0", path = "../sim-lib-oauth-core" }
 sim-lib-provider = { version = "0.2.1", path = "../sim-lib-provider" }
