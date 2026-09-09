@@ -11,7 +11,7 @@ homepage.workspace = true
 
 [dependencies]
 sim-kernel = { version = "0.4.0" }
-sim-lib-provider = { version = "0.2.0", path = "../sim-lib-provider" }
+sim-lib-provider = { version = "0.2.1", path = "../sim-lib-provider" }
 sim-run-core = { version = "0.5.0" }
 
 [lints]

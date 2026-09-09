@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-search-http"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MPL-2.0"
 description = "Provider-neutral, policy-bounded HTTP transport for SIM search codecs."

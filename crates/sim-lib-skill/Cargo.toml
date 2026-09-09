@@ -22,7 +22,7 @@ sim-lib-agent-runner-core = { version = "0.4.0", optional = true, path = "../sim
 sim-lib-agent-runner-process = { version = "0.3.1", optional = true, path = "../sim-lib-agent-runner-process" }
 sim-lib-exec = { version = "0.4.0", optional = true }
 sim-lib-core = { version = "0.4.0" }
-sim-lib-openai-server = { version = "0.5.0", optional = true, path = "../sim-lib-openai-server" }
+sim-lib-openai-server = { version = "0.5.1", optional = true, path = "../sim-lib-openai-server" }
 sim-lib-surface-card = { version = "0.3.0" }
 sim-shape = { version = "0.4.0" }
 sim-value = { version = "0.4.0" }

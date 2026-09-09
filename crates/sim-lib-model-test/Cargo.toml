@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 sim-kernel = { version = "0.4.0" }
-sim-lib-provider = { version = "0.2.0", path = "../sim-lib-provider" }
+sim-lib-provider = { version = "0.2.1", path = "../sim-lib-provider" }
 sim-study-core = { version = "0.2.0" }
 sim-lib-study = { version = "0.2.0" }
 sha2 = "0.10"
