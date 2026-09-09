@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-skill"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Skill cards, policy records, browse metadata, and projections for SIM."
@@ -17,9 +17,9 @@ sim-codec-json = { version = "0.4.0" }
 sim-codec-mcp = { optional = true, version = "0.3.0" }
 sim-cookbook = { version = "0.4.0" }
 sim-kernel = { version = "0.4.0" }
-sim-lib-agent = { version = "0.3.0", optional = true, path = "../sim-lib-agent" }
+sim-lib-agent = { version = "0.3.1", optional = true, path = "../sim-lib-agent" }
 sim-lib-agent-runner-core = { version = "0.4.0", optional = true, path = "../sim-lib-agent-runner-core" }
-sim-lib-agent-runner-process = { version = "0.3.0", optional = true, path = "../sim-lib-agent-runner-process" }
+sim-lib-agent-runner-process = { version = "0.3.1", optional = true, path = "../sim-lib-agent-runner-process" }
 sim-lib-exec = { version = "0.3.0", optional = true }
 sim-lib-core = { version = "0.4.0" }
 sim-lib-openai-server = { version = "0.5.0", optional = true, path = "../sim-lib-openai-server" }
