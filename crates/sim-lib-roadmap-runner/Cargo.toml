@@ -19,7 +19,7 @@ sim-conformance-core = "0.2.0"
 sim-kernel = "0.4.0"
 sim-shape = "0.4.0"
 sim-lib-journal = "0.3.0"
-sim-lib-exec = "0.3.0"
+sim-lib-exec = "0.4.0"
 sim-lib-agent-conduct-core = { version = "0.2.0", path = "../sim-lib-agent-conduct-core" }
 sim-roadmap-core = { version = "0.3.0", path = "../sim-roadmap-core" }
 sim-roadmap-exec-core = { version = "0.3.0", path = "../sim-roadmap-exec-core" }
