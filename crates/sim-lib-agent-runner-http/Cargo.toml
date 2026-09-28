@@ -30,7 +30,7 @@ sim-transport-ports = { version = "0.2.0", path = "../sim-transport-ports" }
 sim-cookbook-build = { version = "0.2.0" }
 
 [dev-dependencies]
-rcgen = "0.13"
+rcgen = "0.14"
 sim-lib-server = { version = "0.3.0", path = "../sim-lib-server" }
 
 [features]
