@@ -10,10 +10,10 @@ readme = "README.md"
 publish = true
 
 [dependencies]
-base64 = "0.22"
+base64 = "0.23"
 sim-cookbook = "0.4.0"
 serde = { version = "1", features = ["derive"] }
-sha2 = "0.10"
+sha2 = "0.11"
 url = "2.5"
 
 [build-dependencies]

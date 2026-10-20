@@ -13,7 +13,7 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 test-support = []
 
 [dependencies]
-sha2 = "0.10"
+sha2 = "0.11"
 sim-artifact-facet = "0.2.0"
 sim-conformance-core = "0.2.0"
 sim-kernel = "0.4.0"
