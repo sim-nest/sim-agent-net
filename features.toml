@@ -386,6 +386,19 @@ claims_specimens = [
 depends_on = ["feature/sim-agent-net/sealed-fixed-point", "feature/sim-storage/artifact-facet-law"]
 
 [[feature]]
+id = "feature/sim-agent-net/model-facet-landing"
+title = "Landing answers on a model store"
+summary = "Plan, apply, explain, and restore model commits without treating a cached answer as current after the branch moves."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call land_plan to observe a facet comparison, land_apply to commit it, land_status to read the pointer, land_why to repeat the recorded answer, and land_recover to move the pointer back. land_why reports a stale head instead of recomputing. The calls use the model store only."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/land_tests",
+]
+depends_on = ["feature/sim-agent-net/model-facet-transaction"]
+
+[[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"
 title = "Policy-gated immutable web capture"
 summary = "Capture landing pages through separate egress and robots decisions into caller-owned content-addressed evidence, with explicit cache modes and fenced model rendering."

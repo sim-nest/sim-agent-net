@@ -19,8 +19,12 @@ use thiserror::Error;
 
 #[path = "transact_check.rs"]
 mod check;
+#[path = "transact_preview.rs"]
+mod preview;
 #[path = "transact_store.rs"]
 mod store;
+
+pub(crate) use preview::{FacetPreview, preview_repository};
 
 pub use store::{ArtifactModel, GitFault, GitModel, ModelStore, ModelTip};
 
@@ -230,32 +234,78 @@ where
     }
 }
 
-fn one_repository<S>(store: &mut S, request: &RepoRequest) -> Result<RepoOutcome, TransactError>
+struct Prepared {
+    tip: ModelTip,
+    files: BTreeMap<String, PortableImage>,
+    changed: bool,
+    kind: CleanKind,
+}
+
+enum PreparedOrRefused {
+    Ready(Prepared),
+    Refused {
+        reason: &'static str,
+        paths: BTreeSet<String>,
+    },
+}
+
+fn prepare<S>(store: &S, request: &RepoRequest) -> Result<PreparedOrRefused, TransactError>
 where
     S: ArtifactModel + GitModel,
 {
     let Some(tip) = store.tip(&request.repository) else {
-        return Ok(refused(request, "wrong-head", [&request.repository]));
+        return Ok(refused_prep("wrong-head", [&request.repository]));
     };
     if let Some(refusal) = check::precheck(store, request, &tip) {
-        return Ok(outcome_refusal(request, refusal));
+        return Ok(PreparedOrRefused::Refused {
+            reason: refusal.reason,
+            paths: refusal.paths,
+        });
     }
     match judge(store, request, &tip)? {
-        Judged::Refuse(refusal) => Ok(outcome_refusal(request, refusal)),
+        Judged::Refuse(refusal) => Ok(PreparedOrRefused::Refused {
+            reason: refusal.reason,
+            paths: refusal.paths,
+        }),
         Judged::Ready {
-            files: _,
-            changed: false,
+            files,
+            changed,
             kind,
-        } => Ok(RepoOutcome::Clean {
+        } => Ok(PreparedOrRefused::Ready(Prepared {
+            tip,
+            files,
+            changed,
+            kind,
+        })),
+    }
+}
+
+fn one_repository<S>(store: &mut S, request: &RepoRequest) -> Result<RepoOutcome, TransactError>
+where
+    S: ArtifactModel + GitModel,
+{
+    match prepare(store, request)? {
+        PreparedOrRefused::Refused { reason, paths } => Ok(RepoOutcome::Refused {
+            repository: request.repository.clone(),
+            reason,
+            paths,
+        }),
+        PreparedOrRefused::Ready(Prepared {
+            changed: false,
+            tip,
+            kind,
+            ..
+        }) => Ok(RepoOutcome::Clean {
             repository: request.repository.clone(),
             tip,
             kind,
         }),
-        Judged::Ready {
-            files,
+        PreparedOrRefused::Ready(Prepared {
             changed: true,
-            kind: _,
-        } => match store.commit(&request.repository, &tip, &files) {
+            files,
+            tip,
+            ..
+        }) => match store.commit(&request.repository, &tip, &files) {
             Ok(new_tip) => Ok(RepoOutcome::Applied {
                 repository: request.repository.clone(),
                 previous: tip,
@@ -269,6 +319,19 @@ where
             }),
             Err(Fault::Identity(text)) => Err(TransactError::Identity(text)),
         },
+    }
+}
+
+fn refused_prep(
+    reason: &'static str,
+    paths: impl IntoIterator<Item = impl AsRef<str>>,
+) -> PreparedOrRefused {
+    PreparedOrRefused::Refused {
+        reason,
+        paths: paths
+            .into_iter()
+            .map(|path| path.as_ref().to_owned())
+            .collect(),
     }
 }
 
@@ -419,7 +482,7 @@ fn refused_rollback(reason: &'static str, repository: &str) -> Rollback {
 
 #[cfg(test)]
 #[path = "transact_fixture.rs"]
-mod fixture;
+pub(crate) mod fixture;
 #[cfg(test)]
 #[path = "transact_conflict_tests.rs"]
 mod transact_conflict_tests;

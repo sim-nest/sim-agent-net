@@ -162,6 +162,14 @@ at an earlier model commit and leaves that commit's bytes unchanged. Each
 repository commits or refuses on its own, so one refusal does not rewind
 another repository.
 
+`land_plan` reports that same comparison without moving the branch.
+`land_apply` records the commit. `land_status` reads the pointer and any
+uncommitted paths. `land_why` repeats the recorded answer while the branch
+still names that commit, and reports a freshness gap when the pointer has
+moved instead of recomputing it. `land_recover` points the branch at an
+earlier model commit. None of these calls opens a checkout or a network
+credential.
+
 ## Shadow qualification
 
 `ShadowObservation` is the public interchange boundary for compatibility

@@ -15,29 +15,29 @@ use super::{
     RepoOutcome, RepoRequest, transact_facets,
 };
 
-pub(super) const MODE: u32 = 0o644;
+pub(crate) const MODE: u32 = 0o644;
 
-pub(super) fn text(body: &str) -> PortableImage {
+pub(crate) fn text(body: &str) -> PortableImage {
     PortableImage::file(body.as_bytes(), MODE).expect("image")
 }
 
-pub(super) fn text_mode(body: &str, mode: u32) -> PortableImage {
+pub(crate) fn text_mode(body: &str, mode: u32) -> PortableImage {
     PortableImage::file(body.as_bytes(), mode).expect("image")
 }
 
-pub(super) fn raw(body: &[u8]) -> PortableImage {
+pub(crate) fn raw(body: &[u8]) -> PortableImage {
     PortableImage::file(body.to_vec(), MODE).expect("image")
 }
 
-pub(super) fn owner(name: &str) -> OwnerId {
+pub(crate) fn owner(name: &str) -> OwnerId {
     OwnerId::from_text(name).expect("owner")
 }
 
-pub(super) fn decision(name: &str) -> DisclosureDecisionId {
+pub(crate) fn decision(name: &str) -> DisclosureDecisionId {
     DisclosureDecisionId::from_text(name).expect("disclosure")
 }
 
-pub(super) fn public_disclosure() -> BoundDisclosure {
+pub(crate) fn public_disclosure() -> BoundDisclosure {
     BoundDisclosure {
         decision: decision("disclosure/model"),
         class: DisclosureClass::Public,
@@ -45,7 +45,7 @@ pub(super) fn public_disclosure() -> BoundDisclosure {
     }
 }
 
-pub(super) fn exact(path: &str, actor: &OwnerId, policy: MergePolicy) -> ArtifactFacet {
+pub(crate) fn exact(path: &str, actor: &OwnerId, policy: MergePolicy) -> ArtifactFacet {
     spec(
         path,
         actor,
@@ -56,7 +56,7 @@ pub(super) fn exact(path: &str, actor: &OwnerId, policy: MergePolicy) -> Artifac
     )
 }
 
-pub(super) fn lines(
+pub(crate) fn lines(
     path: &str,
     actor: &OwnerId,
     start: u32,
@@ -77,7 +77,7 @@ pub(super) fn lines(
     )
 }
 
-pub(super) fn generated(path: &str, actor: &OwnerId, policy: MergePolicy) -> ArtifactFacet {
+pub(crate) fn generated(path: &str, actor: &OwnerId, policy: MergePolicy) -> ArtifactFacet {
     spec(
         path,
         actor,
@@ -90,7 +90,7 @@ pub(super) fn generated(path: &str, actor: &OwnerId, policy: MergePolicy) -> Art
     )
 }
 
-pub(super) fn edit(spec: ArtifactFacet, base: PortableImage, intended: PortableImage) -> FacetEdit {
+pub(crate) fn edit(spec: ArtifactFacet, base: PortableImage, intended: PortableImage) -> FacetEdit {
     let base = BaseImage::check(&spec, base).expect("base");
     let intended = IntendedImage::check(&spec, intended).expect("intended");
     FacetEdit {
@@ -100,7 +100,7 @@ pub(super) fn edit(spec: ArtifactFacet, base: PortableImage, intended: PortableI
     }
 }
 
-pub(super) fn request(
+pub(crate) fn request(
     repository: &str,
     actor: &OwnerId,
     tip: &ModelTip,
@@ -119,14 +119,14 @@ pub(super) fn request(
     }
 }
 
-pub(super) fn tree(files: &[(&str, &str)]) -> BTreeMap<String, PortableImage> {
+pub(crate) fn tree(files: &[(&str, &str)]) -> BTreeMap<String, PortableImage> {
     files
         .iter()
         .map(|(path, body)| ((*path).to_owned(), text(body)))
         .collect()
 }
 
-pub(super) fn seeded(name: &str, files: &[(&str, &str)]) -> (ModelStore, ModelTip) {
+pub(crate) fn seeded(name: &str, files: &[(&str, &str)]) -> (ModelStore, ModelTip) {
     let mut store = ModelStore::new();
     let tip = store
         .insert_repository(name, "main", tree(files))
@@ -134,14 +134,14 @@ pub(super) fn seeded(name: &str, files: &[(&str, &str)]) -> (ModelStore, ModelTi
     (store, tip)
 }
 
-pub(super) fn linewise() -> MergePolicy {
+pub(crate) fn linewise() -> MergePolicy {
     MergePolicy::Linewise {
         max_lines: 32,
         max_cells: 4_096,
     }
 }
 
-pub(super) fn advance(
+pub(crate) fn advance(
     store: &mut ModelStore,
     repository: &str,
     tip: &ModelTip,
@@ -190,7 +190,7 @@ fn spec(
     .expect("facet")
 }
 
-pub(super) fn apply(
+pub(crate) fn apply(
     store: &mut ModelStore,
     tip: &ModelTip,
     actor: &OwnerId,
@@ -216,18 +216,18 @@ pub(super) fn apply(
     applied_tip(&batch)
 }
 
-pub(super) fn applied_tip(batch: &ModelBatch) -> ModelTip {
+pub(crate) fn applied_tip(batch: &ModelBatch) -> ModelTip {
     let RepoOutcome::Applied { tip, .. } = &batch.outcomes()[0] else {
         panic!("expected a commit: {batch:?}");
     };
     tip.clone()
 }
 
-pub(super) fn refusal(batch: &ModelBatch) -> &str {
+pub(crate) fn refusal(batch: &ModelBatch) -> &str {
     refusal_at(batch, 0)
 }
 
-pub(super) fn refusal_at(batch: &ModelBatch, index: usize) -> &str {
+pub(crate) fn refusal_at(batch: &ModelBatch, index: usize) -> &str {
     let RepoOutcome::Refused { reason, .. } = &batch.outcomes()[index] else {
         panic!("expected a refusal at {index}: {batch:?}");
     };
@@ -235,7 +235,7 @@ pub(super) fn refusal_at(batch: &ModelBatch, index: usize) -> &str {
     reason
 }
 
-pub(super) fn refusal_paths(batch: &ModelBatch) -> Vec<&str> {
+pub(crate) fn refusal_paths(batch: &ModelBatch) -> Vec<&str> {
     let RepoOutcome::Refused { paths, .. } = &batch.outcomes()[0] else {
         panic!("expected a refusal: {batch:?}");
     };

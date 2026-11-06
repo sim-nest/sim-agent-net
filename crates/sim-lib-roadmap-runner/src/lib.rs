@@ -18,6 +18,7 @@ mod fixed;
 mod implementer;
 mod journal;
 mod journal_util;
+mod land;
 mod local_command;
 mod model;
 mod mutation;
@@ -48,6 +49,10 @@ pub use fixed::{
 };
 pub use implementer::*;
 pub use journal::ExecutionJournal;
+pub use land::{
+    LandCache, LandPlan, LandStatus, LandWhy, land_apply, land_plan, land_recover, land_status,
+    land_why,
+};
 pub use local_command::*;
 pub use model::*;
 pub use mutation::*;
