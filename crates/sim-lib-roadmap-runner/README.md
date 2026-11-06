@@ -123,6 +123,20 @@ mutation layer. It returns data only. Read-only inspection is available solely
 through exact named `ObservationSpecimen` records with fixed argv, cwd, roots,
 network denial, no write mounts, and a hard output ceiling.
 
+`open_revision` binds a `RevisionOpen` request's content-addressed source
+seal, exact file bytes, and closed claims into one revision. An empty source
+seal is refused. `propose` accepts proposal bytes as data. A checker distinct
+from the author is the only path that commits, and only through a sealed plan
+of postimages that differ. Identical bytes are a repeated image and are not
+sealed. A stop before perform or before commit leaves the accepted revision
+in place; a stop before commit is uncertain and does not authorize another
+commit. Incomplete and malformed bodies stay unapplied.
+Malformed input may be retried once when a descent certificate names a
+strictly smaller unresolved measure. A repeated image returns that image
+identity and the fact ids whose bytes differ, without replacing the accepted
+revision. A changed fact reopens only claims that list it. `proof_frontier`
+reports every failed proof claim and does not edit the revision.
+
 ## Shadow qualification
 
 `ShadowObservation` is the public interchange boundary for compatibility

@@ -14,4 +14,4 @@ One bounded, redacted, canonical record family captures every work plan executio
 
 ## Where it fits
 
-Within SIM, this crate owns only the focused contract described above. Adjacent runtime libraries, platform adapters, codecs, and user surfaces can build around it while retaining their own policy. That boundary keeps the kernel small, avoids competing implementations, and lets this capability evolve without forcing unrelated components to change.
+Within SIM, this crate owns only the focused contract described above. Adjacent runtime libraries, platform adapters, codecs, and user surfaces can build around it while retaining their own policy. That boundary keeps the kernel small, avoids competing implementations, and lets this capability evolve without forcing unrelated components to change. Accepted files change only when a different checker commits sealed postimage bytes that differ. A crash, an incomplete proposal, an empty source seal, or a repeated image leaves those files and their closed claims in place, and a changed input reopens only the claims that read it.

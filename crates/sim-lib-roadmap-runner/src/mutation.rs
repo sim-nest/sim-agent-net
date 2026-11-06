@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs::{self, File, OpenOptions},
@@ -117,6 +122,34 @@ impl SealedMutationPlan {
             total_postimage_bytes: total,
         })
     }
+}
+
+pub(crate) fn check_accepted_files(
+    files: &BTreeMap<String, Vec<u8>>,
+    mode: u32,
+) -> Result<(), MutationError> {
+    let paths: BTreeSet<_> = files.keys().map(String::as_str).collect();
+    let mut total = 0usize;
+    for (path, bytes) in files {
+        validate_relative_path(path)?;
+        PortableImage::file(Vec::new(), mode).validate()?;
+        let mut parent = Path::new(path).parent();
+        while let Some(current) = parent {
+            if !current.as_os_str().is_empty()
+                && paths.contains(current.to_str().unwrap_or_default())
+            {
+                return Err(MutationError::ParentChildCollision);
+            }
+            parent = current.parent();
+        }
+        total = total
+            .checked_add(bytes.len())
+            .ok_or(MutationError::ByteLimit)?;
+    }
+    if total > DEFAULT_MAX_MUTATION_BYTES {
+        return Err(MutationError::ByteLimit);
+    }
+    Ok(())
 }
 
 fn validate_relative_path(path: &str) -> Result<(), MutationError> {

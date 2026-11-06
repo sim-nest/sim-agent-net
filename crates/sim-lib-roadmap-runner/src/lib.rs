@@ -7,6 +7,7 @@ mod budget;
 mod causal;
 mod codec;
 mod compatibility;
+mod converge;
 mod discharge;
 mod implementer;
 mod journal;
@@ -29,6 +30,11 @@ pub use accept::*;
 pub use binding::*;
 pub use budget::*;
 pub use compatibility::*;
+pub use converge::{
+    ClaimState, ConvergeError, Descent, Fence, OpenClaim, OpenRequest as RevisionOpen,
+    POSTIMAGE_MODE, Proposal, ProposalBody, Revision, SOURCE_SEAL, Step, image_id,
+    open as open_revision, proof_frontier, propose, seal_id,
+};
 pub use discharge::*;
 pub use implementer::*;
 pub use journal::ExecutionJournal;
