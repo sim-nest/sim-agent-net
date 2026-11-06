@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use sim_conformance_core::{
     CheckInvocation, CheckerBinding, CheckerReceipt, CheckerReceiptId, RevocationStatus,
 };
@@ -17,6 +22,15 @@ impl ProofCatalog {
             return Err(ProofError::Invalid("duplicate checker receipt".into()));
         }
         Ok(self)
+    }
+
+    pub(super) fn retained_checker(
+        &self,
+        id: &CheckerReceiptId,
+    ) -> Result<&RetainedCheckerReceipt, ProofError> {
+        self.checker_receipts
+            .get(id)
+            .ok_or(ProofError::CheckerReceiptNotCatalogued)
     }
 
     /// Retrieves and revalidates an exact checker receipt against current revocation state.
@@ -61,7 +75,15 @@ impl RetainedCheckerReceipt {
         self.receipt.id()
     }
 
-    fn verify(&self, revocation: RevocationStatus) -> Result<(), ProofError> {
+    pub(super) const fn binding(&self) -> &CheckerBinding {
+        &self.binding
+    }
+
+    pub(super) const fn receipt(&self) -> &CheckerReceipt {
+        &self.receipt
+    }
+
+    pub(super) fn verify(&self, revocation: RevocationStatus) -> Result<(), ProofError> {
         self.receipt
             .verify(&self.binding, &self.invocation, revocation)
             .map_err(|error| ProofError::InvalidCheckerReceipt(error.to_string()))
