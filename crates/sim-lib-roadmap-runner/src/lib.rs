@@ -19,6 +19,8 @@ mod reconcile;
 mod record_law;
 mod recovery;
 mod refiner;
+mod schedule;
+mod schedule_session;
 mod service;
 mod source;
 mod status;
@@ -37,6 +39,14 @@ pub use proof::*;
 pub use reconcile::*;
 pub use recovery::*;
 pub use refiner::*;
+pub use schedule::{
+    Continuation, FailureFrontier, ProofOutcome, ProofUnit, ResourceAsk, ScheduleError,
+    TypedFailure, failure_frontier, information_value, legal_order, resume_frontier,
+};
+pub use schedule_session::{
+    Admit, ControlAck, ControlEntry, ControlIntent, Lease, Liveness, LogicalTime, Mode,
+    ModelWorker, Session, WakeCause, WakeEvent, WorkerView,
+};
 pub use service::*;
 pub use source::*;
 pub use status::*;
