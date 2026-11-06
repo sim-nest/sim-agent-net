@@ -31,6 +31,7 @@ mod schedule_session;
 mod service;
 mod source;
 mod status;
+mod transact;
 
 pub use accept::*;
 pub use binding::*;
@@ -65,6 +66,11 @@ pub use schedule_session::{
 pub use service::*;
 pub use source::*;
 pub use status::*;
+pub use transact::{
+    ArtifactModel, BoundDisclosure, CleanKind, DisclosureClass, FacetEdit, GitFault, GitModel,
+    ModelBatch, ModelStore, ModelTip, RepoOutcome, RepoRequest, Rollback, TransactError,
+    rollback_model, transact_facets,
+};
 
 #[cfg(test)]
 mod journal_contract_tests;

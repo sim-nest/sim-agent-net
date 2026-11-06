@@ -370,6 +370,22 @@ claims_specimens = [
 depends_on = ["feature/sim-agent-net/disposable-postimage-convergence", "feature/sim-storage/artifact-facet-law"]
 
 [[feature]]
+id = "feature/sim-agent-net/model-facet-transaction"
+title = "Model facet and repository transactions"
+summary = "Compare base, current, and intended images under the shared facet law, then commit or refuse each model repository on its own."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call transact_facets with a model store, the expected branch and head, the base revision, a disclosure decision, and role-checked images. The call observes the current tree from the model and compares it through the shared facet law. A direct apply or a disjoint merge writes one commit on that repository. Wrong head, dirt, region escape, overlap, private or unknown disclosure, a generated write by another owner, and a stale base refuse before that commit. rollback_model moves the branch pointer back to an existing commit and does not rewrite it. One repository's refusal leaves another repository's commit in place."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_recover_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_gate_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_conflict_tests",
+]
+depends_on = ["feature/sim-agent-net/sealed-fixed-point", "feature/sim-storage/artifact-facet-law"]
+
+[[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"
 title = "Policy-gated immutable web capture"
 summary = "Capture landing pages through separate egress and robots decisions into caller-owned content-addressed evidence, with explicit cache modes and fenced model rendering."

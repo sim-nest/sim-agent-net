@@ -149,6 +149,19 @@ seal. `retire_duplicate` keeps a second generator only as data until the
 retained generator reproduces the accepted bytes. The seal is an identity over
 accepted bytes. Checkout, process, and Git authority stay with their own owners.
 
+`transact_facets` compares one repository's sealed base, its current model
+tree, and the intended images through the shared facet law. The caller names
+the expected branch, head, and base revision, and supplies the disclosure
+decision separately from the facet. A direct apply or a disjoint merge records
+one new model commit and moves only that branch pointer. An image that is
+already current, or a proposal that changes nothing, leaves the branch in
+place. A wrong head, dirt, a region escape, an overlap, a private or unknown
+disclosure, a generated write from another owner, a stale base, or any other
+conflict writes nothing in that repository. `rollback_model` points the branch
+at an earlier model commit and leaves that commit's bytes unchanged. Each
+repository commits or refuses on its own, so one refusal does not rewind
+another repository.
+
 ## Shadow qualification
 
 `ShadowObservation` is the public interchange boundary for compatibility
