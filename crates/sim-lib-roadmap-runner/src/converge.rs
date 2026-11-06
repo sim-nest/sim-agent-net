@@ -128,6 +128,11 @@ impl Revision {
     pub fn is_uncertain(&self) -> bool {
         self.uncertain
     }
+
+    /// Whether an accepted or opened image id is already recorded.
+    pub(crate) fn has_seen(&self, image: &ContentId) -> bool {
+        self.seen_images.contains(image)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

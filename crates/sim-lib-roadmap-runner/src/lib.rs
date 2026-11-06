@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 
@@ -9,6 +14,7 @@ mod codec;
 mod compatibility;
 mod converge;
 mod discharge;
+mod fixed;
 mod implementer;
 mod journal;
 mod journal_util;
@@ -36,6 +42,9 @@ pub use converge::{
     open as open_revision, proof_frontier, propose, seal_id,
 };
 pub use discharge::*;
+pub use fixed::{
+    FactGenerator, FixedError, FixedSeal, FixedStep, retire_duplicate, seal_fixed_point,
+};
 pub use implementer::*;
 pub use journal::ExecutionJournal;
 pub use local_command::*;

@@ -137,6 +137,18 @@ identity and the fact ids whose bytes differ, without replacing the accepted
 revision. A changed fact reopens only claims that list it. `proof_frontier`
 reports every failed proof claim and does not edit the revision.
 
+`seal_fixed_point` binds that accepted source seal, the generated postimages,
+their facet owners, and the proof digest into one fixed seal. Each generated
+artifact has one generator. The generator reads authored bytes and writes only
+its declared paths. Matching bytes seal the closure. A second call that still
+carries the seal performs no generation and does not consult the proof
+frontier. Deleting a generated path reports that generator's write set and the
+claims that read those paths, and leaves the revision in place. A failed proof,
+a missing proof, a postimage whose bytes differ, or a repeated image blocks the
+seal. `retire_duplicate` keeps a second generator only as data until the
+retained generator reproduces the accepted bytes. The seal is an identity over
+accepted bytes. Checkout, process, and Git authority stay with their own owners.
+
 ## Shadow qualification
 
 `ShadowObservation` is the public interchange boundary for compatibility
