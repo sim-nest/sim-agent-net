@@ -399,6 +399,20 @@ claims_specimens = [
 depends_on = ["feature/sim-agent-net/model-facet-transaction"]
 
 [[feature]]
+id = "feature/sim-agent-net/bounded-work-packet"
+title = "Bounded work packet admission"
+summary = "Derive one work packet from canonical input and admit it through the typed builder at the receiving worker."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call receive_work with one canonical input, an input port, a model worker, and a proposal model. Lengths, identities, paths, roles, status, resources, and the receiver selector come from that input. Oversize input and a wrong namespace, role, copy, status, or schema refuse before the port is read. Incomplete output keeps the packet evidence. Malformed returns stop at the attempt ceiling, and a retry that does not narrow refuses. A model proposal that carries an effect or an approval refuses. Mirror agreement does not authorize any of those refusals. The call does not open another controller."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_more_tests",
+]
+depends_on = ["feature/sim-agent-net/bounded-roadmap-runner-service"]
+
+[[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"
 title = "Policy-gated immutable web capture"
 summary = "Capture landing pages through separate egress and robots decisions into caller-owned content-addressed evidence, with explicit cache modes and fenced model rendering."

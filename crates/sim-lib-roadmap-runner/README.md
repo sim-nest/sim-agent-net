@@ -170,6 +170,18 @@ moved instead of recomputing it. `land_recover` points the branch at an
 earlier model commit. None of these calls opens a checkout or a network
 credential.
 
+`receive_work` admits one canonical work input through the typed packet
+builder. Lengths, identities, paths, roles, status, resources, and the
+receiver selector are taken from that input. An oversize input, a wrong
+namespace, role, copy, status, or schema, and a packet that does not
+narrow all refuse before the input port is read. Incomplete output keeps
+the packet evidence. Malformed returns stop at the attempt ceiling, and a
+retry that does not strictly narrow refuses. The receiver checks the
+canonical serialization before accepting a modeled proposal. A proposal
+that carries an effect or an approval refuses. Mirror agreement does not
+authorize a refusal to pass. The call returns a receipt and does not
+schedule another controller.
+
 ## Shadow qualification
 
 `ShadowObservation` is the public interchange boundary for compatibility

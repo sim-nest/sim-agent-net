@@ -22,6 +22,7 @@ mod land;
 mod local_command;
 mod model;
 mod mutation;
+mod packet_work;
 mod proof;
 mod reconcile;
 mod record_law;
@@ -56,6 +57,10 @@ pub use land::{
 pub use local_command::*;
 pub use model::*;
 pub use mutation::*;
+pub use packet_work::{
+    CanonicalWork, CapturedWork, InputPort, ModelBody, ModelReturn, ProposalModel, WorkReceipt,
+    WorkReceiveError, WorkSource, receive_work,
+};
 pub use proof::*;
 pub use reconcile::*;
 pub use recovery::*;

@@ -16,7 +16,9 @@ test-support = []
 sha2 = "0.10"
 sim-artifact-facet = "0.2.0"
 sim-conformance-core = "0.2.0"
+sim-conformance-packet = { package = "sim-conformance-core", version = "0.3.0" }
 sim-kernel = "0.4.0"
+sim-work-core = "0.3.0"
 sim-shape = "0.4.0"
 sim-lib-journal = "0.3.0"
 sim-lib-exec = "0.3.0"
