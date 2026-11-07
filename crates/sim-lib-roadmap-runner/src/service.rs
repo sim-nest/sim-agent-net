@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use sim_kernel::ContentId;
@@ -7,12 +13,27 @@ use sim_roadmap_exec_core::{
     AttemptId, ExecutionEvent, ExecutionFailure, ExecutionPolicy, MutationPlan, PhaseRunState,
     Transition, reduce, replay,
 };
+use sim_work_core::ResourceNeed;
 use thiserror::Error;
 
 use crate::{
-    AuthorityGrant, ExecutionJournal, ExecutionJournalError, ExecutionPins, ExecutionRecord,
-    Limits, RebuiltExecution,
+    AuthorityGrant, ExecutionJournal, ExecutionJournalError, ExecutionPins, ExecutionRecord, Lease,
+    Limits, Mode, RebuiltExecution,
 };
+
+#[path = "drive.rs"]
+mod drive;
+#[path = "drive_commit.rs"]
+mod drive_commit;
+#[path = "drive_step.rs"]
+mod drive_step;
+
+pub use drive::{
+    DirectionHandoff, DirectionKind, DirectionQuestion, DirectionReply, DirectionRequest,
+    DriveResult, ExternalLineageRef, InputBatch, LineageView, RunSnapshot, SnapshotRead,
+    SnapshotRow, direction_shape,
+};
+pub use sim_work_core::CapabilityGrant;
 
 /// Port over the compiled plan. The service intentionally owns no dependency
 /// graph or ready queue.
@@ -46,12 +67,20 @@ pub struct OpenRequest {
     pub attempt: AttemptId,
     pub policy: ExecutionPolicy,
     pub mutation: MutationPlan,
+    /// Resources that must be offered before an effect starts.
+    pub resources: Vec<ResourceNeed>,
+    /// Direction question published before an effect, when one is bound.
+    pub direction: Option<DirectionQuestion>,
+    /// Selection handoff. Begin authority stays separate from selection.
+    pub handoff: Option<DirectionHandoff>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Inspection {
     pub journal: RebuiltExecution,
     pub transition: Transition,
+    /// Last conduct result. Reading it performs no effect.
+    pub drive: DriveResult,
 }
 
 pub struct RoadmapRunnerService<B, R, E, C> {
@@ -61,8 +90,25 @@ pub struct RoadmapRunnerService<B, R, E, C> {
     cancellation: C,
     request: OpenRequest,
     transition: Transition,
+    /// Reducer fields match durable observations. A copied phase alone does not.
+    transition_faithful: bool,
     opening_head: ContentId,
     opening_grant: ContentId,
+    revision_n: u64,
+    revision: ContentId,
+    last_drive: DriveResult,
+    uncertain: bool,
+    mode: Mode,
+    resources: Vec<ResourceNeed>,
+    question: Option<DirectionQuestion>,
+    published: Option<DirectionRequest>,
+    consumed: Option<(ContentId, String)>,
+    consumed_answer: Option<ContentId>,
+    wait_resumed: bool,
+    seen_offers: BTreeSet<(String, u64)>,
+    handoff: Option<DirectionHandoff>,
+    snapshots: Vec<RunSnapshot>,
+    leases: Vec<Lease>,
 }
 
 impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
@@ -82,83 +128,51 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
         let opened = journal.open(pins(&request), None)?;
         let opening_head = opened.opening_head.entry;
         let opening_grant = request.authority.grant.clone();
-        Ok(Self {
+        let resources = request.resources.clone();
+        let question = request.direction.clone();
+        let handoff = request.handoff.clone();
+        let revision = drive::revision_id(&opening_head, 0);
+        let mut service = Self {
             journal,
             readiness,
             effects,
             cancellation,
             request,
             transition: Transition::planned(opening_head.clone()),
+            transition_faithful: true,
             opening_head,
             opening_grant,
-        })
-    }
-
-    /// Performs at most one admitted leaf effect. There is no hidden run loop.
-    pub fn advance_one_effect(&mut self) -> Result<Inspection, ServiceError> {
-        if self
-            .cancellation
-            .cancellation_requested(&self.request.authority.identity.execution)
-        {
-            return self.cancel();
-        }
-        let Some(leaf) = self
-            .readiness
-            .admitted_leaf(&self.request.authority.identity.roadmap)?
-        else {
-            return Err(ServiceError::NotReady);
+            revision_n: 0,
+            revision,
+            last_drive: DriveResult::Quiescent {
+                wake_on: drive::wake_on(),
+            },
+            uncertain: false,
+            mode: Mode::Running,
+            resources,
+            question,
+            published: None,
+            consumed: None,
+            consumed_answer: None,
+            wait_resumed: false,
+            seen_offers: BTreeSet::new(),
+            handoff,
+            snapshots: Vec::new(),
+            leases: Vec::new(),
         };
-        if leaf != self.request.phase {
-            return Err(ServiceError::WrongLeaf);
+        if service.journal_uncertain()? {
+            service.uncertain = true;
         }
-        let before = self.journal.rebuild()?;
-        let effect_id = format!("{}:{}", leaf, before.records.len());
-        let intent_head = self.journal.append(
-            Some(&before.head),
-            ExecutionRecord::EffectRequested {
-                effect_id: effect_id.clone(),
-                kind: "admitted-leaf".into(),
-                input: None,
-            },
-            vec![],
-        )?;
-        let event =
-            self.effects
-                .invoke(&self.request.authority.identity, &leaf, &self.transition)?;
-        let next = reduce(
-            &self.request.policy,
-            &self.request.mutation,
-            &self.request.authority.identity.execution,
-            &leaf,
-            &self.request.attempt,
-            &self.transition,
-            &event,
-        )?;
-        let receipt_head = self.journal.append(
-            Some(&intent_head),
-            ExecutionRecord::EffectReceipt {
-                effect_id,
-                outcome: event.observation.kind.to_string(),
-                output: None,
-            },
-            vec![],
-        )?;
-        self.journal.append(
-            Some(&receipt_head),
-            ExecutionRecord::StateTransition {
-                from: state_text(self.transition.state).into(),
-                to: state_text(next.state).into(),
-            },
-            vec![],
-        )?;
-        self.transition = next;
-        self.inspect()
+        service.restore_execution()?;
+        service.restore_direction()?;
+        Ok(service)
     }
 
     pub fn inspect(&self) -> Result<Inspection, ServiceError> {
         Ok(Inspection {
             journal: self.journal.rebuild()?,
             transition: self.transition.clone(),
+            drive: self.last_drive.clone(),
         })
     }
 
@@ -188,7 +202,6 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
         {
             return Err(ServiceError::BudgetWidening);
         }
-        self.transition = self.replay()?;
         self.request.authority = authority;
         self.inspect()
     }
@@ -203,30 +216,6 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             &self.transition,
             event,
         )?)
-    }
-
-    fn cancel(&mut self) -> Result<Inspection, ServiceError> {
-        let state = self.journal.rebuild()?;
-        let event = ExecutionEvent {
-            execution: self.request.authority.identity.execution.clone(),
-            phase: self.request.phase.clone(),
-            attempt: self.request.attempt.clone(),
-            observation: sim_roadmap_exec_core::Observation::new(
-                sim_kernel::Symbol::new("cancel"),
-                state.head.entry.clone(),
-            ),
-        };
-        let next = self.propose_transition(&event)?;
-        self.journal.append(
-            Some(&state.head),
-            ExecutionRecord::StateTransition {
-                from: state_text(self.transition.state).into(),
-                to: state_text(PhaseRunState::Cancelled).into(),
-            },
-            vec![],
-        )?;
-        self.transition = next;
-        self.inspect()
     }
 }
 
@@ -286,4 +275,20 @@ pub enum ServiceError {
     BudgetWidening,
     #[error("adapter failed: {0}")]
     Adapter(String),
+    #[error("direction revision is stale")]
+    StaleDirection,
+    #[error("direction reply does not match the published request")]
+    WrongDirection,
+    #[error("direction decision was already consumed")]
+    ReplayedDirection,
+    #[error("advisory input cannot authorize a decision")]
+    AdvisoryDirection,
+    #[error("the grant does not include the required direction authority")]
+    DirectionAuthority,
+    #[error("selection supplies no begin authority")]
+    MissingBegin,
+    #[error("the effect outcome is uncertain and is not invoked again")]
+    EffectUncertain,
+    #[error("the restored execution has no reducer state")]
+    RestoredTransition,
 }

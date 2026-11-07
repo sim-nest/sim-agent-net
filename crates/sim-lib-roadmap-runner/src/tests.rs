@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // conformance: durable roadmap runner journal and replay laws.
 
 use std::sync::Arc;
@@ -79,6 +84,9 @@ mod bounded_service {
             policy,
             mutation: MutationPlan::new(MutationId::new("mutation").unwrap(), vec![], vec![])
                 .unwrap(),
+            resources: vec![],
+            direction: None,
+            handoff: None,
         }
     }
     struct Ready(PhaseId);
@@ -128,7 +136,11 @@ mod bounded_service {
             Limits::default(),
         )
         .unwrap();
-        let inspected = service.advance_one_effect().unwrap();
+        let driven = service
+            .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
+            .unwrap();
+        let inspected = service.inspect().unwrap();
+        assert_eq!(inspected.drive, driven);
         assert_eq!(inspected.transition.state, PhaseRunState::Running);
         assert!(matches!(
             inspected.journal.records[1],

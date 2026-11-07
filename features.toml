@@ -108,7 +108,7 @@ title = "Bounded roadmap runner service"
 summary = "Advance one compiled-plan-admitted roadmap leaf through content-pinned adapters, provenance-preserving authority ceilings, intent-first journaling, and the pure execution reducer."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
-guidance = "Open RoadmapRunnerService with a complete ExecutionIdentity and the pointwise EffectiveCeiling derived from caller, roadmap, conduct, model-site, sandbox, and operator layers. Call advance_one_effect explicitly; ReadinessPort remains the only scheduler and EffectPort returns observations rather than state. Resume only with identical content pins, a fresh caller grant, and an equal-or-narrower ceiling. Use replay and inspect for observation, never an unbounded host loop."
+guidance = "Open RoadmapRunnerService with a complete ExecutionIdentity and the pointwise EffectiveCeiling derived from caller, roadmap, conduct, model-site, sandbox, and operator layers. Call advance_one_effect with one input batch and one capability grant. One call performs one admitted effect or one pure transition, and a no-change wake starts nothing. ReadinessPort remains the only scheduler and EffectPort returns observations rather than state. Resume only with identical content pins, a fresh caller grant, and an equal-or-narrower ceiling. Use replay and inspect for observation. Inspection is a projection."
 claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests"]
 depends_on = ["feature/sim-agent-net/durable-roadmap-execution-journal", "feature/sim-agent-net/pure-roadmap-execution"]
@@ -326,7 +326,7 @@ title = "Typed hostile-sandbox proof leaves"
 summary = "Admit grounded catalog leaves, execute bounded commands through the shared sandbox, and replay normalized proof receipts without duplicate effects."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
-guidance = "Build a ProofCatalog from the grounded phase's authored leaves and let conduct select only a catalog name. Use pure artifact-equality and source-deck predicates when their inputs suffice. For commands, retain literal argv, a sealed allowlisted environment, opaque mounts, complete required SandboxPolicy, structured expectation, and TypedProofReceipt. Use execute_journaled_proof with the launcher receipt store so intent precedes launch and unresolved effects reconcile rather than relaunch."
+guidance = "Build a ProofCatalog from the grounded phase's authored leaves and let conduct select only a catalog name. Use pure artifact-equality and source-deck predicates when their inputs suffice. For commands, retain literal argv, a sealed allowlisted environment, opaque mounts, complete required SandboxPolicy, structured expectation, and TypedProofReceipt. Use execute_journaled_proof with the launcher receipt store so intent precedes launch and unresolved effects reconcile rather than relaunch. Evidence receipts stay on that same catalog. A semantic key is stable across grades, the grade is the checker receipt's own grade, and telemetry is not part of the key. A proof frontier names every failed unit inside a budget, or a continuation that still names the rest. Stop, drain, pause, and resume are recorded on a control log that does not read worker outcomes."
 claims_anchors = []
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/proof"]
 
@@ -340,6 +340,113 @@ guidance = "Expand structural edits to exact PortableImage values before SealedM
 claims_anchors = []
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/mutation"]
 depends_on = ["feature/sim-storage/artifact-facet-law"]
+
+[[feature]]
+id = "feature/sim-agent-net/disposable-postimage-convergence"
+title = "Disposable postimage convergence"
+summary = "Commit an independent checker's sealed postimages, reopen only claims that read a changed fact, and stop on a repeated image."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call open_revision with a RevisionOpen request carrying a content-addressed source seal and closed claims. An empty source seal is refused. Submit proposal bytes as data. A checker distinct from the author commits only through propose, and only by sealing postimages whose bytes differ. Identical bytes are a repeated image and are not sealed. A stop before perform or before commit, an incomplete body, a malformed body, or a repeated image leaves the accepted revision unchanged. A stop before commit is uncertain and refuses another commit. A changed fact reopens only claims that list it, and the revision identity includes those claim inputs. Observe parallel proof failures through proof_frontier. The proposal carries no process, network, or approval capability."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/converge_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/converge_gate_tests",
+]
+depends_on = ["feature/sim-agent-net/recoverable-multi-file-mutation", "feature/sim-agent-net/typed-hostile-proof-leaves"]
+
+[[feature]]
+id = "feature/sim-agent-net/sealed-fixed-point"
+title = "Sealed fixed point for one generator"
+summary = "Seal source, generated postimages, proof, and ownership together, and perform no generation on a second pass."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call seal_fixed_point with the accepted revision, one ArtifactFacet per region, and one FactGenerator per generated artifact. The generator reads authored bytes and writes only its declared paths. A matching regeneration returns a seal. Passing that seal back performs no generation and does not consult the proof frontier again. Delete a generated path to obtain that generator's write set and the claims that read it; the revision stays in place. A failed proof, a missing proof, a differing postimage, or a repeated image blocks the seal. retire_duplicate requires the retained generator to reproduce the accepted bytes before the other generator is dropped. The seal is an identity over accepted bytes."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/fixed_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/fixed_gate_tests",
+]
+depends_on = ["feature/sim-agent-net/disposable-postimage-convergence", "feature/sim-storage/artifact-facet-law"]
+
+[[feature]]
+id = "feature/sim-agent-net/model-facet-transaction"
+title = "Model facet and repository transactions"
+summary = "Compare base, current, and intended images under the shared facet law, then commit or refuse each model repository on its own."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call transact_facets with a model store, the expected branch and head, the base revision, a disclosure decision, and role-checked images. The call observes the current tree from the model and compares it through the shared facet law. A direct apply or a disjoint merge writes one commit on that repository. Wrong head, dirt, region escape, overlap, private or unknown disclosure, a generated write by another owner, and a stale base refuse before that commit. rollback_model moves the branch pointer back to an existing commit and does not rewrite it. One repository's refusal leaves another repository's commit in place."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_recover_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_gate_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_conflict_tests",
+]
+depends_on = ["feature/sim-agent-net/sealed-fixed-point", "feature/sim-storage/artifact-facet-law"]
+
+[[feature]]
+id = "feature/sim-agent-net/model-facet-landing"
+title = "Landing answers on a model store"
+summary = "Plan, apply, explain, and restore model commits without treating a cached answer as current after the branch moves."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call land_plan to observe a facet comparison, land_apply to commit it, land_status to read the pointer, land_why to repeat the recorded answer, and land_recover to move the pointer back. land_why reports a stale head instead of recomputing. The calls use the model store only."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/land_tests",
+]
+depends_on = ["feature/sim-agent-net/model-facet-transaction"]
+
+[[feature]]
+id = "feature/sim-agent-net/bounded-work-packet"
+title = "Bounded work packet admission"
+summary = "Derive one work packet from canonical input and admit it through the typed builder at the receiving worker."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call receive_work with one canonical input, an input port, a model worker, and a proposal model. Lengths, identities, paths, roles, status, resources, and the receiver selector come from that input. Oversize input and a wrong namespace, role, copy, status, or schema refuse before the port is read. Incomplete output keeps the packet evidence. Malformed returns stop at the attempt ceiling, and a retry that does not narrow refuses. A model proposal that carries an effect or an approval refuses. Mirror agreement does not authorize any of those refusals. The call does not open another controller."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_more_tests",
+]
+depends_on = ["feature/sim-agent-net/bounded-roadmap-runner-service"]
+
+[[feature]]
+id = "feature/sim-agent-net/authoring-compiler"
+title = "Self-contained authoring compiler"
+summary = "List, show, lint, select, and diff a source family, then compile the selected source into the revision, work, proof, and mutation values."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call list_family, show_member, lint_family, select_member, and diff_members over a source deck and a roadmap spec. compile_authoring turns the one selected source into an opened revision, a canonical work value, a source-deck proof leaf, and a sealed mutation plan. Consulted and superseded siblings do not satisfy a requirement. A missing argument, work, gate, ratchet, owner, or checker refuses. The source bytes round-trip unchanged. Advice, facts, and decisions use distinct shapes. Selection carries neither begin authority nor hold release."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/author_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/author_more_tests",
+]
+depends_on = [
+  "feature/sim-agent-net/bounded-work-packet",
+  "feature/sim-agent-net/immutable-source-decks",
+  "feature/sim-agent-net/disposable-postimage-convergence",
+  "feature/sim-agent-net/typed-hostile-proof-leaves",
+  "feature/sim-agent-net/recoverable-multi-file-mutation",
+]
+
+[[feature]]
+id = "feature/sim-agent-net/quiescent-driver"
+title = "Quiescent one-effect driver"
+summary = "One advance records one admitted effect or one pure transition, and a wake that changes nothing starts no effect."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call advance_one_effect with the offered wakes, an optional direction reply, and the capability grant. A call records one effect or one pure transition. A no-change wake appends nothing. A resource wait holds no lease and resumes once when a new positive offer arrives. Stale, wrong, replayed, and advisory direction replies refuse. An informational reply records no cause and does not change state. read_snapshot pages the journal's verified snapshot and does not splice a later revision. lineage reports a gap when a referenced value is absent. Inspection reads the last result and does not conduct."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/drive_tests",
+]
+depends_on = [
+  "feature/sim-agent-net/bounded-roadmap-runner-service",
+  "feature/sim-agent-net/authoring-compiler",
+]
 
 [[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"

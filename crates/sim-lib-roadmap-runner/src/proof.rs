@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
@@ -9,9 +14,11 @@ use sim_lib_exec::{
     SandboxRequirement, SealedBindings,
 };
 use sim_lib_journal::JournalBackend;
-use thiserror::Error;
 
-use crate::{ExecutionJournal, ExecutionJournalError, ExecutionRecord, RebuiltExecution};
+use crate::{ExecutionJournal, ExecutionRecord, RebuiltExecution};
+
+mod error;
+pub use error::ProofError;
 
 const SOURCE_ROOT: &str = "/source";
 const SCRATCH_ROOT: &str = "/scratch";
@@ -21,6 +28,7 @@ const SCRATCH_ROOT: &str = "/scratch";
 pub struct ProofCatalog {
     leaves: BTreeMap<String, ProofLeaf>,
     checker_receipts: BTreeMap<CheckerReceiptId, RetainedCheckerReceipt>,
+    evidence: BTreeMap<EvidenceReceiptId, evidence::EvidenceRecord>,
 }
 
 impl ProofCatalog {
@@ -39,6 +47,7 @@ impl ProofCatalog {
         Ok(Self {
             leaves: by_name,
             checker_receipts: BTreeMap::new(),
+            evidence: BTreeMap::new(),
         })
     }
 
@@ -304,22 +313,6 @@ pub struct TypedProofReceipt {
     pub semantic_detail: String,
 }
 
-#[derive(Debug, Error)]
-pub enum ProofError {
-    #[error("proof leaf is not in the grounded catalog: {0}")]
-    NotCatalogued(String),
-    #[error("invalid proof leaf: {0}")]
-    Invalid(String),
-    #[error("checker receipt is absent from the grounded proof catalog")]
-    CheckerReceiptNotCatalogued,
-    #[error("invalid checker receipt: {0}")]
-    InvalidCheckerReceipt(String),
-    #[error(transparent)]
-    Journal(#[from] ExecutionJournalError),
-    #[error("an already-launched proof effect has no conclusive launcher receipt")]
-    AmbiguousEffect,
-}
-
 /// Durable launcher-receipt authority used to reconcile a crash after dispatch.
 pub trait ProofReceiptStore {
     fn inspect(&self, effect_id: &str) -> Option<TypedProofReceipt>;
@@ -484,6 +477,12 @@ fn pure_receipt(name: &str, passed: bool, observed_at: String, detail: &str) -> 
 }
 
 include!("proof/normalization.rs");
+
+mod evidence;
+pub use evidence::{
+    AdmittedEvidence, DiscoveredDefinition, EvidenceClaim, EvidenceDecision, EvidenceKeyId,
+    EvidenceReceiptId,
+};
 
 mod receipt;
 pub use receipt::RetainedCheckerReceipt;

@@ -123,6 +123,87 @@ mutation layer. It returns data only. Read-only inspection is available solely
 through exact named `ObservationSpecimen` records with fixed argv, cwd, roots,
 network denial, no write mounts, and a hard output ceiling.
 
+`open_revision` binds a `RevisionOpen` request's content-addressed source
+seal, exact file bytes, and closed claims into one revision. An empty source
+seal is refused. `propose` accepts proposal bytes as data. A checker distinct
+from the author is the only path that commits, and only through a sealed plan
+of postimages that differ. Identical bytes are a repeated image and are not
+sealed. A stop before perform or before commit leaves the accepted revision
+in place; a stop before commit is uncertain and does not authorize another
+commit. Incomplete and malformed bodies stay unapplied.
+Malformed input may be retried once when a descent certificate names a
+strictly smaller unresolved measure. A repeated image returns that image
+identity and the fact ids whose bytes differ, without replacing the accepted
+revision. A changed fact reopens only claims that list it. `proof_frontier`
+reports every failed proof claim and does not edit the revision.
+
+`seal_fixed_point` binds that accepted source seal, the generated postimages,
+their facet owners, and the proof digest into one fixed seal. Each generated
+artifact has one generator. The generator reads authored bytes and writes only
+its declared paths. Matching bytes seal the closure. A second call that still
+carries the seal performs no generation and does not consult the proof
+frontier. Deleting a generated path reports that generator's write set and the
+claims that read those paths, and leaves the revision in place. A failed proof,
+a missing proof, a postimage whose bytes differ, or a repeated image blocks the
+seal. `retire_duplicate` keeps a second generator only as data until the
+retained generator reproduces the accepted bytes. The seal is an identity over
+accepted bytes. Checkout, process, and Git authority stay with their own owners.
+
+`transact_facets` compares one repository's sealed base, its current model
+tree, and the intended images through the shared facet law. The caller names
+the expected branch, head, and base revision, and supplies the disclosure
+decision separately from the facet. A direct apply or a disjoint merge records
+one new model commit and moves only that branch pointer. An image that is
+already current, or a proposal that changes nothing, leaves the branch in
+place. A wrong head, dirt, a region escape, an overlap, a private or unknown
+disclosure, a generated write from another owner, a stale base, or any other
+conflict writes nothing in that repository. `rollback_model` points the branch
+at an earlier model commit and leaves that commit's bytes unchanged. Each
+repository commits or refuses on its own, so one refusal does not rewind
+another repository.
+
+`land_plan` reports that same comparison without moving the branch.
+`land_apply` records the commit. `land_status` reads the pointer and any
+uncommitted paths. `land_why` repeats the recorded answer while the branch
+still names that commit, and reports a freshness gap when the pointer has
+moved instead of recomputing it. `land_recover` points the branch at an
+earlier model commit. None of these calls opens a checkout or a network
+credential.
+
+`receive_work` admits one canonical work input through the typed packet
+builder. Lengths, identities, paths, roles, status, resources, and the
+receiver selector are taken from that input. An oversize input, a wrong
+namespace, role, copy, status, or schema, and a packet that does not
+narrow all refuse before the input port is read. Incomplete output keeps
+the packet evidence. Malformed returns stop at the attempt ceiling, and a
+retry that does not strictly narrow refuses. The receiver checks the
+canonical serialization before accepting a modeled proposal. A proposal
+that carries an effect or an approval refuses. Mirror agreement does not
+authorize a refusal to pass. The call returns a receipt and does not
+schedule another controller.
+
+`list_family`, `show_member`, `lint_family`, `select_member`, and
+`diff_members` read a source family over a source deck and a roadmap spec.
+`compile_authoring` turns the one selected source into an opened revision,
+a canonical work value, a source-deck proof leaf, and a sealed mutation
+plan. Consulted and superseded siblings do not satisfy a requirement. A
+missing argument, work, gate, ratchet, owner, or checker refuses. The
+source bytes round-trip unchanged. Advice, facts, and decisions use
+distinct shapes. Selection carries neither begin authority nor hold
+release. The call does not receive the work value and does not apply the
+mutation plan.
+
+`advance_one_effect` takes one input batch and one capability grant.
+The call records one admitted effect or one pure transition. A wake
+that changes nothing appends no record and starts no effect. A resource
+wait holds no lease and resumes once when a new positive offer arrives.
+A stale, wrong, replayed, or advisory direction is refused. An
+informational reply records no cause and does not change state.
+`read_snapshot` pages the journal's verified snapshot and does not
+splice a later revision. `lineage` reports a gap when a referenced
+value is absent. `inspect` reads the last result and does
+not conduct.
+
 ## Shadow qualification
 
 `ShadowObservation` is the public interchange boundary for compatibility
