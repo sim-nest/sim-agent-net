@@ -182,6 +182,17 @@ that carries an effect or an approval refuses. Mirror agreement does not
 authorize a refusal to pass. The call returns a receipt and does not
 schedule another controller.
 
+`list_family`, `show_member`, `lint_family`, `select_member`, and
+`diff_members` read a source family over a source deck and a roadmap spec.
+`compile_authoring` turns the one selected source into an opened revision,
+a canonical work value, a source-deck proof leaf, and a sealed mutation
+plan. Consulted and superseded siblings do not satisfy a requirement. A
+missing argument, work, gate, ratchet, owner, or checker refuses. The
+source bytes round-trip unchanged. Advice, facts, and decisions use
+distinct shapes. Selection carries neither begin authority nor hold
+release. The call does not receive the work value and does not apply the
+mutation plan.
+
 ## Shadow qualification
 
 `ShadowObservation` is the public interchange boundary for compatibility

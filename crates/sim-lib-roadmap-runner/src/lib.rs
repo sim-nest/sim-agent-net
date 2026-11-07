@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 mod accept;
+mod author;
 mod binding;
 mod budget;
 mod causal;
@@ -36,6 +37,11 @@ mod status;
 mod transact;
 
 pub use accept::*;
+pub use author::{
+    AuthorError, CompiledAuthoring, Family, FamilyMember, MemberDiff, MemberRow, MemberView,
+    Selection, Stance, StatementKind, compile_authoring, diff_members, lint_family, list_family,
+    parse_member, select_member, show_member, source_round_trip, statement_shape,
+};
 pub use binding::*;
 pub use budget::*;
 pub use compatibility::*;

@@ -413,6 +413,26 @@ claims_specimens = [
 depends_on = ["feature/sim-agent-net/bounded-roadmap-runner-service"]
 
 [[feature]]
+id = "feature/sim-agent-net/authoring-compiler"
+title = "Self-contained authoring compiler"
+summary = "List, show, lint, select, and diff a source family, then compile the selected source into the revision, work, proof, and mutation values."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call list_family, show_member, lint_family, select_member, and diff_members over a source deck and a roadmap spec. compile_authoring turns the one selected source into an opened revision, a canonical work value, a source-deck proof leaf, and a sealed mutation plan. Consulted and superseded siblings do not satisfy a requirement. A missing argument, work, gate, ratchet, owner, or checker refuses. The source bytes round-trip unchanged. Advice, facts, and decisions use distinct shapes. Selection carries neither begin authority nor hold release."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/author_tests",
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/author_more_tests",
+]
+depends_on = [
+  "feature/sim-agent-net/bounded-work-packet",
+  "feature/sim-agent-net/immutable-source-decks",
+  "feature/sim-agent-net/disposable-postimage-convergence",
+  "feature/sim-agent-net/typed-hostile-proof-leaves",
+  "feature/sim-agent-net/recoverable-multi-file-mutation",
+]
+
+[[feature]]
 id = "feature/sim-agent-net/immutable-web-capture"
 title = "Policy-gated immutable web capture"
 summary = "Capture landing pages through separate egress and robots decisions into caller-owned content-addressed evidence, with explicit cache modes and fenced model rendering."

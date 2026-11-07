@@ -89,7 +89,7 @@ pub(super) fn precheck(input: &CanonicalWork) -> Result<Derived, WorkReceiveErro
     })
 }
 
-fn valid_name(value: &str) -> bool {
+pub(crate) fn valid_name(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 4_096
         && !value.starts_with('/')

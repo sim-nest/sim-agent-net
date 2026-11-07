@@ -29,6 +29,8 @@ pub(super) const DECLARED_STATUS: &str = "declared";
 mod build;
 #[path = "packet_work_check.rs"]
 mod check;
+
+pub(crate) use check::valid_name;
 #[path = "packet_work_decode.rs"]
 mod decode;
 
