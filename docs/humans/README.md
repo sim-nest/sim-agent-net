@@ -37,6 +37,13 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-agent-net/execution-source-deck-provider` | `crate/sim-lib-roadmap-runner` | 1 | Run declared repo-contract emission under a bounded read-only sandbox and ground its exact source and specimen dependencies into a content-pinned execution receipt. |
 | `feature/sim-agent-net/typed-hostile-proof-leaves` | `crate/sim-lib-roadmap-runner` | 1 | Admit grounded catalog leaves, execute bounded commands through the shared sandbox, and replay normalized proof receipts without duplicate effects. |
 | `feature/sim-agent-net/recoverable-multi-file-mutation` | `crate/sim-lib-roadmap-runner` | 1 | Seal full portable preimages and postimages, apply them behind durable per-path fences, and stop safely on foreign state. |
+| `feature/sim-agent-net/disposable-postimage-convergence` | `crate/sim-lib-roadmap-runner` | 2 | Commit an independent checker's sealed postimages, reopen only claims that read a changed fact, and stop on a repeated image. |
+| `feature/sim-agent-net/sealed-fixed-point` | `crate/sim-lib-roadmap-runner` | 2 | Seal source, generated postimages, proof, and ownership together, and perform no generation on a second pass. |
+| `feature/sim-agent-net/model-facet-transaction` | `crate/sim-lib-roadmap-runner` | 4 | Compare base, current, and intended images under the shared facet law, then commit or refuse each model repository on its own. |
+| `feature/sim-agent-net/model-facet-landing` | `crate/sim-lib-roadmap-runner` | 1 | Plan, apply, explain, and restore model commits without treating a cached answer as current after the branch moves. |
+| `feature/sim-agent-net/bounded-work-packet` | `crate/sim-lib-roadmap-runner` | 2 | Derive one work packet from canonical input and admit it through the typed builder at the receiving worker. |
+| `feature/sim-agent-net/authoring-compiler` | `crate/sim-lib-roadmap-runner` | 2 | List, show, lint, select, and diff a source family, then compile the selected source into the revision, work, proof, and mutation values. |
+| `feature/sim-agent-net/quiescent-driver` | `crate/sim-lib-roadmap-runner` | 1 | One advance records one admitted effect or one pure transition, and a wake that changes nothing starts no effect. |
 | `feature/sim-agent-net/immutable-web-capture` | `crate/sim-lib-web-fetch` | 1 | Capture landing pages through separate egress and robots decisions into caller-owned content-addressed evidence, with explicit cache modes and fenced model rendering. |
 | `feature/sim-agent-net/reproducible-instrument-adoption` | `crate/sim-lib-agent` | 1 | Freeze spoken intent into a BRIDGE brief and recipe, preview a ChangeCapsule, and atomically adopt or roll back every pack, artifact, generation, and registry identity. |
 | `feature/sim-agent-net/immutable-mission-law` | `crate/sim-lib-agent` | 1 | Freeze authority, pack closure, roles, placements, tools, budgets, vetoes, escalation, stop, and crew topology into one content-identified MissionPlan. |
@@ -1998,6 +2005,11 @@ Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests` is ch
 Source `crates/sim-lib-roadmap-runner/src/tests.rs`:
 
 ```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // conformance: durable roadmap runner journal and replay laws.
 
 use std::sync::Arc;
@@ -2079,6 +2091,9 @@ mod bounded_service {
             policy,
             mutation: MutationPlan::new(MutationId::new("mutation").unwrap(), vec![], vec![])
                 .unwrap(),
+            resources: vec![],
+            direction: None,
+            handoff: None,
         }
     }
     struct Ready(PhaseId);
@@ -2128,7 +2143,11 @@ mod bounded_service {
             Limits::default(),
         )
         .unwrap();
-        let inspected = service.advance_one_effect().unwrap();
+        let driven = service
+            .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
+            .unwrap();
+        let inspected = service.inspect().unwrap();
+        assert_eq!(inspected.drive, driven);
         assert_eq!(inspected.transition.state, PhaseRunState::Running);
         assert!(matches!(
             inspected.journal.records[1],
@@ -6089,6 +6108,11 @@ Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/proof` is ch
 Source `crates/sim-lib-roadmap-runner/src/proof.rs`:
 
 ```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
@@ -6100,9 +6124,11 @@ use sim_lib_exec::{
     SandboxRequirement, SealedBindings,
 };
 use sim_lib_journal::JournalBackend;
-use thiserror::Error;
 
-use crate::{ExecutionJournal, ExecutionJournalError, ExecutionRecord, RebuiltExecution};
+use crate::{ExecutionJournal, ExecutionRecord, RebuiltExecution};
+
+mod error;
+pub use error::ProofError;
 
 const SOURCE_ROOT: &str = "/source";
 const SCRATCH_ROOT: &str = "/scratch";
@@ -6112,6 +6138,7 @@ const SCRATCH_ROOT: &str = "/scratch";
 pub struct ProofCatalog {
     leaves: BTreeMap<String, ProofLeaf>,
     checker_receipts: BTreeMap<CheckerReceiptId, RetainedCheckerReceipt>,
+    evidence: BTreeMap<EvidenceReceiptId, evidence::EvidenceRecord>,
 }
 
 impl ProofCatalog {
@@ -6130,6 +6157,7 @@ impl ProofCatalog {
         Ok(Self {
             leaves: by_name,
             checker_receipts: BTreeMap::new(),
+            evidence: BTreeMap::new(),
         })
     }
 
@@ -6395,22 +6423,6 @@ pub struct TypedProofReceipt {
     pub semantic_detail: String,
 }
 
-#[derive(Debug, Error)]
-pub enum ProofError {
-    #[error("proof leaf is not in the grounded catalog: {0}")]
-    NotCatalogued(String),
-    #[error("invalid proof leaf: {0}")]
-    Invalid(String),
-    #[error("checker receipt is absent from the grounded proof catalog")]
-    CheckerReceiptNotCatalogued,
-    #[error("invalid checker receipt: {0}")]
-    InvalidCheckerReceipt(String),
-    #[error(transparent)]
-    Journal(#[from] ExecutionJournalError),
-    #[error("an already-launched proof effect has no conclusive launcher receipt")]
-    AmbiguousEffect,
-}
-
 /// Durable launcher-receipt authority used to reconcile a crash after dispatch.
 pub trait ProofReceiptStore {
     fn inspect(&self, effect_id: &str) -> Option<TypedProofReceipt>;
@@ -6576,6 +6588,12 @@ fn pure_receipt(name: &str, passed: bool, observed_at: String, detail: &str) -> 
 
 include!("proof/normalization.rs");
 
+mod evidence;
+pub use evidence::{
+    AdmittedEvidence, DiscoveredDefinition, EvidenceClaim, EvidenceDecision, EvidenceKeyId,
+    EvidenceReceiptId,
+};
+
 mod receipt;
 pub use receipt::RetainedCheckerReceipt;
 
@@ -6591,6 +6609,11 @@ Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/mutation` is
 Source `crates/sim-lib-roadmap-runner/src/mutation.rs`:
 
 ```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs::{self, File, OpenOptions},
@@ -6710,6 +6733,34 @@ impl SealedMutationPlan {
             total_postimage_bytes: total,
         })
     }
+}
+
+pub(crate) fn check_accepted_files(
+    files: &BTreeMap<String, Vec<u8>>,
+    mode: u32,
+) -> Result<(), MutationError> {
+    let paths: BTreeSet<_> = files.keys().map(String::as_str).collect();
+    let mut total = 0usize;
+    for (path, bytes) in files {
+        validate_relative_path(path)?;
+        PortableImage::file(Vec::new(), mode).validate()?;
+        let mut parent = Path::new(path).parent();
+        while let Some(current) = parent {
+            if !current.as_os_str().is_empty()
+                && paths.contains(current.to_str().unwrap_or_default())
+            {
+                return Err(MutationError::ParentChildCollision);
+            }
+            parent = current.parent();
+        }
+        total = total
+            .checked_add(bytes.len())
+            .ok_or(MutationError::ByteLimit)?;
+    }
+    if total > DEFAULT_MAX_MUTATION_BYTES {
+        return Err(MutationError::ByteLimit);
+    }
+    Ok(())
 }
 
 fn validate_relative_path(path: &str) -> Result<(), MutationError> {
@@ -7030,6 +7081,4307 @@ pub enum MutationError {
 
 include!("mutation/fs_workspace.rs");
 // conformance: recoverable exact multi-file mutation.
+```
+
+### `feature/sim-agent-net/disposable-postimage-convergence`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/converge_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/converge_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: disposable postimage convergence.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+use super::fixture::{claim, complete, complete_fence, opened, opened_without, plan_for, proposal};
+use super::{
+    ConvergeError, Fence, OpenRequest, ProposalBody, SOURCE_SEAL, Step, image_id, open, propose,
+    seal_id,
+};
+
+#[test]
+fn open_refuses_a_bad_seal() {
+    let seal = b"seal-v1".to_vec();
+    let mut images = BTreeMap::new();
+    images.insert("fact/alpha".to_owned(), b"alpha-0".to_vec());
+    let wrong = open(OpenRequest {
+        seal: seal.clone(),
+        seal_id: seal_id(b"other").expect("other"),
+        images: images.clone(),
+        claims: vec![claim("claim/alpha", &["fact/alpha"])],
+    });
+    assert_eq!(wrong.err(), Some(ConvergeError::SealMismatch));
+    let empty = open(OpenRequest {
+        seal: Vec::new(),
+        seal_id: seal_id(b"seal-v1").expect("seal"),
+        images,
+        claims: vec![claim("claim/alpha", &["fact/alpha"])],
+    });
+    assert_eq!(empty.err(), Some(ConvergeError::EmptySeal));
+    let missing = opened_without("claim/missing", &["fact/missing"]);
+    assert_eq!(missing.err(), Some(ConvergeError::UnknownInput));
+}
+
+#[test]
+fn open_refuses_a_path_the_mutation_layer_rejects() {
+    let seal = b"seal-v1".to_vec();
+    let seal_id = seal_id(&seal).expect("seal");
+    let mut escape = BTreeMap::new();
+    escape.insert("../escape".to_owned(), b"x".to_vec());
+    let escaped = open(OpenRequest {
+        seal: seal.clone(),
+        seal_id: seal_id.clone(),
+        images: escape,
+        claims: Vec::new(),
+    });
+    assert_eq!(escaped.err(), Some(ConvergeError::Mutation("invalid-path")));
+    let mut nested = BTreeMap::new();
+    nested.insert("fact".to_owned(), b"a".to_vec());
+    nested.insert("fact/alpha".to_owned(), b"b".to_vec());
+    let parent = open(OpenRequest {
+        seal,
+        seal_id,
+        images: nested,
+        claims: Vec::new(),
+    });
+    assert_eq!(parent.err(), Some(ConvergeError::Mutation("parent-child")));
+}
+
+#[test]
+fn equal_opens_share_a_revision_id() {
+    let first = opened();
+    let second = opened();
+    assert_eq!(first.id, second.id);
+    assert_eq!(
+        first.seal,
+        seal_id(&first.images[SOURCE_SEAL]).expect("seal")
+    );
+    assert_eq!(
+        image_id(&first.images).expect("image"),
+        image_id(&second.images).expect("image")
+    );
+    assert!(
+        first
+            .claims
+            .values()
+            .all(|claim| claim.closed && claim.digest.is_some())
+    );
+}
+
+#[test]
+fn crash_before_perform_keeps_the_accepted_revision() {
+    let mut revision = opened();
+    let id = revision.id.clone();
+    let images = revision.images.clone();
+    let claims = revision.claims.clone();
+    let seen = revision.seen_images.clone();
+    let step = propose(
+        &mut revision,
+        complete_fence("fact/alpha", b"alpha-1", Fence::BeforePerform),
+    )
+    .expect("propose");
+    assert_eq!(
+        step,
+        Step::Held {
+            revision: id.clone()
+        }
+    );
+    assert_eq!(revision.id, id);
+    assert_eq!(revision.images, images);
+    assert_eq!(revision.claims, claims);
+    assert_eq!(revision.seen_images, seen);
+    assert!(!revision.uncertain);
+    let committed =
+        propose(&mut revision, complete("fact/alpha", b"alpha-1", 100)).expect("commit");
+    assert!(matches!(committed, Step::Invalidated { .. }));
+    assert_ne!(revision.id, id);
+    assert_eq!(revision.images["fact/alpha"], b"alpha-1");
+}
+
+#[test]
+fn crash_before_commit_blocks_another_commit() {
+    let mut revision = opened();
+    let id = revision.id.clone();
+    let images = revision.images.clone();
+    let claims = revision.claims.clone();
+    let step = propose(
+        &mut revision,
+        complete_fence("fact/alpha", b"alpha-1", Fence::BeforeCommit),
+    )
+    .expect("propose");
+    assert_eq!(
+        step,
+        Step::Held {
+            revision: id.clone()
+        }
+    );
+    assert_eq!(revision.id, id);
+    assert_eq!(revision.images, images);
+    assert_eq!(revision.claims, claims);
+    assert!(revision.uncertain);
+    let retry = propose(&mut revision, complete("fact/alpha", b"alpha-1", 100)).expect("retry");
+    assert_eq!(
+        retry,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "uncertain",
+        }
+    );
+    assert_eq!(revision.images, images);
+    assert_eq!(revision.claims, claims);
+}
+
+#[test]
+fn author_cannot_approve_their_own_proposal() {
+    let mut revision = opened();
+    let id = revision.id.clone();
+    let images = revision.images.clone();
+    let step = propose(
+        &mut revision,
+        proposal(
+            "ada",
+            "ada",
+            Fence::Commit,
+            ProposalBody::Complete {
+                id: "proposal/self".to_owned(),
+                facts: super::fixture::fact("fact/alpha", b"alpha-1"),
+                limit: 100,
+            },
+        ),
+    )
+    .expect("propose");
+    assert_eq!(
+        step,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "self-approval",
+        }
+    );
+    assert_eq!(revision.id, id);
+    assert_eq!(revision.images, images);
+    let empty = propose(
+        &mut revision,
+        proposal(
+            "",
+            "checker",
+            Fence::Commit,
+            ProposalBody::Complete {
+                id: "proposal/empty".to_owned(),
+                facts: super::fixture::fact("fact/alpha", b"alpha-1"),
+                limit: 100,
+            },
+        ),
+    )
+    .expect("empty");
+    assert_eq!(
+        empty,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "empty-identity",
+        }
+    );
+}
+
+#[test]
+fn changed_fact_invalidates_only_its_claims() {
+    let mut revision = opened();
+    let beta = revision.claims["claim/beta"].digest.clone();
+    let seal_claim = revision.claims["claim/seal"].digest.clone();
+    let plan = plan_for(b"alpha-0", b"alpha-1");
+    let step = propose(&mut revision, complete("fact/alpha", b"alpha-1", 100)).expect("propose");
+    match step {
+        Step::Invalidated {
+            revision: next,
+            plan: plan_id,
+            affected,
+            closed,
+        } => {
+            assert_eq!(revision.id, next);
+            assert_eq!(plan_id, plan.id);
+            assert_eq!(affected, BTreeSet::from(["claim/alpha".to_owned()]));
+            assert!(closed.contains("claim/beta"));
+            assert!(closed.contains("claim/seal"));
+            assert!(!closed.contains("claim/alpha"));
+        }
+        other => panic!("expected invalidation, got {other:?}"),
+    }
+    assert!(!revision.claims["claim/alpha"].closed);
+    assert!(revision.claims["claim/alpha"].digest.is_none());
+    assert!(revision.claims["claim/beta"].closed);
+    assert_eq!(revision.claims["claim/beta"].digest, beta);
+    assert!(revision.claims["claim/seal"].closed);
+    assert_eq!(revision.claims["claim/seal"].digest, seal_claim);
+    assert_eq!(revision.images["fact/alpha"], b"alpha-1");
+    assert_eq!(revision.images["fact/beta"], b"beta-0");
+}
+
+#[test]
+fn seal_change_invalidates_only_the_seal_claim() {
+    let mut revision = opened();
+    let alpha = revision.claims["claim/alpha"].digest.clone();
+    let step = propose(&mut revision, complete(SOURCE_SEAL, b"seal-v2", 100)).expect("propose");
+    let Step::Invalidated {
+        affected, closed, ..
+    } = step
+    else {
+        panic!("expected invalidation");
+    };
+    assert_eq!(affected, BTreeSet::from(["claim/seal".to_owned()]));
+    assert!(closed.contains("claim/alpha"));
+    assert!(closed.contains("claim/beta"));
+    assert_eq!(revision.claims["claim/alpha"].digest, alpha);
+    assert_eq!(revision.seal, seal_id(b"seal-v2").expect("seal"));
+    assert_eq!(revision.images[SOURCE_SEAL], b"seal-v2");
+}
+
+#[test]
+fn empty_source_seal_is_refused_without_a_commit() {
+    let mut revision = opened();
+    let id = revision.id.clone();
+    let seal = revision.seal.clone();
+    let images = revision.images.clone();
+    let held = propose(
+        &mut revision,
+        complete_fence(SOURCE_SEAL, b"", Fence::BeforeCommit),
+    )
+    .expect("held");
+    assert_eq!(
+        held,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "empty-seal",
+        }
+    );
+    assert!(!revision.uncertain);
+    let step = propose(&mut revision, complete(SOURCE_SEAL, b"", 100)).expect("propose");
+    assert_eq!(
+        step,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "empty-seal",
+        }
+    );
+    assert_eq!(revision.id, id);
+    assert_eq!(revision.seal, seal);
+    assert_eq!(revision.images, images);
+    assert!(revision.claims.values().all(|claim| claim.closed));
+}
+
+#[test]
+fn claim_inputs_stay_in_the_revision_id_after_they_open() {
+    let seal = b"seal-v1".to_vec();
+    let seal_content = seal_id(&seal).expect("seal");
+    let mut images = BTreeMap::new();
+    images.insert("fact/alpha".to_owned(), b"alpha-0".to_vec());
+    images.insert("fact/beta".to_owned(), b"beta-0".to_vec());
+    let mut narrow = open(OpenRequest {
+        seal: seal.clone(),
+        seal_id: seal_content.clone(),
+        images: images.clone(),
+        claims: vec![claim("claim/alpha", &["fact/alpha"])],
+    })
+    .expect("narrow");
+    let mut wide = open(OpenRequest {
+        seal,
+        seal_id: seal_content,
+        images,
+        claims: vec![claim("claim/alpha", &["fact/alpha", "fact/beta"])],
+    })
+    .expect("wide");
+    assert_ne!(narrow.id, wide.id);
+    let left = propose(&mut narrow, complete("fact/alpha", b"alpha-1", 100)).expect("left");
+    let right = propose(&mut wide, complete("fact/alpha", b"alpha-1", 100)).expect("right");
+    assert!(matches!(left, Step::Invalidated { .. }));
+    assert!(matches!(right, Step::Invalidated { .. }));
+    assert!(narrow.claims["claim/alpha"].digest.is_none());
+    assert!(wide.claims["claim/alpha"].digest.is_none());
+    assert_eq!(narrow.images["fact/alpha"], wide.images["fact/alpha"]);
+    assert_eq!(narrow.seal, wide.seal);
+    assert_ne!(narrow.id, wide.id);
+}
+```
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/converge_gate_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/converge_gate_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: disposable postimage convergence.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+use crate::schedule::CLASS_PROOF_FAILED;
+use crate::{MAX_MUTATION_FILES, ProofOutcome};
+
+use super::fixture::{accepted, complete, fact, malformed, opened, plan_for, proposal};
+use super::{Descent, Fence, ProposalBody, Step, image_id, proof_frontier, propose};
+
+#[test]
+fn parallel_failures_stay_visible_without_reopening_claims() {
+    let revision = opened();
+    let claims = revision.claims.clone();
+    let mut outcomes = BTreeMap::new();
+    outcomes.insert("claim/alpha".to_owned(), ProofOutcome::Failed);
+    outcomes.insert("claim/beta".to_owned(), ProofOutcome::Failed);
+    outcomes.insert("claim/seal".to_owned(), ProofOutcome::Passed);
+    let names = vec![
+        "claim/alpha".to_owned(),
+        "claim/beta".to_owned(),
+        "claim/seal".to_owned(),
+    ];
+    let frontier = proof_frontier(&names, &outcomes).expect("frontier");
+    let failed = frontier
+        .failures
+        .iter()
+        .map(|failure| (failure.unit.as_str(), failure.class))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        failed,
+        BTreeSet::from([
+            ("claim/alpha", CLASS_PROOF_FAILED),
+            ("claim/beta", CLASS_PROOF_FAILED),
+        ])
+    );
+    assert!(frontier.continuation.is_none());
+    assert_eq!(revision.claims, claims);
+}
+
+#[test]
+fn oversize_is_refused_without_truncation() {
+    let mut revision = opened();
+    let before = accepted(&revision);
+    let wide = vec![b'x'; 40];
+    let step = propose(&mut revision, complete("fact/alpha", &wide, 39)).expect("propose");
+    assert_eq!(
+        step,
+        Step::Refused {
+            revision: revision.id.clone(),
+            reason: "byte-ceiling",
+        }
+    );
+    assert_eq!(wide.len(), 40);
+    assert_eq!(accepted(&revision), before);
+    assert_eq!(revision.images["fact/alpha"], b"alpha-0");
+    let mut facts = BTreeMap::new();
+    for index in 0..=MAX_MUTATION_FILES {
+        facts.insert(format!("extra/{index}"), vec![b'x']);
+    }
+    let step = propose(
+        &mut revision,
+        proposal(
+            "author",
+            "checker",
+            Fence::Commit,
+            ProposalBody::Complete {
+                id: "proposal/wide".to_owned(),
+                facts,
+                limit: usize::MAX,
+            },
+        ),
+    )
+    .expect("files");
+    assert_eq!(
+        step,
+        Step::Refused {
+            revision: revision.id.clone(),
+            reason: "file-ceiling",
+        }
+    );
+    assert_eq!(revision.images["fact/alpha"], b"alpha-0");
+}
+
+#[test]
+fn incomplete_keeps_needs_and_does_not_commit() {
+    let mut revision = opened();
+    let id = revision.id.clone();
+    let images = revision.images.clone();
+    let step = propose(
+        &mut revision,
+        proposal(
+            "author",
+            "author",
+            Fence::Commit,
+            ProposalBody::Incomplete {
+                id: "proposal/need".to_owned(),
+                remaining: vec!["fact/gamma".to_owned()],
+            },
+        ),
+    )
+    .expect("propose");
+    assert_eq!(
+        step,
+        Step::Incomplete {
+            revision: id.clone(),
+            remaining: vec!["fact/gamma".to_owned()],
+        }
+    );
+    assert_eq!(revision.id, id);
+    assert_eq!(revision.images, images);
+    assert!(revision.claims.values().all(|claim| claim.closed));
+}
+
+#[test]
+fn malformed_stays_honest_and_bounds_its_retry() {
+    let mut revision = opened();
+    let id = revision.id.clone();
+    let images = revision.images.clone();
+    let claims = revision.claims.clone();
+    let first = propose(&mut revision, malformed("shape", 4, None)).expect("first");
+    assert_eq!(
+        first,
+        Step::Malformed {
+            revision: id.clone(),
+            reason: "shape".to_owned(),
+        }
+    );
+    assert_eq!(revision.id, id);
+    assert_eq!(revision.images, images);
+    assert_eq!(revision.claims, claims);
+    let missing = propose(&mut revision, malformed("shape", 4, None)).expect("missing");
+    assert_eq!(
+        missing,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "descent",
+        }
+    );
+    let retry = propose(
+        &mut revision,
+        malformed(
+            "shape",
+            2,
+            Some(Descent {
+                before: 4,
+                after: 2,
+            }),
+        ),
+    )
+    .expect("retry");
+    assert_eq!(
+        retry,
+        Step::Malformed {
+            revision: id.clone(),
+            reason: "shape".to_owned(),
+        }
+    );
+    assert_eq!(revision.images, images);
+    let third = propose(
+        &mut revision,
+        malformed(
+            "shape",
+            1,
+            Some(Descent {
+                before: 2,
+                after: 1,
+            }),
+        ),
+    )
+    .expect("third");
+    assert_eq!(
+        third,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "retry-bound",
+        }
+    );
+    assert_eq!(revision.claims, claims);
+    let bare = propose(&mut revision, malformed("shape", 1, None)).expect("bare");
+    assert_eq!(
+        bare,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "retry-bound",
+        }
+    );
+    assert_eq!(revision.images, images);
+}
+
+#[test]
+fn identical_bytes_do_not_reopen_claims() {
+    let mut revision = opened();
+    let id = revision.id.clone();
+    let image = image_id(&revision.images).expect("image");
+    let claims = revision.claims.clone();
+    let step = propose(&mut revision, complete("fact/alpha", b"alpha-0", 100)).expect("propose");
+    assert_eq!(
+        step,
+        Step::Oscillation {
+            revision: id.clone(),
+            repeated: image,
+            delta: BTreeSet::new(),
+        }
+    );
+    assert_eq!(revision.id, id);
+    assert_eq!(revision.claims, claims);
+    for fence in [Fence::BeforePerform, Fence::BeforeCommit] {
+        let mut stopped = opened();
+        let stopped_id = stopped.id.clone();
+        let step = propose(
+            &mut stopped,
+            super::fixture::complete_fence("fact/alpha", b"alpha-0", fence),
+        )
+        .expect("stop");
+        assert_eq!(
+            step,
+            Step::Oscillation {
+                revision: stopped_id.clone(),
+                repeated: image_id(&stopped.images).expect("image"),
+                delta: BTreeSet::new(),
+            }
+        );
+        assert_eq!(stopped.id, stopped_id);
+        assert!(!stopped.uncertain);
+    }
+}
+
+#[test]
+fn unchanged_facts_are_left_out_of_the_sealed_plan() {
+    let mut revision = opened();
+    let plan = plan_for(b"alpha-0", b"alpha-1");
+    let mut facts = fact("fact/alpha", b"alpha-1");
+    facts.insert("fact/beta".to_owned(), b"beta-0".to_vec());
+    let step = propose(
+        &mut revision,
+        proposal(
+            "author",
+            "checker",
+            Fence::Commit,
+            ProposalBody::Complete {
+                id: "proposal/mixed".to_owned(),
+                facts,
+                limit: 100,
+            },
+        ),
+    )
+    .expect("propose");
+    match step {
+        Step::Invalidated {
+            plan: plan_id,
+            affected,
+            closed,
+            ..
+        } => {
+            assert_eq!(plan_id, plan.id);
+            assert_eq!(affected, BTreeSet::from(["claim/alpha".to_owned()]));
+            assert!(closed.contains("claim/beta"));
+            assert!(revision.claims["claim/beta"].closed);
+        }
+        other => panic!("expected invalidation, got {other:?}"),
+    }
+}
+
+#[test]
+fn oscillation_witnesses_the_repeated_image() {
+    let mut revision = opened();
+    let original = image_id(&revision.images).expect("image");
+    let first = propose(&mut revision, complete("fact/alpha", b"alpha-1", 100)).expect("first");
+    assert!(matches!(first, Step::Invalidated { .. }));
+    let accepted_id = revision.id.clone();
+    assert_eq!(revision.images["fact/alpha"], b"alpha-1");
+    assert!(!revision.claims["claim/alpha"].closed);
+    assert!(revision.claims["claim/beta"].closed);
+    let back = propose(&mut revision, complete("fact/alpha", b"alpha-0", 100)).expect("back");
+    assert_eq!(
+        back,
+        Step::Oscillation {
+            revision: accepted_id.clone(),
+            repeated: original,
+            delta: BTreeSet::from(["fact/alpha".to_owned()]),
+        }
+    );
+    assert_eq!(revision.id, accepted_id);
+    assert_eq!(revision.images["fact/alpha"], b"alpha-1");
+    assert!(!revision.claims["claim/alpha"].closed);
+    assert!(revision.claims["claim/beta"].closed);
+    assert!(revision.claims["claim/seal"].closed);
+}
+
+#[test]
+fn two_equal_proposals_share_the_plan_and_revision() {
+    let mut first = opened();
+    let mut second = opened();
+    let plan = plan_for(b"alpha-0", b"alpha-1");
+    let left = propose(&mut first, complete("fact/alpha", b"alpha-1", 100)).expect("left");
+    let right = propose(&mut second, complete("fact/alpha", b"alpha-1", 100)).expect("right");
+    match (left, right) {
+        (
+            Step::Invalidated {
+                revision: left_id,
+                plan: left_plan,
+                ..
+            },
+            Step::Invalidated {
+                revision: right_id,
+                plan: right_plan,
+                ..
+            },
+        ) => {
+            assert_eq!(left_id, right_id);
+            assert_eq!(left_plan, right_plan);
+            assert_eq!(left_plan, plan.id);
+            assert_eq!(first.id, second.id);
+        }
+        other => panic!("expected two commits, got {other:?}"),
+    }
+}
+
+#[test]
+fn unknown_fact_is_refused() {
+    let mut revision = opened();
+    let id = revision.id.clone();
+    let step = propose(
+        &mut revision,
+        proposal(
+            "author",
+            "checker",
+            Fence::Commit,
+            ProposalBody::Complete {
+                id: "proposal/missing".to_owned(),
+                facts: fact("fact/missing", b"nope"),
+                limit: 100,
+            },
+        ),
+    )
+    .expect("propose");
+    assert_eq!(
+        step,
+        Step::Refused {
+            revision: id.clone(),
+            reason: "unknown-fact",
+        }
+    );
+    assert_eq!(revision.id, id);
+}
+```
+
+### `feature/sim-agent-net/sealed-fixed-point`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/fixed_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/fixed_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: sealed fixed point.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+use super::fixture::{calls, paths, seal, world, world_alpha_unclaimed};
+use super::{FactGenerator, FixedStep, retire_duplicate, seal_fixed_point};
+use crate::{
+    Fence, OpenClaim, Proposal, ProposalBody, RevisionOpen, SOURCE_SEAL, Step, image_id,
+    open_revision, propose, seal_id,
+};
+
+#[test]
+fn regeneration_matches_and_the_second_pass_does_no_work() {
+    let world = world();
+    let accepted = world.revision.clone();
+    let sealed = seal(&world, &BTreeSet::new(), None).expect("seal");
+    let FixedStep::Sealed { seal: first, work } = sealed else {
+        panic!("expected a seal, got {sealed:?}");
+    };
+    assert_eq!(work, 2);
+    assert_eq!(calls(&world), 2);
+    assert_eq!(world.revision, accepted);
+    let seen = world.alpha.seen.borrow().clone().expect("source");
+    assert_eq!(
+        seen.keys().cloned().collect::<BTreeSet<_>>(),
+        paths(&["fact/src", SOURCE_SEAL])
+    );
+    assert_eq!(seen.get("fact/src"), accepted.images().get("fact/src"));
+    assert_eq!(seen.get(SOURCE_SEAL), accepted.images().get(SOURCE_SEAL));
+    assert!(!seen.contains_key("fact/alpha"));
+    let beta_seen = world.beta.seen.borrow().clone().expect("beta source");
+    assert_eq!(
+        beta_seen.keys().cloned().collect::<BTreeSet<_>>(),
+        paths(&["fact/src"])
+    );
+    assert!(!beta_seen.contains_key("fact/beta"));
+    assert_eq!(world.alpha.owner, *world.facets[1].owner());
+
+    world.alpha.set("fact/alpha", b"drift");
+    let again = seal(&world, &BTreeSet::new(), Some(&first)).expect("second");
+    assert_eq!(
+        again,
+        FixedStep::ZeroWork {
+            seal: first.clone()
+        }
+    );
+    assert_eq!(calls(&world), 2);
+    assert_eq!(world.revision, accepted);
+
+    let mut forged = first.clone();
+    forged.id = seal_id(b"forged").expect("forged");
+    world.alpha.set("fact/alpha", b"alpha");
+    let resealed = seal(&world, &BTreeSet::new(), Some(&forged)).expect("reseal");
+    let FixedStep::Sealed { seal: fresh, work } = resealed else {
+        panic!("expected a reseal, got {resealed:?}");
+    };
+    assert_eq!(work, 2);
+    assert_eq!(fresh, first);
+    assert_eq!(calls(&world), 4);
+}
+
+#[test]
+fn deletion_invalidates_exactly_that_generator_closure() {
+    let world = world();
+    let sealed = seal(&world, &BTreeSet::new(), None).expect("seal");
+    let FixedStep::Sealed { seal: prior, .. } = sealed else {
+        panic!("expected a seal");
+    };
+    let accepted = world.revision.clone();
+    let step = seal(&world, &paths(&["fact/alpha"]), Some(&prior)).expect("delete");
+    let FixedStep::Invalidated { closure, retained } = step else {
+        panic!("expected invalidation, got {step:?}");
+    };
+    assert_eq!(
+        closure,
+        paths(&["fact/alpha", "fact/extra", "claim/alpha", "claim/extra"])
+    );
+    assert_eq!(retained, paths(&["fact/beta"]));
+    assert!(!closure.contains("claim/beta"));
+    assert!(!closure.contains("claim/src"));
+    assert!(!closure.contains("fact/src"));
+    assert_eq!(world.revision, accepted);
+    assert_eq!(calls(&world), 2);
+}
+
+#[test]
+fn a_claim_id_is_not_a_fact_path_for_later_claims() {
+    let base = world();
+    let seal_bytes = base
+        .revision
+        .images()
+        .get(SOURCE_SEAL)
+        .expect("seal")
+        .clone();
+    let revision = open_revision(RevisionOpen {
+        seal_id: seal_id(&seal_bytes).expect("id"),
+        seal: seal_bytes,
+        images: base.revision.images().clone(),
+        claims: vec![
+            OpenClaim {
+                id: "fact/beta".to_owned(),
+                inputs: paths(&["fact/alpha"]),
+            },
+            OpenClaim {
+                id: "claim/later".to_owned(),
+                inputs: paths(&["fact/beta"]),
+            },
+            OpenClaim {
+                id: "claim/extra".to_owned(),
+                inputs: paths(&["fact/extra"]),
+            },
+        ],
+    })
+    .expect("revision");
+    let accepted = revision.clone();
+    let generators: [&dyn FactGenerator; 2] = [&base.alpha, &base.beta];
+    let step = seal_fixed_point(
+        &revision,
+        &base.facets,
+        &generators,
+        &BTreeMap::new(),
+        &paths(&["fact/alpha"]),
+        None,
+    )
+    .expect("delete");
+    let FixedStep::Invalidated { closure, retained } = step else {
+        panic!("expected invalidation, got {step:?}");
+    };
+    assert_eq!(
+        closure,
+        paths(&["claim/extra", "fact/alpha", "fact/beta", "fact/extra"])
+    );
+    assert_eq!(retained, paths(&["fact/beta"]));
+    assert!(!closure.contains("claim/later"));
+    assert_eq!(revision, accepted);
+    assert_eq!(calls(&base), 0);
+}
+
+#[test]
+fn a_repeated_image_blocks_without_replacing_the_revision() {
+    let mut world = world_alpha_unclaimed();
+    let original = image_id(world.revision.images()).expect("image");
+    let step = propose(
+        &mut world.revision,
+        Proposal {
+            author: "author".to_owned(),
+            checker: "checker".to_owned(),
+            fence: Fence::Commit,
+            body: ProposalBody::Complete {
+                id: "proposal/1".to_owned(),
+                facts: one("fact/alpha", b"alpha-b"),
+                limit: 100,
+            },
+        },
+    )
+    .expect("propose");
+    let Step::Invalidated { affected, .. } = step else {
+        panic!("expected a commit, got {step:?}");
+    };
+    assert!(affected.is_empty());
+    assert!(world.revision.claims().values().all(|claim| claim.closed));
+    let accepted = world.revision.clone();
+    assert!(world.revision.has_seen(&original));
+    let judged = seal(&world, &BTreeSet::new(), None).expect("seal");
+    assert_eq!(
+        judged,
+        FixedStep::Blocked {
+            reason: "oscillation",
+            closure: paths(&["fact/alpha"]),
+            repeated: Some(original),
+        }
+    );
+    assert_eq!(world.revision, accepted);
+    assert_eq!(
+        world.revision.images().get("fact/alpha").map(Vec::as_slice),
+        Some(b"alpha-b".as_slice())
+    );
+}
+
+#[test]
+fn a_new_or_empty_postimage_is_a_gap_and_is_not_written() {
+    let world = world();
+    let accepted = world.revision.clone();
+    world.alpha.set("fact/alpha", b"alpha-c");
+    let mismatched = seal(&world, &BTreeSet::new(), None).expect("gap");
+    assert_eq!(mismatched, refusal_gap(&["fact/alpha"]));
+    assert_eq!(world.revision, accepted);
+
+    world.alpha.set("fact/alpha", b"");
+    let empty = seal(&world, &BTreeSet::new(), None).expect("empty");
+    assert_eq!(empty, refusal_gap(&["fact/alpha"]));
+    assert_eq!(
+        world.revision.images().get("fact/alpha").map(Vec::as_slice),
+        Some(b"alpha".as_slice())
+    );
+    assert_eq!(world.revision, accepted);
+}
+
+#[test]
+fn retire_duplicate_requires_a_zero_delta_before_the_retained_generator_seals() {
+    let world = world();
+    let accepted = world.revision.clone();
+    let duplicate = world.alpha.twin();
+    duplicate.set("fact/alpha", b"other");
+    let retired = retire_duplicate(&world.revision, &world.alpha, &duplicate).expect("retire");
+    assert_eq!(retired, FixedStep::Retired { work: 1 });
+    assert_eq!(world.alpha.calls.get(), 1);
+    assert_eq!(duplicate.calls.get(), 0);
+    assert_eq!(world.revision, accepted);
+
+    let sealed = seal(&world, &BTreeSet::new(), None).expect("seal");
+    assert!(matches!(sealed, FixedStep::Sealed { work: 2, .. }));
+    assert_eq!(duplicate.calls.get(), 0);
+
+    world.alpha.set("fact/alpha", b"other");
+    let drifted = retire_duplicate(&world.revision, &world.alpha, &duplicate).expect("drift");
+    assert_eq!(
+        drifted,
+        super::fixture::refusal("not-zero", &["fact/alpha"])
+    );
+    assert_eq!(world.revision, accepted);
+
+    let narrower = super::fixture::Gen::new(
+        &world.alpha.owner,
+        &["fact/src"],
+        &[("fact/alpha", b"alpha")],
+    );
+    let split = retire_duplicate(&world.revision, &world.alpha, &narrower).expect("split");
+    assert_eq!(
+        split,
+        super::fixture::refusal("different-closure", &["fact/extra"])
+    );
+    assert_eq!(narrower.calls.get(), 0);
+    assert_eq!(world.revision, accepted);
+}
+
+fn one(path: &str, bytes: &[u8]) -> std::collections::BTreeMap<String, Vec<u8>> {
+    let mut facts = std::collections::BTreeMap::new();
+    facts.insert(path.to_owned(), bytes.to_vec());
+    facts
+}
+
+fn refusal_gap(closure: &[&str]) -> FixedStep {
+    super::fixture::refusal("gap", closure)
+}
+```
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/fixed_gate_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/fixed_gate_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: sealed fixed point.
+
+use std::collections::BTreeSet;
+
+use sim_artifact_facet::{
+    ArtifactFacet, ArtifactId, DisclosureDecisionId, FacetError, MergePolicy, OwnerId,
+    ProjectionId, RegionOwnership, RegionSelector,
+};
+
+use super::fixture::{Gen, World, calls, facet, paths, refusal, seal, world};
+use super::{FactGenerator, seal_fixed_point};
+use crate::schedule::CLASS_PROOF_FAILED;
+use crate::{
+    Fence, OpenClaim, ProofOutcome, Proposal, ProposalBody, RevisionOpen, SOURCE_SEAL, Step,
+    open_revision, propose, seal_id,
+};
+
+#[test]
+fn failed_and_missing_proofs_block_before_generation() {
+    let mut world = world();
+    let accepted = world.revision.clone();
+    world
+        .proofs
+        .insert("claim/alpha".to_owned(), ProofOutcome::Failed);
+    world
+        .proofs
+        .insert("claim/beta".to_owned(), ProofOutcome::Failed);
+    let failed = seal(&world, &BTreeSet::new(), None).expect("failed");
+    assert_eq!(
+        failed,
+        refusal(CLASS_PROOF_FAILED, &["claim/alpha", "claim/beta"])
+    );
+    assert_eq!(calls(&world), 0);
+    assert_eq!(world.revision, accepted);
+
+    let mut missing_world = super::fixture::world();
+    missing_world.proofs.remove("claim/src");
+    let missing = seal(&missing_world, &BTreeSet::new(), None).expect("missing");
+    assert_eq!(missing, refusal("proof-gap", &["claim/src"]));
+    assert_eq!(calls(&missing_world), 0);
+
+    let mut both_world = super::fixture::world();
+    both_world
+        .proofs
+        .insert("claim/alpha".to_owned(), ProofOutcome::Failed);
+    both_world.proofs.remove("claim/src");
+    let both = seal(&both_world, &BTreeSet::new(), None).expect("both");
+    assert_eq!(
+        both,
+        refusal(CLASS_PROOF_FAILED, &["claim/alpha", "claim/src"])
+    );
+    assert_eq!(calls(&both_world), 0);
+}
+
+#[test]
+fn uncertain_and_open_claims_block_before_generation() {
+    let mut world = world();
+    let held = propose(
+        &mut world.revision,
+        change(Fence::BeforeCommit, "fact/src", b"src-2"),
+    );
+    assert!(matches!(held, Ok(Step::Held { .. })));
+    assert!(world.revision.is_uncertain());
+    let accepted = world.revision.clone();
+    let step = seal(&world, &BTreeSet::new(), None).expect("uncertain");
+    assert_eq!(step, refusal("uncertain", &[]));
+    assert_eq!(world.revision, accepted);
+    assert_eq!(calls(&world), 0);
+
+    let mut opened = super::fixture::world();
+    let committed = propose(
+        &mut opened.revision,
+        change(Fence::Commit, "fact/alpha", b"alpha-b"),
+    );
+    let Ok(Step::Invalidated { affected, .. }) = committed else {
+        panic!("expected the claim to open");
+    };
+    assert!(affected.contains("claim/alpha"));
+    assert!(opened.revision.claims()["claim/beta"].closed);
+    let accepted = opened.revision.clone();
+    let step = seal(&opened, &BTreeSet::new(), None).expect("open");
+    assert_eq!(step, refusal("open-claim", &["claim/alpha"]));
+    assert_eq!(opened.revision, accepted);
+    assert_eq!(calls(&opened), 0);
+}
+
+#[test]
+fn duplicate_split_cycle_and_authored_writes_do_not_generate() {
+    let world = world();
+    let accepted = world.revision.clone();
+    let duplicate = world.alpha.twin();
+    let generators: [&dyn FactGenerator; 3] = [&world.alpha, &world.beta, &duplicate];
+    let step = seal_fixed_point(
+        &world.revision,
+        &world.facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("duplicate");
+    assert_eq!(
+        step,
+        refusal("duplicate-generator", &["fact/alpha", "fact/extra"])
+    );
+    assert_eq!(calls(&world), 0);
+    assert_eq!(duplicate.calls.get(), 0);
+
+    let mut facets = world.facets.clone();
+    facets[2] = facet("artifact/alpha", &world.beta.owner, "fact/extra", true);
+    let generators: [&dyn FactGenerator; 2] = [&world.alpha, &world.beta];
+    let step = seal_fixed_point(
+        &world.revision,
+        &facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("split");
+    assert_eq!(
+        step,
+        refusal("split-generator", &["fact/alpha", "fact/extra"])
+    );
+    assert_eq!(calls(&world), 0);
+
+    let cyclic = Gen::new(
+        &world.alpha.owner,
+        &["fact/alpha"],
+        &[("fact/alpha", b"alpha")],
+    );
+    let generators: [&dyn FactGenerator; 1] = [&cyclic];
+    let step = seal_fixed_point(
+        &world.revision,
+        &world.facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("cycle");
+    assert_eq!(step, refusal("generator-cycle", &["fact/alpha"]));
+    assert_eq!(cyclic.calls.get(), 0);
+
+    let authored = Gen::new(&world.alpha.owner, &["fact/src"], &[("fact/src", b"src")]);
+    let generators: [&dyn FactGenerator; 1] = [&authored];
+    let step = seal_fixed_point(
+        &world.revision,
+        &world.facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("authored");
+    assert_eq!(step, refusal("authored-write", &["fact/src"]));
+    assert_eq!(authored.calls.get(), 0);
+    assert_eq!(world.revision, accepted);
+}
+
+#[test]
+fn region_grain_and_deletion_of_an_ungenerated_path_block() {
+    let world = world();
+    let accepted = world.revision.clone();
+    let mut facets = world.facets.clone();
+    facets.push(line_facet("fact/alpha"));
+    let generators: [&dyn FactGenerator; 2] = [&world.alpha, &world.beta];
+    let step = seal_fixed_point(
+        &world.revision,
+        &facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("line");
+    assert_eq!(step, refusal("region-grain", &["fact/alpha"]));
+    assert_eq!(calls(&world), 0);
+
+    let unknown = seal(&world, &paths(&["fact/missing"]), None).expect("unknown");
+    assert_eq!(unknown, refusal("unknown-fact", &["fact/missing"]));
+    let authored = seal(&world, &paths(&["fact/src"]), None).expect("authored");
+    assert_eq!(authored, refusal("not-generated", &["fact/src"]));
+    assert_eq!(calls(&world), 0);
+    assert_eq!(world.revision, accepted);
+}
+
+#[test]
+fn wrong_owner_is_the_facet_constructors_refusal() {
+    let authored = OwnerId::from_text("owner/authored").expect("owner");
+    let generator = OwnerId::from_text("owner/generator").expect("owner");
+    assert_ne!(authored, generator);
+    let built = ArtifactFacet::new(
+        ArtifactId::from_text("artifact/one").expect("artifact"),
+        authored,
+        RegionSelector::ExactPath("fact/alpha".to_owned()),
+        ProjectionId::from_text("projection/file").expect("projection"),
+        MergePolicy::Exact,
+        DisclosureDecisionId::from_text("disclosure/model").expect("disclosure"),
+        RegionOwnership::Generated { generator },
+    );
+    assert_eq!(built, Err(FacetError::WrongOwner));
+}
+
+#[test]
+fn a_present_unfaceted_write_is_an_inexact_generator() {
+    let base = world();
+    let accepted = base.revision.clone();
+    let seal_bytes = base
+        .revision
+        .images()
+        .get(SOURCE_SEAL)
+        .expect("seal")
+        .clone();
+    let mut images = base.revision.images().clone();
+    images.insert("fact/notes".to_owned(), b"notes".to_vec());
+    let claims = base
+        .revision
+        .claims()
+        .iter()
+        .map(|(id, claim)| OpenClaim {
+            id: id.clone(),
+            inputs: claim.inputs.clone(),
+        })
+        .collect();
+    let revision = open_revision(RevisionOpen {
+        seal_id: seal_id(&seal_bytes).expect("id"),
+        seal: seal_bytes,
+        images,
+        claims,
+    })
+    .expect("revision");
+    let notes = Gen::new(
+        &base.alpha.owner,
+        &["fact/src"],
+        &[("fact/alpha", b"alpha"), ("fact/notes", b"notes")],
+    );
+    let generators: [&dyn FactGenerator; 2] = [&notes, &base.beta];
+    let step = seal_fixed_point(
+        &revision,
+        &base.facets,
+        &generators,
+        &base.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("present");
+    assert_eq!(
+        step,
+        refusal("split-generator", &["fact/extra", "fact/notes"])
+    );
+    assert_eq!(notes.calls.get(), 0);
+
+    let absent = Gen::new(
+        &base.alpha.owner,
+        &["fact/src"],
+        &[("fact/alpha", b"alpha"), ("fact/missing", b"missing")],
+    );
+    let generators: [&dyn FactGenerator; 2] = [&absent, &base.beta];
+    let step = seal_fixed_point(
+        &base.revision,
+        &base.facets,
+        &generators,
+        &base.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("absent");
+    assert_eq!(step, refusal("unknown-fact", &["fact/missing"]));
+    assert_eq!(absent.calls.get(), 0);
+    assert_eq!(base.beta.calls.get(), 0);
+    assert_eq!(base.revision, accepted);
+}
+
+#[test]
+fn an_absent_faceted_write_is_unknown_before_an_inexact_set() {
+    let base = world();
+    let accepted = base.revision.clone();
+    let hidden = revision_without(&base, &["fact/extra"], &[("fact/notes", b"notes")]);
+    let mixed = Gen::new(
+        &base.alpha.owner,
+        &["fact/src"],
+        &[("fact/extra", b"extra"), ("fact/notes", b"notes")],
+    );
+    let generators: [&dyn FactGenerator; 2] = [&mixed, &base.beta];
+    let step = seal_fixed_point(
+        &hidden,
+        &base.facets,
+        &generators,
+        &base.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("hidden");
+    assert_eq!(step, refusal("unknown-fact", &["fact/extra"]));
+    assert_eq!(mixed.calls.get(), 0);
+
+    let both = revision_without(&base, &["fact/alpha", "fact/extra"], &[]);
+    let exact = Gen::new(
+        &base.alpha.owner,
+        &["fact/src"],
+        &[("fact/alpha", b"alpha"), ("fact/extra", b"extra")],
+    );
+    let generators: [&dyn FactGenerator; 2] = [&exact, &base.beta];
+    let step = seal_fixed_point(
+        &both,
+        &base.facets,
+        &generators,
+        &base.proofs,
+        &BTreeSet::new(),
+        None,
+    )
+    .expect("both");
+    assert_eq!(step, refusal("unknown-fact", &["fact/alpha", "fact/extra"]));
+    assert_eq!(exact.calls.get(), 0);
+    assert_eq!(base.beta.calls.get(), 0);
+    assert_eq!(base.revision, accepted);
+}
+
+fn revision_without(base: &World, drop: &[&str], add: &[(&str, &[u8])]) -> crate::Revision {
+    let seal_bytes = base
+        .revision
+        .images()
+        .get(SOURCE_SEAL)
+        .expect("seal")
+        .clone();
+    let mut images = base.revision.images().clone();
+    for path in drop {
+        images.remove(*path);
+    }
+    for (path, bytes) in add {
+        images.insert((*path).to_owned(), (*bytes).to_vec());
+    }
+    let claims = base
+        .revision
+        .claims()
+        .iter()
+        .filter(|(_, claim)| claim.inputs.iter().all(|input| images.contains_key(input)))
+        .map(|(id, claim)| OpenClaim {
+            id: id.clone(),
+            inputs: claim.inputs.clone(),
+        })
+        .collect();
+    open_revision(RevisionOpen {
+        seal_id: seal_id(&seal_bytes).expect("id"),
+        seal: seal_bytes,
+        images,
+        claims,
+    })
+    .expect("revision")
+}
+
+fn change(fence: Fence, path: &str, bytes: &[u8]) -> Proposal {
+    let mut facts = std::collections::BTreeMap::new();
+    facts.insert(path.to_owned(), bytes.to_vec());
+    Proposal {
+        author: "author".to_owned(),
+        checker: "checker".to_owned(),
+        fence,
+        body: ProposalBody::Complete {
+            id: "proposal/1".to_owned(),
+            facts,
+            limit: 100,
+        },
+    }
+}
+
+fn line_facet(path: &str) -> ArtifactFacet {
+    let owner = OwnerId::from_text("owner/line").expect("owner");
+    ArtifactFacet::new(
+        ArtifactId::from_text("artifact/line").expect("artifact"),
+        owner.clone(),
+        RegionSelector::LineRange {
+            path: path.to_owned(),
+            start: 0,
+            end: 1,
+        },
+        ProjectionId::from_text("projection/file").expect("projection"),
+        MergePolicy::Exact,
+        DisclosureDecisionId::from_text("disclosure/model").expect("disclosure"),
+        RegionOwnership::Generated { generator: owner },
+    )
+    .expect("line facet")
+}
+```
+
+### `feature/sim-agent-net/model-facet-transaction`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/transact_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: each model repository commits or refuses on its own.
+
+use sim_artifact_facet::MergePolicy;
+
+use super::{ArtifactModel, CleanKind, GitModel, RepoOutcome, transact_facets};
+use crate::transact::fixture::{
+    advance, applied_tip, apply, edit, exact, lines, linewise, owner, public_disclosure, refusal,
+    refusal_at, request, seeded, text,
+};
+
+#[test]
+fn a_direct_apply_commits_only_that_repository() {
+    let actor = owner("owner/src");
+    let (mut store, alpha) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let beta = store
+        .insert_repository(
+            "beta",
+            "main",
+            crate::transact::fixture::tree(&[("src/a.txt", "old\n")]),
+        )
+        .expect("beta");
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &alpha,
+            &alpha.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("batch");
+    assert!(batch.settled());
+    let RepoOutcome::Applied { previous, tip, .. } = &batch.outcomes()[0] else {
+        panic!("expected a commit: {batch:?}");
+    };
+    assert_eq!(previous, &alpha);
+    assert_ne!(tip.head, alpha.head);
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("new\n")
+    );
+    assert_eq!(
+        store.image_at("alpha", &alpha.head, "src/a.txt"),
+        text("old\n")
+    );
+    assert_eq!(store.tip("beta"), Some(beta.clone()));
+    assert_eq!(
+        store.image_at("beta", &beta.head, "src/a.txt"),
+        text("old\n")
+    );
+}
+
+#[test]
+fn two_regions_on_one_file_keep_both_edits() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "a\nb\nc\n")]);
+    let policy = linewise();
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![
+                edit(
+                    lines("src/a.txt", &actor, 0, 1, policy.clone()),
+                    text("a\nb\nc\n"),
+                    text("A\nb\nc\n"),
+                ),
+                edit(
+                    lines("src/a.txt", &actor, 2, 3, policy),
+                    text("a\nb\nc\n"),
+                    text("a\nb\nC\n"),
+                ),
+            ],
+        )],
+    )
+    .expect("batch");
+    let next = applied_tip(&batch);
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("A\nb\nC\n")
+    );
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("a\nb\nc\n")
+    );
+}
+
+#[test]
+fn a_disjoint_foreign_edit_merges_and_an_overlap_does_not() {
+    let actor = owner("owner/src");
+    let (mut store, base) = seeded("alpha", &[("src/a.txt", "a\nb\nc\n")]);
+    let tip = advance(
+        &mut store,
+        "alpha",
+        &base,
+        &actor,
+        "src/a.txt",
+        text("A\nb\nc\n"),
+    );
+    let merged = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, linewise()),
+                text("a\nb\nc\n"),
+                text("a\nb\nC\n"),
+            )],
+        )],
+    )
+    .expect("merge");
+    let next = applied_tip(&merged);
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("A\nb\nC\n")
+    );
+
+    let (mut other, base) = seeded("beta", &[("src/a.txt", "a\nb\nc\n")]);
+    let tip = advance(
+        &mut other,
+        "beta",
+        &base,
+        &actor,
+        "src/a.txt",
+        text("A\nb\nc\n"),
+    );
+    let refused = transact_facets(
+        &mut other,
+        &[request(
+            "beta",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, linewise()),
+                text("a\nb\nc\n"),
+                text("X\nb\nc\n"),
+            )],
+        )],
+    )
+    .expect("overlap");
+    assert_eq!(refusal(&refused), "overlap");
+    assert_eq!(other.tip("beta"), Some(tip.clone()));
+    assert_eq!(
+        other.image_at("beta", &tip.head, "src/a.txt"),
+        text("A\nb\nc\n")
+    );
+}
+
+#[test]
+fn overlap_is_symmetric_when_the_two_sides_swap() {
+    let actor = owner("owner/src");
+    for (observed, intended) in [("A\nb\n", "B\nb\n"), ("B\nb\n", "A\nb\n")] {
+        let (mut store, base) = seeded("alpha", &[("src/a.txt", "a\nb\n")]);
+        let tip = advance(
+            &mut store,
+            "alpha",
+            &base,
+            &actor,
+            "src/a.txt",
+            text(observed),
+        );
+        let batch = transact_facets(
+            &mut store,
+            &[request(
+                "alpha",
+                &actor,
+                &tip,
+                &base.head,
+                public_disclosure(),
+                vec![edit(
+                    exact("src/a.txt", &actor, linewise()),
+                    text("a\nb\n"),
+                    text(intended),
+                )],
+            )],
+        )
+        .expect("batch");
+        assert_eq!(refusal(&batch), "overlap");
+        assert_eq!(
+            store.image_at("alpha", &tip.head, "src/a.txt"),
+            text(observed)
+        );
+    }
+}
+
+#[test]
+fn already_true_and_unchanged_do_not_move_the_branch() {
+    let actor = owner("owner/src");
+    let (mut store, base) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let tip = advance(
+        &mut store,
+        "alpha",
+        &base,
+        &actor,
+        "src/a.txt",
+        text("new\n"),
+    );
+    let already = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("already");
+    assert!(already.settled());
+    assert!(matches!(
+        &already.outcomes()[0],
+        RepoOutcome::Clean {
+            kind: CleanKind::AlreadyTrue,
+            tip: current,
+            ..
+        } if current == &tip
+    ));
+    assert_eq!(store.tip("alpha"), Some(tip.clone()));
+
+    let unchanged = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("old\n"),
+            )],
+        )],
+    )
+    .expect("unchanged");
+    assert!(matches!(
+        &unchanged.outcomes()[0],
+        RepoOutcome::Clean {
+            kind: CleanKind::Unchanged,
+            ..
+        }
+    ));
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("new\n")
+    );
+}
+
+#[test]
+fn a_merged_sibling_of_already_true_stays_unchanged() {
+    let actor = owner("owner/src");
+    let (mut store, base) = seeded("alpha", &[("src/a.txt", "a\nb\nc\n")]);
+    let tip = advance(
+        &mut store,
+        "alpha",
+        &base,
+        &actor,
+        "src/a.txt",
+        text("A\nb\nC\n"),
+    );
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![
+                edit(
+                    exact("src/a.txt", &actor, linewise()),
+                    text("a\nb\nc\n"),
+                    text("A\nb\nC\n"),
+                ),
+                edit(
+                    exact("src/a.txt", &actor, linewise()),
+                    text("a\nb\nc\n"),
+                    text("a\nb\nC\n"),
+                ),
+            ],
+        )],
+    )
+    .expect("batch");
+    assert!(batch.settled());
+    assert!(matches!(
+        &batch.outcomes()[0],
+        RepoOutcome::Clean {
+            kind: CleanKind::Unchanged,
+            tip: current,
+            ..
+        } if current == &tip
+    ));
+    assert_eq!(store.tip("alpha"), Some(tip.clone()));
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("A\nb\nC\n")
+    );
+}
+
+#[test]
+fn a_second_pass_on_the_new_head_performs_no_commit() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let next = apply(&mut store, &tip, &actor, "src/a.txt", "new\n");
+    let again = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &next,
+            &next.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("new\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("again");
+    assert!(matches!(
+        &again.outcomes()[0],
+        RepoOutcome::Clean {
+            kind: CleanKind::Unchanged,
+            tip: current,
+            ..
+        } if current == &next
+    ));
+}
+
+#[test]
+fn a_later_request_keeps_the_first_commit_when_its_head_is_stale() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let next = apply(&mut store, &tip, &actor, "src/a.txt", "new\n");
+    let mut stale = request(
+        "alpha",
+        &actor,
+        &tip,
+        &tip.head,
+        public_disclosure(),
+        vec![edit(
+            exact("src/a.txt", &actor, MergePolicy::Exact),
+            text("old\n"),
+            text("other\n"),
+        )],
+    );
+    stale.expected_head = tip.head.clone();
+    let batch = transact_facets(&mut store, &[stale]).expect("stale");
+    assert_eq!(refusal(&batch), "wrong-head");
+    assert_eq!(store.tip("alpha"), Some(next.clone()));
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("new\n")
+    );
+}
+
+#[test]
+fn one_repository_refusal_does_not_rewind_another() {
+    let actor = owner("owner/src");
+    let (mut store, alpha) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    store
+        .insert_repository(
+            "beta",
+            "main",
+            crate::transact::fixture::tree(&[("src/b.txt", "a\nb\n")]),
+        )
+        .expect("beta");
+    let beta = store.tip("beta").expect("beta tip");
+    let beta_tip = advance(
+        &mut store,
+        "beta",
+        &beta,
+        &actor,
+        "src/b.txt",
+        text("A\nb\n"),
+    );
+    let batch = transact_facets(
+        &mut store,
+        &[
+            request(
+                "alpha",
+                &actor,
+                &alpha,
+                &alpha.head,
+                public_disclosure(),
+                vec![edit(
+                    exact("src/a.txt", &actor, MergePolicy::Exact),
+                    text("old\n"),
+                    text("new\n"),
+                )],
+            ),
+            request(
+                "beta",
+                &actor,
+                &beta_tip,
+                &beta.head,
+                public_disclosure(),
+                vec![edit(
+                    exact("src/b.txt", &actor, linewise()),
+                    text("a\nb\n"),
+                    text("B\nb\n"),
+                )],
+            ),
+        ],
+    )
+    .expect("batch");
+    assert!(!batch.settled());
+    assert!(matches!(batch.outcomes()[0], RepoOutcome::Applied { .. }));
+    assert_eq!(refusal_at(&batch, 1), "overlap");
+    let applied = applied_tip(&batch);
+    assert_eq!(
+        store.image_at("alpha", &applied.head, "src/a.txt"),
+        text("new\n")
+    );
+    assert_eq!(
+        store.image_at("beta", &beta_tip.head, "src/b.txt"),
+        text("A\nb\n")
+    );
+}
+
+#[test]
+fn two_requests_for_one_repository_do_not_collapse_into_one_commit() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let first = request(
+        "alpha",
+        &actor,
+        &tip,
+        &tip.head,
+        public_disclosure(),
+        vec![edit(
+            exact("src/a.txt", &actor, MergePolicy::Exact),
+            text("old\n"),
+            text("one\n"),
+        )],
+    );
+    let second = request(
+        "alpha",
+        &actor,
+        &tip,
+        &tip.head,
+        public_disclosure(),
+        vec![edit(
+            exact("src/a.txt", &actor, MergePolicy::Exact),
+            text("old\n"),
+            text("two\n"),
+        )],
+    );
+    let batch = transact_facets(&mut store, &[first, second]).expect("batch");
+    assert!(!batch.settled());
+    assert_eq!(refusal_at(&batch, 1), "wrong-head");
+    let next = applied_tip(&batch);
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("one\n")
+    );
+}
+```
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_recover_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/transact_recover_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: each model repository commits or refuses on its own.
+
+use sim_artifact_facet::{MergePolicy, PortableImage};
+
+use super::{ArtifactModel, GitModel, Rollback, rollback_model, transact_facets};
+use crate::transact::fixture::{
+    applied_tip, edit, exact, lines, linewise, owner, public_disclosure, refusal, request, seeded,
+    text,
+};
+
+#[test]
+fn a_region_escape_after_a_lawful_edit_writes_nothing() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded(
+        "alpha",
+        &[("src/a.txt", "old\n"), ("src/b.txt", "a\nb\nc\n")],
+    );
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![
+                edit(
+                    exact("src/a.txt", &actor, MergePolicy::Exact),
+                    text("old\n"),
+                    text("new\n"),
+                ),
+                edit(
+                    lines("src/b.txt", &actor, 2, 3, linewise()),
+                    text("a\nb\nc\n"),
+                    text("Z\nb\nc\n"),
+                ),
+            ],
+        )],
+    )
+    .expect("batch");
+    assert_eq!(refusal(&batch), "region-escape");
+    assert_eq!(store.tip("alpha"), Some(tip.clone()));
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("old\n")
+    );
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/b.txt"),
+        text("a\nb\nc\n")
+    );
+}
+
+#[test]
+fn rollback_moves_the_pointer_and_keeps_the_commit() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let next = crate::transact::fixture::apply(&mut store, &tip, &actor, "src/a.txt", "new\n");
+    let restored = rollback_model(&mut store, "alpha", &next, &tip.head).expect("rollback");
+    let Rollback::Restored { tip: current } = restored else {
+        panic!("expected restore: {restored:?}");
+    };
+    assert_eq!(current.head, tip.head);
+    assert_eq!(
+        store.image_at("alpha", &current.head, "src/a.txt"),
+        text("old\n")
+    );
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("new\n")
+    );
+}
+
+#[test]
+fn deleting_a_path_removes_it_from_the_new_commit_only() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                PortableImage::absent(),
+            )],
+        )],
+    )
+    .expect("batch");
+    let next = applied_tip(&batch);
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        PortableImage::absent()
+    );
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("old\n")
+    );
+}
+```
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_gate_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/transact_gate_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: each model repository commits or refuses on its own.
+
+use sim_artifact_facet::{
+    ArtifactFacet, ArtifactId, FacetError, MergePolicy, ProjectionId, RegionOwnership,
+    RegionSelector,
+};
+
+use super::{
+    ArtifactModel, BoundDisclosure, DisclosureClass, GitModel, RepoOutcome, Rollback,
+    rollback_model, transact_facets,
+};
+use crate::transact::fixture::{
+    advance, decision, edit, exact, generated, lines, linewise, owner, public_disclosure, refusal,
+    refusal_paths, request, seeded, text,
+};
+
+#[test]
+fn wrong_head_branch_and_a_missing_repository_refuse() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let mut wrong = request(
+        "alpha",
+        &actor,
+        &tip,
+        &tip.head,
+        public_disclosure(),
+        vec![edit(
+            exact("src/a.txt", &actor, MergePolicy::Exact),
+            text("old\n"),
+            text("new\n"),
+        )],
+    );
+    wrong.expected_head = "commit/missing".into();
+    let batch = transact_facets(&mut store, &[wrong]).expect("head");
+    assert_eq!(refusal(&batch), "wrong-head");
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("old\n")
+    );
+
+    let mut branch = request(
+        "alpha",
+        &actor,
+        &tip,
+        &tip.head,
+        public_disclosure(),
+        vec![edit(
+            exact("src/a.txt", &actor, MergePolicy::Exact),
+            text("old\n"),
+            text("new\n"),
+        )],
+    );
+    branch.expected_branch = "topic".into();
+    let batch = transact_facets(&mut store, &[branch]).expect("branch");
+    assert_eq!(refusal(&batch), "wrong-head");
+
+    let missing = request(
+        "missing",
+        &actor,
+        &tip,
+        &tip.head,
+        public_disclosure(),
+        vec![edit(
+            exact("src/a.txt", &actor, MergePolicy::Exact),
+            text("old\n"),
+            text("new\n"),
+        )],
+    );
+    let batch = transact_facets(&mut store, &[missing]).expect("missing");
+    assert_eq!(refusal(&batch), "wrong-head");
+    assert_eq!(store.tip("alpha"), Some(tip));
+}
+
+#[test]
+fn dirt_refuses_before_an_otherwise_lawful_apply() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    assert!(store.mark_dirt("alpha", "notes.txt"));
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("dirt");
+    assert_eq!(refusal(&batch), "dirt");
+    assert_eq!(refusal_paths(&batch), vec!["notes.txt"]);
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("old\n")
+    );
+}
+
+#[test]
+fn private_unknown_and_disagreeing_disclosure_refuse() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let edit = edit(
+        exact("src/a.txt", &actor, MergePolicy::Exact),
+        text("old\n"),
+        text("new\n"),
+    );
+    let private = BoundDisclosure {
+        decision: decision("disclosure/model"),
+        class: DisclosureClass::Private,
+        public_sink: true,
+    };
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            private,
+            vec![edit.clone()],
+        )],
+    )
+    .expect("private");
+    assert_eq!(refusal(&batch), "private-flow");
+
+    let unknown = BoundDisclosure {
+        decision: decision("disclosure/model"),
+        class: DisclosureClass::Unknown,
+        public_sink: true,
+    };
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            unknown,
+            vec![edit.clone()],
+        )],
+    )
+    .expect("unknown");
+    assert_eq!(refusal(&batch), "private-flow");
+
+    let disagree = BoundDisclosure {
+        decision: decision("disclosure/other"),
+        class: DisclosureClass::Public,
+        public_sink: true,
+    };
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            disagree,
+            vec![edit],
+        )],
+    )
+    .expect("disagree");
+    assert_eq!(refusal(&batch), "private-flow");
+    assert_eq!(store.tip("alpha"), Some(tip));
+}
+
+#[test]
+fn a_private_decision_can_commit_when_it_does_not_reach_a_public_sink() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let disclosure = BoundDisclosure {
+        decision: decision("disclosure/model"),
+        class: DisclosureClass::Private,
+        public_sink: false,
+    };
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            disclosure,
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("private");
+    assert!(batch.settled());
+    let RepoOutcome::Applied {
+        tip: private_tip, ..
+    } = &batch.outcomes()[0]
+    else {
+        panic!("expected a commit: {batch:?}");
+    };
+    let unknown = BoundDisclosure {
+        decision: decision("disclosure/model"),
+        class: DisclosureClass::Unknown,
+        public_sink: false,
+    };
+    let again = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            private_tip,
+            &private_tip.head,
+            unknown,
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("new\n"),
+                text("newer\n"),
+            )],
+        )],
+    )
+    .expect("unknown");
+    assert!(again.settled());
+    assert!(matches!(again.outcomes()[0], RepoOutcome::Applied { .. }));
+}
+
+#[test]
+fn a_generated_region_refuses_another_actor_and_admits_its_generator() {
+    let generator = owner("owner/gen");
+    let other = owner("owner/other");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let spec = generated("src/a.txt", &generator, MergePolicy::Exact);
+    let blocked = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &other,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(spec, text("old\n"), text("new\n"))],
+        )],
+    )
+    .expect("bypass");
+    assert_eq!(refusal(&blocked), "generated-owner-bypass");
+    assert_eq!(store.tip("alpha"), Some(tip.clone()));
+
+    let spec = generated("src/a.txt", &generator, MergePolicy::Exact);
+    let allowed = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &generator,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(spec, text("old\n"), text("new\n"))],
+        )],
+    )
+    .expect("generator");
+    assert!(allowed.settled());
+    let RepoOutcome::Applied { tip: next, .. } = &allowed.outcomes()[0] else {
+        panic!("expected a commit: {allowed:?}");
+    };
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("new\n")
+    );
+}
+
+#[test]
+fn an_authored_edit_from_another_owner_refuses() {
+    let actor = owner("owner/src");
+    let other = owner("owner/other");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &other,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("owner");
+    assert_eq!(refusal(&batch), "wrong-owner");
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("old\n")
+    );
+}
+
+#[test]
+fn a_stale_or_unknown_base_refuses_before_merge() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("stale\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("stale");
+    assert_eq!(refusal(&batch), "stale-base");
+    assert_eq!(refusal_paths(&batch), vec!["src/a.txt"]);
+
+    let mut unknown = request(
+        "alpha",
+        &actor,
+        &tip,
+        &tip.head,
+        public_disclosure(),
+        vec![edit(
+            exact("src/a.txt", &actor, MergePolicy::Exact),
+            text("old\n"),
+            text("new\n"),
+        )],
+    );
+    unknown.base_revision = "commit/missing".into();
+    let batch = transact_facets(&mut store, &[unknown]).expect("missing base");
+    assert_eq!(refusal(&batch), "stale-base");
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("old\n")
+    );
+}
+
+#[test]
+fn rollback_refuses_a_wrong_head_dirt_and_an_unknown_commit() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let next = advance(
+        &mut store,
+        "alpha",
+        &tip,
+        &actor,
+        "src/a.txt",
+        text("new\n"),
+    );
+    let wrong = rollback_model(&mut store, "alpha", &tip, &tip.head).expect("wrong");
+    assert!(matches!(
+        wrong,
+        Rollback::Refused {
+            reason: "wrong-head",
+            ..
+        }
+    ));
+    assert_eq!(store.tip("alpha"), Some(next.clone()));
+
+    let unknown = rollback_model(&mut store, "alpha", &next, "commit/missing").expect("unknown");
+    assert!(matches!(
+        unknown,
+        Rollback::Refused {
+            reason: "wrong-head",
+            ..
+        }
+    ));
+    assert_eq!(store.tip("alpha"), Some(next.clone()));
+
+    assert!(store.mark_dirt("alpha", "notes.txt"));
+    let dirty = rollback_model(&mut store, "alpha", &next, &tip.head).expect("dirt");
+    assert!(matches!(dirty, Rollback::Refused { reason: "dirt", .. }));
+    assert_eq!(store.tip("alpha"), Some(next));
+}
+
+#[test]
+fn the_facet_law_rejects_a_path_escape_and_a_generated_owner_mismatch() {
+    let actor = owner("owner/src");
+    let other = owner("owner/other");
+    let escaped = ArtifactFacet::new(
+        ArtifactId::from_text("artifact/escape").expect("artifact"),
+        actor.clone(),
+        RegionSelector::ExactPath("../outside".into()),
+        ProjectionId::from_text("projection/file").expect("projection"),
+        MergePolicy::Exact,
+        decision("disclosure/model"),
+        RegionOwnership::Authored,
+    );
+    assert!(matches!(escaped, Err(FacetError::InvalidRegion)));
+
+    let bypass = ArtifactFacet::new(
+        ArtifactId::from_text("artifact/generated").expect("artifact"),
+        actor,
+        RegionSelector::ExactPath("src/a.txt".into()),
+        ProjectionId::from_text("projection/file").expect("projection"),
+        MergePolicy::Exact,
+        decision("disclosure/model"),
+        RegionOwnership::Generated { generator: other },
+    );
+    assert!(matches!(bypass, Err(FacetError::WrongOwner)));
+}
+
+#[test]
+fn a_line_range_that_stays_inside_its_region_commits() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "a\nb\nc\n")]);
+    let batch = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                lines("src/a.txt", &actor, 1, 2, linewise()),
+                text("a\nb\nc\n"),
+                text("a\nB\nc\n"),
+            )],
+        )],
+    )
+    .expect("range");
+    assert!(batch.settled());
+    let RepoOutcome::Applied { tip: next, .. } = &batch.outcomes()[0] else {
+        panic!("expected a commit: {batch:?}");
+    };
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("a\nB\nc\n")
+    );
+}
+```
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/transact_conflict_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/transact_conflict_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: each model repository commits or refuses on its own.
+
+use sim_artifact_facet::MergePolicy;
+
+use super::{ArtifactModel, transact_facets};
+use crate::transact::fixture::{
+    advance, edit, exact, linewise, owner, public_disclosure, raw, refusal, request, seeded, text,
+    text_mode,
+};
+
+const MODE_BASE: u32 = 0o644;
+
+#[test]
+fn exact_overlap_mode_text_and_work_bounds_refuse_without_a_winner() {
+    let actor = owner("owner/src");
+    let (mut store, base) = seeded("alpha", &[("src/a.txt", "a\n")]);
+    let tip = advance(&mut store, "alpha", &base, &actor, "src/a.txt", text("A\n"));
+    let exact_conflict = transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("a\n"),
+                text("B\n"),
+            )],
+        )],
+    )
+    .expect("exact");
+    assert_eq!(refusal(&exact_conflict), "overlap");
+    assert_eq!(store.image_at("alpha", &tip.head, "src/a.txt"), text("A\n"));
+
+    let (mut store, base) = seeded("beta", &[("src/a.txt", "a\n")]);
+    let widened = advance(
+        &mut store,
+        "beta",
+        &base,
+        &actor,
+        "src/a.txt",
+        text_mode("a\n", 0o755),
+    );
+    let mode = transact_facets(
+        &mut store,
+        &[request(
+            "beta",
+            &actor,
+            &widened,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, linewise()),
+                text_mode("a\n", MODE_BASE),
+                text_mode("a\n", 0o600),
+            )],
+        )],
+    )
+    .expect("mode");
+    assert_eq!(refusal(&mode), "conflict");
+    assert_eq!(
+        store.image_at("beta", &widened.head, "src/a.txt"),
+        text_mode("a\n", 0o755)
+    );
+
+    let (mut store, base) = seeded("gamma", &[("src/a.txt", "a\n")]);
+    let binary = advance(
+        &mut store,
+        "gamma",
+        &base,
+        &actor,
+        "src/a.txt",
+        raw(b"\xff"),
+    );
+    let text_conflict = transact_facets(
+        &mut store,
+        &[request(
+            "gamma",
+            &actor,
+            &binary,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, linewise()),
+                text("a\n"),
+                text("b\n"),
+            )],
+        )],
+    )
+    .expect("text");
+    assert_eq!(refusal(&text_conflict), "conflict");
+    assert_eq!(
+        store.image_at("gamma", &binary.head, "src/a.txt"),
+        raw(b"\xff")
+    );
+
+    let (mut store, base) = seeded("delta", &[("src/a.txt", "a\nb\n")]);
+    let tip = advance(
+        &mut store,
+        "delta",
+        &base,
+        &actor,
+        "src/a.txt",
+        text("A\nb\n"),
+    );
+    let tight = MergePolicy::Linewise {
+        max_lines: 1,
+        max_cells: 4_096,
+    };
+    let bounded = transact_facets(
+        &mut store,
+        &[request(
+            "delta",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, tight),
+                text("a\nb\n"),
+                text("a\nB\n"),
+            )],
+        )],
+    )
+    .expect("bound");
+    assert_eq!(refusal(&bounded), "conflict");
+    assert_eq!(
+        store.image_at("delta", &tip.head, "src/a.txt"),
+        text("A\nb\n")
+    );
+}
+```
+
+### `feature/sim-agent-net/model-facet-landing`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/land_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/land_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: a landing answer follows the branch and refuses a stale head.
+
+use sim_artifact_facet::MergePolicy;
+
+use super::{
+    LandCache, LandPlan, LandStatus, LandWhy, land_apply, land_plan, land_recover, land_status,
+    land_why,
+};
+use crate::transact::fixture::{
+    advance, edit, exact, generated, linewise, owner, public_disclosure, request, seeded, text,
+};
+use crate::transact::{ArtifactModel, CleanKind, GitModel, RepoOutcome, transact_facets};
+
+#[test]
+fn a_foreign_edit_survives_plan_and_apply() {
+    let actor = owner("owner/src");
+    let (mut store, base) = seeded("alpha", &[("src/a.txt", "a\nb\nc\n")]);
+    let tip = advance(
+        &mut store,
+        "alpha",
+        &base,
+        &actor,
+        "src/a.txt",
+        text("A\nb\nc\n"),
+    );
+    let mut cache = LandCache::new();
+    let edit = edit(
+        exact("src/a.txt", &actor, linewise()),
+        text("a\nb\nc\n"),
+        text("a\nb\nC\n"),
+    );
+    let planned = land_plan(
+        &store,
+        &mut cache,
+        &request(
+            "alpha",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit.clone()],
+        ),
+    )
+    .expect("plan");
+    let LandPlan::WouldCommit {
+        files, tip: seen, ..
+    } = &planned
+    else {
+        panic!("expected a commit plan: {planned:?}");
+    };
+    assert_eq!(seen, &tip);
+    assert_eq!(files.get("src/a.txt"), Some(&text("A\nb\nC\n")));
+    assert_eq!(store.tip("alpha"), Some(tip.clone()));
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("A\nb\nc\n")
+    );
+
+    let batch = land_apply(
+        &mut store,
+        &mut cache,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit],
+        )],
+    )
+    .expect("apply");
+    let RepoOutcome::Applied { tip: next, .. } = &batch.outcomes()[0] else {
+        panic!("expected a commit: {batch:?}");
+    };
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("A\nb\nC\n")
+    );
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("A\nb\nc\n")
+    );
+}
+
+#[test]
+fn an_already_true_replay_does_not_move_the_branch() {
+    let actor = owner("owner/src");
+    let (mut store, base) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let tip = advance(
+        &mut store,
+        "alpha",
+        &base,
+        &actor,
+        "src/a.txt",
+        text("new\n"),
+    );
+    let mut cache = LandCache::new();
+    let again = land_apply(
+        &mut store,
+        &mut cache,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("replay");
+    assert!(matches!(
+        &again.outcomes()[0],
+        RepoOutcome::Clean {
+            kind: CleanKind::AlreadyTrue,
+            tip: current,
+            ..
+        } if current == &tip
+    ));
+    assert_eq!(store.tip("alpha"), Some(tip));
+}
+
+#[test]
+fn recover_restores_the_exact_commit() {
+    let actor = owner("owner/src");
+    let (mut store, base) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let mut cache = LandCache::new();
+    let batch = land_apply(
+        &mut store,
+        &mut cache,
+        &[request(
+            "alpha",
+            &actor,
+            &base,
+            &base.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("apply");
+    let RepoOutcome::Applied {
+        tip: next,
+        previous,
+        ..
+    } = &batch.outcomes()[0]
+    else {
+        panic!("expected a commit: {batch:?}");
+    };
+    let restored =
+        land_recover(&mut store, &mut cache, "alpha", next, &previous.head).expect("recover");
+    let crate::transact::Rollback::Restored { tip } = &restored else {
+        panic!("expected a restored pointer: {restored:?}");
+    };
+    assert_eq!(tip, previous);
+    assert_eq!(
+        store.image_at("alpha", &previous.head, "src/a.txt"),
+        text("old\n")
+    );
+    assert_eq!(
+        store.image_at("alpha", &next.head, "src/a.txt"),
+        text("new\n")
+    );
+    assert!(matches!(
+        land_why(&store, &cache, "alpha"),
+        LandWhy::Current { text, head, .. } if text == "restored" && head == previous.head
+    ));
+}
+
+#[test]
+fn a_generated_region_refuses_another_actor() {
+    let generator = owner("owner/src");
+    let other = owner("owner/other");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let mut cache = LandCache::new();
+    let planned = land_plan(
+        &store,
+        &mut cache,
+        &request(
+            "alpha",
+            &other,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                generated("src/a.txt", &generator, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        ),
+    )
+    .expect("plan");
+    assert!(matches!(
+        &planned,
+        LandPlan::Refused { reason, .. } if *reason == "generated-owner-bypass"
+    ));
+    assert_eq!(store.tip("alpha"), Some(tip.clone()));
+    let applied = land_apply(
+        &mut store,
+        &mut cache,
+        &[request(
+            "alpha",
+            &other,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                generated("src/a.txt", &generator, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("apply");
+    assert!(matches!(
+        &applied.outcomes()[0],
+        RepoOutcome::Refused { reason, .. } if *reason == "generated-owner-bypass"
+    ));
+    assert_eq!(
+        store.image_at("alpha", &tip.head, "src/a.txt"),
+        text("old\n")
+    );
+}
+
+#[test]
+fn a_cached_answer_stays_until_the_head_moves() {
+    let actor = owner("owner/src");
+    let (mut store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    let mut cache = LandCache::new();
+    assert!(matches!(
+        land_why(&store, &cache, "alpha"),
+        LandWhy::Unknown { .. }
+    ));
+    let planned = land_plan(
+        &store,
+        &mut cache,
+        &request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        ),
+    )
+    .expect("plan");
+    assert!(matches!(planned, LandPlan::WouldCommit { .. }));
+    let first = land_why(&store, &cache, "alpha");
+    let second = land_why(&store, &cache, "alpha");
+    assert_eq!(first, second);
+    assert!(matches!(
+        &first,
+        LandWhy::Current { text, head, .. } if text == "would-commit" && head == &tip.head
+    ));
+    assert_eq!(store.tip("alpha"), Some(tip.clone()));
+
+    transact_facets(
+        &mut store,
+        &[request(
+            "alpha",
+            &actor,
+            &tip,
+            &tip.head,
+            public_disclosure(),
+            vec![edit(
+                exact("src/a.txt", &actor, MergePolicy::Exact),
+                text("old\n"),
+                text("new\n"),
+            )],
+        )],
+    )
+    .expect("direct commit");
+    assert!(matches!(
+        land_why(&store, &cache, "alpha"),
+        LandWhy::Stale { cached_head, current_head, .. }
+            if cached_head == tip.head && current_head != tip.head
+    ));
+}
+
+#[test]
+fn status_names_the_tip_and_a_missing_repository() {
+    let (store, tip) = seeded("alpha", &[("src/a.txt", "old\n")]);
+    assert!(matches!(
+        land_status(&store, "alpha"),
+        LandStatus::Present { tip: seen, dirty, .. } if seen == tip && dirty.is_empty()
+    ));
+    assert!(matches!(
+        land_status(&store, "missing"),
+        LandStatus::Missing { .. }
+    ));
+}
+```
+
+### `feature/sim-agent-net/bounded-work-packet`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/packet_work_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: one work packet is admitted from canonical input.
+
+use std::cell::{Cell, RefCell};
+
+use super::support::{PanicProposals, PanicWorker, Returns, Views, admitted, preload, work};
+use super::{ModelBody, ModelReturn, WorkReceipt, WorkReceiveError, receive_work};
+use crate::{ResourceAsk, WorkerView};
+
+#[test]
+fn equal_inputs_share_one_packet_identity() {
+    let (first, calls) = admitted(b"exact source");
+    let (second, _) = admitted(b"exact source");
+    let (other, _) = admitted(b"other source");
+    let WorkReceipt::Admitted {
+        work,
+        proposal,
+        attempts,
+    } = first
+    else {
+        panic!("expected admission");
+    };
+    let WorkReceipt::Admitted { work: again, .. } = second else {
+        panic!("expected admission");
+    };
+    let WorkReceipt::Admitted { work: changed, .. } = other else {
+        panic!("expected admission");
+    };
+    assert_eq!(calls, 1);
+    assert_eq!(attempts, 1);
+    assert_eq!(proposal, "mapped");
+    assert_eq!(work.packet_id, again.packet_id);
+    assert_ne!(work.packet_id, changed.packet_id);
+    assert_eq!(work.bytes, b"exact source".len() as u64);
+    assert_eq!(work.files, 1);
+    assert_eq!(work.tokens, work.bytes);
+    assert_eq!(work.paths, vec!["crates/widget/src/lib.rs".to_owned()]);
+    assert_eq!(work.role, "funded-target");
+    assert_eq!(work.status, "declared");
+    assert_eq!(work.receiver, "work/api/projection");
+    assert_eq!(
+        work.resources,
+        vec![ResourceAsk {
+            kind: "slot".into(),
+            amount: 1
+        }]
+    );
+    assert!(!work.serialized.is_empty());
+}
+
+#[test]
+fn oversize_input_refuses_before_capture() {
+    let mut input = work(b"source larger than budget");
+    input.budget_bytes = 3;
+    let mut port = preload(&input);
+    let error = receive_work(&input, &mut port, &PanicWorker, &PanicProposals).unwrap_err();
+    assert_eq!(error, WorkReceiveError::Oversize);
+    assert!(port.reads().is_empty());
+}
+
+#[test]
+fn token_and_file_ceilings_refuse_before_capture() {
+    let mut tokens = work(b"abcd");
+    tokens.budget_tokens = 3;
+    let mut port = preload(&tokens);
+    assert_eq!(
+        receive_work(&tokens, &mut port, &PanicWorker, &PanicProposals).unwrap_err(),
+        WorkReceiveError::Oversize
+    );
+    assert!(port.reads().is_empty());
+
+    let mut files = work(b"abcd");
+    files.budget_files = 0;
+    let mut port = preload(&files);
+    assert_eq!(
+        receive_work(&files, &mut port, &PanicWorker, &PanicProposals).unwrap_err(),
+        WorkReceiveError::Oversize
+    );
+    assert!(port.reads().is_empty());
+}
+
+#[test]
+fn wrong_namespace_role_copy_status_and_schema_fail_when_mirrors_agree() {
+    let cases = [
+        (
+            "namespace",
+            "mirror",
+            WorkReceiveError::Namespace {
+                mirrors_agree: true,
+            },
+        ),
+        (
+            "source_role",
+            "owner",
+            WorkReceiveError::Role {
+                mirrors_agree: true,
+            },
+        ),
+        (
+            "target_role",
+            "released-dependency",
+            WorkReceiveError::Role {
+                mirrors_agree: true,
+            },
+        ),
+        (
+            "copy",
+            "gen-1",
+            WorkReceiveError::StaleCopy {
+                mirrors_agree: true,
+            },
+        ),
+        (
+            "target_status",
+            "existing",
+            WorkReceiveError::Status {
+                mirrors_agree: true,
+            },
+        ),
+        (
+            "schema",
+            "shape/other",
+            WorkReceiveError::Schema {
+                mirrors_agree: true,
+            },
+        ),
+    ];
+    for (field, value, expected) in cases {
+        let mut input = work(b"exact source");
+        assert!(input.mirrors_agree);
+        match field {
+            "namespace" => input.namespace = value.into(),
+            "source_role" => input.source_role = value.into(),
+            "target_role" => input.target_role = value.into(),
+            "copy" => input.copy = value.into(),
+            "target_status" => input.target_status = value.into(),
+            "schema" => input.schema = value.into(),
+            _ => unreachable!(),
+        }
+        let mut port = preload(&input);
+        assert_eq!(
+            receive_work(&input, &mut port, &PanicWorker, &PanicProposals).unwrap_err(),
+            expected
+        );
+        assert!(port.reads().is_empty());
+    }
+}
+
+#[test]
+fn initial_descent_refuses_before_capture() {
+    let mut input = work(b"exact source");
+    input.narrowed_to = 4;
+    let mut port = preload(&input);
+    assert_eq!(
+        receive_work(&input, &mut port, &PanicWorker, &PanicProposals).unwrap_err(),
+        WorkReceiveError::NoDescent {
+            evidence: Vec::new()
+        }
+    );
+    assert!(port.reads().is_empty());
+}
+
+#[test]
+fn escaping_path_refuses_before_capture() {
+    let mut input = work(b"exact source");
+    input.sources[0].path = "../secret".into();
+    let mut port = preload(&input);
+    assert!(matches!(
+        receive_work(&input, &mut port, &PanicWorker, &PanicProposals).unwrap_err(),
+        WorkReceiveError::Schema {
+            mirrors_agree: true
+        }
+    ));
+    assert!(port.reads().is_empty());
+}
+
+#[test]
+fn incomplete_output_retains_packet_evidence() {
+    let input = work(b"exact source");
+    let mut port = preload(&input);
+    let worker = Views {
+        views: vec![WorkerView::Blocked],
+        calls: Cell::new(0),
+    };
+    let receipt = receive_work(&input, &mut port, &worker, &PanicProposals).unwrap();
+    let WorkReceipt::Incomplete {
+        work,
+        partial,
+        attempts,
+    } = receipt
+    else {
+        panic!("expected incomplete");
+    };
+    assert_eq!(attempts, 1);
+    assert!(partial.is_empty());
+    assert_eq!(work.bytes, b"exact source".len() as u64);
+    assert_eq!(work.receiver, "work/api/projection");
+    assert!(!work.packet_id.is_empty());
+    assert!(!work.serialized.is_empty());
+    assert_eq!(port.reads().len(), 1);
+
+    let worker = Views {
+        views: vec![WorkerView::Passed],
+        calls: Cell::new(0),
+    };
+    let proposals = Returns {
+        items: RefCell::new(vec![ModelReturn {
+            seen: Vec::new(),
+            body: ModelBody::Incomplete(b"partial-map".to_vec()),
+            unresolved: 3,
+        }]),
+        calls: Cell::new(0),
+    };
+    let mut port = preload(&input);
+    let receipt = receive_work(&input, &mut port, &worker, &proposals).unwrap();
+    let WorkReceipt::Incomplete {
+        work: again,
+        partial,
+        attempts,
+    } = receipt
+    else {
+        panic!("expected incomplete");
+    };
+    assert_eq!(attempts, 1);
+    assert_eq!(partial, b"partial-map");
+    assert_eq!(again.packet_id, work.packet_id);
+    assert_eq!(again.serialized, work.serialized);
+}
+```
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_more_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/packet_work_more_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: one work packet is admitted from canonical input.
+
+use std::cell::{Cell, RefCell};
+
+use super::support::{PanicProposals, PanicWorker, Returns, Views, preload, work};
+use super::{ModelBody, ModelReturn, WorkReceipt, WorkReceiveError, receive_work};
+use crate::WorkerView;
+
+#[test]
+fn malformed_retries_stop_at_the_attempt_ceiling() {
+    let input = work(b"exact source");
+    let mut port = preload(&input);
+    let worker = Views {
+        views: vec![WorkerView::Passed, WorkerView::Passed, WorkerView::Passed],
+        calls: Cell::new(0),
+    };
+    let proposals = Returns {
+        items: RefCell::new(vec![
+            ModelReturn {
+                seen: Vec::new(),
+                body: ModelBody::Malformed(b"first".to_vec()),
+                unresolved: 2,
+            },
+            ModelReturn {
+                seen: Vec::new(),
+                body: ModelBody::Malformed(b"second".to_vec()),
+                unresolved: 1,
+            },
+            ModelReturn {
+                seen: Vec::new(),
+                body: ModelBody::Proposal(b"proposal/v1\nvalue later".to_vec()),
+                unresolved: 0,
+            },
+        ]),
+        calls: Cell::new(0),
+    };
+    let error = receive_work(&input, &mut port, &worker, &proposals).unwrap_err();
+    assert_eq!(
+        error,
+        WorkReceiveError::MalformedBound {
+            attempts: 2,
+            evidence: b"second".to_vec(),
+        }
+    );
+    assert_eq!(proposals.calls.get(), 2);
+    assert_eq!(worker.calls.get(), 2);
+}
+
+#[test]
+fn retry_without_descent_refuses() {
+    let input = work(b"exact source");
+    let mut port = preload(&input);
+    let worker = Views {
+        views: vec![WorkerView::Passed, WorkerView::Passed],
+        calls: Cell::new(0),
+    };
+    let proposals = Returns {
+        items: RefCell::new(vec![ModelReturn {
+            seen: Vec::new(),
+            body: ModelBody::Malformed(b"same".to_vec()),
+            unresolved: 3,
+        }]),
+        calls: Cell::new(0),
+    };
+    let error = receive_work(&input, &mut port, &worker, &proposals).unwrap_err();
+    assert_eq!(
+        error,
+        WorkReceiveError::NoDescent {
+            evidence: b"same".to_vec(),
+        }
+    );
+    assert_eq!(proposals.calls.get(), 1);
+    assert_eq!(worker.calls.get(), 1);
+}
+
+#[test]
+fn a_narrowing_retry_can_still_admit() {
+    let input = work(b"exact source");
+    let mut port = preload(&input);
+    let worker = Views {
+        views: vec![WorkerView::Passed, WorkerView::Passed],
+        calls: Cell::new(0),
+    };
+    let proposals = Returns {
+        items: RefCell::new(vec![
+            ModelReturn {
+                seen: Vec::new(),
+                body: ModelBody::Malformed(b"noise".to_vec()),
+                unresolved: 2,
+            },
+            ModelReturn {
+                seen: Vec::new(),
+                body: ModelBody::Proposal(b"proposal/v1\nvalue mapped".to_vec()),
+                unresolved: 1,
+            },
+        ]),
+        calls: Cell::new(0),
+    };
+    let receipt = receive_work(&input, &mut port, &worker, &proposals).unwrap();
+    let WorkReceipt::Admitted {
+        proposal, attempts, ..
+    } = receipt
+    else {
+        panic!("expected admission");
+    };
+    assert_eq!(proposal, "mapped");
+    assert_eq!(attempts, 2);
+    assert_eq!(proposals.calls.get(), 2);
+}
+
+#[test]
+fn effect_and_approval_proposals_refuse_without_retry() {
+    for body in [
+        "proposal/v1\neffect host",
+        "proposal/v1\napproval granted",
+        "proposal/v1\nvalue effect",
+    ] {
+        let input = work(b"exact source");
+        let mut port = preload(&input);
+        let worker = Views {
+            views: vec![WorkerView::Passed, WorkerView::Passed],
+            calls: Cell::new(0),
+        };
+        let proposals = Returns {
+            items: RefCell::new(vec![ModelReturn {
+                seen: Vec::new(),
+                body: ModelBody::Proposal(body.as_bytes().to_vec()),
+                unresolved: 1,
+            }]),
+            calls: Cell::new(0),
+        };
+        assert_eq!(
+            receive_work(&input, &mut port, &worker, &proposals).unwrap_err(),
+            WorkReceiveError::EffectsOrApproval
+        );
+        assert_eq!(proposals.calls.get(), 1);
+    }
+}
+
+#[test]
+fn altered_receiver_serialization_fails_when_mirrors_agree() {
+    let input = work(b"exact source");
+    let mut port = preload(&input);
+    let worker = Views {
+        views: vec![WorkerView::Passed],
+        calls: Cell::new(0),
+    };
+    let proposals = Returns {
+        items: RefCell::new(vec![ModelReturn {
+            seen: b"not-the-packet".to_vec(),
+            body: ModelBody::Proposal(b"proposal/v1\nvalue mapped".to_vec()),
+            unresolved: 2,
+        }]),
+        calls: Cell::new(0),
+    };
+    assert_eq!(
+        receive_work(&input, &mut port, &worker, &proposals).unwrap_err(),
+        WorkReceiveError::Schema {
+            mirrors_agree: true
+        }
+    );
+    assert_eq!(port.reads().len(), 1);
+    assert_eq!(proposals.calls.get(), 1);
+}
+
+#[test]
+fn resource_named_as_approval_refuses_before_capture() {
+    for kind in ["approval", "effect"] {
+        let mut input = work(b"exact source");
+        input.resources[0].kind = kind.into();
+        let mut port = preload(&input);
+        assert_eq!(
+            receive_work(&input, &mut port, &PanicWorker, &PanicProposals).unwrap_err(),
+            WorkReceiveError::EffectsOrApproval
+        );
+        assert!(port.reads().is_empty());
+    }
+}
+
+#[test]
+fn invalid_resource_name_is_schema_before_capture() {
+    for kind in ["", "../slot"] {
+        let mut input = work(b"exact source");
+        assert!(input.mirrors_agree);
+        input.resources[0].kind = kind.into();
+        let mut port = preload(&input);
+        assert_eq!(
+            receive_work(&input, &mut port, &PanicWorker, &PanicProposals).unwrap_err(),
+            WorkReceiveError::Schema {
+                mirrors_agree: true
+            }
+        );
+        assert!(port.reads().is_empty());
+    }
+}
+```
+
+### `feature/sim-agent-net/authoring-compiler`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/author_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/author_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: a selected source compiles into revision, work, proof, and mutation values.
+
+use super::fixture::{Draft, assemble, bare, deck, happy, spec, spec_checkpoint, without};
+use super::{
+    AuthorError, Family, Stance, compile_authoring, lint_family, parse_member, source_round_trip,
+};
+
+#[test]
+fn source_round_trips_exactly() {
+    let bytes = Draft::new("chosen", "2", "selected", "family/chosen.txt").bytes();
+    let member = parse_member(&bytes).unwrap();
+    assert_eq!(source_round_trip(&member), bytes.as_slice());
+    assert_eq!(
+        parse_member(source_round_trip(&member)).unwrap().source,
+        bytes
+    );
+}
+
+#[test]
+fn missing_sections_refuse() {
+    for section in ["argument", "work", "gate", "ratchet", "owner", "checker"] {
+        let error = parse_member(&without(section)).unwrap_err();
+        assert_eq!(error, AuthorError::Missing { section });
+    }
+}
+
+#[test]
+fn consulted_sibling_does_not_satisfy() {
+    let consulted = Draft::new("earlier", "1", "consulted", "family/consulted.txt")
+        .decision("note the earlier source")
+        .bytes();
+    let chosen = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+        .fact(None)
+        .consult(Some("1"))
+        .bytes();
+    let family = assemble(&[consulted.clone(), chosen.clone()]);
+    let deck = deck(&[
+        ("family/consulted.txt", &consulted),
+        ("family/chosen.txt", &chosen),
+    ]);
+    let error = lint_family(&family, &deck, &spec()).unwrap_err();
+    assert_eq!(
+        error,
+        AuthorError::Unsatisfied {
+            requirement: "semantic-tests".into(),
+        }
+    );
+}
+
+#[test]
+fn superseded_sibling_does_not_satisfy() {
+    let old = Draft::new("old", "1", "superseded", "family/old.txt")
+        .decision("note the replaced source")
+        .bytes();
+    let chosen = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+        .fact(None)
+        .bytes();
+    let family = assemble(&[old.clone(), chosen.clone()]);
+    let deck = deck(&[("family/old.txt", &old), ("family/chosen.txt", &chosen)]);
+    let error = lint_family(&family, &deck, &spec()).unwrap_err();
+    assert_eq!(
+        error,
+        AuthorError::Unsatisfied {
+            requirement: "semantic-tests".into(),
+        }
+    );
+}
+
+#[test]
+fn deck_bytes_mismatch_refuses() {
+    let (family, _, consulted, chosen) = happy();
+    let mut flipped = chosen.clone();
+    let last = flipped.len() - 1;
+    flipped[last] ^= 0x01;
+    let deck = deck(&[
+        ("family/consulted.txt", &consulted),
+        ("family/chosen.txt", &flipped),
+    ]);
+    let error = lint_family(&family, &deck, &spec()).unwrap_err();
+    assert_eq!(
+        error,
+        AuthorError::DeckMismatch {
+            path: "family/chosen.txt".into(),
+        }
+    );
+}
+
+#[test]
+fn roadmap_id_mismatch_refuses() {
+    let consulted = Draft::new("earlier", "1", "consulted", "family/consulted.txt")
+        .decision("note the earlier source")
+        .bytes();
+    let chosen = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+        .roadmap("other-roadmap")
+        .consult(Some("1"))
+        .bytes();
+    let family = assemble(&[consulted.clone(), chosen.clone()]);
+    let deck = deck(&[
+        ("family/consulted.txt", &consulted),
+        ("family/chosen.txt", &chosen),
+    ]);
+    let error = lint_family(&family, &deck, &spec()).unwrap_err();
+    assert_eq!(
+        error,
+        AuthorError::RoadmapMismatch {
+            found: "other-roadmap".into(),
+            spec: "value-roadmap".into(),
+        }
+    );
+}
+
+#[test]
+fn fact_outside_claim_grammar_refuses() {
+    for fact in ["needs review", "*", "a+b"] {
+        let bytes = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+            .fact(Some(fact))
+            .bytes();
+        assert_eq!(
+            parse_member(&bytes).unwrap_err(),
+            AuthorError::Identity { kind: "fact" },
+            "{fact}"
+        );
+    }
+}
+
+#[test]
+fn sibling_consult_must_name_consultation() {
+    let missing = Draft::new("earlier", "1", "consulted", "family/consulted.txt")
+        .decision("note the earlier source")
+        .consult(Some("9"))
+        .bytes();
+    let chosen = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+        .consult(Some("1"))
+        .bytes();
+    let family = assemble(&[missing.clone(), chosen.clone()]);
+    let missing_deck = deck(&[
+        ("family/consulted.txt", &missing),
+        ("family/chosen.txt", &chosen),
+    ]);
+    assert_eq!(
+        lint_family(&family, &missing_deck, &spec()).unwrap_err(),
+        AuthorError::Consult { round: "9".into() }
+    );
+
+    let selected_round = Draft::new("earlier", "1", "consulted", "family/consulted.txt")
+        .decision("note the earlier source")
+        .consult(Some("2"))
+        .bytes();
+    let later = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+        .consult(Some("1"))
+        .bytes();
+    let family = assemble(&[selected_round.clone(), later.clone()]);
+    let selected_deck = deck(&[
+        ("family/consulted.txt", &selected_round),
+        ("family/chosen.txt", &later),
+    ]);
+    assert_eq!(
+        lint_family(&family, &selected_deck, &spec()).unwrap_err(),
+        AuthorError::Consult { round: "2".into() }
+    );
+}
+
+#[test]
+fn reserved_and_long_paths_refuse() {
+    let long = "a".repeat(4097);
+    let tabbed = "family/a\tb";
+    for path in [
+        "source-seal",
+        "source-seal/member.txt",
+        long.as_str(),
+        tabbed,
+    ] {
+        let bytes = Draft::new("chosen", "2", "selected", path).bytes();
+        assert_eq!(
+            parse_member(&bytes).unwrap_err(),
+            AuthorError::Path,
+            "{path}"
+        );
+    }
+}
+
+#[test]
+fn owner_and_roadmap_surfaces_refuse() {
+    let dotted_owner = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+        .owner("foo..bar")
+        .bytes();
+    assert_eq!(
+        parse_member(&dotted_owner).unwrap_err(),
+        AuthorError::Identity { kind: "owner" }
+    );
+    let dotted_roadmap = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+        .roadmap("foo..bar")
+        .bytes();
+    assert_eq!(
+        parse_member(&dotted_roadmap).unwrap_err(),
+        AuthorError::Identity { kind: "roadmap" }
+    );
+    let same = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+        .owner("value-roadmap")
+        .bytes();
+    assert_eq!(
+        parse_member(&same).unwrap_err(),
+        AuthorError::Identity { kind: "owner" }
+    );
+
+    let consulted = bare("family/consulted.txt", Stance::Consulted, "1");
+    let mut selected = bare("family/chosen.txt", Stance::Selected, "2");
+    selected.owner = "foo..bar".to_owned();
+    let family = Family::from_members(vec![consulted.clone(), selected.clone()]).unwrap();
+    let deck = deck(&[
+        ("family/consulted.txt", consulted.source.as_slice()),
+        ("family/chosen.txt", selected.source.as_slice()),
+    ]);
+    let spec = spec();
+    assert_eq!(
+        lint_family(&family, &deck, &spec).unwrap_err(),
+        AuthorError::Identity { kind: "owner" }
+    );
+    assert_eq!(
+        compile_authoring(&family, &deck, &spec).unwrap_err(),
+        AuthorError::Identity { kind: "owner" }
+    );
+}
+
+#[test]
+fn reserved_path_refuses_before_revision() {
+    let consulted = bare("family/consulted.txt", Stance::Consulted, "1");
+    let selected = bare("source-seal/member.txt", Stance::Selected, "2");
+    let family = Family::from_members(vec![consulted.clone(), selected.clone()]).unwrap();
+    let sealed_deck = deck(&[
+        ("family/consulted.txt", consulted.source.as_slice()),
+        ("source-seal/member.txt", selected.source.as_slice()),
+    ]);
+    let spec = spec();
+    assert_eq!(
+        lint_family(&family, &sealed_deck, &spec).unwrap_err(),
+        AuthorError::Path
+    );
+    assert_eq!(
+        compile_authoring(&family, &sealed_deck, &spec).unwrap_err(),
+        AuthorError::Path
+    );
+
+    let consulted = bare("family/consulted.txt", Stance::Consulted, "1");
+    let selected = bare("family/a\tb", Stance::Selected, "2");
+    let family = Family::from_members(vec![consulted.clone(), selected.clone()]).unwrap();
+    let tabbed_deck = deck(&[
+        ("family/consulted.txt", consulted.source.as_slice()),
+        ("family/a\tb", selected.source.as_slice()),
+    ]);
+    assert_eq!(
+        lint_family(&family, &tabbed_deck, &spec).unwrap_err(),
+        AuthorError::Path
+    );
+    assert_eq!(
+        compile_authoring(&family, &tabbed_deck, &spec).unwrap_err(),
+        AuthorError::Path
+    );
+}
+
+#[test]
+fn inadmissible_fact_refuses_before_revision() {
+    let consulted = bare("family/consulted.txt", Stance::Consulted, "1");
+    let mut selected = bare("family/chosen.txt", Stance::Selected, "2");
+    selected.facts.push("needs review".to_owned());
+    let family = Family::from_members(vec![consulted.clone(), selected.clone()]).unwrap();
+    let deck = deck(&[
+        ("family/consulted.txt", consulted.source.as_slice()),
+        ("family/chosen.txt", selected.source.as_slice()),
+    ]);
+    let spec = spec();
+    assert_eq!(
+        lint_family(&family, &deck, &spec).unwrap_err(),
+        AuthorError::Identity { kind: "fact" }
+    );
+    assert_eq!(
+        compile_authoring(&family, &deck, &spec).unwrap_err(),
+        AuthorError::Identity { kind: "fact" }
+    );
+
+    let (family, deck, _, _) = happy();
+    let error = lint_family(&family, &deck, &spec_checkpoint("needs review")).unwrap_err();
+    assert_eq!(error, AuthorError::Identity { kind: "fact" });
+}
+```
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/author_more_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/author_more_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: a selected source compiles into revision, work, proof, and mutation values.
+
+use std::{collections::BTreeSet, sync::Arc};
+
+use sim_kernel::{Cx, DefaultFactory, HandleSeed, NoopEvalPolicy, Shape};
+
+use super::fixture::{Draft, assemble, deck, happy, spec};
+use super::{
+    AuthorError, Stance, StatementKind, compile_authoring, diff_members, lint_family, list_family,
+    show_member, statement_shape,
+};
+use crate::{PortableImage, ProofLeaf, SOURCE_SEAL, seal_id};
+
+#[test]
+fn statement_shapes_are_distinct() {
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(0x24),
+    );
+    let advice = statement_shape(StatementKind::Advice);
+    let fact = statement_shape(StatementKind::Fact);
+    let decision = statement_shape(StatementKind::Decision);
+    assert_eq!(
+        Shape::is_subshape_of(&advice, &mut cx, &fact).unwrap(),
+        Some(false)
+    );
+    assert_eq!(
+        Shape::is_subshape_of(&fact, &mut cx, &decision).unwrap(),
+        Some(false)
+    );
+    assert_eq!(
+        Shape::is_subshape_of(&decision, &mut cx, &advice).unwrap(),
+        Some(false)
+    );
+    assert_eq!(
+        Shape::is_subshape_of(&advice, &mut cx, &advice).unwrap(),
+        Some(true)
+    );
+    assert_ne!(advice.expected(), fact.expected());
+    assert_ne!(fact.expected(), decision.expected());
+}
+
+#[test]
+fn authority_decisions_refuse() {
+    for decision in [
+        "begin-authority",
+        "begin authority",
+        "begin_authority",
+        "hold-release",
+        "hold release",
+        "hold_release",
+    ] {
+        let consulted = Draft::new("earlier", "1", "consulted", "family/consulted.txt")
+            .decision("note the earlier source")
+            .bytes();
+        let chosen = Draft::new("chosen", "2", "selected", "family/chosen.txt")
+            .decision(decision)
+            .consult(Some("1"))
+            .bytes();
+        let family = assemble(&[consulted.clone(), chosen.clone()]);
+        let deck = deck(&[
+            ("family/consulted.txt", &consulted),
+            ("family/chosen.txt", &chosen),
+        ]);
+        assert_eq!(
+            lint_family(&family, &deck, &spec()).unwrap_err(),
+            AuthorError::Authority,
+            "{decision}"
+        );
+    }
+}
+
+#[test]
+fn two_selected_members_refuse() {
+    let first = Draft::new("one", "1", "selected", "family/one.txt").bytes();
+    let second = Draft::new("two", "2", "selected", "family/two.txt").bytes();
+    let family = assemble(&[first.clone(), second.clone()]);
+    let deck = deck(&[("family/one.txt", &first), ("family/two.txt", &second)]);
+    assert_eq!(
+        lint_family(&family, &deck, &spec()).unwrap_err(),
+        AuthorError::SelectionCount { count: 2 }
+    );
+}
+
+#[test]
+fn zero_selected_members_refuse() {
+    let consulted = Draft::new("earlier", "1", "consulted", "family/consulted.txt")
+        .decision("note the earlier source")
+        .bytes();
+    let family = assemble(std::slice::from_ref(&consulted));
+    let deck = deck(&[("family/consulted.txt", &consulted)]);
+    assert_eq!(
+        lint_family(&family, &deck, &spec()).unwrap_err(),
+        AuthorError::SelectionCount { count: 0 }
+    );
+}
+
+#[test]
+fn clean_compile_seals_without_authority() {
+    let (family, deck, consulted, chosen) = happy();
+    let spec = spec();
+    let compiled = compile_authoring(&family, &deck, &spec).unwrap();
+    assert_eq!(compiled.source, chosen);
+    assert_eq!(compiled.selection.name, "chosen");
+    assert_eq!(compiled.selection.round, "2");
+    assert_eq!(compiled.selection.source, chosen);
+    let source_bytes = compiled.selection.source.as_slice();
+    assert!(
+        !source_bytes
+            .windows(b"begin-authority".len())
+            .any(|window| window == b"begin-authority")
+    );
+    assert!(
+        !source_bytes
+            .windows(b"hold-release".len())
+            .any(|window| window == b"hold-release")
+    );
+    assert_eq!(compiled.consultation, vec![seal_id(&consulted).unwrap()]);
+    assert_eq!(
+        compiled
+            .revision
+            .images()
+            .get("family/chosen.txt")
+            .map(Vec::as_slice),
+        Some(chosen.as_slice())
+    );
+    assert_eq!(
+        compiled
+            .revision
+            .images()
+            .get(SOURCE_SEAL)
+            .map(Vec::as_slice),
+        Some(chosen.as_slice())
+    );
+    assert!(
+        !compiled
+            .revision
+            .images()
+            .contains_key("family/consulted.txt")
+    );
+    assert!(!compiled.revision.is_uncertain());
+    let claim = &compiled.revision.claims()["semantic-tests"];
+    assert!(claim.closed);
+    assert_eq!(
+        claim.inputs,
+        BTreeSet::from(["family/chosen.txt".to_owned()])
+    );
+    assert_eq!(compiled.work.namespace, "work");
+    assert_eq!(compiled.work.phase, "authoring");
+    assert_eq!(compiled.work.law, "the work");
+    assert_eq!(compiled.work.owner_package, "sim-agent-net");
+    assert_eq!(compiled.work.sources[0].body, chosen);
+    assert!(!compiled.work.mirrors_agree);
+    match &compiled.proof {
+        ProofLeaf::SourceDeckPredicate {
+            name,
+            actual_deck,
+            expected_deck,
+            required_claims,
+            present_claims,
+        } => {
+            assert_eq!(name, "source-deck");
+            assert_eq!(actual_deck, expected_deck);
+            assert!(!actual_deck.is_empty());
+            assert!(required_claims.contains("semantic-tests"));
+            assert!(present_claims.contains("semantic-tests"));
+        }
+        other => panic!("unexpected proof {other:?}"),
+    }
+    assert_eq!(compiled.mutation.entries.len(), 1);
+    assert_eq!(compiled.mutation.entries[0].path, "family/chosen.txt");
+    assert_eq!(
+        compiled.mutation.entries[0].preimage,
+        PortableImage::absent()
+    );
+    assert_eq!(
+        compiled.mutation.entries[0].postimage,
+        PortableImage::file(chosen.clone(), 0o644)
+    );
+    let rows = list_family(&family, &deck, &spec).unwrap();
+    assert_eq!(rows.len(), 2);
+    assert!(rows.iter().all(|row| row.in_deck && row.roadmap_matches));
+    let shown = show_member(&family, "chosen", &deck, &spec).unwrap();
+    assert_eq!(shown.member.source, chosen);
+    assert_eq!(shown.member.stance, Stance::Selected);
+    let diff = diff_members(&family, "earlier", "chosen", &deck, &spec).unwrap();
+    assert!(diff.bytes_differ);
+    assert!(diff.changed.contains(&"stance"));
+    assert!(diff.left_in_deck && diff.right_in_deck);
+    let same = diff_members(&family, "chosen", "chosen", &deck, &spec).unwrap();
+    assert!(!same.bytes_differ);
+    assert!(same.changed.is_empty());
+}
+```
+
+### `feature/sim-agent-net/quiescent-driver`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/drive_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-roadmap-runner/src/drive_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+// conformance: one advance performs one effect or one pure transition.
+
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use sim_kernel::{ContentId, Datum, Symbol};
+use sim_lib_journal::MemoryBackend;
+use sim_roadmap_core::PhaseId;
+use sim_roadmap_exec_core::{
+    AttemptId, ExecutionEvent, ExecutionId, ExecutionPolicy, ExecutionPolicyId, MutationId,
+    MutationPlan, Observation, PhaseRunState,
+};
+use sim_work_core::ResourceNeed;
+
+use crate::{
+    AuthorityGrant, CapabilityGrant, ControlIntent, DirectionKind, DirectionQuestion,
+    DirectionReply, DriveResult, EffectPort, ExecutionIdentity, InputBatch, Lease, Limits,
+    OpenRequest, ReadinessPort, RoadmapRunnerService, ServiceError, SnapshotRead, WakeCause,
+    WakeEvent,
+};
+
+pub(crate) fn cid(n: u8) -> ContentId {
+    ContentId::from_bytes(Symbol::qualified("core", "sha256-datum-v1"), [n; 32])
+}
+
+pub(crate) fn request() -> OpenRequest {
+    let policy = ExecutionPolicy {
+        id: ExecutionPolicyId::new("policy").unwrap(),
+        source_deck: cid(2),
+        required_promises: vec![],
+        required_proofs: vec![],
+    };
+    OpenRequest {
+        authority: AuthorityGrant {
+            identity: ExecutionIdentity {
+                execution: ExecutionId::new("execution").unwrap(),
+                policy: policy.id.clone(),
+                roadmap: cid(1),
+                source_deck: policy.source_deck.clone(),
+                conduct: cid(3),
+                model: cid(4),
+                launcher: cid(5),
+                runner: cid(6),
+            },
+            ceiling: crate::EffectiveCeiling::intersect([crate::OwnedLimit {
+                owner: Symbol::new("caller"),
+                unit: Symbol::new("turns"),
+                amount: 4,
+            }]),
+            grant: cid(7),
+        },
+        phase: PhaseId::new("leaf").unwrap(),
+        attempt: AttemptId::new("attempt").unwrap(),
+        policy,
+        mutation: MutationPlan::new(MutationId::new("mutation").unwrap(), vec![], vec![]).unwrap(),
+        resources: vec![],
+        direction: None,
+        handoff: None,
+    }
+}
+
+pub(crate) struct Ready(pub(crate) PhaseId);
+impl ReadinessPort for Ready {
+    fn admitted_leaf(&self, _: &ContentId) -> Result<Option<PhaseId>, ServiceError> {
+        Ok(Some(self.0.clone()))
+    }
+}
+
+pub(crate) struct CountEffects(pub(crate) Arc<AtomicUsize>);
+impl EffectPort for CountEffects {
+    fn invoke(
+        &self,
+        identity: &ExecutionIdentity,
+        phase: &PhaseId,
+        _: &sim_roadmap_exec_core::Transition,
+    ) -> Result<ExecutionEvent, ServiceError> {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        Ok(ExecutionEvent {
+            execution: identity.execution.clone(),
+            phase: phase.clone(),
+            attempt: AttemptId::new("attempt").unwrap(),
+            observation: Observation::new(Symbol::new("start"), cid(20)),
+        })
+    }
+    fn receipts(&self, _: &ExecutionIdentity) -> Result<Vec<ExecutionEvent>, ServiceError> {
+        Ok(vec![])
+    }
+}
+
+pub(crate) struct FailEffects(Arc<AtomicUsize>);
+impl EffectPort for FailEffects {
+    fn invoke(
+        &self,
+        _: &ExecutionIdentity,
+        _: &PhaseId,
+        _: &sim_roadmap_exec_core::Transition,
+    ) -> Result<ExecutionEvent, ServiceError> {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        Err(ServiceError::Adapter("unavailable".into()))
+    }
+    fn receipts(&self, _: &ExecutionIdentity) -> Result<Vec<ExecutionEvent>, ServiceError> {
+        Ok(vec![])
+    }
+}
+
+pub(crate) struct Never;
+impl crate::CancellationPort for Never {
+    fn cancellation_requested(&self, _: &ExecutionId) -> bool {
+        false
+    }
+}
+
+pub(crate) fn open_count(
+    request: OpenRequest,
+    calls: Arc<AtomicUsize>,
+) -> RoadmapRunnerService<MemoryBackend, Ready, CountEffects, Never> {
+    let phase = request.phase.clone();
+    RoadmapRunnerService::open(
+        Arc::new(MemoryBackend::new()),
+        Ready(phase),
+        CountEffects(calls),
+        Never,
+        request,
+        Limits::default(),
+    )
+    .unwrap()
+}
+
+pub(crate) fn open_fail(
+    request: OpenRequest,
+    calls: Arc<AtomicUsize>,
+) -> RoadmapRunnerService<MemoryBackend, Ready, FailEffects, Never> {
+    open_fail_on(Arc::new(MemoryBackend::new()), request, calls)
+}
+
+pub(crate) fn open_fail_on(
+    backend: Arc<MemoryBackend>,
+    request: OpenRequest,
+    calls: Arc<AtomicUsize>,
+) -> RoadmapRunnerService<MemoryBackend, Ready, FailEffects, Never> {
+    let phase = request.phase.clone();
+    RoadmapRunnerService::open(
+        backend,
+        Ready(phase),
+        FailEffects(calls),
+        Never,
+        request,
+        Limits::default(),
+    )
+    .unwrap()
+}
+
+pub(crate) struct RejectEffects(Arc<AtomicUsize>);
+impl EffectPort for RejectEffects {
+    fn invoke(
+        &self,
+        identity: &ExecutionIdentity,
+        phase: &PhaseId,
+        _: &sim_roadmap_exec_core::Transition,
+    ) -> Result<ExecutionEvent, ServiceError> {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        Ok(ExecutionEvent {
+            execution: identity.execution.clone(),
+            phase: phase.clone(),
+            attempt: AttemptId::new("attempt").unwrap(),
+            observation: Observation::new(Symbol::new("nope"), cid(21)),
+        })
+    }
+    fn receipts(&self, _: &ExecutionIdentity) -> Result<Vec<ExecutionEvent>, ServiceError> {
+        Ok(vec![])
+    }
+}
+
+pub(crate) fn open_reject(
+    backend: Arc<MemoryBackend>,
+    request: OpenRequest,
+    calls: Arc<AtomicUsize>,
+) -> RoadmapRunnerService<MemoryBackend, Ready, RejectEffects, Never> {
+    let phase = request.phase.clone();
+    RoadmapRunnerService::open(
+        backend,
+        Ready(phase),
+        RejectEffects(calls),
+        Never,
+        request,
+        Limits::default(),
+    )
+    .unwrap()
+}
+
+pub(crate) fn question(authority: Option<Symbol>) -> DirectionQuestion {
+    DirectionQuestion {
+        id: cid(30),
+        question: "continue".into(),
+        answer_kind: DirectionKind::Decision,
+        required_authority: authority,
+    }
+}
+
+pub(crate) fn reply(
+    request: &crate::DirectionRequest,
+    kind: DirectionKind,
+    answer: &str,
+) -> DirectionReply {
+    DirectionReply {
+        request: request.id.clone(),
+        execution: request.execution.clone(),
+        expected_revision: request.expected_revision.clone(),
+        answer_kind: kind,
+        answer: answer.into(),
+        decision: cid(40),
+    }
+}
+
+pub(crate) fn grant(name: &str) -> CapabilityGrant {
+    CapabilityGrant {
+        capabilities: vec![Symbol::new(name)],
+    }
+}
+
+#[test]
+fn no_change_wake_starts_nothing() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut service = open_count(request(), Arc::clone(&calls));
+    let before = service.inspect().unwrap().journal.records.len();
+    let driven = service
+        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
+        .unwrap();
+    assert!(matches!(driven, DriveResult::Quiescent { .. }));
+    assert_eq!(service.inspect().unwrap().journal.records.len(), before);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        service.inspect().unwrap().transition.state,
+        PhaseRunState::Planned
+    );
+}
+
+#[test]
+fn resource_wait_resumes_once_on_a_material_offer() {
+    let mut open_request = request();
+    open_request.resources.push(ResourceNeed {
+        kind: Symbol::new("slot"),
+        requirement: Datum::Nil,
+    });
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut service = open_count(open_request, Arc::clone(&calls));
+    let blocked = service
+        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
+        .unwrap();
+    assert!(matches!(blocked, DriveResult::Blocked { .. }));
+    assert!(service.leases().is_empty());
+    let quiet = service
+        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
+        .unwrap();
+    assert!(matches!(
+        quiet,
+        DriveResult::Quiescent { wake_on } if wake_on.contains(&WakeCause::ResourceOffer)
+    ));
+    let mut zero = InputBatch::no_change();
+    zero.wakes.push(WakeEvent::ResourceOffer {
+        kind: "slot".into(),
+        amount: 0,
+    });
+    service
+        .advance_one_effect(&zero, &CapabilityGrant::default())
+        .unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let mut offer = InputBatch::no_change();
+    offer.wakes.push(WakeEvent::ResourceOffer {
+        kind: "slot".into(),
+        amount: 2,
+    });
+    let resumed = service
+        .advance_one_effect(&offer, &CapabilityGrant::default())
+        .unwrap();
+    assert!(matches!(resumed, DriveResult::Advanced { .. }));
+    service
+        .advance_one_effect(&offer, &CapabilityGrant::default())
+        .unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert!(service.leases().is_empty());
+    let _: &[Lease] = service.leases();
+}
+
+#[test]
+fn direction_refuses_stale_wrong_replayed_and_advisory_answers() {
+    let mut open_request = request();
+    open_request.direction = Some(question(Some(Symbol::new("decide"))));
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut service = open_count(open_request, Arc::clone(&calls));
+    let published = service
+        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
+        .unwrap();
+    let DriveResult::NeedDirection { request } = published else {
+        panic!("direction was not published");
+    };
+    let published_len = service.inspect().unwrap().journal.records.len();
+    service
+        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
+        .unwrap();
+    assert_eq!(
+        service.inspect().unwrap().journal.records.len(),
+        published_len
+    );
+    let mut wrong = reply(&request, DirectionKind::Decision, "yes");
+    wrong.execution = ExecutionId::new("other").unwrap();
+    let mut batch = InputBatch::no_change();
+    batch.reply = Some(wrong);
+    assert!(matches!(
+        service.advance_one_effect(&batch, &grant("decide")),
+        Err(ServiceError::WrongDirection)
+    ));
+    batch.reply = Some(reply(&request, DirectionKind::Advice, "maybe"));
+    assert!(matches!(
+        service.advance_one_effect(&batch, &grant("decide")),
+        Err(ServiceError::AdvisoryDirection)
+    ));
+    let mut stale = reply(&request, DirectionKind::Decision, "yes");
+    stale.expected_revision = cid(99);
+    batch.reply = Some(stale);
+    assert!(matches!(
+        service.advance_one_effect(&batch, &grant("decide")),
+        Err(ServiceError::StaleDirection)
+    ));
+    assert_eq!(
+        service.inspect().unwrap().journal.records.len(),
+        published_len
+    );
+    batch.reply = Some(reply(&request, DirectionKind::Decision, "yes"));
+    assert!(matches!(
+        service.advance_one_effect(&batch, &CapabilityGrant::default()),
+        Err(ServiceError::DirectionAuthority)
+    ));
+    let accepted = service
+        .advance_one_effect(&batch, &grant("decide"))
+        .unwrap();
+    assert!(matches!(accepted, DriveResult::Advanced { .. }));
+    assert_eq!(
+        service.inspect().unwrap().transition.state,
+        PhaseRunState::Planned
+    );
+    let after = service.inspect().unwrap().journal.records.len();
+    let replayed = service
+        .advance_one_effect(&batch, &grant("decide"))
+        .unwrap();
+    assert!(matches!(replayed, DriveResult::Quiescent { .. }));
+    assert_eq!(service.inspect().unwrap().journal.records.len(), after);
+    batch.reply = Some(reply(&request, DirectionKind::Decision, "no"));
+    assert!(matches!(
+        service.advance_one_effect(&batch, &grant("decide")),
+        Err(ServiceError::ReplayedDirection)
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let ran = service
+        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
+        .unwrap();
+    assert!(matches!(ran, DriveResult::Advanced { .. }));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        service.inspect().unwrap().transition.state,
+        PhaseRunState::Running
+    );
+}
+
+#[test]
+fn informational_direction_does_not_change_state() {
+    let mut open_request = request();
+    open_request.direction = Some(question(None));
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut service = open_count(open_request, Arc::clone(&calls));
+    let DriveResult::NeedDirection { request } = service
+        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
+        .unwrap()
+    else {
+        panic!("direction was not published");
+    };
+    let len = service.inspect().unwrap().journal.records.len();
+    let mut batch = InputBatch::conduct();
+    batch.reply = Some(reply(&request, DirectionKind::Decision, "note"));
+    let again = service
+        .advance_one_effect(&batch, &CapabilityGrant::default())
+        .unwrap();
+    assert!(matches!(again, DriveResult::Quiescent { .. }));
+    assert_eq!(service.inspect().unwrap().journal.records.len(), len);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        service.inspect().unwrap().transition.state,
+        PhaseRunState::Planned
+    );
+    let ran = service
+        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
+        .unwrap();
+    assert!(matches!(ran, DriveResult::Advanced { .. }));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        service.inspect().unwrap().transition.state,
+        PhaseRunState::Running
+    );
+}
+
+#[test]
+fn snapshot_pages_stay_on_the_retained_revision() {
+    let mut open_request = request();
+    open_request.direction = Some(question(Some(Symbol::new("decide"))));
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut service = open_count(open_request, Arc::clone(&calls));
+    let DriveResult::NeedDirection { request } = service
+        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
+        .unwrap()
+    else {
+        panic!("direction was not published");
+    };
+    let mut batch = InputBatch::no_change();
+    batch.reply = Some(reply(&request, DirectionKind::Decision, "yes"));
+    service
+        .advance_one_effect(&batch, &grant("decide"))
+        .unwrap();
+    let first = service.snapshots().last().unwrap().clone();
+    assert!(first.rows.len() > 1);
+    assert!(
+        first
+            .rows
+            .iter()
+            .any(|row| row.key == "direction-request" && row.value == cid(30))
+    );
+    assert!(
+        first
+            .rows
+            .iter()
+            .any(|row| row.key == "direction-decision" && row.value == cid(40))
+    );
+    let journal_state = service
+        .inspect()
+        .unwrap()
+        .journal
+        .snapshots
+        .last()
+        .unwrap()
+        .state
+        .clone();
+    assert_eq!(first.id, journal_state);
+    let page = service.read_snapshot(&first.id, 0, 1, None);
+    let SnapshotRead::Page {
+        revision,
+        rows,
+        continuation: Some(next),
+        ..
+    } = page
+    else {
+        panic!("first page did not continue");
+    };
+    assert_eq!(rows.len(), 1);
+    assert_eq!(revision, first.revision);
+    let mut pause = InputBatch::no_change();
+    pause.wakes.push(WakeEvent::Control(ControlIntent::Pause));
+    service
+        .advance_one_effect(&pause, &CapabilityGrant::default())
+        .unwrap();
+    assert_ne!(service.revision(), &first.revision);
+    let retained = service.read_snapshot(&first.id, next, 1, None);
+    let SnapshotRead::Page {
+        revision: page_revision,
+        rows: page_rows,
+        ..
+    } = retained
+    else {
+        panic!("continuation left the retained snapshot");
+    };
+    assert_eq!(page_revision, first.revision);
+    assert_eq!(page_rows, vec![first.rows[next as usize].clone()]);
+    assert!(page_rows.iter().all(|row| row.key != "session-mode"));
+    let stale = service.read_snapshot(&first.id, next, 1, Some(service.revision()));
+    assert!(matches!(stale, SnapshotRead::Stale { .. }));
+    assert!(matches!(
+        service.read_snapshot(&cid(77), 0, 1, None),
+        SnapshotRead::Missing
+    ));
+    let len = service.inspect().unwrap().journal.records.len();
+    let _ = service.read_snapshot(&first.id, 0, 1, None);
+    assert_eq!(service.inspect().unwrap().journal.records.len(), len);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+}
 ```
 
 ### `feature/sim-agent-net/immutable-web-capture`

@@ -193,6 +193,17 @@ distinct shapes. Selection carries neither begin authority nor hold
 release. The call does not receive the work value and does not apply the
 mutation plan.
 
+`advance_one_effect` takes one input batch and one capability grant.
+The call records one admitted effect or one pure transition. A wake
+that changes nothing appends no record and starts no effect. A resource
+wait holds no lease and resumes once when a new positive offer arrives.
+A stale, wrong, replayed, or advisory direction is refused. An
+informational reply records no cause and does not change state.
+`read_snapshot` pages the journal's verified snapshot and does not
+splice a later revision. `lineage` reports a gap when a referenced
+value is absent. `inspect` reads the last result and does
+not conduct.
+
 ## Shadow qualification
 
 `ShadowObservation` is the public interchange boundary for compatibility

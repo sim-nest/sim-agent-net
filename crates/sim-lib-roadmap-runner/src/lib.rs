@@ -89,6 +89,16 @@ pub use transact::{
 };
 
 #[cfg(test)]
+mod drive_fault_tests;
+#[cfg(test)]
+mod drive_more_tests;
+#[cfg(test)]
+mod drive_restore_tests;
+#[cfg(test)]
+mod drive_tests;
+#[cfg(test)]
+mod drive_wake_tests;
+#[cfg(test)]
 mod journal_contract_tests;
 #[cfg(test)]
 mod tests;

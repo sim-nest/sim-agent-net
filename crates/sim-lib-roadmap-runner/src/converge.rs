@@ -466,5 +466,3 @@ mod converge_tests;
 #[cfg(test)]
 #[path = "converge_gate_tests.rs"]
 mod converge_gate_tests;
-
-// conformance: disposable postimage convergence.

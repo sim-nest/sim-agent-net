@@ -3,6 +3,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+// conformance: each model repository commits or refuses on its own.
+
 use sim_artifact_facet::{
     ArtifactFacet, ArtifactId, FacetError, MergePolicy, ProjectionId, RegionOwnership,
     RegionSelector,

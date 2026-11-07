@@ -108,7 +108,7 @@ title = "Bounded roadmap runner service"
 summary = "Advance one compiled-plan-admitted roadmap leaf through content-pinned adapters, provenance-preserving authority ceilings, intent-first journaling, and the pure execution reducer."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
-guidance = "Open RoadmapRunnerService with a complete ExecutionIdentity and the pointwise EffectiveCeiling derived from caller, roadmap, conduct, model-site, sandbox, and operator layers. Call advance_one_effect explicitly; ReadinessPort remains the only scheduler and EffectPort returns observations rather than state. Resume only with identical content pins, a fresh caller grant, and an equal-or-narrower ceiling. Use replay and inspect for observation, never an unbounded host loop."
+guidance = "Open RoadmapRunnerService with a complete ExecutionIdentity and the pointwise EffectiveCeiling derived from caller, roadmap, conduct, model-site, sandbox, and operator layers. Call advance_one_effect with one input batch and one capability grant. One call performs one admitted effect or one pure transition, and a no-change wake starts nothing. ReadinessPort remains the only scheduler and EffectPort returns observations rather than state. Resume only with identical content pins, a fresh caller grant, and an equal-or-narrower ceiling. Use replay and inspect for observation. Inspection is a projection."
 claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests"]
 depends_on = ["feature/sim-agent-net/durable-roadmap-execution-journal", "feature/sim-agent-net/pure-roadmap-execution"]
@@ -430,6 +430,22 @@ depends_on = [
   "feature/sim-agent-net/disposable-postimage-convergence",
   "feature/sim-agent-net/typed-hostile-proof-leaves",
   "feature/sim-agent-net/recoverable-multi-file-mutation",
+]
+
+[[feature]]
+id = "feature/sim-agent-net/quiescent-driver"
+title = "Quiescent one-effect driver"
+summary = "One advance records one admitted effect or one pure transition, and a wake that changes nothing starts no effect."
+owner = "crate/sim-lib-roadmap-runner"
+audiences = ["code", "framework"]
+guidance = "Call advance_one_effect with the offered wakes, an optional direction reply, and the capability grant. A call records one effect or one pure transition. A no-change wake appends nothing. A resource wait holds no lease and resumes once when a new positive offer arrives. Stale, wrong, replayed, and advisory direction replies refuse. An informational reply records no cause and does not change state. read_snapshot pages the journal's verified snapshot and does not splice a later revision. lineage reports a gap when a referenced value is absent. Inspection reads the last result and does not conduct."
+claims_anchors = []
+claims_specimens = [
+  "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/drive_tests",
+]
+depends_on = [
+  "feature/sim-agent-net/bounded-roadmap-runner-service",
+  "feature/sim-agent-net/authoring-compiler",
 ]
 
 [[feature]]

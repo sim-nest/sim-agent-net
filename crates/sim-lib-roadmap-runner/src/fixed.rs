@@ -488,5 +488,3 @@ mod fixed_tests;
 #[cfg(test)]
 #[path = "fixed_gate_tests.rs"]
 mod fixed_gate_tests;
-
-// conformance: sealed fixed point.
