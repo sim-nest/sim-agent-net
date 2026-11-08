@@ -32,8 +32,14 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
         intent_head: &JournalHead,
         event: &ExecutionEvent,
     ) -> Result<(), ServiceError> {
+        let rebuilt = self.journal.rebuild()?;
+        let parent = if crate::record_law::receipt_parent_is_current(&rebuilt.records, effect_id) {
+            rebuilt.head
+        } else {
+            intent_head.clone()
+        };
         let receipt_head = match self.journal.append(
-            Some(intent_head),
+            Some(&parent),
             ExecutionRecord::EffectReceipt {
                 effect_id: effect_id.to_owned(),
                 outcome: event.observation.kind.to_string(),

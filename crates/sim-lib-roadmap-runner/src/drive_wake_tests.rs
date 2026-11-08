@@ -5,6 +5,7 @@
 
 // conformance: one advance performs one effect or one pure transition.
 
+use super::drive_harness::advance_one_effect;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -54,26 +55,38 @@ fn no_change_does_not_publish_a_direction_request() {
         Arc::clone(&calls),
     );
     let before = records(&service);
-    let quiet = service
-        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
-        .unwrap();
+    let quiet = advance_one_effect(
+        &mut service,
+        &InputBatch::no_change(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(quiet, DriveResult::Quiescent { .. }));
     assert_eq!(records(&service), before);
-    let published = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    let published = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(published, DriveResult::NeedDirection { .. }));
     let after = records(&service);
     assert!(after > before);
-    let again = service
-        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
-        .unwrap();
+    let again = advance_one_effect(
+        &mut service,
+        &InputBatch::no_change(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(again, DriveResult::NeedDirection { .. }));
     assert_eq!(records(&service), after);
     let mut reopened = open_on(backend, open_request, Arc::clone(&calls));
-    let restored = reopened
-        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
-        .unwrap();
+    let restored = advance_one_effect(
+        &mut reopened,
+        &InputBatch::no_change(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(restored, DriveResult::NeedDirection { .. }));
     assert_eq!(records(&reopened), after);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -97,12 +110,19 @@ fn missing_begin_refuses_before_a_direction_is_published() {
         Arc::clone(&calls),
     );
     let before = records(&service);
-    let quiet = service
-        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
-        .unwrap();
+    let quiet = advance_one_effect(
+        &mut service,
+        &InputBatch::no_change(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(quiet, DriveResult::Quiescent { .. }));
     assert!(matches!(
-        service.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut service,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Err(ServiceError::MissingBegin)
     ));
     let mut offer = InputBatch::no_change();
@@ -111,7 +131,7 @@ fn missing_begin_refuses_before_a_direction_is_published() {
         amount: 1,
     });
     assert!(matches!(
-        service.advance_one_effect(&offer, &CapabilityGrant::default()),
+        advance_one_effect(&mut service, &offer, &CapabilityGrant::default()),
         Err(ServiceError::MissingBegin)
     ));
     assert_eq!(records(&service), before);
@@ -137,12 +157,13 @@ fn paused_wait_conduct_stays_quiescent() {
     );
     let mut pause = InputBatch::no_change();
     pause.wakes.push(WakeEvent::Control(ControlIntent::Pause));
-    service
-        .advance_one_effect(&pause, &CapabilityGrant::default())
-        .unwrap();
-    let driven = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(&mut service, &pause, &CapabilityGrant::default()).unwrap();
+    let driven = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(driven, DriveResult::Quiescent { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 0);
     assert!(service.leases().is_empty());
@@ -158,9 +179,12 @@ fn reopen_keeps_the_committed_phase() {
         open_request.clone(),
         Arc::clone(&calls),
     );
-    service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert_eq!(
         service.inspect().unwrap().transition.state,
         PhaseRunState::Running
@@ -172,9 +196,12 @@ fn reopen_keeps_the_committed_phase() {
         PhaseRunState::Running
     );
     assert_eq!(reopened.snapshots(), saved.as_slice());
-    let quiet = reopened
-        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
-        .unwrap();
+    let quiet = advance_one_effect(
+        &mut reopened,
+        &InputBatch::no_change(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(quiet, DriveResult::Quiescent { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert!(matches!(
@@ -199,13 +226,14 @@ fn paused_wait_stays_quiescent_after_reopen() {
     );
     let mut pause = InputBatch::no_change();
     pause.wakes.push(WakeEvent::Control(ControlIntent::Pause));
-    service
-        .advance_one_effect(&pause, &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(&mut service, &pause, &CapabilityGrant::default()).unwrap();
     let mut reopened = open_on(backend, open_request, Arc::clone(&calls));
-    let driven = reopened
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    let driven = advance_one_effect(
+        &mut reopened,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(driven, DriveResult::Quiescent { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 0);
 }
@@ -221,28 +249,27 @@ fn reopened_pause_keeps_the_republished_fence() {
         open_request.clone(),
         Arc::clone(&calls),
     );
-    let DriveResult::NeedDirection { request: published } = service
-        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
-        .unwrap()
+    let DriveResult::NeedDirection { request: published } =
+        advance_one_effect(&mut service, &InputBatch::conduct(), &grant("decide")).unwrap()
     else {
         panic!("direction was not published");
     };
     let mut pause = InputBatch::no_change();
     pause.wakes.push(WakeEvent::Control(ControlIntent::Pause));
-    service
-        .advance_one_effect(&pause, &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(&mut service, &pause, &CapabilityGrant::default()).unwrap();
     let mut reopened = open_on(backend, open_request, Arc::clone(&calls));
     let mut stale = InputBatch::no_change();
     stale.reply = Some(reply(&published, DirectionKind::Decision, "yes"));
     assert!(matches!(
-        reopened.advance_one_effect(&stale, &grant("decide")),
+        advance_one_effect(&mut reopened, &stale, &grant("decide")),
         Err(ServiceError::StaleDirection)
     ));
-    let DriveResult::NeedDirection { request: fresh } = reopened
-        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
-        .unwrap()
-    else {
+    let DriveResult::NeedDirection { request: fresh } = advance_one_effect(
+        &mut reopened,
+        &InputBatch::no_change(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap() else {
         panic!("republished fence was not restored");
     };
     assert_eq!(&fresh.expected_revision, reopened.revision());
@@ -269,14 +296,10 @@ fn resumed_offer_does_not_run_again_after_reopen() {
         kind: "slot".into(),
         amount: 2,
     });
-    let resumed = service
-        .advance_one_effect(&offer, &CapabilityGrant::default())
-        .unwrap();
+    let resumed = advance_one_effect(&mut service, &offer, &CapabilityGrant::default()).unwrap();
     assert!(matches!(resumed, DriveResult::Advanced { .. }));
     let mut reopened = open_on(backend, open_request, Arc::clone(&calls));
-    let again = reopened
-        .advance_one_effect(&offer, &CapabilityGrant::default())
-        .unwrap();
+    let again = advance_one_effect(&mut reopened, &offer, &CapabilityGrant::default()).unwrap();
     assert!(matches!(again, DriveResult::Quiescent { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
@@ -289,6 +312,7 @@ impl EffectPort for StartThenFail {
         identity: &ExecutionIdentity,
         phase: &PhaseId,
         _: &sim_roadmap_exec_core::Transition,
+        _: Option<&Symbol>,
     ) -> Result<ExecutionEvent, ServiceError> {
         let n = self.0.fetch_add(1, Ordering::SeqCst);
         let (kind, head) = if n == 0 { ("start", 20) } else { ("fail", 21) };
@@ -320,13 +344,19 @@ fn same_causal_state_keeps_distinct_snapshot_pages() {
         Limits::default(),
     )
     .unwrap();
-    service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     let first = service.snapshots()[0].clone();
-    service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert_eq!(service.snapshots()[0], first);
     let second = service.snapshots()[1].clone();
     let journal = service.inspect().unwrap().journal.snapshots;
@@ -364,7 +394,11 @@ fn same_causal_state_keeps_distinct_snapshot_pages() {
         PhaseRunState::Failed
     );
     assert!(matches!(
-        reopened.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut reopened,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Ok(DriveResult::Complete { .. })
     ));
     assert_eq!(calls.load(Ordering::SeqCst), 2);
@@ -407,7 +441,11 @@ fn receipt_without_success_is_uncertain_on_open() {
         .unwrap();
     let mut reopened = open_on(backend, open_request, Arc::clone(&calls));
     assert!(matches!(
-        reopened.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut reopened,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Err(ServiceError::EffectUncertain)
     ));
     assert_eq!(calls.load(Ordering::SeqCst), 0);

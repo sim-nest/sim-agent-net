@@ -23,6 +23,7 @@ fn pins(n: u8) -> ExecutionPins {
 }
 
 mod bounded_service {
+    use super::super::drive_harness::advance_one_effect;
     use std::sync::{Arc, Mutex};
 
     use sim_kernel::{ContentId, Symbol};
@@ -109,6 +110,7 @@ mod bounded_service {
             identity: &ExecutionIdentity,
             phase: &PhaseId,
             _: &sim_roadmap_exec_core::Transition,
+            _: Option<&sim_kernel::Symbol>,
         ) -> Result<ExecutionEvent, ServiceError> {
             let event = ExecutionEvent {
                 execution: identity.execution.clone(),
@@ -136,9 +138,12 @@ mod bounded_service {
             Limits::default(),
         )
         .unwrap();
-        let driven = service
-            .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-            .unwrap();
+        let driven = advance_one_effect(
+            &mut service,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default(),
+        )
+        .unwrap();
         let inspected = service.inspect().unwrap();
         assert_eq!(inspected.drive, driven);
         assert_eq!(inspected.transition.state, PhaseRunState::Running);

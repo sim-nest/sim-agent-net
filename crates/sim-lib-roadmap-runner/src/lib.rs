@@ -13,6 +13,7 @@ mod budget;
 mod causal;
 mod codec;
 mod compatibility;
+mod conduct;
 mod converge;
 mod discharge;
 mod fixed;
@@ -31,6 +32,7 @@ mod recovery;
 mod refiner;
 mod schedule;
 mod schedule_session;
+mod selected;
 mod service;
 mod source;
 mod status;
@@ -45,6 +47,7 @@ pub use author::{
 pub use binding::*;
 pub use budget::*;
 pub use compatibility::*;
+pub use conduct::conduct_one;
 pub use converge::{
     AttachError, AttachStep, ClaimState, ConvergeError, Descent, Fence, OpenClaim,
     OpenRequest as RevisionOpen, POSTIMAGE_MODE, ProofAttachment, Proposal, ProposalBody, Revision,
@@ -77,8 +80,8 @@ pub use schedule::{
     TypedFailure, failure_frontier, information_value, legal_order, resume_frontier,
 };
 pub use schedule_session::{
-    Admit, ControlAck, ControlEntry, ControlIntent, Lease, Liveness, LogicalTime, Mode,
-    ModelWorker, Session, WakeCause, WakeEvent, WorkerView,
+    Admit, ControlAck, ControlEntry, ControlIntent, Lease, Liveness, LogicalTime, MAX_ADMITTED,
+    Mode, ModelWorker, Session, WakeCause, WakeEvent, WorkerView,
 };
 pub use service::*;
 pub use source::*;
@@ -90,7 +93,11 @@ pub use transact::{
 };
 
 #[cfg(test)]
+mod drive_control_tests;
+#[cfg(test)]
 mod drive_fault_tests;
+#[cfg(test)]
+mod drive_harness;
 #[cfg(test)]
 mod drive_more_tests;
 #[cfg(test)]

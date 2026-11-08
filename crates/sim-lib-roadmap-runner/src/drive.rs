@@ -5,20 +5,21 @@
 
 //! One-effect conduct for an open execution.
 //!
-//! A call records one admitted effect or one pure transition. A wake that
-//! changes nothing appends no record and starts no effect. Inspection reads
-//! the retained result; it does not conduct.
+//! Admission records one effect request or one pure transition. The effect
+//! runs outside the service. A wake that changes nothing appends no record.
+//! Inspection reads the retained result; it does not conduct.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 use sim_kernel::{ContentId, Cx, DefaultFactory, Expr, HandleSeed, NoopEvalPolicy, Shape, Symbol};
-use sim_roadmap_exec_core::ExecutionId;
+use sim_roadmap_core::PhaseId;
+use sim_roadmap_exec_core::{ExecutionId, Transition};
 use sim_shape::ExactExprShape;
 use sim_work_core::ResourceNeed;
 
-use sim_lib_journal::JournalBackend;
+use sim_lib_journal::{JournalBackend, JournalHead};
 
 use super::{CancellationPort, EffectPort, ReadinessPort, RoadmapRunnerService};
 use crate::{ControlIntent, Lease, Mode, WakeCause, WakeEvent};
@@ -239,6 +240,33 @@ pub enum DriveResult {
         /// Revision at completion.
         seal_input: ContentId,
     },
+}
+
+/// Admission of one effect. The caller invokes the port without borrowing the
+/// service, then passes the event to `commit_effect`.
+#[derive(Clone, Debug)]
+pub struct EffectTicket {
+    /// Execution identity the port must observe.
+    pub identity: crate::ExecutionIdentity,
+    /// Admitted leaf.
+    pub leaf: PhaseId,
+    /// Reducer state at admission.
+    pub transition: Transition,
+    /// Journal identity of this admission.
+    pub effect_id: String,
+    /// Head of the effect-requested record.
+    pub intent_head: JournalHead,
+    /// Product admitted with this effect. The driver does not interpret it.
+    pub product: Option<Symbol>,
+}
+
+/// A control step finished, or one effect is admitted and not yet invoked.
+#[derive(Clone, Debug)]
+pub enum Prepared {
+    /// No effect was admitted.
+    Done(Box<DriveResult>),
+    /// The caller must invoke the port, then commit.
+    Ready(Box<EffectTicket>),
 }
 
 pub(crate) fn revision_id(opening: &ContentId, n: u64) -> ContentId {

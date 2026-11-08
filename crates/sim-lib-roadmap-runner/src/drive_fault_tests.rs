@@ -5,6 +5,7 @@
 
 // conformance: one advance performs one effect or one pure transition.
 
+use super::drive_harness::advance_one_effect;
 use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -36,6 +37,7 @@ impl EffectPort for StoredReject {
         identity: &ExecutionIdentity,
         phase: &PhaseId,
         _: &sim_roadmap_exec_core::Transition,
+        _: Option<&Symbol>,
     ) -> Result<ExecutionEvent, ServiceError> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         let event = ExecutionEvent {
@@ -61,6 +63,7 @@ impl EffectPort for StartThenFail {
         identity: &ExecutionIdentity,
         phase: &PhaseId,
         _: &sim_roadmap_exec_core::Transition,
+        _: Option<&Symbol>,
     ) -> Result<ExecutionEvent, ServiceError> {
         let n = self.0.fetch_add(1, Ordering::SeqCst);
         let (kind, head) = if n == 0 { ("start", 20) } else { ("fail", 21) };
@@ -157,7 +160,11 @@ fn rejected_receipt_reopens_as_uncertain() {
     )
     .unwrap();
     assert!(matches!(
-        service.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut service,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Err(ServiceError::Reducer(_))
     ));
     assert!(uncertain_marker(&service));
@@ -175,7 +182,11 @@ fn rejected_receipt_reopens_as_uncertain() {
     assert!(reopened.is_ok());
     let mut reopened = reopened.unwrap();
     assert!(matches!(
-        reopened.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut reopened,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Err(ServiceError::EffectUncertain)
     ));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
@@ -195,29 +206,27 @@ fn informational_empty_answer_refuses_a_different_reply() {
         crate::Limits::default(),
     )
     .unwrap();
-    let DriveResult::NeedDirection { request } = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap()
-    else {
+    let DriveResult::NeedDirection { request } = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap() else {
         panic!("direction was not published");
     };
     let len = service.inspect().unwrap().journal.records.len();
     let mut batch = InputBatch::no_change();
     batch.reply = Some(reply(&request, DirectionKind::Decision, ""));
-    let noted = service
-        .advance_one_effect(&batch, &CapabilityGrant::default())
-        .unwrap();
+    let noted = advance_one_effect(&mut service, &batch, &CapabilityGrant::default()).unwrap();
     assert!(matches!(noted, DriveResult::Quiescent { .. }));
     assert_eq!(service.inspect().unwrap().journal.records.len(), len);
     batch.reply = Some(reply(&request, DirectionKind::Decision, "later"));
     assert!(matches!(
-        service.advance_one_effect(&batch, &CapabilityGrant::default()),
+        advance_one_effect(&mut service, &batch, &CapabilityGrant::default()),
         Err(ServiceError::ReplayedDirection)
     ));
     batch.reply = Some(reply(&request, DirectionKind::Decision, ""));
-    let again = service
-        .advance_one_effect(&batch, &CapabilityGrant::default())
-        .unwrap();
+    let again = advance_one_effect(&mut service, &batch, &CapabilityGrant::default()).unwrap();
     assert!(matches!(again, DriveResult::Quiescent { .. }));
     assert_eq!(service.inspect().unwrap().journal.records.len(), len);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -240,17 +249,17 @@ fn accepted_direction_records_one_cause() {
         crate::Limits::default(),
     )
     .unwrap();
-    let DriveResult::NeedDirection { request } = service
-        .advance_one_effect(&InputBatch::conduct(), &super::drive_tests::grant("decide"))
-        .unwrap()
-    else {
+    let DriveResult::NeedDirection { request } = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &super::drive_tests::grant("decide"),
+    )
+    .unwrap() else {
         panic!("direction was not published");
     };
     let mut batch = InputBatch::no_change();
     batch.reply = Some(reply(&request, DirectionKind::Decision, "yes"));
-    service
-        .advance_one_effect(&batch, &super::drive_tests::grant("decide"))
-        .unwrap();
+    advance_one_effect(&mut service, &batch, &super::drive_tests::grant("decide")).unwrap();
     let records = service.inspect().unwrap().journal.records;
     let mut paired = 0;
     for record in &records {
@@ -291,10 +300,12 @@ fn torn_direction_refuses_the_original_answer() {
             crate::Limits::default(),
         )
         .unwrap();
-        let DriveResult::NeedDirection { request } = service
-            .advance_one_effect(&InputBatch::conduct(), &super::drive_tests::grant("decide"))
-            .unwrap()
-        else {
+        let DriveResult::NeedDirection { request } = advance_one_effect(
+            &mut service,
+            &InputBatch::conduct(),
+            &super::drive_tests::grant("decide"),
+        )
+        .unwrap() else {
             panic!("direction was not published");
         };
         let journal =
@@ -335,7 +346,7 @@ fn torn_direction_refuses_the_original_answer() {
     let mut batch = InputBatch::no_change();
     batch.reply = Some(reply(&published, DirectionKind::Decision, "yes"));
     assert!(matches!(
-        reopened.advance_one_effect(&batch, &super::drive_tests::grant("decide")),
+        advance_one_effect(&mut reopened, &batch, &super::drive_tests::grant("decide")),
         Err(ServiceError::ReplayedDirection)
     ));
     assert_eq!(reopened.inspect().unwrap().journal.records.len(), kept);
@@ -359,16 +370,23 @@ fn snapshot_miss_after_commit_returns_complete() {
         crate::Limits::default(),
     )
     .unwrap();
-    let started = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    let started = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(started, DriveResult::Advanced { .. }));
     assert_eq!(
         service.inspect().unwrap().transition.state,
         PhaseRunState::Running
     );
     assert!(matches!(
-        service.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut service,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Err(ServiceError::Journal(ExecutionJournalError::Journal(
             JournalError::WriteRefused("snapshot")
         )))
@@ -378,9 +396,12 @@ fn snapshot_miss_after_commit_returns_complete() {
         PhaseRunState::Failed
     );
     assert!(!uncertain_marker(&service));
-    let finished = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    let finished = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(finished, DriveResult::Complete { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 2);
 }
@@ -408,7 +429,11 @@ fn snapshot_miss_on_resume_does_not_invoke_again() {
     )
     .unwrap();
     assert!(matches!(
-        service.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut service,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Ok(DriveResult::Blocked { .. })
     ));
     let mut offer = InputBatch::no_change();
@@ -417,7 +442,7 @@ fn snapshot_miss_on_resume_does_not_invoke_again() {
         amount: 2,
     });
     assert!(matches!(
-        service.advance_one_effect(&offer, &CapabilityGrant::default()),
+        advance_one_effect(&mut service, &offer, &CapabilityGrant::default()),
         Err(ServiceError::Journal(ExecutionJournalError::Journal(
             JournalError::WriteRefused("snapshot")
         )))
@@ -427,9 +452,7 @@ fn snapshot_miss_on_resume_does_not_invoke_again() {
         PhaseRunState::Running
     );
     assert!(!uncertain_marker(&service));
-    let again = service
-        .advance_one_effect(&offer, &CapabilityGrant::default())
-        .unwrap();
+    let again = advance_one_effect(&mut service, &offer, &CapabilityGrant::default()).unwrap();
     assert!(matches!(again, DriveResult::Quiescent { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     let mut reopened = RoadmapRunnerService::open(
@@ -441,9 +464,7 @@ fn snapshot_miss_on_resume_does_not_invoke_again() {
         crate::Limits::default(),
     )
     .unwrap();
-    let restored = reopened
-        .advance_one_effect(&offer, &CapabilityGrant::default())
-        .unwrap();
+    let restored = advance_one_effect(&mut reopened, &offer, &CapabilityGrant::default()).unwrap();
     assert!(matches!(restored, DriveResult::Quiescent { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }

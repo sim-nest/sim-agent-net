@@ -6,12 +6,12 @@
 //! Conduct steps for one open execution.
 
 use sim_lib_journal::JournalBackend;
-use sim_roadmap_exec_core::PhaseRunState;
+use sim_roadmap_exec_core::{ExecutionEvent, PhaseRunState};
 use sim_work_core::CapabilityGrant;
 
 use super::drive::{
-    DirectionKind, DirectionReply, DirectionRequest, DriveResult, InputBatch, control_of, digest,
-    offered_resource, shapes_admit, wake_on,
+    DirectionKind, DirectionReply, DirectionRequest, DriveResult, EffectTicket, InputBatch,
+    Prepared, control_of, digest, offered_resource, shapes_admit, wake_on,
 };
 use super::{
     CancellationPort, EffectPort, ExecutionRecord, ReadinessPort, RoadmapRunnerService,
@@ -33,6 +33,10 @@ enum Step {
     Perform,
 }
 
+fn done(result: DriveResult) -> Prepared {
+    Prepared::Done(Box::new(result))
+}
+
 fn admits_transition(inputs: &InputBatch) -> bool {
     inputs.conduct || positive_offer(inputs)
 }
@@ -49,13 +53,22 @@ fn positive_offer(inputs: &InputBatch) -> bool {
 impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
     RoadmapRunnerService<B, R, E, C>
 {
-    /// Performs at most one admitted effect or one pure transition.
-    pub fn advance_one_effect(
+    /// Admits at most one effect or applies one pure transition.
+    ///
+    /// An effect admission returns before the port runs. The caller invokes
+    /// `effect_port` with no borrow of this service, then `commit_effect`.
+    pub fn prepare_effect(
         &mut self,
         inputs: &InputBatch,
         grant: &CapabilityGrant,
-    ) -> Result<DriveResult, ServiceError> {
-        if self.uncertain || self.journal_uncertain()? {
+    ) -> Result<Prepared, ServiceError> {
+        if self.uncertain {
+            return Err(ServiceError::EffectUncertain);
+        }
+        if self.pending_effect.is_some() {
+            return self.prepare_while_outstanding(inputs);
+        }
+        if self.journal_uncertain()? {
             self.uncertain = true;
             return Err(ServiceError::EffectUncertain);
         }
@@ -69,9 +82,12 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
                 self.stop_one()?
             };
             self.last_drive = result.clone();
-            return Ok(result);
+            return Ok(done(result));
         }
         let step = self.classify(inputs, grant)?;
+        if matches!(step, Step::Perform | Step::ResumeWait) {
+            return self.begin_effect(inputs);
+        }
         let result = match step {
             Step::Quiescent => self.idle(inputs),
             Step::NeedDirection => self.need_direction(),
@@ -82,9 +98,74 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             Step::Drain => self.hold(Mode::Draining, "draining")?,
             Step::Resume => self.hold(Mode::Running, "running")?,
             Step::Stop => self.stop_one()?,
-            Step::ResumeWait => self.perform_one(inputs)?,
-            Step::Perform => self.perform_one(inputs)?,
+            Step::ResumeWait | Step::Perform => {
+                return Err(ServiceError::EffectOutstanding);
+            }
         };
+        self.last_drive = result.clone();
+        Ok(done(result))
+    }
+
+    /// Control still applies while an admitted effect has not committed.
+    fn prepare_while_outstanding(&mut self, inputs: &InputBatch) -> Result<Prepared, ServiceError> {
+        if self
+            .cancellation
+            .cancellation_requested(&self.request.authority.identity.execution)
+        {
+            let result = if self.mode == Mode::Stopped {
+                DriveResult::Quiescent { wake_on: wake_on() }
+            } else {
+                self.stop_one()?
+            };
+            self.last_drive = result.clone();
+            return Ok(done(result));
+        }
+        let Some(intent) = control_of(inputs) else {
+            return Err(ServiceError::EffectOutstanding);
+        };
+        let result = match self.classify_control(intent) {
+            Step::Pause => self.hold(Mode::Paused, "paused")?,
+            Step::Drain => self.hold(Mode::Draining, "draining")?,
+            Step::Resume => self.hold(Mode::Running, "running")?,
+            Step::Stop => self.stop_one()?,
+            Step::Quiescent => self.idle(inputs),
+            Step::Perform
+            | Step::ResumeWait
+            | Step::NeedDirection
+            | Step::Publish
+            | Step::Accept(_)
+            | Step::Note(_) => {
+                return Err(ServiceError::EffectOutstanding);
+            }
+        };
+        self.last_drive = result.clone();
+        Ok(done(result))
+    }
+
+    /// Records the event from an invoke that did not borrow this service.
+    pub fn commit_effect(
+        &mut self,
+        ticket: &EffectTicket,
+        event: Result<ExecutionEvent, ServiceError>,
+        inputs: &InputBatch,
+    ) -> Result<DriveResult, ServiceError> {
+        if self.pending_effect.as_deref() != Some(ticket.effect_id.as_str()) {
+            return Err(ServiceError::EffectOutstanding);
+        }
+        let event = match event {
+            Ok(event) => event,
+            Err(error) => {
+                self.pending_effect = None;
+                self.uncertain = true;
+                return Err(error);
+            }
+        };
+        self.finish_effect(&ticket.leaf, &ticket.effect_id, &ticket.intent_head, &event)?;
+        self.pending_effect = None;
+        self.wait_resumed = true;
+        self.remember_offer(inputs);
+        self.retain_snapshot()?;
+        let result = self.advanced();
         self.last_drive = result.clone();
         Ok(result)
     }
@@ -292,7 +373,10 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
         }
     }
 
-    fn perform_one(&mut self, inputs: &InputBatch) -> Result<DriveResult, ServiceError> {
+    fn begin_effect(&mut self, inputs: &InputBatch) -> Result<Prepared, ServiceError> {
+        if self.pending_effect.is_some() {
+            return Err(ServiceError::EffectOutstanding);
+        }
         if self.missing_begin() {
             return Err(ServiceError::MissingBegin);
         }
@@ -300,13 +384,17 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             .cancellation
             .cancellation_requested(&self.request.authority.identity.execution)
         {
-            return self.stop_one();
+            let result = self.stop_one()?;
+            self.last_drive = result.clone();
+            return Ok(done(result));
         }
         let Some(leaf) = self
             .readiness
             .admitted_leaf(&self.request.authority.identity.roadmap)?
         else {
-            return Ok(DriveResult::Quiescent { wake_on: wake_on() });
+            let result = DriveResult::Quiescent { wake_on: wake_on() };
+            self.last_drive = result.clone();
+            return Ok(done(result));
         };
         if leaf != self.request.phase {
             return Err(ServiceError::WrongLeaf);
@@ -315,9 +403,11 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             || self.transition.state == PhaseRunState::Failed
             || self.transition.state == PhaseRunState::Cancelled
         {
-            return Ok(DriveResult::Complete {
+            let result = DriveResult::Complete {
                 seal_input: self.revision.clone(),
-            });
+            };
+            self.last_drive = result.clone();
+            return Ok(done(result));
         }
         // A phase copied from the journal is not a reducer state.
         if !self.transition_faithful {
@@ -339,24 +429,15 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             },
             vec![],
         )?;
-        let event =
-            match self
-                .effects
-                .invoke(&self.request.authority.identity, &leaf, &self.transition)
-            {
-                Ok(event) => event,
-                Err(error) => {
-                    self.uncertain = true;
-                    return Err(error);
-                }
-            };
-        self.finish_effect(&leaf, &effect_id, &intent_head, &event)?;
-        // The committed effect consumes the wait. A missed snapshot must not
-        // resume that same offer again.
-        self.wait_resumed = true;
-        self.remember_offer(inputs);
-        self.retain_snapshot()?;
-        Ok(self.advanced())
+        self.pending_effect = Some(effect_id.clone());
+        Ok(Prepared::Ready(Box::new(EffectTicket {
+            identity: self.request.authority.identity.clone(),
+            leaf,
+            transition: self.transition.clone(),
+            effect_id,
+            intent_head,
+            product: inputs.product.clone(),
+        })))
     }
 
     fn remember_offer(&mut self, inputs: &InputBatch) {

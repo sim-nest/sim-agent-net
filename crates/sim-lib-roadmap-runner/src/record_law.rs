@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::collections::BTreeSet;
 
 use crate::{ExecutionJournalError, ExecutionRecord, ObjectRef};
@@ -112,4 +117,35 @@ pub(crate) fn validate_next(
         }
     }
     Ok(())
+}
+
+/// A receipt may use the current journal head when the only records after its
+/// request are session-mode control and the snapshots that control retains.
+pub(crate) fn receipt_parent_is_current(records: &[ExecutionRecord], effect_id: &str) -> bool {
+    let mut seen = false;
+    for record in records {
+        if !seen {
+            if matches!(
+                record,
+                ExecutionRecord::EffectRequested { effect_id: id, .. } if id == effect_id
+            ) {
+                seen = true;
+            }
+            continue;
+        }
+        if !session_control(record) {
+            return false;
+        }
+    }
+    seen
+}
+
+fn session_control(record: &ExecutionRecord) -> bool {
+    match record {
+        ExecutionRecord::Snapshot { .. } => true,
+        ExecutionRecord::SemanticDelta { changes, .. } => {
+            !changes.is_empty() && changes.iter().all(|change| change.key == "session-mode")
+        }
+        _ => false,
+    }
 }
