@@ -6,22 +6,27 @@
 //! Sealed fixed point over one generator per generated artifact.
 //!
 //! A seal binds the accepted source, the generated postimages, the proof
-//! digest, and the facet identities. The first pass regenerates those
-//! postimages and consults [`crate::proof_frontier`]. A later pass that still
-//! carries that seal performs no generation and does not consult the frontier.
-//! The seal is data. It does not apply a mutation plan or edit the revision.
+//! digest, the facet identities, and each generator's owner, contract,
+//! qualified implementation, and semantic reads. The first pass regenerates
+//! those postimages and consults [`crate::proof_frontier`]. A later pass whose
+//! generator closure and owner mapping still match performs no generation and
+//! does not consult the frontier. The seal is data. It does not apply a
+//! mutation plan or edit the revision.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use sim_artifact_facet::ArtifactFacet;
-use sim_kernel::{ContentId, Datum, Symbol};
+use sim_kernel::ContentId;
 use thiserror::Error;
 
 use crate::schedule::CLASS_PROOF_FAILED;
-use crate::{ProofOutcome, Revision, image_id, proof_frontier};
+use crate::{ProofOutcome, Revision, proof_frontier};
 
 #[path = "fixed_check.rs"]
 mod check;
+
+#[path = "fixed_identity.rs"]
+mod identity;
 
 pub use check::FactGenerator;
 
@@ -39,7 +44,8 @@ pub enum FixedError {
 /// Identity of one sealed fixed point.
 ///
 /// The id covers the source seal, the accepted image, the proof digest, the
-/// facet digest, and each generated path with its accepted bytes.
+/// facet digest, the generator closure, and each generated path with its
+/// accepted bytes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FixedSeal {
     /// Content id of this closure.
@@ -95,8 +101,9 @@ pub enum FixedStep {
 /// Bind source, generated postimages, proof, and ownership.
 ///
 /// `deleted` reports the generator closure instead of sealing. `prior` is the
-/// seal returned by an earlier pass; when it still matches, this call performs
-/// no generation. Contract refusals are [`FixedStep`] values.
+/// seal returned by an earlier pass. When the generator closure and the owner
+/// mapping still match, this call performs no generation. Contract refusals
+/// are [`FixedStep`] values.
 pub fn seal_fixed_point(
     revision: &Revision,
     facets: &[ArtifactFacet],
@@ -119,10 +126,13 @@ pub fn seal_fixed_point(
         };
         return Ok(check::invalidate(revision, &checked, deleted));
     }
-    if let Some(prior) = prior
-        && let Some(seal) = matching_seal(revision, facets, proofs, prior)?
-    {
-        return Ok(FixedStep::ZeroWork { seal });
+    if let Some(prior) = prior {
+        if let Err(refusal) = check::check(revision, facets, generators) {
+            return Ok(refuse(refusal));
+        }
+        if let Some(seal) = matching_seal(revision, facets, proofs, generators, prior)? {
+            return Ok(FixedStep::ZeroWork { seal });
+        }
     }
     let checked = match check::check(revision, facets, generators) {
         Ok(checked) => checked,
@@ -132,7 +142,7 @@ pub fn seal_fixed_point(
         Ok(proof) => proof,
         Err(refusal) => return Ok(refuse(refusal)),
     };
-    let facets_id = facet_digest(facets)?;
+    let facets_id = identity::facet_digest(facets)?;
     let (produced, work) = match generate(revision, generators) {
         Ok(produced) => produced,
         Err(refusal) => return Ok(refuse(refusal)),
@@ -145,15 +155,19 @@ pub fn seal_fixed_point(
             symdiff(&produced_paths, &owned_paths),
         ));
     }
-    let accepted_image = image(revision.images())?;
+    let accepted_image = identity::image(revision.images())?;
     let delta = changed(&produced, revision);
     if delta.is_empty() {
-        let id = bind_seal(
+        let Some(generators_id) = identity::generator_seal(revision, generators)? else {
+            return Ok(blocked("unknown-fact", BTreeSet::new()));
+        };
+        let id = identity::bind_seal(
             &revision.seal,
             &accepted_image,
             &proof,
             &facets_id,
             &produced,
+            &generators_id,
         )?;
         return Ok(FixedStep::Sealed {
             seal: FixedSeal {
@@ -167,7 +181,7 @@ pub fn seal_fixed_point(
         });
     }
     let candidate_bytes = candidate(revision, &produced);
-    let candidate_id = image(&candidate_bytes)?;
+    let candidate_id = identity::image(&candidate_bytes)?;
     if revision.has_seen(&candidate_id) {
         return Ok(FixedStep::Blocked {
             reason: "oscillation",
@@ -224,11 +238,12 @@ fn matching_seal(
     revision: &Revision,
     facets: &[ArtifactFacet],
     proofs: &BTreeMap<String, ProofOutcome>,
+    generators: &[&dyn FactGenerator],
     prior: &FixedSeal,
 ) -> Result<Option<FixedSeal>, FixedError> {
-    let image = image(revision.images())?;
-    let proof = proof_digest(revision, proofs)?;
-    let facets_id = facet_digest(facets)?;
+    let image = identity::image(revision.images())?;
+    let proof = identity::proof_digest(revision, proofs)?;
+    let facets_id = identity::facet_digest(facets)?;
     if prior.image != image
         || prior.source != revision.seal
         || prior.proof != proof
@@ -236,10 +251,20 @@ fn matching_seal(
     {
         return Ok(None);
     }
-    let Some(generated) = accepted_generated(revision, facets) else {
+    let Some(generated) = identity::accepted_generated(revision, facets) else {
         return Ok(None);
     };
-    let id = bind_seal(&revision.seal, &image, &proof, &facets_id, &generated)?;
+    let Some(generators_id) = identity::generator_seal(revision, generators)? else {
+        return Ok(None);
+    };
+    let id = identity::bind_seal(
+        &revision.seal,
+        &image,
+        &proof,
+        &facets_id,
+        &generated,
+        &generators_id,
+    )?;
     if prior.id != id {
         return Ok(None);
     }
@@ -273,7 +298,7 @@ fn judge_proofs(
         };
         return Ok(Err(refusal(reason, closure)));
     }
-    proof_digest(revision, proofs).map(Ok)
+    identity::proof_digest(revision, proofs).map(Ok)
 }
 
 fn generate(
@@ -322,23 +347,6 @@ fn source_of(
     }
 }
 
-fn accepted_generated(
-    revision: &Revision,
-    facets: &[ArtifactFacet],
-) -> Option<BTreeMap<String, Vec<u8>>> {
-    let mut generated = BTreeMap::new();
-    for facet in facets {
-        let sim_artifact_facet::RegionSelector::ExactPath(path) = facet.region() else {
-            return None;
-        };
-        let sim_artifact_facet::RegionOwnership::Generated { .. } = facet.ownership() else {
-            continue;
-        };
-        generated.insert(path.clone(), revision.images().get(path)?.clone());
-    }
-    Some(generated)
-}
-
 fn changed(produced: &BTreeMap<String, Vec<u8>>, revision: &Revision) -> BTreeSet<String> {
     produced
         .iter()
@@ -365,91 +373,6 @@ fn open_claims(revision: &Revision) -> BTreeSet<String> {
         .filter(|(_, claim)| !claim.closed)
         .map(|(id, _)| id.clone())
         .collect()
-}
-
-fn proof_digest(
-    revision: &Revision,
-    proofs: &BTreeMap<String, ProofOutcome>,
-) -> Result<ContentId, FixedError> {
-    let votes = revision
-        .claims()
-        .keys()
-        .map(|id| {
-            let outcome = match proofs.get(id) {
-                Some(ProofOutcome::Passed) => "passed",
-                Some(ProofOutcome::Failed) => "failed",
-                None => "absent",
-            };
-            Datum::Node {
-                tag: Symbol::qualified("roadmap-runner", "ProofVoteV1"),
-                fields: vec![
-                    (Symbol::new("claim"), Datum::String(id.clone())),
-                    (Symbol::new("outcome"), Datum::String(outcome.to_owned())),
-                ],
-            }
-        })
-        .collect();
-    node("ProofDigestV1", Datum::List(votes))
-}
-
-fn facet_digest(facets: &[ArtifactFacet]) -> Result<ContentId, FixedError> {
-    let mut ids: Vec<&ContentId> = facets.iter().map(|facet| facet.id().content_id()).collect();
-    ids.sort();
-    node(
-        "FacetDigestV1",
-        Datum::List(ids.into_iter().map(id_datum).collect()),
-    )
-}
-
-fn bind_seal(
-    source: &ContentId,
-    image: &ContentId,
-    proof: &ContentId,
-    facets: &ContentId,
-    generated: &BTreeMap<String, Vec<u8>>,
-) -> Result<ContentId, FixedError> {
-    let mut list = vec![
-        id_datum(source),
-        id_datum(image),
-        id_datum(proof),
-        id_datum(facets),
-    ];
-    for (path, bytes) in generated {
-        list.push(Datum::Node {
-            tag: Symbol::qualified("roadmap-runner", "GeneratedFactV1"),
-            fields: vec![
-                (Symbol::new("path"), Datum::String(path.clone())),
-                (Symbol::new("bytes"), Datum::Bytes(bytes.clone())),
-            ],
-        });
-    }
-    node("FixedPointV1", Datum::List(list))
-}
-
-fn image(images: &BTreeMap<String, Vec<u8>>) -> Result<ContentId, FixedError> {
-    image_id(images).map_err(|error| FixedError::Identity(error.to_string()))
-}
-
-fn id_datum(id: &ContentId) -> Datum {
-    Datum::Node {
-        tag: Symbol::qualified("core", "ContentId"),
-        fields: vec![
-            (
-                Symbol::new("algorithm"),
-                Datum::Symbol(id.algorithm.clone()),
-            ),
-            (Symbol::new("bytes"), Datum::Bytes(id.bytes.to_vec())),
-        ],
-    }
-}
-
-fn node(name: &str, payload: Datum) -> Result<ContentId, FixedError> {
-    Datum::Node {
-        tag: Symbol::qualified("roadmap-runner", name),
-        fields: vec![(Symbol::new("payload"), payload)],
-    }
-    .content_id()
-    .map_err(|error| FixedError::Identity(error.to_string()))
 }
 
 fn symdiff(left: &BTreeSet<String>, right: &BTreeSet<String>) -> BTreeSet<String> {

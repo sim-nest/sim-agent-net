@@ -12,6 +12,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use sim_artifact_facet::{ArtifactFacet, ArtifactId, OwnerId, RegionOwnership, RegionSelector};
+use sim_kernel::ContentId;
 
 use crate::Revision;
 
@@ -25,6 +26,8 @@ pub trait FactGenerator {
     fn reads(&self) -> &BTreeSet<String>;
     /// Exact paths this generator writes.
     fn writes(&self) -> &BTreeSet<String>;
+    /// Qualified implementation. Equal values are the same computation.
+    fn implementation(&self) -> ContentId;
     /// Postimage bytes for `writes`, derived from `source` alone.
     fn generate(&self, source: &BTreeMap<String, Vec<u8>>) -> BTreeMap<String, Vec<u8>>;
 }

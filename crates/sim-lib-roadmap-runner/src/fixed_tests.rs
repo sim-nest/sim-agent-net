@@ -41,7 +41,6 @@ fn regeneration_matches_and_the_second_pass_does_no_work() {
     assert!(!beta_seen.contains_key("fact/beta"));
     assert_eq!(world.alpha.owner, *world.facets[1].owner());
 
-    world.alpha.set("fact/alpha", b"drift");
     let again = seal(&world, &BTreeSet::new(), Some(&first)).expect("second");
     assert_eq!(
         again,
@@ -50,6 +49,33 @@ fn regeneration_matches_and_the_second_pass_does_no_work() {
         }
     );
     assert_eq!(calls(&world), 2);
+    assert_eq!(world.revision, accepted);
+
+    let alpha = world.alpha.twin();
+    let beta = world.beta.twin();
+    let generators: [&dyn FactGenerator; 2] = [&alpha, &beta];
+    let same = seal_fixed_point(
+        &world.revision,
+        &world.facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        Some(&first),
+    )
+    .expect("same implementation");
+    assert_eq!(
+        same,
+        FixedStep::ZeroWork {
+            seal: first.clone()
+        }
+    );
+    assert_eq!(alpha.calls.get(), 0);
+    assert_eq!(calls(&world), 2);
+
+    world.alpha.set("fact/alpha", b"drift");
+    let drifted = seal(&world, &BTreeSet::new(), Some(&first)).expect("drift");
+    assert_eq!(drifted, refusal_gap(&["fact/alpha"]));
+    assert_eq!(calls(&world), 4);
     assert_eq!(world.revision, accepted);
 
     let mut forged = first.clone();
@@ -61,7 +87,101 @@ fn regeneration_matches_and_the_second_pass_does_no_work() {
     };
     assert_eq!(work, 2);
     assert_eq!(fresh, first);
-    assert_eq!(calls(&world), 4);
+    assert_eq!(calls(&world), 6);
+}
+
+#[test]
+fn a_changed_generator_does_not_reuse_the_seal() {
+    let world = world();
+    let sealed = seal(&world, &BTreeSet::new(), None).expect("seal");
+    let FixedStep::Sealed { seal: first, .. } = sealed else {
+        panic!("expected a seal, got {sealed:?}");
+    };
+    let empty = seal_fixed_point(
+        &world.revision,
+        &world.facets,
+        &[],
+        &world.proofs,
+        &BTreeSet::new(),
+        Some(&first),
+    )
+    .expect("empty");
+    assert!(matches!(
+        empty,
+        FixedStep::Blocked {
+            reason: "split-generator",
+            ..
+        }
+    ));
+    assert_eq!(calls(&world), 2);
+
+    let duplicate = world.alpha.twin();
+    let generators: [&dyn FactGenerator; 3] = [&world.alpha, &duplicate, &world.beta];
+    let duplicated = seal_fixed_point(
+        &world.revision,
+        &world.facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        Some(&first),
+    )
+    .expect("duplicate");
+    assert!(matches!(
+        duplicated,
+        FixedStep::Blocked {
+            reason: "duplicate-generator",
+            ..
+        }
+    ));
+    assert_eq!(duplicate.calls.get(), 0);
+    assert_eq!(calls(&world), 2);
+
+    let cyclic = super::fixture::Gen::new(
+        &world.alpha.owner,
+        &["fact/alpha"],
+        &[("fact/alpha", b"alpha"), ("fact/extra", b"extra")],
+    );
+    let generators: [&dyn FactGenerator; 1] = [&cyclic];
+    let cycled = seal_fixed_point(
+        &world.revision,
+        &world.facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        Some(&first),
+    )
+    .expect("cycle");
+    assert!(matches!(
+        cycled,
+        FixedStep::Blocked {
+            reason: "generator-cycle",
+            ..
+        }
+    ));
+    assert_eq!(cyclic.calls.get(), 0);
+
+    let mut shifted = world.alpha.twin();
+    shifted.reads = paths(&[SOURCE_SEAL]);
+    let generators: [&dyn FactGenerator; 2] = [&shifted, &world.beta];
+    let resealed = seal_fixed_point(
+        &world.revision,
+        &world.facets,
+        &generators,
+        &world.proofs,
+        &BTreeSet::new(),
+        Some(&first),
+    )
+    .expect("footprint");
+    let FixedStep::Sealed { seal: fresh, work } = resealed else {
+        panic!("expected a new seal, got {resealed:?}");
+    };
+    assert_eq!(work, 2);
+    assert_ne!(fresh.id, first.id);
+    assert_eq!(shifted.calls.get(), 1);
+    assert_eq!(
+        world.revision.images().get("fact/alpha"),
+        Some(&b"alpha".to_vec())
+    );
 }
 
 #[test]

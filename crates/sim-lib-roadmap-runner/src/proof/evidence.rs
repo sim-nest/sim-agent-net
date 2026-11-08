@@ -5,13 +5,16 @@
 
 //! Semantic evidence keys stored on the one proof catalog.
 //!
-//! A key names the proof, checker, consumed projections, environment, source
-//! sub-universe, and policy. Grade and provenance live on the receipt. Telemetry
-//! is not part of the key. The grade is the checker receipt's grade.
+//! A key names the checked subject and scope, the proof definition, proof
+//! code, checker, consumed projections, environment, admitted source
+//! sub-universe, and consumed policy. The retained checker invocation must
+//! have checked that same claim. Grade and provenance live on the receipt.
+//! Telemetry is not part of the key. The grade is the checker receipt's grade.
 
 use sha2::{Digest, Sha256};
 use sim_conformance_core::{
-    CheckerReceiptId, EvidenceGrade, IdKind, PolicyId, RevocationStatus, SemanticId,
+    CheckScopeId, CheckedSubjectId, CheckerReceiptId, EvidenceGrade, IdKind, PolicyId,
+    RevocationStatus, SemanticId,
 };
 use sim_kernel::ContentId;
 
@@ -52,6 +55,10 @@ pub struct DiscoveredDefinition {
 pub struct EvidenceClaim {
     /// Catalog leaf this evidence explains.
     pub proof: String,
+    /// Checked subject. It must be the invocation's subject.
+    pub subject: CheckedSubjectId,
+    /// Checked scope. It must be the invocation's scope.
+    pub scope: CheckScopeId,
     /// Checker receipt whose result is being attached.
     pub checker_receipt: CheckerReceiptId,
     /// Projection digests the proof consumes.
@@ -127,7 +134,10 @@ impl ProofCatalog {
     where
         F: FnMut(&CheckerReceiptId) -> RevocationStatus,
     {
-        self.leaf(&claim.proof)?;
+        let (definition, code) = {
+            let leaf = self.leaf(&claim.proof)?;
+            (bind::proof_definition(leaf), bind::proof_code(leaf))
+        };
         let retained = self.require_checker(&claim.checker_receipt, &mut revocation)?;
         let grade = retained.receipt().grade();
         if claim
@@ -142,17 +152,19 @@ impl ProofCatalog {
         let _telemetry = claim.telemetry.as_str();
         let definitions = discover_definitions(&claim.source_text)?;
         let selected = select_members(&definitions, &claim)?;
+        bind::require_invocation(retained.invocation(), &claim, &definition, &code, &selected)?;
         self.require_support_graph(&claim.supports, &mut revocation)?;
-        let universe = length_prefixed(
-            &selected
-                .iter()
-                .map(|row| row.semantic.clone())
-                .collect::<Vec<_>>(),
+        let universe = bind::universe_text(&selected, true);
+        let checker = bind::checker_preimage(
+            retained.binding().checker(),
+            retained.invocation().checker_code().content_id(),
         );
         let key = semantic(&canon(&[
-            ("proof", &digest(claim.proof.as_str())),
-            ("code", &hex(retained.receipt().checker_code().content_id())),
-            ("checker", &digest(retained.binding().checker())),
+            ("subject", &hex(claim.subject.content_id())),
+            ("scope", &hex(claim.scope.content_id())),
+            ("proof", &digest(&definition)),
+            ("proof-code", &digest(&code)),
+            ("checker", &digest(&checker)),
             ("inputs", &digest(&sorted_join(&claim.projections))),
             ("environment", &digest(claim.environment.as_str())),
             ("universe", &digest(&universe)),
@@ -450,9 +462,20 @@ fn grade_label(grade: EvidenceGrade) -> &'static str {
     }
 }
 
+#[path = "evidence_bind.rs"]
+mod bind;
+
+#[cfg(test)]
+#[path = "evidence_fixture.rs"]
+mod evidence_fixture;
+
 #[cfg(test)]
 #[path = "evidence_tests.rs"]
 mod evidence_tests;
+
+#[cfg(test)]
+#[path = "evidence_repair_tests.rs"]
+mod evidence_repair_tests;
 
 #[cfg(test)]
 #[path = "evidence_discover_tests.rs"]
