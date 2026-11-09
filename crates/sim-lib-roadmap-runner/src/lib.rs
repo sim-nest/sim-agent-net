@@ -84,6 +84,11 @@ pub use schedule_session::{
     Mode, ModelWorker, Session, WakeCause, WakeEvent, WorkerView,
 };
 pub use service::*;
+pub use sim_lib_exec::{
+    ProcessCancellation, SandboxAttempt, SandboxEvidence, SandboxLauncher, SandboxLimits,
+    SandboxRefusal, SandboxReport, SandboxRequest, SandboxResult,
+};
+pub use sim_lib_journal::MemoryBackend;
 pub use source::*;
 pub use status::*;
 pub use transact::{
