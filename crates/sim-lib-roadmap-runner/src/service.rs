@@ -6,7 +6,7 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use sim_kernel::ContentId;
+use sim_kernel::{ContentId, Symbol};
 use sim_lib_journal::JournalBackend;
 use sim_roadmap_core::PhaseId;
 use sim_roadmap_exec_core::{
@@ -30,8 +30,8 @@ mod drive_step;
 
 pub use drive::{
     DirectionHandoff, DirectionKind, DirectionQuestion, DirectionReply, DirectionRequest,
-    DriveResult, ExternalLineageRef, InputBatch, LineageView, RunSnapshot, SnapshotRead,
-    SnapshotRow, direction_shape,
+    DriveResult, EffectTicket, ExternalLineageRef, InputBatch, LineageView, Prepared, RunSnapshot,
+    SnapshotRead, SnapshotRow, direction_shape,
 };
 pub use sim_work_core::CapabilityGrant;
 
@@ -49,6 +49,7 @@ pub trait EffectPort {
         identity: &crate::ExecutionIdentity,
         phase: &PhaseId,
         current: &Transition,
+        product: Option<&Symbol>,
     ) -> Result<ExecutionEvent, ServiceError>;
     fn receipts(
         &self,
@@ -86,7 +87,7 @@ pub struct Inspection {
 pub struct RoadmapRunnerService<B, R, E, C> {
     journal: ExecutionJournal<B>,
     readiness: R,
-    effects: E,
+    effects: Arc<E>,
     cancellation: C,
     request: OpenRequest,
     transition: Transition,
@@ -109,6 +110,8 @@ pub struct RoadmapRunnerService<B, R, E, C> {
     handoff: Option<DirectionHandoff>,
     snapshots: Vec<RunSnapshot>,
     leases: Vec<Lease>,
+    /// Effect admitted by `prepare_effect` and not yet committed.
+    pending_effect: Option<String>,
 }
 
 impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
@@ -135,7 +138,7 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
         let mut service = Self {
             journal,
             readiness,
-            effects,
+            effects: Arc::new(effects),
             cancellation,
             request,
             transition: Transition::planned(opening_head.clone()),
@@ -159,6 +162,7 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
             handoff,
             snapshots: Vec::new(),
             leases: Vec::new(),
+            pending_effect: None,
         };
         if service.journal_uncertain()? {
             service.uncertain = true;
@@ -166,6 +170,16 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
         service.restore_execution()?;
         service.restore_direction()?;
         Ok(service)
+    }
+
+    /// Clone of the effect port. Invoke it with no borrow of this service.
+    pub fn effect_port(&self) -> Arc<E> {
+        Arc::clone(&self.effects)
+    }
+
+    /// An admitted effect has not committed. Reopen must leave that ticket in place.
+    pub fn effect_outstanding(&self) -> bool {
+        self.pending_effect.is_some()
     }
 
     pub fn inspect(&self) -> Result<Inspection, ServiceError> {
@@ -177,6 +191,9 @@ impl<B: JournalBackend, R: ReadinessPort, E: EffectPort, C: CancellationPort>
     }
 
     pub fn replay(&self) -> Result<Transition, ServiceError> {
+        if self.effect_outstanding() {
+            return Err(ServiceError::EffectOutstanding);
+        }
         let events = self.effects.receipts(&self.request.authority.identity)?;
         Ok(replay(
             &self.request.policy,
@@ -291,4 +308,6 @@ pub enum ServiceError {
     EffectUncertain,
     #[error("the restored execution has no reducer state")]
     RestoredTransition,
+    #[error("an admitted effect is still outstanding or the ticket does not match")]
+    EffectOutstanding,
 }

@@ -15,7 +15,7 @@
     impl ReadinessPort for Ready { fn admitted_leaf(&self, _: &ContentId) -> Result<Option<PhaseId>, ServiceError> { Ok(Some(self.0.clone())) } }
     struct Effects(Mutex<Vec<ExecutionEvent>>);
     impl EffectPort for Effects {
-        fn invoke(&self, identity: &ExecutionIdentity, phase: &PhaseId, _: &Transition) -> Result<ExecutionEvent, ServiceError> {
+        fn invoke(&self, identity: &ExecutionIdentity, phase: &PhaseId, _: &Transition, _: Option<&Symbol>) -> Result<ExecutionEvent, ServiceError> {
             let event = ExecutionEvent { execution: identity.execution.clone(), phase: phase.clone(), attempt: AttemptId::new("a").unwrap(), observation: Observation::new(Symbol::new("start"), id(20)) };
             self.0.lock().unwrap().push(event.clone()); Ok(event)
         }
@@ -31,7 +31,19 @@
     fn fake_and_service_boundaries_replay_identically_and_reject_identity_drift() {
         let request = request();
         let mut service = RoadmapRunnerService::open(Arc::new(MemoryBackend::new()), Ready(request.phase.clone()), Effects(Mutex::new(vec![])), Cancel(false), request.clone(), Limits::default()).unwrap();
-        let _advanced = service.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()).unwrap();
+        let effects = service.effect_port();
+        let prepared = service
+            .prepare_effect(&InputBatch::conduct(), &CapabilityGrant::default())
+            .unwrap();
+        let Prepared::Ready(ticket) = prepared else {
+            panic!("conduct should admit one effect");
+        };
+        let event = effects
+            .invoke(&ticket.identity, &ticket.leaf, &ticket.transition, ticket.product.as_ref())
+            .unwrap();
+        let _advanced = service
+            .commit_effect(&ticket, Ok(event), &InputBatch::conduct())
+            .unwrap();
         let advanced = service.inspect().unwrap();
         assert_eq!(advanced.transition, service.replay().unwrap());
         assert!(matches!(advanced.journal.records[1], ExecutionRecord::EffectRequested { .. }));

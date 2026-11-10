@@ -47,7 +47,24 @@ pub struct LocalRoadmapRequest {
     pub disposable_checkout: Option<String>,
     pub local_authority_token: Option<String>,
     pub identity: LocalExecutionIdentity,
+    /// Admitted `sim-selected-plan-v1` document. Absent keeps the receipt store.
+    pub plan: Option<String>,
+    /// One product for this call. `direction` publishes or accepts.
+    pub product: Option<String>,
+    /// Decision or advice text for a published direction request.
+    pub answer: Option<String>,
+    /// `advice` refuses. Any other value is a decision.
+    pub answer_kind: Option<String>,
+    /// When set, the direction reply names this revision instead of the published one.
+    pub named_revision: Option<String>,
 }
+
+/// Caller-supplied world prove or delivery step.
+///
+/// The runner executes its own catalog, revision, mutation, and landing.
+/// The loaded world and prove commands are this hook.
+pub type ProductHook =
+    std::sync::Arc<dyn Fn(&str) -> std::result::Result<(), String> + Send + Sync>;
 
 /// Bounded result record; identities are mandatory even for refusals.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -95,6 +112,9 @@ pub trait LocalRoadmapPort: Send + Sync {
 #[derive(Default)]
 pub struct PublicLocalRoadmapPort {
     executions: Mutex<BTreeMap<String, LocalRoadmapReceipt>>,
+    pub(crate) sessions: Mutex<BTreeMap<String, crate::selected::Session>>,
+    pub(crate) prove_hook: Option<ProductHook>,
+    pub(crate) deliver_hook: Option<ProductHook>,
 }
 impl LocalRoadmapPort for PublicLocalRoadmapPort {
     fn invoke(
@@ -104,6 +124,9 @@ impl LocalRoadmapPort for PublicLocalRoadmapPort {
     ) -> std::result::Result<LocalRoadmapReceipt, String> {
         if generation.identity() != request.identity.runner_generation {
             return Err("generation identity drift".into());
+        }
+        if request.plan.is_some() {
+            return crate::selected::conduct_request(self, request, generation);
         }
         let mut executions = self
             .executions
@@ -353,7 +376,24 @@ fn parse_cli(verb: &str, argv: &[String]) -> Result<LocalRoadmapRequest> {
             proof_catalog: required("--proof-catalog")?,
             runner_generation: required("--runner-generation")?,
         },
+        plan: value("--plan"),
+        product: value("--product"),
+        answer: value("--answer"),
+        answer_kind: value("--answer-kind"),
+        named_revision: value("--revision"),
     })
+}
+
+impl PublicLocalRoadmapPort {
+    /// Installs the loaded prove and delivery commands for a selected plan.
+    #[must_use]
+    pub fn with_products(prove: ProductHook, deliver: ProductHook) -> Self {
+        Self {
+            prove_hook: Some(prove),
+            deliver_hook: Some(deliver),
+            ..Self::default()
+        }
+    }
 }
 fn request_from_values(verb: &str, values: &[Value]) -> Result<LocalRoadmapRequest> {
     let args = values

@@ -14,14 +14,6 @@ use super::{
 };
 use crate::schedule::ResourceAsk;
 
-struct PanicWorker;
-
-impl ModelWorker for PanicWorker {
-    fn outcome(&self, id: &str) -> WorkerView {
-        panic!("worker called for {id}");
-    }
-}
-
 struct CountingWorker {
     calls: Arc<AtomicUsize>,
     view: WorkerView,
@@ -61,7 +53,6 @@ fn session(units: Vec<ProofUnit>, pools: &[(&str, u64)]) -> Session {
             .iter()
             .map(|(kind, amount)| ((*kind).to_owned(), *amount))
             .collect(),
-        Box::new(PanicWorker),
     )
     .unwrap()
 }
@@ -400,19 +391,23 @@ fn a_refused_control_does_not_commit_logical_time() {
 #[test]
 fn failed_outcome_is_not_retried() {
     let calls = Arc::new(AtomicUsize::new(0));
+    let worker = CountingWorker {
+        calls: Arc::clone(&calls),
+        view: WorkerView::Failed,
+    };
     let mut scheduler = Session::new(
         vec![unit("a", 1, &[])],
         BTreeSet::from(["run".to_owned()]),
         BTreeMap::new(),
-        Box::new(CountingWorker {
-            calls: Arc::clone(&calls),
-            view: WorkerView::Failed,
-        }),
     )
     .unwrap();
     scheduler.admit_next(LogicalTime(0)).unwrap();
-    assert_eq!(scheduler.collect_outcome("a").unwrap(), WorkerView::Failed);
-    assert!(scheduler.collect_outcome("a").is_err());
+    let view = worker.outcome("a");
+    assert_eq!(
+        scheduler.deliver_outcome("a", view).unwrap(),
+        WorkerView::Failed
+    );
+    assert!(scheduler.deliver_outcome("a", view).is_err());
     assert_eq!(scheduler.failure_set(10).unwrap().failures.len(), 1);
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
@@ -420,18 +415,22 @@ fn failed_outcome_is_not_retried() {
 #[test]
 fn blocked_worker_view_changes_nothing() {
     let calls = Arc::new(AtomicUsize::new(0));
+    let worker = CountingWorker {
+        calls: Arc::clone(&calls),
+        view: WorkerView::Blocked,
+    };
     let mut scheduler = Session::new(
         vec![unit("a", 1, &[])],
         BTreeSet::from(["run".to_owned()]),
         BTreeMap::new(),
-        Box::new(CountingWorker {
-            calls: Arc::clone(&calls),
-            view: WorkerView::Blocked,
-        }),
     )
     .unwrap();
     scheduler.admit_next(LogicalTime(0)).unwrap();
-    assert_eq!(scheduler.collect_outcome("a").unwrap(), WorkerView::Blocked);
+    let view = worker.outcome("a");
+    assert_eq!(
+        scheduler.deliver_outcome("a", view).unwrap(),
+        WorkerView::Blocked
+    );
     assert!(scheduler.failure_set(10).unwrap().failures.is_empty());
     assert_eq!(scheduler.work_len(), 1);
     assert_eq!(calls.load(Ordering::SeqCst), 1);

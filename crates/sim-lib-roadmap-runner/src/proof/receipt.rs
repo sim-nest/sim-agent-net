@@ -79,6 +79,10 @@ impl RetainedCheckerReceipt {
         &self.binding
     }
 
+    pub(super) const fn invocation(&self) -> &CheckInvocation {
+        &self.invocation
+    }
+
     pub(super) const fn receipt(&self) -> &CheckerReceipt {
         &self.receipt
     }

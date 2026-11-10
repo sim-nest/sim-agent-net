@@ -67,7 +67,7 @@ title = "Durable fenced roadmap execution journal"
 summary = "Reduce canonical journal facts into cause-only semantic deltas, persistent evidence roots, verified snapshots, and explicit retention roots with effect-free fail-closed replay."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
-guidance = "Open ExecutionJournal with every conduct, policy, source-deck, model-pick, and runner-generation pin. Use append_delta for semantic changes: unchanged revisions preserve the head and write nothing. Evidence is accumulated into a persistent semantic set root; snapshot writes a checked content-addressed reducer image. Consume RebuiltExecution retention roots as the reachability contract and keep TelemetrySink outside the durable journal. Replay after any fence conflict; identity drift requires the deterministic child id and never mutates an existing execution."
+guidance = "Open ExecutionJournal with every conduct, policy, source-deck, model-pick, and runner-generation pin. Use append_delta for semantic changes: unchanged revisions preserve the head and write nothing. Evidence is accumulated into a persistent semantic set root; snapshot writes a checked content-addressed reducer image. Rebuild and rebuild_report share one chain pass. A verified snapshot equals the covered fact map and evidence root, later deltas are the only ones applied, and an evidence-root change adds only a new member stored under that member's identity. Consume RebuiltExecution retention roots as the reachability contract and keep TelemetrySink outside the durable journal. Replay after any fence conflict; identity drift requires the deterministic child id and never mutates an existing execution."
 claims_anchors = []
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/journal_contract_tests"]
 depends_on = ["feature/sim-agent-net/pure-roadmap-execution"]
@@ -108,7 +108,7 @@ title = "Bounded roadmap runner service"
 summary = "Advance one compiled-plan-admitted roadmap leaf through content-pinned adapters, provenance-preserving authority ceilings, intent-first journaling, and the pure execution reducer."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
-guidance = "Open RoadmapRunnerService with a complete ExecutionIdentity and the pointwise EffectiveCeiling derived from caller, roadmap, conduct, model-site, sandbox, and operator layers. Call advance_one_effect with one input batch and one capability grant. One call performs one admitted effect or one pure transition, and a no-change wake starts nothing. ReadinessPort remains the only scheduler and EffectPort returns observations rather than state. Resume only with identical content pins, a fresh caller grant, and an equal-or-narrower ceiling. Use replay and inspect for observation. Inspection is a projection."
+guidance = "Open RoadmapRunnerService with a complete ExecutionIdentity and the pointwise EffectiveCeiling derived from caller, roadmap, conduct, model-site, sandbox, and operator layers. Call conduct_one with one input batch and one capability grant. The batch may name one opaque product. conduct_one prepares the effect, invokes the port with no borrow of the service, then commits. One call performs one admitted effect or one pure transition, and a no-change wake starts nothing. ReadinessPort remains the only scheduler and EffectPort returns observations rather than state. Resume only with identical content pins, a fresh caller grant, and an equal-or-narrower ceiling. Use replay and inspect for observation. Inspection is a projection."
 claims_anchors = ["anchor/crate/sim-lib-roadmap-runner"]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/tests"]
 depends_on = ["feature/sim-agent-net/durable-roadmap-execution-journal", "feature/sim-agent-net/pure-roadmap-execution"]
@@ -128,7 +128,7 @@ title = "Loadable local-only roadmap runner"
 summary = "Expose Shape-described run, resume, status, explain, and replay services with pinned conduct, model, proof, and hotload-generation identities and no delivery authority."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["framework", "product"]
-guidance = "Load LocalRoadmapRunnerLib through the sim bootloader. Use --observe or replay for effect-free work. Supply both --disposable-checkout and --local-authority-token for mutation. Treat the identities repeated in every receipt as the execution boundary; a resumed execution never adopts a new generation."
+guidance = "Load LocalRoadmapRunnerLib through the sim bootloader. Without a plan, use --observe or replay for effect-free work, and supply both --disposable-checkout and --local-authority-token for a mutation receipt. With an admitted sim-selected-plan-v1 document, each call admits one product: direction, proof, mutation, landing, delivery, or recovery. Proof, mutation, landing, and recovery use the runner catalog, revision, and model store. A prove or world document runs only through a loaded product hook. Treat the identities repeated in every receipt as the execution boundary; a resumed execution never adopts a new generation."
 claims_anchors = [
   "anchor/export/sim-lib-roadmap-runner/cli/main/roadmap",
   "anchor/runtime-lib/sim-lib-roadmap-runner/local-roadmap-runner-lib",
@@ -404,7 +404,7 @@ title = "Bounded work packet admission"
 summary = "Derive one work packet from canonical input and admit it through the typed builder at the receiving worker."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
-guidance = "Call receive_work with one canonical input, an input port, a model worker, and a proposal model. Lengths, identities, paths, roles, status, resources, and the receiver selector come from that input. Oversize input and a wrong namespace, role, copy, status, or schema refuse before the port is read. Incomplete output keeps the packet evidence. Malformed returns stop at the attempt ceiling, and a retry that does not narrow refuses. A model proposal that carries an effect or an approval refuses. Mirror agreement does not authorize any of those refusals. The call does not open another controller."
+guidance = "Call receive_work with one canonical input, an input port, a model worker, and a proposal model. Lengths, identities, paths, roles, status, resources, and the receiver selector come from that input. Oversize input and a wrong namespace, role, copy, status, or schema refuse before the port is read. Incomplete output within the output ceiling keeps the packet evidence. A body longer than that ceiling, whether incomplete, malformed, or a proposal, returns the ceiling with a bounded prefix, the full length, and the identity of the original bytes. Malformed returns inside the ceiling stop at the attempt ceiling, and a retry that does not narrow refuses. A model proposal that carries an effect or an approval refuses. Mirror agreement does not authorize any of those refusals. The call does not open another controller."
 claims_anchors = []
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_tests",
@@ -438,7 +438,7 @@ title = "Quiescent one-effect driver"
 summary = "One advance records one admitted effect or one pure transition, and a wake that changes nothing starts no effect."
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
-guidance = "Call advance_one_effect with the offered wakes, an optional direction reply, and the capability grant. A call records one effect or one pure transition. A no-change wake appends nothing. A resource wait holds no lease and resumes once when a new positive offer arrives. Stale, wrong, replayed, and advisory direction replies refuse. An informational reply records no cause and does not change state. read_snapshot pages the journal's verified snapshot and does not splice a later revision. lineage reports a gap when a referenced value is absent. Inspection reads the last result and does not conduct."
+guidance = "Call conduct_one with the offered wakes, an optional direction reply, an optional opaque product, and the capability grant. A call records one effect or one pure transition. A no-change wake appends nothing. A resource wait holds no lease and resumes once when a new positive offer arrives. Stale, wrong, replayed, and advisory direction replies refuse. An informational reply records no cause and does not change state. read_snapshot pages the journal's verified snapshot and does not splice a later revision. lineage reports a gap when a referenced value is absent. Inspection reads the last result and does not conduct."
 claims_anchors = []
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/drive_tests",

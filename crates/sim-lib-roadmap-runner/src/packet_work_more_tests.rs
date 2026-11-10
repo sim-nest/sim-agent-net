@@ -183,6 +183,43 @@ fn resource_named_as_approval_refuses_before_capture() {
 }
 
 #[test]
+fn oversize_incomplete_malformed_and_proposal_stop_at_the_output_ceiling() {
+    let body = b"0123456789abcdef".to_vec();
+    let identity = sim_conformance_packet::StorageId::for_bytes(&body);
+    for variant in [
+        ModelBody::Incomplete(body.clone()),
+        ModelBody::Malformed(body.clone()),
+        ModelBody::Proposal(body.clone()),
+    ] {
+        let mut input = work(b"exact source");
+        input.budget_output = 4;
+        let mut port = preload(&input);
+        let worker = Views {
+            views: vec![WorkerView::Passed],
+            calls: Cell::new(0),
+        };
+        let proposals = Returns {
+            items: RefCell::new(vec![ModelReturn {
+                seen: Vec::new(),
+                body: variant,
+                unresolved: 1,
+            }]),
+            calls: Cell::new(0),
+        };
+        assert_eq!(
+            receive_work(&input, &mut port, &worker, &proposals).unwrap_err(),
+            WorkReceiveError::OutputBudget {
+                attempts: 1,
+                capture: b"0123".to_vec(),
+                length: u64::try_from(body.len()).unwrap(),
+                identity: identity.clone(),
+            }
+        );
+        assert_eq!(proposals.calls.get(), 1);
+    }
+}
+
+#[test]
 fn invalid_resource_name_is_schema_before_capture() {
     for kind in ["", "../slot"] {
         let mut input = work(b"exact source");

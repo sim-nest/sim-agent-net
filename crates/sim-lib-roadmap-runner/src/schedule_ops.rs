@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     CLEANUP_BEAT, ControlEntry, ControlIntent, Lease, Liveness, LogicalTime, MAX_CLEANUP_BEATS,
-    Mode, STALL_AFTER, Session, WakeCause,
+    Mode, STALL_AFTER, Session, WakeCause, WorkerView,
 };
 use crate::schedule::{ProofOutcome, ProofUnit, ScheduleError, legal_order};
 
@@ -322,6 +322,29 @@ impl Session {
             Mode::Draining => Some("draining"),
             Mode::Paused => Some("paused"),
             Mode::Stopping | Mode::Stopped => Some("stopped"),
+        }
+    }
+
+    /// Record a view the caller already obtained. This does not call a worker.
+    pub fn deliver_outcome(
+        &mut self,
+        id: &str,
+        view: WorkerView,
+    ) -> Result<WorkerView, ScheduleError> {
+        self.ensure_outcome_allowed()?;
+        if !self.work.iter().any(|item| item == id) {
+            return Err(ScheduleError::Refused("not-admitted"));
+        }
+        match view {
+            WorkerView::Blocked => Ok(WorkerView::Blocked),
+            WorkerView::Passed => {
+                self.store_outcome(id, ProofOutcome::Passed)?;
+                Ok(WorkerView::Passed)
+            }
+            WorkerView::Failed => {
+                self.store_outcome(id, ProofOutcome::Failed)?;
+                Ok(WorkerView::Failed)
+            }
         }
     }
 

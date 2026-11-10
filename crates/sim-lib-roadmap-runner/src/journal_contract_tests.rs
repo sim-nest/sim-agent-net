@@ -10,8 +10,8 @@ use std::{
 
 use sim_kernel::{ContentId, Datum, Symbol};
 use sim_lib_journal::{
-    Admission, JournalBackend, JournalError, JournalHead, JournalObject, Lease, MemoryBackend,
-    StoredDatumRef, StoredState,
+    Admission, JournalBackend, JournalEntry, JournalError, JournalHead, JournalObject, Lease,
+    MemoryBackend, StoredDatumRef, StoredState,
 };
 
 use crate::{
@@ -19,11 +19,11 @@ use crate::{
     SemanticChange, TelemetryEvent, TelemetrySink,
 };
 
-fn content(byte: u8) -> ContentId {
+pub(crate) fn content(byte: u8) -> ContentId {
     ContentId::from_bytes(Symbol::qualified("deck", "sha256-v1"), [byte; 32])
 }
 
-fn pins() -> ExecutionPins {
+pub(crate) fn pins() -> ExecutionPins {
     ExecutionPins {
         conduct: "conduct".into(),
         policy: "policy".into(),
@@ -148,6 +148,139 @@ fn verified_snapshot_rebuilds_and_missing_snapshot_content_fails_closed() {
                 JournalError::MissingSemanticObject(_) | JournalError::MissingPayload(_)
             ))
     ));
+}
+
+#[test]
+fn empty_snapshot_roots_do_not_replace_covered_facts() {
+    let backend = Arc::new(MemoryBackend::new());
+    let journal = ExecutionJournal::new(backend.clone(), "covered", Limits::default());
+    let opened = journal.open(pins(), None).unwrap();
+    let DeltaAppend::Appended(delta_head) = journal
+        .append_delta(
+            &opened.head,
+            "fact/change",
+            vec![SemanticChange {
+                key: "answer".into(),
+                before: None,
+                after: Some(content(4)),
+            }],
+            BTreeSet::new(),
+        )
+        .unwrap()
+    else {
+        panic!("delta must append")
+    };
+    journal.snapshot(&delta_head).unwrap();
+    let mut state = backend.read_state().unwrap();
+    let head = state.head.clone().unwrap();
+    let entry = state.entries.get(&head.sequence).unwrap().clone();
+    let record_datum = state
+        .datums
+        .get(&entry.payloads[0])
+        .expect("snapshot record")
+        .clone();
+    let (_execution, record) = crate::codec::decode_datum(&record_datum).unwrap();
+    let ExecutionRecord::Snapshot { covers, .. } = record else {
+        panic!("snapshot entry");
+    };
+    let empty = crate::journal_share::empty_id();
+    let object =
+        JournalObject::from_datum(crate::journal_share::snapshot_datum(&empty, &empty)).unwrap();
+    let replacement = ExecutionRecord::Snapshot {
+        covers,
+        state: object.id.clone(),
+        evidence_set: empty,
+    };
+    let record_object =
+        JournalObject::from_datum(crate::codec::encode_datum("covered", &replacement)).unwrap();
+    let rewritten = JournalEntry::new(
+        entry.sequence,
+        entry.previous.clone(),
+        entry.kind.clone(),
+        vec![record_object.id.clone(), object.id.clone()],
+    );
+    state
+        .datums
+        .insert(record_object.id.clone(), record_object.datum().clone());
+    state
+        .objects
+        .insert(record_object.id.clone(), record_object.bytes.clone());
+    state
+        .datums
+        .insert(object.id.clone(), object.datum().clone());
+    state
+        .objects
+        .insert(object.id.clone(), object.bytes.clone());
+    state.head = Some(JournalHead {
+        sequence: rewritten.sequence,
+        entry: rewritten.id.clone(),
+    });
+    state.entries.insert(rewritten.sequence, rewritten);
+    let Err(fault) = crate::journal_replay::fold("covered", &Limits::default(), &state) else {
+        panic!("empty snapshot roots replaced covered facts");
+    };
+    assert!(
+        matches!(
+            fault.error.as_ref(),
+            ExecutionJournalError::Semantic("snapshot covered state")
+        ),
+        "{:?}",
+        fault.error
+    );
+}
+
+#[test]
+fn thirty_effect_receipts_replay_through_the_law_cursor() {
+    let journal = ExecutionJournal::new(
+        Arc::new(MemoryBackend::new()),
+        "receipts",
+        Limits::default(),
+    );
+    let mut head = journal.open(pins(), None).unwrap().head;
+    for index in 0..30 {
+        let effect_id = format!("effect/{index}");
+        head = journal
+            .append(
+                Some(&head),
+                ExecutionRecord::EffectRequested {
+                    effect_id: effect_id.clone(),
+                    kind: "read".into(),
+                    input: None,
+                },
+                vec![],
+            )
+            .unwrap();
+        head = journal
+            .append(
+                Some(&head),
+                ExecutionRecord::EffectReceipt {
+                    effect_id,
+                    outcome: "done".into(),
+                    output: None,
+                },
+                vec![],
+            )
+            .unwrap();
+    }
+    let duplicate = journal.append(
+        Some(&head),
+        ExecutionRecord::EffectReceipt {
+            effect_id: "effect/0".into(),
+            outcome: "again".into(),
+            output: None,
+        },
+        vec![],
+    );
+    assert!(matches!(
+        duplicate,
+        Err(ExecutionJournalError::Illegal {
+            reason: "receipt must match one unresolved request",
+            ..
+        })
+    ));
+    let rebuilt = journal.rebuild().unwrap();
+    assert_eq!(rebuilt.records.len(), 61);
+    assert_eq!(rebuilt.head, head);
 }
 
 #[test]

@@ -26,6 +26,8 @@ pub struct LogicalTime(pub u64);
 pub const STALL_AFTER: u64 = 30;
 /// Cleanup observations are split so consecutive beats stay inside this gap.
 pub const CLEANUP_BEAT: u64 = 4;
+/// Admitted units that have not finished. Further admission refuses.
+pub const MAX_ADMITTED: usize = 64;
 const MAX_CLEANUP_BEATS: usize = 4096;
 
 /// Control carried on the independent log.
@@ -103,18 +105,22 @@ pub enum Admit {
     Refused(&'static str),
 }
 
-/// Model of a worker result. `Blocked` means the worker has not returned.
+/// Model of a worker result delivered by the caller.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WorkerView {
     /// The worker reported a pass.
     Passed,
     /// The worker reported a failure.
     Failed,
-    /// The worker has not returned.
+    /// The caller still has no finished result. Delivering this changes nothing.
     Blocked,
 }
 
-/// Model worker. Control application does not call this trait.
+/// Model worker. The session does not call this trait.
+///
+/// The caller runs `outcome` with no borrow of [`Session`], then delivers the
+/// view. A call that does not return never reaches delivery, and control
+/// methods stay available on the session.
 pub trait ModelWorker {
     /// Return the worker's current view of one unit.
     fn outcome(&self, id: &str) -> WorkerView;
@@ -233,16 +239,14 @@ pub struct Session {
     cleanup_origin: Option<u64>,
     last_cleanup: Option<u64>,
     lease_seq: u64,
-    worker: Box<dyn ModelWorker>,
 }
 
 impl Session {
-    /// Build a session. The worker is stored and is not called here.
+    /// Build a session. No worker is stored or called.
     pub fn new(
         units: Vec<ProofUnit>,
         capabilities: BTreeSet<String>,
         pools: BTreeMap<String, u64>,
-        worker: Box<dyn ModelWorker>,
     ) -> Result<Self, ScheduleError> {
         failure_frontier(&units, &BTreeMap::new(), &capabilities, &BTreeSet::new(), 0)?;
         Ok(Self {
@@ -264,7 +268,6 @@ impl Session {
             cleanup_origin: None,
             last_cleanup: None,
             lease_seq: 0,
-            worker,
         })
     }
 
@@ -347,6 +350,9 @@ impl Session {
             if self.work.iter().any(|item| item == &id) {
                 continue;
             }
+            if self.work.len() >= MAX_ADMITTED {
+                return Ok(Admit::Refused("admission-bound"));
+            }
             match self.try_grant(&id)? {
                 None => {
                     self.waiting.remove(&id);
@@ -376,26 +382,6 @@ impl Session {
     pub fn report(&mut self, id: &str, outcome: ProofOutcome) -> Result<(), ScheduleError> {
         self.ensure_outcome_allowed()?;
         self.store_outcome(id, outcome)
-    }
-
-    /// Ask the model worker once. A blocked view changes no outcome and starts no retry.
-    pub fn collect_outcome(&mut self, id: &str) -> Result<WorkerView, ScheduleError> {
-        self.ensure_outcome_allowed()?;
-        if !self.work.iter().any(|item| item == id) {
-            return Err(ScheduleError::Refused("not-admitted"));
-        }
-        let view = self.worker.outcome(id);
-        match view {
-            WorkerView::Blocked => Ok(WorkerView::Blocked),
-            WorkerView::Passed => {
-                self.store_outcome(id, ProofOutcome::Passed)?;
-                Ok(WorkerView::Passed)
-            }
-            WorkerView::Failed => {
-                self.store_outcome(id, ProofOutcome::Failed)?;
-                Ok(WorkerView::Failed)
-            }
-        }
     }
 
     /// Apply one control intent. The worker is not consulted.

@@ -5,6 +5,7 @@
 
 // conformance: one advance performs one effect or one pure transition.
 
+use super::drive_harness::advance_one_effect;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -86,6 +87,7 @@ impl EffectPort for Remembered {
         identity: &ExecutionIdentity,
         phase: &PhaseId,
         _: &sim_roadmap_exec_core::Transition,
+        _: Option<&Symbol>,
     ) -> Result<ExecutionEvent, ServiceError> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         let event = ExecutionEvent {
@@ -136,9 +138,12 @@ fn empty_receipts_refuse_the_next_effect_without_a_new_request() {
         Limits::default(),
     )
     .unwrap();
-    service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert_eq!(
         service.inspect().unwrap().transition.state,
         PhaseRunState::Running
@@ -159,11 +164,19 @@ fn empty_receipts_refuse_the_next_effect_without_a_new_request() {
         PhaseRunState::Running
     );
     assert!(matches!(
-        reopened.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut reopened,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Err(ServiceError::RestoredTransition)
     ));
     assert!(matches!(
-        reopened.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut reopened,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Err(ServiceError::RestoredTransition)
     ));
     assert_eq!(record_len(&reopened), kept);
@@ -191,9 +204,12 @@ fn recorded_receipts_rebuild_the_reducer_on_open() {
         Limits::default(),
     )
     .unwrap();
-    service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     let reopened = RoadmapRunnerService::open(
         backend,
         Ready(phase),
@@ -226,9 +242,12 @@ fn resume_keeps_the_restored_phase() {
         Limits::default(),
     )
     .unwrap();
-    service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     let mut reopened = RoadmapRunnerService::open(
         backend,
         Ready(open_request.phase.clone()),
@@ -262,17 +281,14 @@ fn reopened_direction_answer_stays_quiescent() {
         Limits::default(),
     )
     .unwrap();
-    let DriveResult::NeedDirection { request: published } = service
-        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
-        .unwrap()
+    let DriveResult::NeedDirection { request: published } =
+        advance_one_effect(&mut service, &InputBatch::conduct(), &grant("decide")).unwrap()
     else {
         panic!("direction was not published");
     };
     let mut batch = InputBatch::no_change();
     batch.reply = Some(reply(&published, DirectionKind::Decision, "yes"));
-    service
-        .advance_one_effect(&batch, &grant("decide"))
-        .unwrap();
+    advance_one_effect(&mut service, &batch, &grant("decide")).unwrap();
     let after = record_len(&service);
     let revision = service.revision().clone();
     let mut reopened = RoadmapRunnerService::open(
@@ -285,19 +301,17 @@ fn reopened_direction_answer_stays_quiescent() {
     )
     .unwrap();
     assert_eq!(reopened.revision(), &revision);
-    let same = reopened
-        .advance_one_effect(&batch, &grant("decide"))
-        .unwrap();
+    let same = advance_one_effect(&mut reopened, &batch, &grant("decide")).unwrap();
     assert!(matches!(same, DriveResult::Quiescent { .. }));
     assert_eq!(record_len(&reopened), after);
     batch.reply = Some(reply(&published, DirectionKind::Decision, "no"));
     assert!(matches!(
-        reopened.advance_one_effect(&batch, &grant("decide")),
+        advance_one_effect(&mut reopened, &batch, &grant("decide")),
         Err(ServiceError::ReplayedDirection)
     ));
     batch.reply = Some(reply(&published, DirectionKind::Decision, ""));
     assert!(matches!(
-        reopened.advance_one_effect(&batch, &grant("decide")),
+        advance_one_effect(&mut reopened, &batch, &grant("decide")),
         Err(ServiceError::ReplayedDirection)
     ));
     assert_eq!(record_len(&reopened), after);
@@ -309,9 +323,8 @@ fn assert_armed_stop(
     calls: &AtomicUsize,
 ) {
     let before = record_len(service);
-    let driven = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    let driven =
+        advance_one_effect(service, &InputBatch::conduct(), &CapabilityGrant::default()).unwrap();
     assert!(matches!(driven, DriveResult::Advanced { .. }));
     assert_eq!(service.mode(), Mode::Stopped);
     assert_eq!(stop_count(service), 1);
@@ -319,9 +332,8 @@ fn assert_armed_stop(
     assert!(record_len(service) > before);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
     let after = record_len(service);
-    let again = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    let again =
+        advance_one_effect(service, &InputBatch::conduct(), &CapabilityGrant::default()).unwrap();
     assert!(matches!(again, DriveResult::Quiescent { .. }));
     assert_eq!(record_len(service), after);
     assert_eq!(service.mode(), Mode::Stopped);
@@ -343,7 +355,7 @@ fn cancellation_stops_a_direction_wait() {
     )
     .unwrap();
     assert!(matches!(
-        service.advance_one_effect(&InputBatch::conduct(), &grant("decide")),
+        advance_one_effect(&mut service, &InputBatch::conduct(), &grant("decide")),
         Ok(DriveResult::NeedDirection { .. })
     ));
     armed.store(true, Ordering::SeqCst);
@@ -369,7 +381,11 @@ fn cancellation_stops_a_resource_wait() {
     )
     .unwrap();
     assert!(matches!(
-        service.advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default()),
+        advance_one_effect(
+            &mut service,
+            &InputBatch::conduct(),
+            &CapabilityGrant::default()
+        ),
         Ok(DriveResult::Blocked { .. })
     ));
     armed.store(true, Ordering::SeqCst);
@@ -392,9 +408,7 @@ fn cancellation_stops_while_paused() {
     .unwrap();
     let mut pause = InputBatch::no_change();
     pause.wakes.push(WakeEvent::Control(ControlIntent::Pause));
-    service
-        .advance_one_effect(&pause, &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(&mut service, &pause, &CapabilityGrant::default()).unwrap();
     assert_eq!(service.mode(), Mode::Paused);
     armed.store(true, Ordering::SeqCst);
     assert_armed_stop(&mut service, &calls);

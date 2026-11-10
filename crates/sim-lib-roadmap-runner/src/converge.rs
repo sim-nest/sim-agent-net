@@ -5,11 +5,14 @@
 
 //! Accepted revisions over disposable postimages.
 //!
-//! A proposal is data. The accepted images and closed claims change only when
-//! a different checker commits a sealed plan whose bytes differ and whose
-//! image has not been seen. Identical bytes are a repeated image and are not
-//! sealed. A stop before that commit, an incomplete body, a malformed body,
-//! or a repeated image leaves the accepted revision in place.
+//! A proposal is data. The accepted images change only when a different
+//! checker commits a sealed plan whose bytes differ and whose image has not
+//! been seen. Identical bytes are a repeated image and are not sealed. A
+//! changed input opens only the claims that read it. Those claims close again
+//! only through [`attach_proofs`], when a catalog leaf checks their current
+//! input bytes. A stop before commit, an incomplete body, a malformed body,
+//! or a repeated image leaves the accepted revision in place. Seen images,
+//! seen revisions, and malformed history stay across that reclosure.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -22,9 +25,12 @@ use crate::{
     FailureFrontier, MutationError, ProofOutcome, ProofUnit, ScheduleError, failure_frontier,
 };
 
+#[path = "converge_close.rs"]
+mod close_body;
 #[path = "converge_propose.rs"]
 mod propose_body;
 
+pub use close_body::{AttachError, AttachStep, ProofAttachment, attach_proofs};
 pub use propose_body::propose;
 
 /// Fact that stores the source-seal bytes inside an accepted image.
@@ -93,7 +99,8 @@ pub struct ClaimState {
     pub digest: Option<ContentId>,
 }
 
-/// Accepted revision. Images and claims change only inside [`propose`].
+/// Accepted revision. Images change only inside [`propose`].
+/// Claims open inside [`propose`] and close inside [`attach_proofs`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Revision {
     /// Identity of the seal, the image, and each claim's id, closure, digest, and inputs.
@@ -466,3 +473,15 @@ mod converge_tests;
 #[cfg(test)]
 #[path = "converge_gate_tests.rs"]
 mod converge_gate_tests;
+
+#[cfg(test)]
+#[path = "converge_close_fixture.rs"]
+mod close_fixture;
+
+#[cfg(test)]
+#[path = "converge_close_tests.rs"]
+mod converge_close_tests;
+
+#[cfg(test)]
+#[path = "converge_close_gate_tests.rs"]
+mod converge_close_gate_tests;

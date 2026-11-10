@@ -11,6 +11,8 @@ use sim_artifact_facet::{
     RegionOwnership, RegionSelector,
 };
 
+use sim_kernel::{ContentId, Datum, Symbol};
+
 use super::{FactGenerator, FixedError, FixedSeal, FixedStep, seal_fixed_point};
 use crate::{OpenClaim, ProofOutcome, Revision, RevisionOpen, SOURCE_SEAL, open_revision, seal_id};
 
@@ -70,6 +72,27 @@ impl FactGenerator for Gen {
 
     fn writes(&self) -> &BTreeSet<String> {
         &self.writes
+    }
+
+    fn implementation(&self) -> ContentId {
+        let facts = self
+            .output
+            .borrow()
+            .iter()
+            .map(|(path, bytes)| Datum::Node {
+                tag: Symbol::qualified("roadmap-runner", "QualifiedOutputV1"),
+                fields: vec![
+                    (Symbol::new("path"), Datum::String(path.clone())),
+                    (Symbol::new("bytes"), Datum::Bytes(bytes.clone())),
+                ],
+            })
+            .collect();
+        Datum::Node {
+            tag: Symbol::qualified("roadmap-runner", "GeneratorImplV1"),
+            fields: vec![(Symbol::new("output"), Datum::List(facts))],
+        }
+        .content_id()
+        .expect("qualified implementation")
     }
 
     fn generate(&self, source: &BTreeMap<String, Vec<u8>>) -> BTreeMap<String, Vec<u8>> {

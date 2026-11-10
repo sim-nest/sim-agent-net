@@ -5,6 +5,7 @@
 
 // conformance: one advance performs one effect or one pure transition.
 
+use super::drive_harness::advance_one_effect;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -78,6 +79,7 @@ impl EffectPort for CountEffects {
         identity: &ExecutionIdentity,
         phase: &PhaseId,
         _: &sim_roadmap_exec_core::Transition,
+        _: Option<&Symbol>,
     ) -> Result<ExecutionEvent, ServiceError> {
         self.0.fetch_add(1, Ordering::SeqCst);
         Ok(ExecutionEvent {
@@ -99,6 +101,7 @@ impl EffectPort for FailEffects {
         _: &ExecutionIdentity,
         _: &PhaseId,
         _: &sim_roadmap_exec_core::Transition,
+        _: Option<&Symbol>,
     ) -> Result<ExecutionEvent, ServiceError> {
         self.0.fetch_add(1, Ordering::SeqCst);
         Err(ServiceError::Adapter("unavailable".into()))
@@ -162,6 +165,7 @@ impl EffectPort for RejectEffects {
         identity: &ExecutionIdentity,
         phase: &PhaseId,
         _: &sim_roadmap_exec_core::Transition,
+        _: Option<&Symbol>,
     ) -> Result<ExecutionEvent, ServiceError> {
         self.0.fetch_add(1, Ordering::SeqCst);
         Ok(ExecutionEvent {
@@ -228,9 +232,12 @@ fn no_change_wake_starts_nothing() {
     let calls = Arc::new(AtomicUsize::new(0));
     let mut service = open_count(request(), Arc::clone(&calls));
     let before = service.inspect().unwrap().journal.records.len();
-    let driven = service
-        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
-        .unwrap();
+    let driven = advance_one_effect(
+        &mut service,
+        &InputBatch::no_change(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(driven, DriveResult::Quiescent { .. }));
     assert_eq!(service.inspect().unwrap().journal.records.len(), before);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -249,14 +256,20 @@ fn resource_wait_resumes_once_on_a_material_offer() {
     });
     let calls = Arc::new(AtomicUsize::new(0));
     let mut service = open_count(open_request, Arc::clone(&calls));
-    let blocked = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    let blocked = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(blocked, DriveResult::Blocked { .. }));
     assert!(service.leases().is_empty());
-    let quiet = service
-        .advance_one_effect(&InputBatch::no_change(), &CapabilityGrant::default())
-        .unwrap();
+    let quiet = advance_one_effect(
+        &mut service,
+        &InputBatch::no_change(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(
         quiet,
         DriveResult::Quiescent { wake_on } if wake_on.contains(&WakeCause::ResourceOffer)
@@ -266,22 +279,16 @@ fn resource_wait_resumes_once_on_a_material_offer() {
         kind: "slot".into(),
         amount: 0,
     });
-    service
-        .advance_one_effect(&zero, &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(&mut service, &zero, &CapabilityGrant::default()).unwrap();
     assert_eq!(calls.load(Ordering::SeqCst), 0);
     let mut offer = InputBatch::no_change();
     offer.wakes.push(WakeEvent::ResourceOffer {
         kind: "slot".into(),
         amount: 2,
     });
-    let resumed = service
-        .advance_one_effect(&offer, &CapabilityGrant::default())
-        .unwrap();
+    let resumed = advance_one_effect(&mut service, &offer, &CapabilityGrant::default()).unwrap();
     assert!(matches!(resumed, DriveResult::Advanced { .. }));
-    service
-        .advance_one_effect(&offer, &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(&mut service, &offer, &CapabilityGrant::default()).unwrap();
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert!(service.leases().is_empty());
     let _: &[Lease] = service.leases();
@@ -293,16 +300,13 @@ fn direction_refuses_stale_wrong_replayed_and_advisory_answers() {
     open_request.direction = Some(question(Some(Symbol::new("decide"))));
     let calls = Arc::new(AtomicUsize::new(0));
     let mut service = open_count(open_request, Arc::clone(&calls));
-    let published = service
-        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
-        .unwrap();
+    let published =
+        advance_one_effect(&mut service, &InputBatch::conduct(), &grant("decide")).unwrap();
     let DriveResult::NeedDirection { request } = published else {
         panic!("direction was not published");
     };
     let published_len = service.inspect().unwrap().journal.records.len();
-    service
-        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
-        .unwrap();
+    advance_one_effect(&mut service, &InputBatch::conduct(), &grant("decide")).unwrap();
     assert_eq!(
         service.inspect().unwrap().journal.records.len(),
         published_len
@@ -312,19 +316,19 @@ fn direction_refuses_stale_wrong_replayed_and_advisory_answers() {
     let mut batch = InputBatch::no_change();
     batch.reply = Some(wrong);
     assert!(matches!(
-        service.advance_one_effect(&batch, &grant("decide")),
+        advance_one_effect(&mut service, &batch, &grant("decide")),
         Err(ServiceError::WrongDirection)
     ));
     batch.reply = Some(reply(&request, DirectionKind::Advice, "maybe"));
     assert!(matches!(
-        service.advance_one_effect(&batch, &grant("decide")),
+        advance_one_effect(&mut service, &batch, &grant("decide")),
         Err(ServiceError::AdvisoryDirection)
     ));
     let mut stale = reply(&request, DirectionKind::Decision, "yes");
     stale.expected_revision = cid(99);
     batch.reply = Some(stale);
     assert!(matches!(
-        service.advance_one_effect(&batch, &grant("decide")),
+        advance_one_effect(&mut service, &batch, &grant("decide")),
         Err(ServiceError::StaleDirection)
     ));
     assert_eq!(
@@ -333,32 +337,26 @@ fn direction_refuses_stale_wrong_replayed_and_advisory_answers() {
     );
     batch.reply = Some(reply(&request, DirectionKind::Decision, "yes"));
     assert!(matches!(
-        service.advance_one_effect(&batch, &CapabilityGrant::default()),
+        advance_one_effect(&mut service, &batch, &CapabilityGrant::default()),
         Err(ServiceError::DirectionAuthority)
     ));
-    let accepted = service
-        .advance_one_effect(&batch, &grant("decide"))
-        .unwrap();
+    let accepted = advance_one_effect(&mut service, &batch, &grant("decide")).unwrap();
     assert!(matches!(accepted, DriveResult::Advanced { .. }));
     assert_eq!(
         service.inspect().unwrap().transition.state,
         PhaseRunState::Planned
     );
     let after = service.inspect().unwrap().journal.records.len();
-    let replayed = service
-        .advance_one_effect(&batch, &grant("decide"))
-        .unwrap();
+    let replayed = advance_one_effect(&mut service, &batch, &grant("decide")).unwrap();
     assert!(matches!(replayed, DriveResult::Quiescent { .. }));
     assert_eq!(service.inspect().unwrap().journal.records.len(), after);
     batch.reply = Some(reply(&request, DirectionKind::Decision, "no"));
     assert!(matches!(
-        service.advance_one_effect(&batch, &grant("decide")),
+        advance_one_effect(&mut service, &batch, &grant("decide")),
         Err(ServiceError::ReplayedDirection)
     ));
     assert_eq!(calls.load(Ordering::SeqCst), 0);
-    let ran = service
-        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
-        .unwrap();
+    let ran = advance_one_effect(&mut service, &InputBatch::conduct(), &grant("decide")).unwrap();
     assert!(matches!(ran, DriveResult::Advanced { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(
@@ -373,18 +371,18 @@ fn informational_direction_does_not_change_state() {
     open_request.direction = Some(question(None));
     let calls = Arc::new(AtomicUsize::new(0));
     let mut service = open_count(open_request, Arc::clone(&calls));
-    let DriveResult::NeedDirection { request } = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap()
-    else {
+    let DriveResult::NeedDirection { request } = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap() else {
         panic!("direction was not published");
     };
     let len = service.inspect().unwrap().journal.records.len();
     let mut batch = InputBatch::conduct();
     batch.reply = Some(reply(&request, DirectionKind::Decision, "note"));
-    let again = service
-        .advance_one_effect(&batch, &CapabilityGrant::default())
-        .unwrap();
+    let again = advance_one_effect(&mut service, &batch, &CapabilityGrant::default()).unwrap();
     assert!(matches!(again, DriveResult::Quiescent { .. }));
     assert_eq!(service.inspect().unwrap().journal.records.len(), len);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -392,9 +390,12 @@ fn informational_direction_does_not_change_state() {
         service.inspect().unwrap().transition.state,
         PhaseRunState::Planned
     );
-    let ran = service
-        .advance_one_effect(&InputBatch::conduct(), &CapabilityGrant::default())
-        .unwrap();
+    let ran = advance_one_effect(
+        &mut service,
+        &InputBatch::conduct(),
+        &CapabilityGrant::default(),
+    )
+    .unwrap();
     assert!(matches!(ran, DriveResult::Advanced { .. }));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(
@@ -409,17 +410,14 @@ fn snapshot_pages_stay_on_the_retained_revision() {
     open_request.direction = Some(question(Some(Symbol::new("decide"))));
     let calls = Arc::new(AtomicUsize::new(0));
     let mut service = open_count(open_request, Arc::clone(&calls));
-    let DriveResult::NeedDirection { request } = service
-        .advance_one_effect(&InputBatch::conduct(), &grant("decide"))
-        .unwrap()
+    let DriveResult::NeedDirection { request } =
+        advance_one_effect(&mut service, &InputBatch::conduct(), &grant("decide")).unwrap()
     else {
         panic!("direction was not published");
     };
     let mut batch = InputBatch::no_change();
     batch.reply = Some(reply(&request, DirectionKind::Decision, "yes"));
-    service
-        .advance_one_effect(&batch, &grant("decide"))
-        .unwrap();
+    advance_one_effect(&mut service, &batch, &grant("decide")).unwrap();
     let first = service.snapshots().last().unwrap().clone();
     assert!(first.rows.len() > 1);
     assert!(
@@ -458,9 +456,7 @@ fn snapshot_pages_stay_on_the_retained_revision() {
     assert_eq!(revision, first.revision);
     let mut pause = InputBatch::no_change();
     pause.wakes.push(WakeEvent::Control(ControlIntent::Pause));
-    service
-        .advance_one_effect(&pause, &CapabilityGrant::default())
-        .unwrap();
+    advance_one_effect(&mut service, &pause, &CapabilityGrant::default()).unwrap();
     assert_ne!(service.revision(), &first.revision);
     let retained = service.read_snapshot(&first.id, next, 1, None);
     let SnapshotRead::Page {

@@ -4,20 +4,15 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::collections::BTreeSet;
+use std::sync::{Arc, Barrier};
+use std::thread;
+use std::time::Instant;
 
 use super::{
-    Admit, Liveness, LogicalTime, Mode, ModelWorker, ProofOutcome, ProofUnit, Session, WakeEvent,
-    WorkerView,
+    Admit, ControlIntent, Liveness, LogicalTime, MAX_ADMITTED, Mode, ModelWorker, ProofOutcome,
+    ProofUnit, Session, WakeEvent, WorkerView,
 };
 use crate::schedule::ResourceAsk;
-
-struct PanicWorker;
-
-impl ModelWorker for PanicWorker {
-    fn outcome(&self, id: &str) -> WorkerView {
-        panic!("worker called for {id}");
-    }
-}
 
 fn unit(id: &str, mass: u64, resources: &[(&str, u64)]) -> ProofUnit {
     ProofUnit {
@@ -46,7 +41,6 @@ fn session(units: Vec<ProofUnit>, pools: &[(&str, u64)]) -> Session {
             .iter()
             .map(|(kind, amount)| ((*kind).to_owned(), *amount))
             .collect(),
-        Box::new(PanicWorker),
     )
     .unwrap()
 }
@@ -136,4 +130,68 @@ fn slash_ids_keep_separate_leases() {
     assert_eq!(scheduler.held("a").len(), 1);
     assert_eq!(scheduler.held("a")[0].kind, "b/c");
     assert_eq!(scheduler.mode(), Mode::Running);
+}
+
+struct HangWorker {
+    entered: Arc<Barrier>,
+}
+
+impl ModelWorker for HangWorker {
+    fn outcome(&self, _: &str) -> WorkerView {
+        self.entered.wait();
+        loop {
+            thread::park();
+        }
+    }
+}
+
+#[test]
+fn admission_stops_at_the_bound_and_stop_still_returns() {
+    let units = (0..MAX_ADMITTED + 1)
+        .map(|index| unit(&format!("u{index}"), 1, &[]))
+        .collect();
+    let mut scheduler = session(units, &[]);
+    for _ in 0..MAX_ADMITTED {
+        assert!(matches!(
+            scheduler.admit_next(LogicalTime(0)).unwrap(),
+            Admit::Admitted { .. }
+        ));
+    }
+    assert_eq!(
+        scheduler.admit_next(LogicalTime(0)).unwrap(),
+        Admit::Refused("admission-bound")
+    );
+    assert_eq!(scheduler.work_len(), MAX_ADMITTED);
+    let ack = scheduler
+        .submit(ControlIntent::Stop, LogicalTime(1))
+        .unwrap();
+    assert_eq!(ack.mode, Mode::Stopped);
+    assert_eq!(scheduler.work_len(), 0);
+}
+
+#[test]
+fn stop_acks_while_the_worker_has_not_returned() {
+    let entered = Arc::new(Barrier::new(2));
+    let worker = HangWorker {
+        entered: Arc::clone(&entered),
+    };
+    let mut scheduler = session(vec![unit("stuck", 1, &[])], &[]);
+    assert!(matches!(
+        scheduler.admit_next(LogicalTime(0)).unwrap(),
+        Admit::Admitted { .. }
+    ));
+    thread::spawn(move || {
+        let _view = worker.outcome("stuck");
+    });
+    entered.wait();
+    let started = Instant::now();
+    let ack = scheduler
+        .submit(ControlIntent::Stop, LogicalTime(1))
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(ack.mode, Mode::Stopped);
+    assert!(elapsed.as_millis() < 1_000, "stop took {elapsed:?}");
+    assert!(!scheduler.os_terminated());
+    assert_eq!(scheduler.work_len(), 0);
+    assert!(scheduler.failure_set(10).unwrap().failures.is_empty());
 }

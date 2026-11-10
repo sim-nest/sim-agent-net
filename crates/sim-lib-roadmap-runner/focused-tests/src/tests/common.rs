@@ -26,6 +26,11 @@
                 proof_catalog: "sha256:proofs".into(),
                 runner_generation: "sha256:generation".into(),
             },
+            plan: None,
+            product: None,
+            answer: None,
+            answer_kind: None,
+            named_revision: None,
         }
     }
 
