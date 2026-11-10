@@ -1,25 +1,51 @@
-use std::{collections::BTreeSet, sync::Arc};
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+use std::{
+    collections::BTreeSet,
+    sync::{Arc, Mutex, MutexGuard},
+};
 
 use sim_kernel::{ContentId, Datum, Symbol};
 use sim_lib_journal::{
     Journal, JournalBackend, JournalEntry, JournalError, JournalHead, JournalObject,
-    PersistentObjectStore, PersistentSemanticObjects, StoredState,
+    PersistentObjectStore, PersistentSemanticObjects,
 };
 
-use crate::causal::{apply_changes, causal_state_datum, evidence_set_datum, parse_evidence_set};
+use crate::journal_replay::{self, Fold};
+use crate::journal_share::empty_id;
 use crate::journal_util::{bounded_summary, child_id, contains_secret, store_error};
-use crate::record_law::{record_refs, validate_next};
+use crate::record_law::{LawCursor, record_refs};
 use crate::{
-    CausalState, DeltaAppend, ExecutionJournalError, ExecutionPins, ExecutionRecord, Limits,
-    MutationError, MutationFence, MutationJournal, ObjectKind, ObjectRef, PreparedObject,
-    RebuiltExecution, ReplayFailure, RetentionRoots, SemanticChange, VerifiedSnapshot, codec,
-    encode_plan, mutation_id_text,
+    ExecutionJournalError, ExecutionPins, ExecutionRecord, Limits, ObjectKind, ObjectRef,
+    PreparedObject, RebuiltExecution, VerifiedSnapshot, codec,
 };
+
+#[path = "journal_delta.rs"]
+mod delta;
+
+struct Retained {
+    rebuilt: RebuiltExecution,
+    facts_root: ContentId,
+    law: LawCursor,
+}
+
+struct Remembered {
+    head: JournalHead,
+    record: ExecutionRecord,
+    entry_id: ContentId,
+    payloads: Vec<ContentId>,
+    total_bytes: usize,
+    law: LawCursor,
+}
 
 pub struct ExecutionJournal<B> {
     backend: Arc<B>,
     execution_id: String,
     limits: Limits,
+    retained: Mutex<Option<Retained>>,
 }
 
 impl<B: JournalBackend> ExecutionJournal<B> {
@@ -28,7 +54,52 @@ impl<B: JournalBackend> ExecutionJournal<B> {
             backend,
             execution_id: execution_id.into(),
             limits,
+            retained: Mutex::new(None),
         }
+    }
+
+    fn lock(&self) -> MutexGuard<'_, Option<Retained>> {
+        self.retained
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+    }
+
+    fn save(&self, fold: Fold) {
+        *self.lock() = Some(Retained {
+            facts_root: fold.facts_root,
+            rebuilt: fold.rebuilt,
+            law: fold.law,
+        });
+    }
+
+    fn cache_matches(&self, expected: Option<&JournalHead>) -> bool {
+        match (self.lock().as_ref(), expected) {
+            (None, None) => true,
+            (Some(cache), Some(head)) => cache.rebuilt.head == *head,
+            _ => false,
+        }
+    }
+
+    fn prepare_cache(&self, expected: Option<&JournalHead>) -> Result<(), ExecutionJournalError> {
+        if self.cache_matches(expected) {
+            return Ok(());
+        }
+        match self.rebuild_cold() {
+            Ok(fold) => {
+                if expected.is_some_and(|head| fold.rebuilt.head != *head) {
+                    return Err(JournalError::WrongHead.into());
+                }
+                self.save(fold);
+                Ok(())
+            }
+            Err(ExecutionJournalError::Empty) if expected.is_none() => Ok(()),
+            Err(error) => Err(error),
+        }
+    }
+
+    fn rebuild_cold(&self) -> Result<Fold, ExecutionJournalError> {
+        let state = self.backend.read_state()?;
+        journal_replay::fold(&self.execution_id, &self.limits, &state).map_err(|fault| *fault.error)
     }
 
     pub fn prepare_object(
@@ -88,86 +159,6 @@ impl<B: JournalBackend> ExecutionJournal<B> {
         })
     }
 
-    /// Appends exactly one cause delta. A semantically unchanged revision is a
-    /// no-op and preserves the current head.
-    pub fn append_delta(
-        &self,
-        expected: &JournalHead,
-        cause: impl Into<String>,
-        changes: Vec<SemanticChange>,
-        evidence: BTreeSet<ContentId>,
-    ) -> Result<DeltaAppend, ExecutionJournalError> {
-        let cause = cause.into();
-        if cause.is_empty() {
-            return Err(ExecutionJournalError::Illegal {
-                sequence: expected.sequence + 1,
-                reason: "semantic delta cause is empty",
-            });
-        }
-        let current = self.rebuild()?;
-        if current.head != *expected {
-            return Err(JournalError::WrongHead.into());
-        }
-        let mut prospective = current.causal.clone();
-        let changed = apply_changes(&mut prospective.facts, &changes, expected.sequence + 1)?;
-        let before_evidence = prospective.evidence.len();
-        prospective.evidence.extend(evidence);
-        if !changed && prospective.evidence.len() == before_evidence {
-            return Ok(DeltaAppend::Unchanged(current.head));
-        }
-        let evidence_value = evidence_set_datum(&prospective.evidence);
-        let evidence_object = self.prepare_datum(
-            ObjectKind::EvidenceSet,
-            evidence_value,
-            "persistent evidence set root",
-        )?;
-        let evidence_set = evidence_object.reference.content.clone();
-        let head = self.append(
-            Some(expected),
-            ExecutionRecord::SemanticDelta {
-                cause,
-                changes,
-                evidence_set,
-            },
-            vec![evidence_object],
-        )?;
-        Ok(DeltaAppend::Appended(head))
-    }
-
-    /// Writes a content-addressed snapshot of the verified causal reducer state.
-    pub fn snapshot(
-        &self,
-        expected: &JournalHead,
-    ) -> Result<VerifiedSnapshot, ExecutionJournalError> {
-        let current = self.rebuild()?;
-        if current.head != *expected {
-            return Err(JournalError::WrongHead.into());
-        }
-        let evidence_set = evidence_set_datum(&current.causal.evidence)
-            .content_id()
-            .map_err(|_| ExecutionJournalError::Semantic("evidence set"))?;
-        let snapshot_object = self.prepare_datum(
-            ObjectKind::Snapshot,
-            causal_state_datum(&current.causal, &evidence_set),
-            "verified causal snapshot",
-        )?;
-        let state = snapshot_object.reference.content.clone();
-        self.append(
-            Some(expected),
-            ExecutionRecord::Snapshot {
-                covers: expected.entry.clone(),
-                state: state.clone(),
-                evidence_set: evidence_set.clone(),
-            },
-            vec![snapshot_object],
-        )?;
-        Ok(VerifiedSnapshot {
-            covers: expected.entry.clone(),
-            state,
-            evidence_set,
-        })
-    }
-
     pub fn open(
         &self,
         pins: ExecutionPins,
@@ -196,45 +187,25 @@ impl<B: JournalBackend> ExecutionJournal<B> {
         record: ExecutionRecord,
         objects: Vec<PreparedObject>,
     ) -> Result<JournalHead, ExecutionJournalError> {
-        let current = match self.rebuild() {
-            Ok(state) => Some(state),
-            Err(ExecutionJournalError::Empty) => None,
-            Err(error) => return Err(error),
-        };
-        let records = current
-            .as_ref()
-            .map_or(&[][..], |state| state.records.as_slice());
-        validate_next(!records.is_empty(), records, &record, records.len() as u64)?;
+        self.prepare_cache(expected)?;
+        let execution_id = self.execution_id.clone();
+        let backend = Arc::clone(&self.backend);
+        let max_execution_bytes = self.limits.max_execution_bytes;
         let record_object =
             JournalObject::from_datum(codec::encode_datum(&self.execution_id, &record))?;
         if record_object.bytes.len() > self.limits.max_record_bytes {
             return Err(ExecutionJournalError::Budget("record"));
         }
-        let before = current.as_ref().map_or(0, |s| s.total_bytes);
         let added = record_object
             .bytes
             .len()
-            .checked_add(objects.iter().map(|o| o.object.bytes.len()).sum())
+            .checked_add(objects.iter().map(|object| object.object.bytes.len()).sum())
             .ok_or(ExecutionJournalError::Budget("execution"))?;
-        if before
-            .checked_add(added)
-            .filter(|n| *n <= self.limits.max_execution_bytes)
-            .is_none()
-        {
-            return Err(ExecutionJournalError::Budget("execution"));
-        }
         let referenced = record_refs(&record);
         let supplied: BTreeSet<_> = objects
             .iter()
-            .map(|o| o.reference.content.clone())
+            .map(|object| object.reference.content.clone())
             .collect();
-        let mut available = supplied.clone();
-        if let Some(current) = &current {
-            available.extend(current.retention.objects.iter().cloned());
-        }
-        if !referenced.is_subset(&available) {
-            return Err(ExecutionJournalError::MissingObject);
-        }
         for object in &objects {
             if !referenced.contains(&object.reference.content)
                 || object.reference.content != object.object.id
@@ -243,248 +214,165 @@ impl<B: JournalBackend> ExecutionJournal<B> {
                 return Err(ExecutionJournalError::MissingObject);
             }
         }
-        let sequence = expected.map_or(0, |h| h.sequence + 1);
-        let mut payloads = vec![record_object.id.clone()];
-        payloads.extend(objects.iter().map(|o| o.object.id.clone()));
-        let entry = JournalEntry::new(
-            sequence,
-            expected.map(|h| h.entry.clone()),
-            Symbol::qualified("roadmap-execution", record.tag()),
-            payloads,
-        );
-        let mut admitted = vec![record_object];
-        admitted.extend(objects.into_iter().map(|o| o.object));
-        let journal = Journal::new(self.backend.clone());
-        let lease = journal.acquire_lease()?;
-        journal
-            .publish(&lease, expected, admitted, vec![entry])
-            .map_err(Into::into)
-    }
-
-    pub fn rebuild(&self) -> Result<RebuiltExecution, ExecutionJournalError> {
-        let state = self.backend.read_state()?;
-        let journal = Journal::new(self.backend.clone());
-        let verification = journal.verify()?;
-        let head = verification.head.ok_or(ExecutionJournalError::Empty)?;
-        let mut records = Vec::new();
-        let mut pins: Option<ExecutionPins> = None;
-        let mut total = 0usize;
-        let mut causal = CausalState::default();
-        let mut snapshots = Vec::new();
-        let mut retention = RetentionRoots::default();
-        let mut current_evidence_set = evidence_set_datum(&causal.evidence)
-            .content_id()
-            .map_err(|_| ExecutionJournalError::Semantic("evidence set"))?;
-        for entry in &verification.entries {
-            if entry.payloads.is_empty()
-                || entry.kind.namespace.as_deref() != Some("roadmap-execution")
-            {
-                return Err(ExecutionJournalError::Illegal {
-                    sequence: entry.sequence,
-                    reason: "foreign entry",
-                });
-            }
-            let value = state
-                .datums
-                .get(&entry.payloads[0])
-                .ok_or(ExecutionJournalError::MissingObject)?;
-            let bytes = state
-                .objects
-                .get(&entry.payloads[0])
-                .ok_or(ExecutionJournalError::MissingObject)?;
-            retention.entries.insert(entry.id.clone());
-            retention.objects.extend(entry.payloads.iter().cloned());
-            total = total
-                .checked_add(bytes.len())
-                .ok_or(ExecutionJournalError::Budget("execution"))?;
-            let (execution, record) = codec::decode_datum(value)?;
-            if execution != self.execution_id {
-                return Err(ExecutionJournalError::ExecutionIdentity);
-            }
-            let refs = record_refs(&record);
-            let payloads: BTreeSet<_> = entry.payloads.iter().skip(1).cloned().collect();
-            if refs != payloads {
-                return Err(ExecutionJournalError::MissingObject);
-            }
-            for id in &refs {
-                total = total
-                    .checked_add(
-                        state
-                            .objects
-                            .get(id)
-                            .ok_or(ExecutionJournalError::MissingObject)?
-                            .len(),
-                    )
-                    .ok_or(ExecutionJournalError::Budget("execution"))?;
-            }
-            validate_next(pins.is_some(), &records, &record, entry.sequence)?;
-            if let ExecutionRecord::ExecutionOpened { pins: opened, .. } = &record {
-                pins = Some(opened.clone());
-            }
-            match &record {
-                ExecutionRecord::SemanticDelta {
-                    changes,
-                    evidence_set,
-                    ..
-                } => {
-                    let changed = apply_changes(&mut causal.facts, changes, entry.sequence)?;
-                    let prior_evidence = causal.evidence.clone();
-                    let value = state
-                        .datums
-                        .get(evidence_set)
-                        .ok_or(ExecutionJournalError::MissingObject)?;
-                    let evidence = parse_evidence_set(value)?;
-                    if !causal.evidence.is_subset(&evidence) {
-                        return Err(ExecutionJournalError::Semantic(
-                            "evidence set dropped a retained member",
-                        ));
-                    }
-                    if !changed && evidence == prior_evidence {
-                        return Err(ExecutionJournalError::Illegal {
-                            sequence: entry.sequence,
-                            reason: "carry-state semantic delta",
-                        });
-                    }
-                    causal.evidence = evidence;
-                    current_evidence_set = evidence_set.clone();
+        let mut guard = self.lock();
+        let (before, covered) = match guard.as_ref() {
+            Some(cache) => {
+                if expected.is_some_and(|head| cache.rebuilt.head != *head) {
+                    return Err(JournalError::WrongHead.into());
                 }
-                ExecutionRecord::Snapshot {
-                    covers,
-                    state: state_id,
-                    evidence_set,
-                } => {
-                    if entry.previous.as_ref() != Some(covers)
-                        || evidence_set != &current_evidence_set
-                    {
-                        return Err(ExecutionJournalError::Semantic("snapshot prefix"));
-                    }
-                    let value = state
-                        .datums
-                        .get(state_id)
-                        .ok_or(ExecutionJournalError::MissingObject)?;
-                    let expected = causal_state_datum(&causal, evidence_set);
-                    if value != &expected
-                        || expected
-                            .content_id()
-                            .map_err(|_| ExecutionJournalError::Semantic("snapshot identity"))?
-                            != *state_id
-                    {
-                        return Err(ExecutionJournalError::Semantic("snapshot state"));
-                    }
-                    snapshots.push(VerifiedSnapshot {
-                        covers: covers.clone(),
-                        state: state_id.clone(),
-                        evidence_set: evidence_set.clone(),
-                    });
-                }
-                _ => {}
+                (
+                    cache.rebuilt.total_bytes,
+                    referenced.iter().all(|id| {
+                        supplied.contains(id) || cache.rebuilt.retention.objects.contains(id)
+                    }),
+                )
             }
-            records.push(record);
+            None => (0, referenced.iter().all(|id| supplied.contains(id))),
+        };
+        if !covered {
+            return Err(ExecutionJournalError::MissingObject);
         }
-        if total > self.limits.max_execution_bytes {
+        let sequence = guard
+            .as_ref()
+            .map_or(0, |cache| cache.rebuilt.records.len() as u64);
+        let mut law = match guard.as_ref() {
+            Some(cache) => cache.law.clone(),
+            None => LawCursor::new(),
+        };
+        law.advance(&record, sequence)?;
+        if before
+            .checked_add(added)
+            .filter(|total| *total <= max_execution_bytes)
+            .is_none()
+        {
             return Err(ExecutionJournalError::Budget("execution"));
         }
-        let opening_entry = verification
-            .entries
-            .first()
-            .ok_or(ExecutionJournalError::Empty)?;
-        Ok(RebuiltExecution {
-            execution_id: self.execution_id.clone(),
-            pins: pins.ok_or(ExecutionJournalError::ExecutionIdentity)?,
-            records,
-            opening_head: JournalHead {
-                sequence: opening_entry.sequence,
-                entry: opening_entry.id.clone(),
+        let mut payloads = vec![record_object.id.clone()];
+        payloads.extend(objects.iter().map(|object| object.object.id.clone()));
+        let entry = JournalEntry::new(
+            sequence,
+            expected.map(|head| head.entry.clone()),
+            Symbol::qualified("roadmap-execution", record.tag()),
+            payloads.clone(),
+        );
+        let entry_id = entry.id.clone();
+        let mut admitted = vec![record_object];
+        admitted.extend(objects.into_iter().map(|object| object.object));
+        let journal = Journal::new(backend);
+        let lease = journal.acquire_lease()?;
+        let head = journal.publish(&lease, expected, admitted, vec![entry])?;
+        Self::remember(
+            &execution_id,
+            &mut guard,
+            Remembered {
+                head: head.clone(),
+                record,
+                entry_id,
+                payloads,
+                total_bytes: before + added,
+                law,
             },
+        );
+        Ok(head)
+    }
+
+    fn remember(
+        execution_id: &str,
+        guard: &mut MutexGuard<'_, Option<Retained>>,
+        admitted: Remembered,
+    ) {
+        let Remembered {
             head,
-            total_bytes: total,
-            causal,
-            snapshots,
-            retention,
-        })
-    }
-
-    /// Rebuilds while retaining the last generic head whose complete prefix
-    /// verified. This is the recovery cursor reported for torn or corrupt tails.
-    pub fn rebuild_report(&self) -> Result<RebuiltExecution, ReplayFailure> {
-        let state = self.backend.read_state().map_err(|error| ReplayFailure {
-            last_verified_head: None,
-            error: Box::new(error.into()),
-        })?;
-        let mut prefix = StoredState {
-            objects: state.objects.clone(),
-            datums: state.datums.clone(),
-            ..StoredState::default()
+            record,
+            entry_id,
+            payloads,
+            total_bytes,
+            law,
+        } = admitted;
+        let pins = match &record {
+            ExecutionRecord::ExecutionOpened { pins, .. } => Some(pins.clone()),
+            _ => None,
         };
-        let mut last = None;
-        for entry in state.entries.values() {
-            prefix.entries.insert(entry.sequence, entry.clone());
-            prefix.head = Some(JournalHead {
-                sequence: entry.sequence,
-                entry: entry.id.clone(),
-            });
-            if sim_lib_journal::replay(prefix.clone()).is_err() {
-                break;
+        let snapshot = match &record {
+            ExecutionRecord::Snapshot {
+                covers,
+                state,
+                evidence_set,
+            } => Some(VerifiedSnapshot {
+                covers: covers.clone(),
+                state: state.clone(),
+                evidence_set: evidence_set.clone(),
+            }),
+            _ => None,
+        };
+        if let Some(cache) = guard.as_mut() {
+            if cache.rebuilt.head == head {
+                return;
             }
-            last = prefix.head.clone();
+            cache.rebuilt.total_bytes = total_bytes;
+            cache.rebuilt.retention.entries.insert(entry_id);
+            cache.rebuilt.retention.objects.extend(payloads);
+            if let Some(snapshot) = snapshot {
+                cache.rebuilt.snapshots.push(snapshot);
+            }
+            cache.rebuilt.records.push(record);
+            cache.rebuilt.head = head;
+            cache.law = law;
+            return;
         }
-        self.rebuild().map_err(|error| ReplayFailure {
-            last_verified_head: last,
-            error: Box::new(error),
-        })
-    }
-}
-
-impl<B: JournalBackend> MutationJournal for ExecutionJournal<B> {
-    fn put_plan(&mut self, plan: &crate::SealedMutationPlan) -> Result<(), MutationError> {
-        let object = self
-            .prepare_object(
-                ObjectKind::FileBytes,
-                encode_plan(plan),
-                "sealed mutation plan",
-            )
-            .map_err(|error| MutationError::Journal(error.to_string()))?;
-        let input = object.reference.clone();
-        let state = self
-            .rebuild()
-            .map_err(|error| MutationError::Journal(error.to_string()))?;
-        self.append(
-            Some(&state.head),
-            ExecutionRecord::EffectRequested {
-                effect_id: format!("mutation:{}", mutation_id_text(&plan.id)),
-                kind: "sealed-mutation-plan".into(),
-                input: Some(input),
-            },
-            vec![object],
-        )
-        .map(|_| ())
-        .map_err(|error| MutationError::Journal(error.to_string()))
-    }
-
-    fn append_fence(
-        &mut self,
-        plan_id: ContentId,
-        fence: MutationFence,
-    ) -> Result<(), MutationError> {
-        let state = self
-            .rebuild()
-            .map_err(|error| MutationError::Journal(error.to_string()))?;
-        let expected = match fence {
-            MutationFence::Prepared => "prepared".into(),
-            MutationFence::Applying(index) => format!("applying:{index}"),
-            MutationFence::Verifying => "verifying".into(),
-            MutationFence::Committed => "committed".into(),
-            MutationFence::Ambiguous => "ambiguous".into(),
+        let Some(pins) = pins else {
+            return;
         };
-        self.append(
-            Some(&state.head),
-            ExecutionRecord::MutationFence {
-                mutation_id: mutation_id_text(&plan_id),
-                expected,
+        **guard = Some(Retained {
+            rebuilt: RebuiltExecution {
+                execution_id: execution_id.to_owned(),
+                pins,
+                records: vec![record],
+                opening_head: head.clone(),
+                head,
+                total_bytes,
+                causal: crate::CausalState::default(),
+                snapshots: Vec::new(),
+                retention: crate::RetentionRoots {
+                    entries: BTreeSet::from([entry_id]),
+                    objects: payloads.into_iter().collect(),
+                },
+                causal_applies: 0,
+                evidence_root: empty_id(),
             },
-            Vec::new(),
-        )
-        .map(|_| ())
-        .map_err(|error| MutationError::Journal(error.to_string()))
+            facts_root: empty_id(),
+            law,
+        });
+    }
+
+    /// Reconstructs the execution. A verified snapshot is the causal boundary:
+    /// later deltas are applied, and the prefix is not reduced again.
+    pub fn rebuild(&self) -> Result<RebuiltExecution, ExecutionJournalError> {
+        let fold = self.rebuild_cold()?;
+        let rebuilt = fold.rebuilt.clone();
+        self.save(fold);
+        Ok(rebuilt)
+    }
+
+    /// Finds the last verified head in the same pass that rebuilds a valid log.
+    ///
+    /// A torn or corrupt tail stops at the previous head. A valid log returns
+    /// the same execution `rebuild` returns.
+    pub fn rebuild_report(&self) -> Result<RebuiltExecution, crate::ReplayFailure> {
+        let state = self
+            .backend
+            .read_state()
+            .map_err(|error| crate::ReplayFailure {
+                last_verified_head: None,
+                error: Box::new(error.into()),
+            })?;
+        match journal_replay::fold(&self.execution_id, &self.limits, &state) {
+            Ok(fold) => {
+                let rebuilt = fold.rebuilt.clone();
+                self.save(fold);
+                Ok(rebuilt)
+            }
+            Err(fault) => Err(journal_replay::report_failure(fault)),
+        }
     }
 }

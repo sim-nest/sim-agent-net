@@ -11,7 +11,7 @@
 //! cannot carry an effect or an approval, and this function does not schedule
 //! a second controller.
 
-use sim_conformance_packet::{IdKind, SemanticId};
+use sim_conformance_packet::{IdKind, SemanticId, StorageId};
 use sim_work_core::{ImplementationPacket, WorkError};
 use thiserror::Error;
 
@@ -218,6 +218,18 @@ pub enum WorkReceiveError {
         /// Last malformed bytes.
         evidence: Vec<u8>,
     },
+    /// A model body was longer than the output ceiling.
+    #[error("model output exceeded the byte ceiling")]
+    OutputBudget {
+        /// Attempts used, including the first.
+        attempts: u32,
+        /// Prefix of the body, no longer than the output ceiling.
+        capture: Vec<u8>,
+        /// Full length of the returned body.
+        length: u64,
+        /// Identity of the full body.
+        identity: StorageId,
+    },
     /// The decoded proposal carried an effect or an approval.
     #[error("proposal holds an effect or approval")]
     EffectsOrApproval,
@@ -317,6 +329,23 @@ fn admit_returns(
         if returned.seen != work.serialized {
             return Err(WorkReceiveError::Schema {
                 mirrors_agree: input.mirrors_agree,
+            });
+        }
+        let body_bytes = match &returned.body {
+            ModelBody::Incomplete(body)
+            | ModelBody::Proposal(body)
+            | ModelBody::Malformed(body) => body.as_slice(),
+        };
+        if u64::try_from(body_bytes.len())
+            .map(|len| len > input.budget_output)
+            .unwrap_or(true)
+        {
+            let limit = usize::try_from(input.budget_output).unwrap_or(usize::MAX);
+            return Err(WorkReceiveError::OutputBudget {
+                attempts: attempt,
+                capture: body_bytes.iter().take(limit).copied().collect(),
+                length: u64::try_from(body_bytes.len()).unwrap_or(u64::MAX),
+                identity: StorageId::for_bytes(body_bytes),
             });
         }
         match returned.body {

@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // conformance: bounded roadmap status, explanation, redaction, and audit values.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -234,6 +239,8 @@ mod tests {
             causal: crate::CausalState::default(),
             snapshots: vec![],
             retention: crate::RetentionRoots::default(),
+            causal_applies: 0,
+            evidence_root: id(3),
         }
     }
 

@@ -19,6 +19,8 @@ mod discharge;
 mod fixed;
 mod implementer;
 mod journal;
+mod journal_replay;
+mod journal_share;
 mod journal_util;
 mod land;
 mod local_command;
@@ -113,5 +115,9 @@ mod drive_tests;
 mod drive_wake_tests;
 #[cfg(test)]
 mod journal_contract_tests;
+#[cfg(test)]
+mod journal_replay_tests;
+#[cfg(test)]
+mod journal_scale_tests;
 #[cfg(test)]
 mod tests;

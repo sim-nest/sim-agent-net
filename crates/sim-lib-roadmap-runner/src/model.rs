@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use sim_kernel::ContentId;
@@ -187,6 +192,10 @@ pub struct RebuiltExecution {
     pub causal: CausalState,
     pub snapshots: Vec<VerifiedSnapshot>,
     pub retention: RetentionRoots,
+    /// Semantic deltas applied after the newest verified snapshot.
+    pub causal_applies: u64,
+    /// Content id of the shared evidence root.
+    pub evidence_root: ContentId,
 }
 
 #[derive(Debug)]

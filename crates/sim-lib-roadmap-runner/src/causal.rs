@@ -1,11 +1,16 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use sim_kernel::{ContentId, Datum, Symbol};
 
-use crate::{CausalState, ExecutionJournalError, SemanticChange};
+use crate::{ExecutionJournalError, SemanticChange};
 
-pub(crate) fn apply_changes(
-    facts: &mut BTreeMap<String, ContentId>,
+pub(crate) fn screen_changes(
+    facts: &BTreeMap<String, ContentId>,
     changes: &[SemanticChange],
     sequence: u64,
 ) -> Result<bool, ExecutionJournalError> {
@@ -26,64 +31,32 @@ pub(crate) fn apply_changes(
         }
         if change.before != change.after {
             changed = true;
-            match &change.after {
-                Some(after) => {
-                    facts.insert(change.key.clone(), after.clone());
-                }
-                None => {
-                    facts.remove(&change.key);
-                }
-            }
         }
     }
     Ok(changed)
 }
 
-pub(crate) fn evidence_set_datum(evidence: &BTreeSet<ContentId>) -> Datum {
-    Datum::Node {
-        tag: Symbol::qualified("roadmap-execution", "evidence-set-v1"),
-        fields: vec![(
-            Symbol::new("members"),
-            Datum::Set(evidence.iter().map(content_id_datum).collect()),
-        )],
+pub(crate) fn apply_changes(
+    facts: &mut BTreeMap<String, ContentId>,
+    changes: &[SemanticChange],
+    sequence: u64,
+) -> Result<bool, ExecutionJournalError> {
+    let changed = screen_changes(facts, changes, sequence)?;
+    if changed {
+        for change in changes {
+            if change.before != change.after {
+                match &change.after {
+                    Some(after) => {
+                        facts.insert(change.key.clone(), after.clone());
+                    }
+                    None => {
+                        facts.remove(&change.key);
+                    }
+                }
+            }
+        }
     }
-}
-
-pub(crate) fn parse_evidence_set(
-    value: &Datum,
-) -> Result<BTreeSet<ContentId>, ExecutionJournalError> {
-    let Datum::Node { tag, fields } = value else {
-        return Err(ExecutionJournalError::Semantic("evidence set shape"));
-    };
-    if *tag != Symbol::qualified("roadmap-execution", "evidence-set-v1") || fields.len() != 1 {
-        return Err(ExecutionJournalError::Semantic("evidence set shape"));
-    }
-    let (name, Datum::Set(members)) = &fields[0] else {
-        return Err(ExecutionJournalError::Semantic("evidence set members"));
-    };
-    if *name != Symbol::new("members") {
-        return Err(ExecutionJournalError::Semantic("evidence set members"));
-    }
-    members.iter().map(content_id_from_datum).collect()
-}
-
-pub(crate) fn causal_state_datum(state: &CausalState, evidence_set: &ContentId) -> Datum {
-    Datum::Node {
-        tag: Symbol::qualified("roadmap-execution", "snapshot-v1"),
-        fields: vec![
-            (
-                Symbol::new("facts"),
-                Datum::Map(
-                    state
-                        .facts
-                        .iter()
-                        .map(|(key, value)| (Datum::String(key.clone()), content_id_datum(value)))
-                        .collect(),
-                ),
-            ),
-            (Symbol::new("evidence-set"), content_id_datum(evidence_set)),
-        ],
-    }
+    Ok(changed)
 }
 
 pub(crate) fn content_id_datum(id: &ContentId) -> Datum {
