@@ -350,7 +350,7 @@ impl Callable for LocalCommand {
             })
             .collect::<Vec<_>>();
         let verb = text.get(1).map(String::as_str).unwrap_or("status");
-        let request = parse_cli(verb, &text[2..])?;
+        let request = parse_cli(verb, text.get(2..).unwrap_or_default())?;
         invoke(cx, &*self.port, request)
     }
 }

@@ -134,3 +134,27 @@ fn loaded_command_binds_the_boot_entrypoint() {
         "{refused}"
     );
 }
+
+#[test]
+fn bare_verb_reaches_the_identity_refusal() {
+    let mut cx = sim_kernel::testing::bare_cx();
+    cx.load_lib(&LocalRoadmapRunnerLib::new()).unwrap();
+    let args = cx
+        .factory()
+        .list(vec![cx.factory().string("roadmap".to_owned()).unwrap()])
+        .unwrap();
+    let envelope = cx
+        .factory()
+        .table(vec![(sim_kernel::Symbol::new("args"), args)])
+        .unwrap();
+    let entry = sim_kernel::Symbol::qualified("cli", "main/roadmap");
+    let refused = cx
+        .call_function(&entry, sim_kernel::Args::new(vec![envelope]))
+        .expect_err("identity");
+    let text = refused.to_string();
+    assert!(
+        text.contains("missing content identity --conduct"),
+        "{text}"
+    );
+    assert!(!text.contains("no loaded lib claims"), "{text}");
+}
