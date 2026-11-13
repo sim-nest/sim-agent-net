@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 //! Public, local-only command surface for the roadmap runner.
 // conformance: loadable local-only roadmap command boundary.
 
@@ -227,7 +232,7 @@ impl Lib for LocalRoadmapRunnerLib {
             })
             .collect::<Vec<_>>();
         exports.push(Export::Function {
-            symbol: Symbol::qualified("cli/main", "roadmap"),
+            symbol: command_symbol(),
             function_id: None,
         });
         Self::manifest_value(exports)
@@ -249,7 +254,7 @@ impl Lib for LocalRoadmapRunnerLib {
             )?;
         }
         linker.function_value(
-            Symbol::qualified("cli/main", "roadmap"),
+            command_symbol(),
             cx.factory().opaque(Arc::new(LocalCommand {
                 port: self.port.clone(),
             }))?,
@@ -479,6 +484,10 @@ fn contract_shape(verb: &str, args: bool) -> Value {
     let symbol = shape_symbol(verb, if args { "Args" } else { "Result" });
     shape_value(symbol.clone(), Arc::new(ContractShape { symbol, args }))
 }
+fn command_symbol() -> Symbol {
+    Symbol::qualified("cli", "main/roadmap")
+}
+
 fn op_symbol(verb: &str) -> Symbol {
     Symbol::qualified("roadmap", verb)
 }

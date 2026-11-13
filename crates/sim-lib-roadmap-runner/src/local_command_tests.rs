@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::*;
 #[test]
 fn public_surface_has_only_local_verbs_and_explicit_shapes() {
@@ -79,5 +84,53 @@ fn observe_and_replay_are_effect_bounded_and_identity_complete() {
             .unwrap()
             .detail
             .contains("replayed")
+    );
+}
+
+#[test]
+fn command_export_matches_the_boot_entrypoint() {
+    let manifest = LocalRoadmapRunnerLib::new().manifest();
+    let expected = command_symbol();
+    assert_eq!(
+        expected.as_qualified_str(),
+        sim_kernel::Symbol::qualified("cli", "main/roadmap").as_qualified_str()
+    );
+    assert_eq!(
+        expected,
+        sim_kernel::Symbol::qualified("cli", "main/roadmap")
+    );
+    assert!(manifest.exports.iter().any(|export| {
+        matches!(export, Export::Function { symbol, .. } if symbol == &expected)
+    }));
+    let split = sim_kernel::Symbol::qualified("cli/main", "roadmap");
+    assert_ne!(expected, split);
+    assert!(
+        manifest.exports.iter().all(|export| {
+            !matches!(export, Export::Function { symbol, .. } if symbol == &split)
+        })
+    );
+}
+
+#[test]
+fn loaded_command_binds_the_boot_entrypoint() {
+    let mut cx = sim_kernel::testing::bare_cx();
+    cx.load_lib(&LocalRoadmapRunnerLib::new()).unwrap();
+    let entry = sim_kernel::Symbol::qualified("cli", "main/roadmap");
+    let resolved = cx.registry().libs().iter().any(|lib| {
+        lib.manifest.id == sim_kernel::Symbol::qualified("lib", "roadmap-runner")
+            && lib.exports.iter().any(|record| {
+                record.symbol == entry
+                    && record.kind
+                        == sim_kernel::ExportKind::named(sim_kernel::ExportKind::FUNCTION)
+                    && matches!(record.state, sim_kernel::ExportState::Resolved { .. })
+            })
+    });
+    assert!(resolved);
+    let refused = cx
+        .call_function(&entry, sim_kernel::Args::new(Vec::new()))
+        .expect_err("envelope");
+    assert!(
+        refused.to_string().contains("missing roadmap envelope"),
+        "{refused}"
     );
 }
