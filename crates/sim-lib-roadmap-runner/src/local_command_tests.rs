@@ -158,3 +158,75 @@ fn bare_verb_reaches_the_identity_refusal() {
     );
     assert!(!text.contains("no loaded lib claims"), "{text}");
 }
+
+#[test]
+fn status_with_identity_returns_the_stable_record_fields() {
+    let mut cx = sim_kernel::testing::bare_cx();
+    cx.load_lib(&LocalRoadmapRunnerLib::new()).unwrap();
+    let text = [
+        "roadmap",
+        "status",
+        "--conduct",
+        "conduct/local",
+        "--model-pick",
+        "model/local",
+        "--proof-catalog",
+        "proof/local",
+        "--runner-generation",
+        "generation/local",
+    ];
+    let args = cx
+        .factory()
+        .list(
+            text.iter()
+                .map(|part| cx.factory().string((*part).to_owned()).unwrap())
+                .collect(),
+        )
+        .unwrap();
+    let envelope = cx
+        .factory()
+        .table(vec![(sim_kernel::Symbol::new("args"), args)])
+        .unwrap();
+    let entry = sim_kernel::Symbol::qualified("cli", "main/roadmap");
+    let value = cx
+        .call_function(&entry, sim_kernel::Args::new(vec![envelope]))
+        .expect("status");
+    let table = value.object().as_table_impl().expect("table");
+    let field = |cx: &mut sim_kernel::Cx, name: &str| {
+        let got = table.get(cx, sim_kernel::Symbol::new(name)).expect(name);
+        match got.object().as_expr(cx).expect(name) {
+            sim_kernel::Expr::String(text) => text,
+            other => panic!("field {name} is {other:?}"),
+        }
+    };
+    let outcome = field(&mut cx, "outcome");
+    let detail = field(&mut cx, "detail");
+    let acknowledged = {
+        let got = table
+            .get(&mut cx, sim_kernel::Symbol::new("journal-acknowledged"))
+            .expect("journal-acknowledged");
+        match got.object().as_expr(&mut cx).expect("journal-acknowledged") {
+            sim_kernel::Expr::Bool(value) => value,
+            other => panic!("field journal-acknowledged is {other:?}"),
+        }
+    };
+    assert_eq!(outcome, "ok");
+    assert_eq!(detail, "execution not started");
+    assert!(acknowledged);
+    let rendered = crate::local_emit::render_receipt(&LocalRoadmapReceipt {
+        outcome,
+        identity: LocalExecutionIdentity {
+            execution: field(&mut cx, "execution"),
+            conduct: field(&mut cx, "conduct"),
+            model_pick: field(&mut cx, "model-pick"),
+            proof_catalog: field(&mut cx, "proof-catalog"),
+            runner_generation: field(&mut cx, "runner-generation"),
+        },
+        journal_acknowledged: acknowledged,
+        detail,
+    });
+    assert_eq!(
+        rendered,
+        "#(roadmap/local-result-v1 (outcome \"ok\") (execution \"local/no-model\") (conduct \"conduct/local\") (model-pick \"model/local\") (proof-catalog \"proof/local\") (runner-generation \"generation/local\") (journal-acknowledged true) (detail \"execution not started\"))"
+    );
+}

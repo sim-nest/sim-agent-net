@@ -24,6 +24,7 @@ mod journal_share;
 mod journal_util;
 mod land;
 mod local_command;
+mod local_emit;
 mod model;
 mod mutation;
 mod packet_work;
