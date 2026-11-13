@@ -417,37 +417,7 @@ fn dummy_cx() -> Cx {
 fn invoke(cx: &mut Cx, port: &dyn LocalRoadmapPort, request: LocalRoadmapRequest) -> Result<Value> {
     let generation = GenerationHandle::acquire(request.identity.runner_generation.clone());
     let receipt = port.invoke(&request, generation).map_err(Error::Eval)?;
-    cx.factory().table(vec![
-        (
-            Symbol::new("outcome"),
-            cx.factory().string(receipt.outcome)?,
-        ),
-        (
-            Symbol::new("execution"),
-            cx.factory().string(receipt.identity.execution)?,
-        ),
-        (
-            Symbol::new("conduct"),
-            cx.factory().string(receipt.identity.conduct)?,
-        ),
-        (
-            Symbol::new("model-pick"),
-            cx.factory().string(receipt.identity.model_pick)?,
-        ),
-        (
-            Symbol::new("proof-catalog"),
-            cx.factory().string(receipt.identity.proof_catalog)?,
-        ),
-        (
-            Symbol::new("runner-generation"),
-            cx.factory().string(receipt.identity.runner_generation)?,
-        ),
-        (
-            Symbol::new("journal-acknowledged"),
-            cx.factory().bool(receipt.journal_acknowledged)?,
-        ),
-        (Symbol::new("detail"), cx.factory().string(receipt.detail)?),
-    ])
+    crate::local_emit::command_value(cx, receipt)
 }
 
 struct ContractShape {
