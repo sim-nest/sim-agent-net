@@ -31,6 +31,10 @@ use crate::{
 mod bind;
 #[path = "selected_effect.rs"]
 mod effect;
+#[path = "selected_hot.rs"]
+mod hot;
+
+pub(crate) use hot::HotCache;
 
 #[cfg(test)]
 #[path = "selected_tests.rs"]
@@ -84,6 +88,9 @@ pub(crate) fn conduct_request(
         return Err("generation identity drift".into());
     }
     let plan_text = request.plan.as_deref().ok_or("selected plan is missing")?;
+    if hot::declares_observations(plan_text) {
+        return hot::conduct(port, request, plan_text);
+    }
     let mut sessions = port
         .sessions
         .lock()

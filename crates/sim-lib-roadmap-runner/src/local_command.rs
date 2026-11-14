@@ -118,6 +118,7 @@ pub trait LocalRoadmapPort: Send + Sync {
 pub struct PublicLocalRoadmapPort {
     executions: Mutex<BTreeMap<String, LocalRoadmapReceipt>>,
     pub(crate) sessions: Mutex<BTreeMap<String, crate::selected::Session>>,
+    pub(crate) hot: Mutex<crate::selected::HotCache>,
     pub(crate) prove_hook: Option<ProductHook>,
     pub(crate) deliver_hook: Option<ProductHook>,
 }
