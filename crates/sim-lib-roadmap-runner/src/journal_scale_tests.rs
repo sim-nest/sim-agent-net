@@ -188,17 +188,31 @@ fn duplicate_fact_key_is_not_a_change() {
     ));
 }
 
-/// One cold rebuild after a 100_000-record prefix. The default suite skips
-/// it. Run it with
+const COLD_SAMPLES: usize = 5;
+const COLD_SUFFIX_CEILING_MS: u128 = 230_635;
+
+fn within_cold_ceiling(elapsed_ms: u128) -> bool {
+    elapsed_ms <= COLD_SUFFIX_CEILING_MS
+}
+
+#[test]
+fn cold_replay_ceiling_admits_bound_and_refuses_next() {
+    assert!(within_cold_ceiling(COLD_SUFFIX_CEILING_MS));
+    assert!(!within_cold_ceiling(COLD_SUFFIX_CEILING_MS + 1));
+    assert_eq!(COLD_SUFFIX_CEILING_MS, 230_635);
+    assert_eq!(COLD_SUFFIX_CEILING_MS + 1, 230_636);
+}
+
+/// Five cold rebuilds after one 100_000-record prefix. The default suite skips
+/// the timed samples. Run them with
 /// `cargo test -p sim-lib-roadmap-runner -- --ignored cold_replay_of_one_hundred_thousand_records_applies_only_the_suffix`.
 #[test]
-#[ignore = "one cold rebuild of a 100_000-record prefix"]
+#[ignore = "five cold rebuilds of a 100_000-record prefix"]
 fn cold_replay_of_one_hundred_thousand_records_applies_only_the_suffix() {
     const PREFIX: u32 = 100_000;
-    // One observed debug suffix rebuild took 202.704058608s. The ceiling is
-    // ceil(202.704058608 * 1.15) milliseconds. A per-record chain check takes
-    // an hour or more.
-    const COLD_SUFFIX_CEILING_MS: u128 = 233_110;
+    // The ceiling is ceil(max(sample) * 1.15) milliseconds. 230635 admits and
+    // 230636 refuses. Each sample opens a new journal, so the retained
+    // execution starts empty. A per-record chain check takes an hour or more.
     let limits = Limits {
         max_execution_bytes: 512 * 1024 * 1024,
         ..Limits::default()
@@ -222,22 +236,41 @@ fn cold_replay_of_one_hundred_thousand_records_applies_only_the_suffix() {
         };
         head = next;
     }
+    let mut raw_ms = Vec::with_capacity(COLD_SAMPLES);
+    for _ in 0..COLD_SAMPLES {
+        let cold = ExecutionJournal::new(Arc::clone(&backend), "scale", limits.clone());
+        let started = Instant::now();
+        let rebuilt = cold.rebuild().unwrap();
+        let elapsed_ms = started.elapsed().as_millis();
+        assert!(
+            within_cold_ceiling(elapsed_ms),
+            "sample {elapsed_ms} exceeds {COLD_SUFFIX_CEILING_MS}"
+        );
+        assert_eq!(rebuilt.causal_applies, 3);
+        assert_eq!(rebuilt.causal.facts.len(), PREFIX as usize + 3);
+        assert_eq!(rebuilt.snapshots, vec![first.clone()]);
+        raw_ms.push(elapsed_ms);
+    }
     let before = backend.read_state().unwrap().datums.len();
     let cold = ExecutionJournal::new(Arc::clone(&backend), "scale", limits);
-    let started = Instant::now();
     let rebuilt = cold.rebuild().unwrap();
-    let elapsed = started.elapsed();
-    assert_eq!(rebuilt.causal_applies, 3);
-    assert_eq!(rebuilt.causal.facts.len(), PREFIX as usize + 3);
-    assert_eq!(rebuilt.snapshots, vec![first]);
     let _stored = cold.snapshot(&rebuilt.head).unwrap();
     let added = backend.read_state().unwrap().datums.len() - before;
     assert!(
         added < 96,
         "snapshot of three new facts stored {added} objects"
     );
-    assert!(
-        elapsed.as_millis() <= COLD_SUFFIX_CEILING_MS,
-        "cold suffix replay of {PREFIX} records took {elapsed:?}"
+    assert_eq!(raw_ms.len(), COLD_SAMPLES);
+    let max_ms = raw_ms.iter().copied().max().unwrap_or(0);
+    let within = raw_ms.iter().all(|sample| within_cold_ceiling(*sample));
+    let raw = raw_ms
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(" ");
+    let derived_ms = max_ms.saturating_mul(115).saturating_add(99) / 100;
+    println!(
+        "cold-replay records {PREFIX} suffix 3 samples {COLD_SAMPLES} stored {added} ceiling-ms {COLD_SUFFIX_CEILING_MS} admits-ms {COLD_SUFFIX_CEILING_MS} refuses-ms {} derived-ms {derived_ms} max-ms {max_ms} within {within} raw-ms {raw}",
+        COLD_SUFFIX_CEILING_MS + 1
     );
 }
