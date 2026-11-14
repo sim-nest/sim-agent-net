@@ -54,7 +54,11 @@ pub(super) struct Plan {
     pub direction: String,
     pub prove_document: Option<String>,
     pub world_document: Option<String>,
+    pub observations: Vec<(String, observe::ObservationState)>,
 }
+
+#[path = "selected_observe.rs"]
+pub(super) mod observe;
 
 pub(super) struct Bound {
     pub revision: Revision,
@@ -134,10 +138,11 @@ pub(super) fn parse(text: &str) -> Result<Plan, String> {
         direction: token(&fields, "direction")?,
         prove_document: optional(&fields, "prove-document")?,
         world_document: optional(&fields, "world-document")?,
+        observations: observe::observations(&fields)?,
     })
 }
 
-const KNOWN_LINES: [&str; 15] = [
+const KNOWN_LINES: [&str; 16] = [
     "provider",
     "operation",
     "execution",
@@ -153,6 +158,7 @@ const KNOWN_LINES: [&str; 15] = [
     "direction",
     "prove-document",
     "world-document",
+    "observation",
 ];
 
 fn row(
