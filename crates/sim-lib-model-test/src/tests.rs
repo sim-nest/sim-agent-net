@@ -39,7 +39,7 @@ fn fixture(
         },
         harness: Some(HarnessCard {
             kind: Symbol::new("broker"),
-            label: "/EXECUTABLE/SECRET".into(),
+            label: "EXECUTABLE-SECRET".into(),
             revision: Expr::String("h1".into()),
             extra: vec![],
         }),
@@ -184,7 +184,7 @@ fn hosted_alias_requires_epoch_and_snapshot_is_redacted_and_append_preserving() 
         "ACCOUNT-SECRET",
         "PRINCIPAL-SECRET",
         "ENDPOINT-SECRET",
-        "/EXECUTABLE/SECRET",
+        "EXECUTABLE-SECRET",
     ];
     let snapshot = OfflineSnapshot::from_census(&census, &forbidden).unwrap();
     for secret in forbidden {
