@@ -326,7 +326,10 @@ summary = "Admit grounded catalog leaves, execute bounded commands through the s
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Build a ProofCatalog from the grounded phase's authored leaves and let conduct select only a catalog name. Use pure artifact-equality and source-deck predicates when their inputs suffice. For commands, retain literal argv, a sealed allowlisted environment, opaque mounts, complete required SandboxPolicy, structured expectation, and TypedProofReceipt. Use execute_journaled_proof with the launcher receipt store so intent precedes launch and unresolved effects reconcile rather than relaunch. Evidence receipts stay on that same catalog. A semantic key is stable across grades, the grade is the checker receipt's own grade, and telemetry is not part of the key. A proof frontier names every failed unit inside a budget, or a continuation that still names the rest. Stop, drain, pause, and resume are recorded on a control log that does not read worker outcomes."
-claims_anchors = []
+claims_anchors = [
+  "anchor/export/sim-lib-roadmap-runner/shape/check-receipt",
+  "anchor/export/sim-lib-roadmap-runner/shape/check-result",
+]
 claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/proof"]
 
 [[feature]]
@@ -404,7 +407,9 @@ summary = "Derive one work packet from canonical input and admit it through the 
 owner = "crate/sim-lib-roadmap-runner"
 audiences = ["code", "framework"]
 guidance = "Call receive_work with one canonical input, an input port, a model worker, and a proposal model. Lengths, identities, paths, roles, status, resources, and the receiver selector come from that input. Oversize input and a wrong namespace, role, copy, status, or schema refuse before the port is read. Incomplete output within the output ceiling keeps the packet evidence. A body longer than that ceiling, whether incomplete, malformed, or a proposal, returns the ceiling with a bounded prefix, the full length, and the identity of the original bytes. Malformed returns inside the ceiling stop at the attempt ceiling, and a retry that does not narrow refuses. A model proposal that carries an effect or an approval refuses. Mirror agreement does not authorize any of those refusals. The call does not open another controller."
-claims_anchors = []
+claims_anchors = [
+  "anchor/export/sim-lib-roadmap-runner/shape/proposal",
+]
 claims_specimens = [
   "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_tests",
   "spec-test/sim-agent-net/crates/sim-lib-roadmap-runner/src/packet_work_more_tests",
