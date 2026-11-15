@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 #![forbid(unsafe_code)]
 
 mod agent_repetition;
@@ -15,10 +20,9 @@ fn main() {
     }
 }
 
-// Run the agent-net recipe-corpus assertions before the shared simdoc task. The
-// assertions are agent-net specific, so they live here rather than in the
-// `simdoc` module, which is kept byte-identical to the canonical sim-tooling copy
-// (see `simctl sync-xtask`).
+// Run the agent-net recipe-corpus assertions before the isolated simdoc
+// encoder. The assertions are agent-net specific, so they live here rather
+// than in the launcher.
 fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
     let program = args.first().map(String::as_str).unwrap_or("xtask");
