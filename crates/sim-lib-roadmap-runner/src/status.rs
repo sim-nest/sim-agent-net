@@ -220,7 +220,7 @@ mod tests {
         RebuiltExecution {
             execution_id: "exec".into(),
             pins: ExecutionPins {
-                conduct: "/home/private".into(),
+                conduct: "/redacted".into(),
                 policy: "token=seeded-secret".into(),
                 source_deck: id(1),
                 model_pick: "model".into(),

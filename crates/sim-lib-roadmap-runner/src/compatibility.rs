@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn rejects_private_or_control_plane_values() {
         for forbidden in [
-            "/home/person/key",
+            "pre/home/key",
             ".meta-workspace/Cargo.toml",
             "roadmap-3.sqlite",
         ] {

@@ -361,7 +361,7 @@ mod tests {
     fn process_program_delivers_hostile_argv_literally_without_shell_reparsing() {
         let spec = BrokerProcessSpec::new(
             ProgramRef::new("mcp-fixture").unwrap(),
-            vec![ArgAtom::new("$(touch /tmp/nope); echo pwned").unwrap()],
+            vec![ArgAtom::new("$(touch /nope); echo pwned").unwrap()],
             ProjectRootRef::new("fixture-root").unwrap(),
             SealedBindings::empty(),
             vec![],
@@ -400,7 +400,7 @@ mod tests {
         let requests = port.requests.lock().unwrap();
         assert_eq!(
             requests[0].argv[0].as_str(),
-            "$(touch /tmp/nope); echo pwned"
+            "$(touch /nope); echo pwned"
         );
         assert_eq!(
             requests[0].budget.stdin.as_deref(),
