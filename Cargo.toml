@@ -60,3 +60,48 @@ homepage = "https://github.com/sim-nest/sim-agent-net"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
+
+# Every Cargo manifest in this repository belongs to its generated contract.
+# Focused harnesses and the offline-capture recipe keep their own resolver roots.
+[workspace.metadata.sim]
+docs-command = "cargo run -p xtask -- simdoc"
+validation-commands = [
+  "cargo fmt --all --check",
+  "cargo test --workspace",
+  "cargo clippy --workspace --all-targets -- -D warnings",
+  "cargo doc --workspace --no-deps",
+  "cargo clippy --workspace --all-features --all-targets -- -D warnings",
+  "cargo test --workspace --all-features",
+  "cargo run -p xtask -- check-file-sizes",
+  "cargo test --manifest-path crates/sim-lib-agent/channel-policy-focused/Cargo.toml",
+  "cargo test --manifest-path crates/sim-lib-capability-pack/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-lib-continuity/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-lib-model-test/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-lib-model-test/product-focused/Cargo.toml",
+  "cargo test --manifest-path crates/sim-lib-model-test-packs/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-lib-roadmap/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-lib-roadmap-runner/compatibility-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-lib-roadmap-runner/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-roadmap-core/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-roadmap-exec-core/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-roadmap-plan/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-roadmap-refine/focused-tests/Cargo.toml",
+  "cargo test --manifest-path crates/sim-source-deck/focused-tests/Cargo.toml",
+]
+contract-exclusions = [
+  { path = "crates/sim-lib-agent/channel-policy-focused", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-agent/channel-policy-focused/Cargo.toml", reason = "Compiles the channel policy module under the narrowed dependency set." },
+  { path = "crates/sim-lib-capability-pack/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-capability-pack/focused-tests/Cargo.toml", reason = "Runs the capability-pack closure tests through their own manifest." },
+  { path = "crates/sim-lib-continuity/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-continuity/focused-tests/Cargo.toml", reason = "Runs the continuity suite and the hostile-replay binary through their own manifest." },
+  { path = "crates/sim-lib-model-test/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-model-test/focused-tests/Cargo.toml", reason = "Compiles the legacy import module under the narrowed dependency set." },
+  { path = "crates/sim-lib-model-test/product-focused", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-model-test/product-focused/Cargo.toml", reason = "Loads the offline model-test product projections through their own manifest." },
+  { path = "crates/sim-lib-model-test-packs/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-model-test-packs/focused-tests/Cargo.toml", reason = "Compiles the generated portfolio modules under the narrowed dependency set." },
+  { path = "crates/sim-lib-roadmap/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-roadmap/focused-tests/Cargo.toml", reason = "Runs the parent suite through this manifest's narrowed dependency set." },
+  { path = "crates/sim-lib-roadmap-runner/compatibility-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-roadmap-runner/compatibility-tests/Cargo.toml", reason = "Links the shadow contract without the runner crate." },
+  { path = "crates/sim-lib-roadmap-runner/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-roadmap-runner/focused-tests/Cargo.toml", reason = "Qualifies the local executor through its own manifest." },
+  { path = "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture", class = "recipe-fixture", consumer = "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/recipe.toml", reason = "The offline-capture recipe builds this unpublished workspace." },
+  { path = "crates/sim-roadmap-core/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-roadmap-core/focused-tests/Cargo.toml", reason = "Runs the admission suite through its own manifest." },
+  { path = "crates/sim-roadmap-exec-core/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-roadmap-exec-core/focused-tests/Cargo.toml", reason = "Runs the executor suite through its own manifest." },
+  { path = "crates/sim-roadmap-plan/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-roadmap-plan/focused-tests/Cargo.toml", reason = "Compiles the parent library under the narrowed dependency set." },
+  { path = "crates/sim-roadmap-refine/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-roadmap-refine/focused-tests/Cargo.toml", reason = "Compiles the parent refiner library under the narrowed dependency set." },
+  { path = "crates/sim-source-deck/focused-tests", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-source-deck/focused-tests/Cargo.toml", reason = "Compiles the parent library and the grounded example with the kernel only." },
+]
