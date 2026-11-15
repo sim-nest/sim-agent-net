@@ -262,6 +262,143 @@
   ],
   "citizen_count": 0,
   "citizens": [],
+  "contract_exclusions": [
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-agent/channel-policy-focused/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-agent/channel-policy-focused/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-agent/channel-policy-focused",
+      "reason": "Compiles the channel policy module under the narrowed dependency set."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-capability-pack/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-capability-pack/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-capability-pack/focused-tests",
+      "reason": "Runs the capability-pack closure tests through their own manifest."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-continuity/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-continuity/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-continuity/focused-tests",
+      "reason": "Runs the continuity suite and the hostile-replay binary through their own manifest."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-model-test/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-model-test/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-model-test/focused-tests",
+      "reason": "Compiles the legacy import module under the narrowed dependency set."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-model-test/product-focused/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-model-test/product-focused/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-model-test/product-focused",
+      "reason": "Loads the offline model-test product projections through their own manifest."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-model-test-packs/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-model-test-packs/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-model-test-packs/focused-tests",
+      "reason": "Compiles the generated portfolio modules under the narrowed dependency set."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-roadmap/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-roadmap/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-roadmap/focused-tests",
+      "reason": "Runs the parent suite through this manifest's narrowed dependency set."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-roadmap-runner/compatibility-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-roadmap-runner/compatibility-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-roadmap-runner/compatibility-tests",
+      "reason": "Links the shadow contract without the runner crate."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-roadmap-runner/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-roadmap-runner/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-roadmap-runner/focused-tests",
+      "reason": "Qualifies the local executor through its own manifest."
+    },
+    {
+      "class": "recipe-fixture",
+      "consumer": "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/recipe.toml",
+      "manifests": [
+        "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-web-fetch/recipes/01-basics/offline-capture",
+      "reason": "The offline-capture recipe builds this unpublished workspace."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-roadmap-core/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-roadmap-core/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-roadmap-core/focused-tests",
+      "reason": "Runs the admission suite through its own manifest."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-roadmap-exec-core/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-roadmap-exec-core/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-roadmap-exec-core/focused-tests",
+      "reason": "Runs the executor suite through its own manifest."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-roadmap-plan/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-roadmap-plan/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-roadmap-plan/focused-tests",
+      "reason": "Compiles the parent library under the narrowed dependency set."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-roadmap-refine/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-roadmap-refine/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-roadmap-refine/focused-tests",
+      "reason": "Compiles the parent refiner library under the narrowed dependency set."
+    },
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-source-deck/focused-tests/Cargo.toml",
+      "manifests": [
+        "crates/sim-source-deck/focused-tests/Cargo.toml"
+      ],
+      "path": "crates/sim-source-deck/focused-tests",
+      "reason": "Compiles the parent library and the grounded example with the kernel only."
+    }
+  ],
   "generator": "xtask repo-contract v1",
   "group_count": 1,
   "group_order": [
@@ -3393,29 +3530,63 @@
   ],
   "provenance": {
     "api_docs": "target/doc/",
-    "generated_by": "cargo run -p xtask -- simdoc",
-    "generation_timestamp": "2026-07-18T14:40:47+02:00",
+    "execution": {
+      "executable": {
+        "lock_sha256": "de3cf584352514646909797b8454326e8ba4d3d90bf87ed7c3592ae971073678",
+        "package": "simdoc",
+        "source_sha256": "0830129029045df1e020446f232ffff638c5cd5d65265ada29458b4748a1561d",
+        "version": "0.1.0"
+      },
+      "operation": "repo-contract --repo .",
+      "resolver": null,
+      "toolchain": {
+        "cargo": {
+          "commit_hash": "30a34c6821b57de0aaec83a901aca39f88f6778c",
+          "release": "1.96.0"
+        },
+        "rustc": {
+          "commit_hash": "ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96",
+          "release": "1.96.0"
+        }
+      }
+    },
+    "generation_timestamp": "2026-11-15T10:12:29+01:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "29d6960695a3bf7dfa490166ee4579ea6361e449",
+    "git_commit": "b0f860de2e2d714b45aebf052dbbd68fca0d888a",
+    "regeneration_command": "cargo run -p xtask -- simdoc",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "29d6960695a3bf7dfa490166ee4579ea6361e449",
+    "source_commit": "b0f860de2e2d714b45aebf052dbbd68fca0d888a",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
-      "cargo test",
-      "cargo clippy --all-targets -- -D warnings",
-      "cargo doc --no-deps",
-      "cargo run -p xtask -- simdoc --check",
+      "cargo test --workspace",
+      "cargo clippy --workspace --all-targets -- -D warnings",
+      "cargo doc --workspace --no-deps",
+      "cargo clippy --workspace --all-features --all-targets -- -D warnings",
+      "cargo test --workspace --all-features",
       "cargo run -p xtask -- check-file-sizes",
-      "cargo run -p xtask -- repo-contract --check --repo .",
-      "cargo run -p xtask -- validation-matrix --check --repo .",
-      "cargo run -p xtask -- crate-catalog --check --repo ."
+      "cargo test --manifest-path crates/sim-lib-agent/channel-policy-focused/Cargo.toml",
+      "cargo test --manifest-path crates/sim-lib-capability-pack/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-lib-continuity/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-lib-model-test/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-lib-model-test/product-focused/Cargo.toml",
+      "cargo test --manifest-path crates/sim-lib-model-test-packs/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-lib-roadmap/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-lib-roadmap-runner/compatibility-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-lib-roadmap-runner/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-roadmap-core/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-roadmap-exec-core/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-roadmap-plan/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-roadmap-refine/focused-tests/Cargo.toml",
+      "cargo test --manifest-path crates/sim-source-deck/focused-tests/Cargo.toml"
     ],
-    "workspace_hash": "b7adac4eae79a8f1",
+    "workspace_hash": "3508d218955e88b2",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 1184,
+    "workspace_hash_input_count": 1213,
     "workspace_hash_inputs": [
+      ".github/workflows/authorship.yml",
+      ".github/workflows/ci.yml",
       "Cargo.toml",
       "crates/sim-lib-agent/Cargo.toml",
       "crates/sim-lib-agent/build.rs",
@@ -4219,7 +4390,12 @@
       "crates/sim-lib-roadmap-runner/src/causal.rs",
       "crates/sim-lib-roadmap-runner/src/codec.rs",
       "crates/sim-lib-roadmap-runner/src/compatibility.rs",
+      "crates/sim-lib-roadmap-runner/src/conduct.rs",
       "crates/sim-lib-roadmap-runner/src/converge.rs",
+      "crates/sim-lib-roadmap-runner/src/converge_close.rs",
+      "crates/sim-lib-roadmap-runner/src/converge_close_fixture.rs",
+      "crates/sim-lib-roadmap-runner/src/converge_close_gate_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/converge_close_tests.rs",
       "crates/sim-lib-roadmap-runner/src/converge_fixture.rs",
       "crates/sim-lib-roadmap-runner/src/converge_gate_tests.rs",
       "crates/sim-lib-roadmap-runner/src/converge_propose.rs",
@@ -4227,7 +4403,9 @@
       "crates/sim-lib-roadmap-runner/src/discharge.rs",
       "crates/sim-lib-roadmap-runner/src/drive.rs",
       "crates/sim-lib-roadmap-runner/src/drive_commit.rs",
+      "crates/sim-lib-roadmap-runner/src/drive_control_tests.rs",
       "crates/sim-lib-roadmap-runner/src/drive_fault_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/drive_harness.rs",
       "crates/sim-lib-roadmap-runner/src/drive_more_tests.rs",
       "crates/sim-lib-roadmap-runner/src/drive_restore_tests.rs",
       "crates/sim-lib-roadmap-runner/src/drive_step.rs",
@@ -4237,16 +4415,24 @@
       "crates/sim-lib-roadmap-runner/src/fixed_check.rs",
       "crates/sim-lib-roadmap-runner/src/fixed_fixture.rs",
       "crates/sim-lib-roadmap-runner/src/fixed_gate_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/fixed_identity.rs",
       "crates/sim-lib-roadmap-runner/src/fixed_tests.rs",
       "crates/sim-lib-roadmap-runner/src/implementer.rs",
       "crates/sim-lib-roadmap-runner/src/journal.rs",
       "crates/sim-lib-roadmap-runner/src/journal_contract_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/journal_delta.rs",
+      "crates/sim-lib-roadmap-runner/src/journal_replay.rs",
+      "crates/sim-lib-roadmap-runner/src/journal_replay_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/journal_scale_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/journal_share.rs",
+      "crates/sim-lib-roadmap-runner/src/journal_share_tree.rs",
       "crates/sim-lib-roadmap-runner/src/journal_util.rs",
       "crates/sim-lib-roadmap-runner/src/land.rs",
       "crates/sim-lib-roadmap-runner/src/land_tests.rs",
       "crates/sim-lib-roadmap-runner/src/lib.rs",
       "crates/sim-lib-roadmap-runner/src/local_command.rs",
       "crates/sim-lib-roadmap-runner/src/local_command_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/local_emit.rs",
       "crates/sim-lib-roadmap-runner/src/model.rs",
       "crates/sim-lib-roadmap-runner/src/mutation/fs_workspace.rs",
       "crates/sim-lib-roadmap-runner/src/mutation.rs",
@@ -4259,8 +4445,11 @@
       "crates/sim-lib-roadmap-runner/src/packet_work_tests.rs",
       "crates/sim-lib-roadmap-runner/src/proof/error.rs",
       "crates/sim-lib-roadmap-runner/src/proof/evidence.rs",
+      "crates/sim-lib-roadmap-runner/src/proof/evidence_bind.rs",
       "crates/sim-lib-roadmap-runner/src/proof/evidence_discover.rs",
       "crates/sim-lib-roadmap-runner/src/proof/evidence_discover_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/proof/evidence_fixture.rs",
+      "crates/sim-lib-roadmap-runner/src/proof/evidence_repair_tests.rs",
       "crates/sim-lib-roadmap-runner/src/proof/evidence_tests.rs",
       "crates/sim-lib-roadmap-runner/src/proof/normalization.rs",
       "crates/sim-lib-roadmap-runner/src/proof/receipt.rs",
@@ -4278,6 +4467,14 @@
       "crates/sim-lib-roadmap-runner/src/schedule_session_more_tests.rs",
       "crates/sim-lib-roadmap-runner/src/schedule_session_tests.rs",
       "crates/sim-lib-roadmap-runner/src/schedule_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/selected.rs",
+      "crates/sim-lib-roadmap-runner/src/selected_bind.rs",
+      "crates/sim-lib-roadmap-runner/src/selected_effect.rs",
+      "crates/sim-lib-roadmap-runner/src/selected_hot.rs",
+      "crates/sim-lib-roadmap-runner/src/selected_hot_tests.rs",
+      "crates/sim-lib-roadmap-runner/src/selected_mem.rs",
+      "crates/sim-lib-roadmap-runner/src/selected_observe.rs",
+      "crates/sim-lib-roadmap-runner/src/selected_tests.rs",
       "crates/sim-lib-roadmap-runner/src/service.rs",
       "crates/sim-lib-roadmap-runner/src/source.rs",
       "crates/sim-lib-roadmap-runner/src/source_tests.rs",
@@ -4599,7 +4796,8 @@
       "crates/sim-transport-ports/src/model.rs",
       "crates/sim-transport-ports/src/model_tests.rs",
       "features.toml",
-      "xtask/Cargo.toml"
+      "xtask/Cargo.toml",
+      "xtask/src/main.rs"
     ]
   },
   "recipe_book_count": 41,
