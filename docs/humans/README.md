@@ -16899,6 +16899,11 @@ Specimen `spec-test/sim-agent-net/crates/sim-lib-agent-runner-process/src/proces
 Source `crates/sim-lib-agent-runner-process/src/process.rs`:
 
 ```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use sim_kernel::{ClassRef, Cx, Error, Object, ObjectCompat, Result, Symbol};
 use sim_lib_exec::{
     ArgAtom, PrivateArtifactRef, ProcessAttempt, ProcessBudget, ProcessCancellation, ProcessPort,
@@ -17299,10 +17304,7 @@ mod tests {
             )
             .unwrap();
         let requests = port.requests.lock().unwrap();
-        assert_eq!(
-            requests[0].argv[0].as_str(),
-            "$(touch /nope); echo pwned"
-        );
+        assert_eq!(requests[0].argv[0].as_str(), "$(touch /nope); echo pwned");
         assert_eq!(
             requests[0].budget.stdin.as_deref(),
             Some(b"{}\n".as_slice())
