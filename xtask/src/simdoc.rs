@@ -125,3 +125,5 @@ mod tests {
         assert!(error.contains("does not locate crates/simdoc/Cargo.toml"));
     }
 }
+
+// conformance: Generated-doc launcher tests resolve the isolated simdoc encoder from a tooling workspace manifest, the encoder manifest, and the tooling checkout, and reject a hint that does not locate that encoder.
