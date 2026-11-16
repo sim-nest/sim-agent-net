@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use crate::*;
 use sim_citizen::{CitizenRegistry, run_registry_conformance_expecting};
 use sim_kernel::{Expr, Symbol, testing::bare_cx as cx};
@@ -87,3 +92,4 @@ fn policies_fail_closed() {
         Err(MigrationError::UnsupportedVersion(0))
     ))
 }
+// conformance: continuity tests prove citizen shapes, codec round-trips, stable hostile replay, and closed policy failure.

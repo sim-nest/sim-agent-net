@@ -194,6 +194,7 @@ owner = "crate/sim-lib-continuity"
 audiences = ["code", "framework"]
 guidance = "Use ContinuityPlan plus apply or rebuild for effect-free state derivation, and adapt ContinuityJournal to the delivered fenced journal at the composition boundary. Route candidates are observations, never capabilities. Hosts alone interpret emitted intents; keep platform, device, audio, model, view, wall-clock, and SDK behavior outside this crate."
 claims_anchors = ["anchor/cli/sim-lib-continuity-recipe-hostile-replay", "anchor/crate/sim-lib-continuity", "anchor/crate/sim-lib-continuity-recipe-hostile-replay"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-continuity/src/tests"]
 claims_surfaces = ["cli/sim-lib-continuity-recipe-hostile-replay"]
 
 [[route]]
