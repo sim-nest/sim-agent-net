@@ -626,6 +626,7 @@ audiences = ["user", "code", "framework"]
 guidance = "Use `sim agent conduct list|show|explain|run` for bounded command access and agent.conduct/list|show|explain|run from Lisp. Use agent.run/inspect|suspend|resume|replay|fork for the same lifecycle projection. Show and explain retain topology reflection and add only derived Cards, roles, authority, budget, result Shape, and replay policy. Command results are bounded expression maps, identifiers are validated, replay exposes no live effect target, and recipes use fake runners, cassettes, fixture tools, and modeled effects."
 claims_anchors = [
 ]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-agent/src/cli"]
 depends_on = [
   "feature/sim-agent-net/manifest-selected-conduct",
   "feature/sim-agent-net/agent-conduct-topology-profile",
