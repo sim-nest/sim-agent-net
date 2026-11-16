@@ -676,6 +676,7 @@ claims_anchors = [
   "anchor/rustdoc/sim-lib-agent-runner-http/register_local_service_families",
 ]
 claims_surfaces = ["cli/provider"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-provider/src/tests"]
 supports = [
   "feature/sim-agent-net/model-runner-framework",
 ]

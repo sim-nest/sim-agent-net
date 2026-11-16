@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use crate::{
     AuthMetadata, AuthMethod, AuthOwner, CredentialSource, EndpointCard, HarnessCard,
     PrincipalCard, ProviderAdapter, ProviderFamilyCard, ProviderRegistry, ProviderSeatCard,
@@ -132,3 +137,4 @@ impl ProviderAdapter for MultiSeatAdapter {
 
 include!("tests/registry.rs");
 include!("tests/auth.rs");
+// conformance: provider control tests register families, open seats through one harness, refuse unsupported capabilities before the runner, and keep API, CLI, and daemon fan-out ordered.
