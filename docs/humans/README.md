@@ -81,7 +81,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-agent-net/forge-intent` | `crate/sim-lib-forge` | 1 | Compile high-level intent records into checked Forge output through the loadable Forge runtime library. |
 | `feature/sim-agent-net/agent-server-tools` | `crate/sim-lib-server` | 1 | Expose agent-facing server, skill, and OpenAI gateway libraries for model-connected hosts using the shared authoritative Draft 2020-12 schema organ. |
 | `feature/sim-agent-net/server-wall-clock` | `crate/sim-lib-server` | 1 | Consume the shared sim-host-core wall-clock contract through explicit server bindings without owning another time abstraction. |
-| `feature/sim-agent-net/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, recipe, and index facts for agent, bridge, MCP, and fabric crates. |
+| `feature/sim-agent-net/generated-docs` | `crate/xtask` | 1 | Publish generated package, card, recipe, and index facts for agent, bridge, MCP, and fabric crates. |
 | `feature/sim-agent-net/provider-neutral-http-search` | `crate/sim-lib-search-http` | 0 | A bounded HTTP effect owner turns any SearchWireCodec into ordinary Retriever and Tool cards. |
 | `feature/sim-agent-net/reproducible-federated-research` | `crate/sim-lib-search` | 0 | Immutable plans compose authorized Retriever cards, deterministic partial federation, conservative alias evidence, shared RRF, independently authorized capture, and verified selectors. |
 | `feature/sim-agent-net/search-product` | `crate/sim-lib-search` | 0 | Execute query, fetch, research, and store-only show once and project the same canonical search record through CLI and MCP. |
@@ -22909,6 +22909,144 @@ fn wall_clock_contract_and_cron_deduplication_accept_backward_observations() {
     );
     assert!(state.advance_cron_high_watermark(3));
 }
+```
+
+### `feature/sim-agent-net/generated-docs`
+
+Specimen `spec-test/sim-agent-net/xtask/src/simdoc` is checked by `cargo test`.
+
+Source `xtask/src/simdoc.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+//! Thin simdoc launcher: defers to the isolated simdoc encoder.
+
+use std::env;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+pub fn run(args: Vec<String>) -> Result<(), String> {
+    let program = args.first().map(String::as_str).unwrap_or("xtask");
+    if args.get(1).map(String::as_str) != Some("simdoc") {
+        return Err(format!("usage: {program} simdoc [--check]"));
+    }
+
+    let root = env::current_dir().map_err(|err| format!("current dir: {err}"))?;
+    let manifest = locate_simdoc_manifest(&root)?;
+    let mut command = Command::new("cargo");
+    command.args(["run", "--locked", "--offline", "--manifest-path"]);
+    command.arg(&manifest);
+    command.args(["--quiet", "--", "simdoc", "--repo-root"]);
+    command.arg(&root);
+    for arg in args.iter().skip(2) {
+        command.arg(arg);
+    }
+
+    let status = command
+        .status()
+        .map_err(|err| format!("run isolated simdoc encoder: {err}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "isolated simdoc encoder failed with status {status}"
+        ))
+    }
+}
+
+fn locate_simdoc_manifest(repo_root: &Path) -> Result<PathBuf, String> {
+    if let Ok(path) = env::var("SIMDOC_TOOLING_MANIFEST") {
+        // CI and release generation set this to the tooling workspace
+        // manifest. That manifest refuses the simdoc verb.
+        return isolated_manifest_from_hint(Path::new(&path));
+    }
+    let isolated = repo_root
+        .parent()
+        .unwrap_or(repo_root)
+        .join("sim-tooling")
+        .join("crates")
+        .join("simdoc")
+        .join("Cargo.toml");
+    if isolated.is_file() {
+        return Ok(isolated);
+    }
+    Err(
+        "set SIMDOC_TOOLING_MANIFEST to the sim-tooling checkout or crates/simdoc/Cargo.toml"
+            .to_owned(),
+    )
+}
+
+fn isolated_manifest_from_hint(hint: &Path) -> Result<PathBuf, String> {
+    let isolated_rel = Path::new("crates").join("simdoc").join("Cargo.toml");
+    let candidates = [
+        hint.to_path_buf(),
+        hint.join("Cargo.toml"),
+        hint.join(&isolated_rel),
+        hint.parent().unwrap_or(hint).join(&isolated_rel),
+    ];
+    for candidate in candidates {
+        if candidate.is_file() && candidate.ends_with(&isolated_rel) {
+            return Ok(candidate);
+        }
+    }
+    Err(format!(
+        "SIMDOC_TOOLING_MANIFEST={} does not locate crates/simdoc/Cargo.toml",
+        hint.display()
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn isolated_rel() -> PathBuf {
+        Path::new("crates").join("simdoc").join("Cargo.toml")
+    }
+
+    #[test]
+    fn tooling_hints_resolve_to_the_isolated_encoder() {
+        let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("xtask lives in the repository root")
+            .to_path_buf();
+        let selected = locate_simdoc_manifest(&repo).expect("isolated encoder");
+        assert!(selected.ends_with(isolated_rel()));
+        assert!(selected.with_file_name("Cargo.lock").is_file());
+
+        let tooling = selected
+            .parent()
+            .and_then(Path::parent)
+            .and_then(Path::parent)
+            .expect("crates/simdoc lives in the tooling checkout");
+        assert_eq!(
+            isolated_manifest_from_hint(&tooling.join("Cargo.toml")).expect("workspace hint"),
+            selected
+        );
+        assert_eq!(
+            isolated_manifest_from_hint(&selected).expect("isolated hint"),
+            selected
+        );
+        assert_eq!(
+            isolated_manifest_from_hint(tooling).expect("checkout hint"),
+            selected
+        );
+    }
+
+    #[test]
+    fn missing_tooling_hint_is_an_error() {
+        let missing = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("no-such-tooling")
+            .join("Cargo.toml");
+        let error = isolated_manifest_from_hint(&missing).expect_err("missing hint");
+        assert!(error.contains("does not locate crates/simdoc/Cargo.toml"));
+    }
+}
+
+// conformance: Generated-doc launcher tests resolve the isolated simdoc encoder from a tooling workspace manifest, the encoder manifest, and the tooling checkout, and reject a hint that does not locate that encoder.
 ```
 
 ### `feature/sim-agent-net/grounded-promise-discharge`

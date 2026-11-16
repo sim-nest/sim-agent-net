@@ -4,7 +4,7 @@
     "executable": {
       "lock_sha256": "de3cf584352514646909797b8454326e8ba4d3d90bf87ed7c3592ae971073678",
       "package": "simdoc",
-      "source_sha256": "7b0ad5b92745de9788c33dbb373e60b24f637d606a6691fff9c3b6f0adf10d0c",
+      "source_sha256": "74448e83dac20f9a89947838e92e4421988e2bdf26294362679fca8bfd9b0cbd",
       "version": "0.1.0"
     },
     "operation": "repo-contract --repo .",
@@ -20,13 +20,13 @@
       }
     }
   },
-  "generation_timestamp": "2026-11-16T06:39:27+01:00",
+  "generation_timestamp": "2026-11-16T07:10:58+01:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "c6f267bb4ce7b4d6fd9d925b804c5080ca9120c6",
+  "git_commit": "15571b8a847a78632f9a6f9bbe54796854aee5db",
   "regeneration_command": "cargo run -p xtask -- simdoc",
   "repo": "sim-agent-net",
   "schema": "sim.provenance.v1",
-  "source_commit": "c6f267bb4ce7b4d6fd9d925b804c5080ca9120c6",
+  "source_commit": "15571b8a847a78632f9a6f9bbe54796854aee5db",
   "source_remote": "https://github.com/sim-nest/sim-agent-net",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -51,7 +51,7 @@
     "cargo test --manifest-path crates/sim-roadmap-refine/focused-tests/Cargo.toml",
     "cargo test --manifest-path crates/sim-source-deck/focused-tests/Cargo.toml"
   ],
-  "workspace_hash": "fc27d1272e34d25a",
+  "workspace_hash": "abb46dff18ade2e3",
   "workspace_hash_algorithm": "fnv1a64",
   "workspace_hash_input_count": 1214,
   "workspace_hash_inputs": [

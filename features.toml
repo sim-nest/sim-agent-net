@@ -1205,6 +1205,7 @@ claims_surfaces = [
   "cli/xtask",
   "docs/sim-agent-net/generated",
 ]
+claims_specimens = ["spec-test/sim-agent-net/xtask/src/simdoc"]
 
 [[route]]
 id = "route/serve-over-mcp"
