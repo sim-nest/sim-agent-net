@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::*;
 use ring::rand::SystemRandom;
 use ring::signature::{Ed25519KeyPair, KeyPair};
@@ -61,3 +66,4 @@ fn rotation_is_monotonic() {
         .is_err()
     );
 }
+// conformance: Local JOSE tests verify one resource-bound JWT against an injected Ed25519 JWK generation, reject a substituted resource, an unknown key id, and an expired token, and refuse a key generation that does not increase.
