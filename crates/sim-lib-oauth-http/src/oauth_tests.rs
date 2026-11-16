@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::*;
 struct F(Vec<u8>);
 impl DocumentTransport for F {
@@ -27,3 +32,4 @@ fn refresh_is_rate_limited() {
     assert!(d.jwks(&url, 100).is_ok());
     assert!(d.jwks(&url, 101).is_err());
 }
+// conformance: Bounded OAuth HTTP tests read one protected-resource document through an injected transport and refuse a JWK refresh one time unit after a successful refresh.

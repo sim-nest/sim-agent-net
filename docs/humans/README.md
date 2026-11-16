@@ -67,7 +67,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-agent-net/mcp-server` | `crate/sim-lib-mcp` | 1 | Serve final MCP over stdio by default or explicitly configured Streamable HTTP through one bootloader composition. |
 | `feature/sim-agent-net/oauth-state-machines` | `crate/sim-lib-oauth-core` | 1 | Validate authority metadata and run resource-bound PKCE authorization-code transitions with injected effects. |
 | `feature/sim-agent-net/oauth-local-jose` | `crate/sim-lib-oauth-jose` | 1 | Verify JWT access tokens locally against injected JWK generations and return immutable authority facts. |
-| `feature/sim-agent-net/oauth-bounded-http` | `crate/sim-lib-oauth-http` | 0 | Retrieve metadata and keys through the shared HTTP policy while pure core and JOSE layers perform no I/O. |
+| `feature/sim-agent-net/oauth-bounded-http` | `crate/sim-lib-oauth-http` | 1 | Retrieve metadata and keys through the shared HTTP policy while pure core and JOSE layers perform no I/O. |
 | `feature/sim-agent-net/mcp-streamable-http` | `crate/sim-lib-mcp-http` | 1 | Serve and call final-protocol MCP over bounded, stateless Streamable HTTP. |
 | `feature/sim-agent-net/mcp-legacy-compatibility` | `crate/sim-lib-mcp-legacy` | 0 | Retain initialize, initialized notification, negotiated connection facts, and shutdown behavior outside the canonical stateless MCP service. |
 | `feature/sim-agent-net/mcp-modern-first-client` | `crate/sim-lib-mcp-client` | 0 | Consume final and delivered legacy MCP over HTTP or stdio without replaying application behavior. |
@@ -18918,6 +18918,50 @@ fn rotation_is_monotonic() {
     );
 }
 // conformance: Local JOSE tests verify one resource-bound JWT against an injected Ed25519 JWK generation, reject a substituted resource, an unknown key id, and an expired token, and refuse a key generation that does not increase.
+```
+
+### `feature/sim-agent-net/oauth-bounded-http`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-oauth-http/src/oauth_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-oauth-http/src/oauth_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+use super::*;
+struct F(Vec<u8>);
+impl DocumentTransport for F {
+    fn get(&self, _: &SecureUrl, _: &Policy) -> Result<Vec<u8>> {
+        Ok(self.0.clone())
+    }
+}
+#[test]
+fn discovery_is_bounded_and_https_only() {
+    let url = SecureUrl::parse(
+        "https://mcp.example/.well-known/oauth-protected-resource",
+        false,
+    )
+    .unwrap();
+    let bytes=br#"{"resource":"https://mcp.example/","authorization_servers":["https://as.example/"],"scopes_supported":["read"]}"#.to_vec();
+    let d = OAuthDocuments::new(F(bytes), RetrievalPolicy::default()).unwrap();
+    assert_eq!(
+        d.protected_resource(&url).unwrap().resource.as_str(),
+        "https://mcp.example/"
+    );
+}
+#[test]
+fn refresh_is_rate_limited() {
+    let url = SecureUrl::parse("https://as.example/jwks", false).unwrap();
+    let mut d =
+        OAuthDocuments::new(F(br#"{"keys":[]}"#.to_vec()), RetrievalPolicy::default()).unwrap();
+    assert!(d.jwks(&url, 100).is_ok());
+    assert!(d.jwks(&url, 101).is_err());
+}
+// conformance: Bounded OAuth HTTP tests read one protected-resource document through an injected transport and refuse a JWK refresh one time unit after a successful refresh.
 ```
 
 ### `feature/sim-agent-net/mcp-streamable-http`
