@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 //! Agent-conduct certification and topology execution adapter.
@@ -24,5 +29,7 @@ include!("catalog.rs");
 include!("conduct.rs");
 include!("runtime.rs");
 
+#[cfg(test)]
+mod catalog_tests;
 #[cfg(test)]
 mod tests;

@@ -3550,13 +3550,13 @@
         }
       }
     },
-    "generation_timestamp": "2026-11-16T02:57:28+01:00",
+    "generation_timestamp": "2026-11-16T03:36:51+01:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "dcea02cb31e4e50e303dd43fc472e0d68b9c1848",
+    "git_commit": "edde40c667f8a3b7dbaa943c6d127e59e348761d",
     "regeneration_command": "cargo run -p xtask -- simdoc",
     "repo": "sim-agent-net",
     "schema": "sim.provenance.v1",
-    "source_commit": "dcea02cb31e4e50e303dd43fc472e0d68b9c1848",
+    "source_commit": "edde40c667f8a3b7dbaa943c6d127e59e348761d",
     "source_remote": "https://github.com/sim-nest/sim-agent-net",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -3581,9 +3581,9 @@
       "cargo test --manifest-path crates/sim-roadmap-refine/focused-tests/Cargo.toml",
       "cargo test --manifest-path crates/sim-source-deck/focused-tests/Cargo.toml"
     ],
-    "workspace_hash": "47ed936980902d9c",
+    "workspace_hash": "cdd62cfe876d4d45",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 1213,
+    "workspace_hash_input_count": 1214,
     "workspace_hash_inputs": [
       ".github/workflows/authorship.yml",
       ".github/workflows/ci.yml",
@@ -3837,6 +3837,7 @@
       "crates/sim-lib-agent-conduct/recipes/01-basics/echo-conduct/src/main.rs",
       "crates/sim-lib-agent-conduct/recipes/book.toml",
       "crates/sim-lib-agent-conduct/src/catalog.rs",
+      "crates/sim-lib-agent-conduct/src/catalog_tests.rs",
       "crates/sim-lib-agent-conduct/src/conduct.rs",
       "crates/sim-lib-agent-conduct/src/lib.rs",
       "crates/sim-lib-agent-conduct/src/runtime.rs",

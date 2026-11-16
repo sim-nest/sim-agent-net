@@ -49,7 +49,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-agent-net/immutable-mission-law` | `crate/sim-lib-agent` | 1 | Freeze authority, pack closure, roles, placements, tools, budgets, vetoes, escalation, stop, and crew topology into one content-identified MissionPlan. |
 | `feature/sim-agent-net/agent-conduct-records` | `crate/sim-lib-agent-conduct-core` | 1 | Describe agent run frames, open lifecycle vocabulary, exact domain budgets, step Cards, and durable hash-linked run journals with effect-safe replay and forks. |
 | `feature/sim-agent-net/agent-conduct` | `crate/sim-lib-agent-conduct` | 1 | Assemble, inspect, run, and author different agent kinds as validated data-only conduct graphs, including ReAct, plan-act-replan, phased, verify-retry, router-crew, and triage workflows. |
-| `feature/sim-agent-net/agent-conduct-topology-profile` | `crate/sim-lib-agent-conduct` | 0 | Certify delivered topology packages as agent/conduct-v1 workflows, browse the standard data-only agent-kind catalog, bind step Cards explicitly, and run or resume through the topology engine. |
+| `feature/sim-agent-net/agent-conduct-topology-profile` | `crate/sim-lib-agent-conduct` | 1 | Certify delivered topology packages as agent/conduct-v1 workflows, browse the standard data-only agent-kind catalog, bind step Cards explicitly, and run or resume through the topology engine. |
 | `feature/sim-agent-net/agent-single-steps` | `crate/sim-lib-agent` | 2 | Run model, tool, component, planning, phase, review, delegation, checkpoint, finish, and stop concerns as independently testable single attempts while topology conducts own every retry and repetition edge. |
 | `feature/sim-agent-net/manifest-selected-conduct` | `crate/sim-lib-agent` | 1 | Select one loadable conduct in AgentManifest and execute it identically before start, after start, and after runtime replacement or restart. |
 | `feature/sim-agent-net/agent-conduct-product-surfaces` | `crate/sim-lib-agent` | 1 | Discover, explain, run, suspend, resume, replay, fork, and extend topology-backed agent conducts through the existing agent command and Lisp library. |
@@ -12600,6 +12600,11 @@ Specimen `spec-test/sim-agent-net/crates/sim-lib-agent-conduct/src/tests` is che
 Source `crates/sim-lib-agent-conduct/src/tests.rs`:
 
 ```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::sync::Arc;
 
 use sim_kernel::{
@@ -12672,41 +12677,6 @@ fn cards() -> Vec<AgentStepCard> {
     ]
 }
 
-fn catalog_cards() -> Vec<AgentStepCard> {
-    let specs: &[(&str, &[&str], &[&str])] = &[
-        ("component", &["component"], &["continue", "error"]),
-        ("delegate", &["delegate"], &["continue", "error"]),
-        ("finish", &[], &["finished", "error"]),
-        ("model-turn", &["runner"], &["tool-calls", "final", "error"]),
-        ("plan", &["runner"], &["created", "error"]),
-        (
-            "replan",
-            &["runner"],
-            &["keep", "replace", "done", "stop", "error"],
-        ),
-        (
-            "review",
-            &["reviewer"],
-            &["accept", "revise", "reject", "error"],
-        ),
-        ("stop", &[], &["stopped"]),
-        ("tool-batch", &["tools"], &["continue", "final", "error"]),
-    ];
-    specs
-        .iter()
-        .map(|(id, roles, outcomes)| AgentStepCard {
-            step_id: Symbol::qualified("agent.step", *id),
-            input_shape: run_frame_shape(),
-            output_shape: run_frame_shape(),
-            roles: roles.iter().map(|role| Symbol::new(*role)).collect(),
-            outcomes: outcomes
-                .iter()
-                .map(|outcome| Symbol::new(*outcome))
-                .collect(),
-            ..Default::default()
-        })
-        .collect()
-}
 fn conduct() -> AgentConduct {
     validate_agent_conduct(parse_package(PACKAGE).unwrap(), &cards()).unwrap()
 }
@@ -12853,6 +12823,59 @@ fn dependency_and_source_guards_keep_the_adapter_narrow() {
     }
 }
 
+// conformance: topology-backed agent conduct certification and execution.
+```
+
+### `feature/sim-agent-net/agent-conduct-topology-profile`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-agent-conduct/src/catalog_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-agent-conduct/src/catalog_tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+use super::*;
+
+fn catalog_cards() -> Vec<AgentStepCard> {
+    let specs: &[(&str, &[&str], &[&str])] = &[
+        ("component", &["component"], &["continue", "error"]),
+        ("delegate", &["delegate"], &["continue", "error"]),
+        ("finish", &[], &["finished", "error"]),
+        ("model-turn", &["runner"], &["tool-calls", "final", "error"]),
+        ("plan", &["runner"], &["created", "error"]),
+        (
+            "replan",
+            &["runner"],
+            &["keep", "replace", "done", "stop", "error"],
+        ),
+        (
+            "review",
+            &["reviewer"],
+            &["accept", "revise", "reject", "error"],
+        ),
+        ("stop", &[], &["stopped"]),
+        ("tool-batch", &["tools"], &["continue", "final", "error"]),
+    ];
+    specs
+        .iter()
+        .map(|(id, roles, outcomes)| AgentStepCard {
+            step_id: Symbol::qualified("agent.step", *id),
+            input_shape: run_frame_shape(),
+            output_shape: run_frame_shape(),
+            roles: roles.iter().map(|role| Symbol::new(*role)).collect(),
+            outcomes: outcomes
+                .iter()
+                .map(|outcome| Symbol::new(*outcome))
+                .collect(),
+            ..Default::default()
+        })
+        .collect()
+}
+
 #[test]
 fn data_catalog_loads_through_registry_and_normalizes_to_distinct_reports() {
     let mut cx = sim_kernel::testing::bare_cx();
@@ -12928,7 +12951,7 @@ fn catalog_bounded_edge_owns_visit_order_and_exhaustion() {
         .unwrap_err();
     assert!(error.to_string().contains("exhausted after 1 visit(s)"));
 }
-// conformance: topology-backed agent conduct certification and execution.
+// conformance: conduct topology profile tests load the catalog, require embedded contract data, and exhaust bounded edges without a kind-specific loop.
 ```
 
 ### `feature/sim-agent-net/agent-single-steps`
