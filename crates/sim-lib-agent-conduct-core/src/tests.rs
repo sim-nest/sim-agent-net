@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use sim_citizen::{CitizenRegistry, run_registry_conformance_expecting};
 use sim_kernel::{Expr, Symbol, testing::bare_cx as cx};
 
@@ -174,3 +179,4 @@ fn sha256_matches_standard_vector() {
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     );
 }
+// conformance: conduct record tests prove citizen shapes, codec round-trips, namespaced run state, pointwise budget narrowing, and journal rejection of divergent or malformed records.
