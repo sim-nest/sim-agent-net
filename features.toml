@@ -877,6 +877,7 @@ owner = "crate/sim-lib-oauth-core"
 audiences = ["code", "framework"]
 guidance = "Compose this pure package with sim-lib-oauth-http for retrieval and host-provided randomness, consent, browser, and token storage. Preserve exact issuer/resource/scopes through every transition; prefer configured or client-metadata registration and gate deprecated dynamic registration explicitly."
 claims_anchors = ["anchor/crate/sim-lib-oauth-core"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-oauth-core/src/tests"]
 depends_on = ["feature/sim-agent-net/mcp-streamable-http"]
 
 [[feature]]

@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::*;
 struct R(u8);
 impl SecureRandom for R {
@@ -61,3 +66,4 @@ fn ssrf_and_redirect_policy_fail_closed() {
     let u = SecureUrl::parse("https://client.example/cb", false).unwrap();
     assert!(validate_redirect(&u, "https://evil.example/cb").is_err());
 }
+// conformance: OAuth state-machine tests bind PKCE state, issuer, and resource through one authorization-code transition, keep secrets and errors from echoing material, and fail closed on SSRF and redirect mismatches.
