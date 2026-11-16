@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::*;
 #[test]
 fn cli_and_mcp_share_stable_record_and_show_is_network_free() {
@@ -36,3 +41,5 @@ fn modes_and_partial_labels_are_canonical() {
         assert!(r.human().contains("partial failure:"));
     }
 }
+
+// conformance: Search product tests prove CLI and MCP share one canonical record and that show stays network-free when HTTP is denied.

@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::*;
 use std::{
     collections::VecDeque,
@@ -218,3 +223,5 @@ fn registry_uses_only_the_object_safe_skill_transport() {
     assert!(!registry.contains("HttpSearchTransport"));
     assert!(!registry.contains("SearchWireCodec"));
 }
+
+// conformance: HTTP search transport tests prove cassette replay matches a redacted live record, explicit cached discovery, limit rejection before decode, and an object-safe skill transport.
