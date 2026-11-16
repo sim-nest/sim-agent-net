@@ -888,6 +888,7 @@ owner = "crate/sim-lib-oauth-jose"
 audiences = ["code", "framework"]
 guidance = "Allowlist algorithms and bind kid, issuer, audience, resource, scopes, expiry, skew, and key generation. Compose opaque-token introspection behind the same AccessTokenVerifier trait; never place token bytes in diagnostics or identity facts."
 claims_anchors = ["anchor/crate/sim-lib-oauth-jose"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-oauth-jose/src/tests"]
 depends_on = ["feature/sim-agent-net/oauth-state-machines"]
 
 [[feature]]
