@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 #[test]
 fn endpoint_identity_normalizes_and_excludes_credentials() {
     assert_eq!(
@@ -192,3 +197,5 @@ fn mrtr_uses_fresh_id_exact_state_and_bounds_capabilities() {
     assert_ne!(seen[2].id, seen[3].id);
     assert_eq!(seen[3].params["requestState"], json!({"opaque":"exact"}));
 }
+
+// conformance: Modern-first MCP client tests normalize one HTTP endpoint, reject embedded credentials, and keep distinct process identities distinct, probe an injected peer with server/discover once before one cards import and one Modern tools/call, fall back to initialize only after an exact HTTP 400 method-not-found body or a stdio method-not-found error and before one Legacy call, fail closed on an unrecognized discovery, a near-miss body, and a timeout without an application call, reject a schema mismatch before tools/call, and continue one input-required exchange with a fresh id and the exact request state.
