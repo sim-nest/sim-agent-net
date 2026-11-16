@@ -26,7 +26,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-agent-net/loadable-local-roadmap-runner` | `crate/sim-lib-roadmap-runner` | 1 | Expose Shape-described run, resume, status, explain, and replay services with pinned conduct, model, proof, and hotload-generation identities and no delivery authority. |
 | `feature/sim-agent-net/roadmap-shadow-observation` | `crate/sim-lib-roadmap-runner` | 1 | Describe semantic compatibility across ten fixed execution dimensions without importing an oracle or acquiring transition authority. |
 | `feature/sim-agent-net/bounded-roadmap-recovery` | `crate/sim-lib-roadmap-runner` | 1 | Classify roadmap failures by owner and admit only identity-stable, effect-resolved, policy-named retries, certified refinement descent, or pinned compatible model fallbacks within finite counters. |
-| `feature/sim-agent-net/pure-continuity` | `crate/sim-lib-continuity` | 0 | Validate versioned continuity plans and deterministically reduce hostile, reordered session events into replayable turns and authority-free intents. |
+| `feature/sim-agent-net/pure-continuity` | `crate/sim-lib-continuity` | 1 | Validate versioned continuity plans and deterministically reduce hostile, reordered session events into replayable turns and authority-free intents. |
 | `feature/sim-agent-net/loadable-roadmap-command` | `crate/sim-lib-roadmap` | 1 | Ground, plan, compare, refine, render, and explain bounded roadmap values through one capability-free loaded command library. |
 | `feature/sim-agent-net/native-roadmap-document-adapter` | `crate/sim-lib-roadmap` | 1 | Import legacy v3 Markdown and typed catalogs into observation-separated native roadmap documents, then render native recursive Markdown or a precise flat-v3 loss report. |
 | `feature/sim-agent-net/certified-roadmap-refinement` | `crate/sim-roadmap-refine` | 1 | Replace one grounded roadmap leaf with a bounded finite tree only when every child has a strictly lower derived rank and parent acceptance remains completely covered. |
@@ -3395,6 +3395,110 @@ pub fn terminal_requests_no_effects(effect: &RecoveryEffect) -> bool {
     matches!(effect, RecoveryEffect::Stop(_))
 }
 // conformance: finite identity-stable roadmap recovery decisions.
+```
+
+### `feature/sim-agent-net/pure-continuity`
+
+Specimen `spec-test/sim-agent-net/crates/sim-lib-continuity/src/tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-continuity/src/tests.rs`:
+
+```rust
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+use crate::*;
+use sim_citizen::{CitizenRegistry, run_registry_conformance_expecting};
+use sim_kernel::{Expr, Symbol, testing::bare_cx as cx};
+fn plan() -> ContinuityPlan {
+    ContinuityPlan {
+        schema_version: 1,
+        plan_id: Symbol::qualified("continuity.plan", "hostile"),
+        roles: vec![RoleDemand {
+            role: Symbol::new("root"),
+            root: true,
+            required_services: vec![Symbol::new("voice")],
+            fallbacks: vec![],
+        }],
+        available_services: vec![Symbol::new("voice")],
+        max_freshness: 3,
+        retention_turns: 16,
+        disclosure: vec![],
+        network: NetworkPolicy::Offline,
+        allowed_network_routes: vec![],
+    }
+}
+fn event(id: &str, seq: u64, kind: &str) -> ContinuityEvent {
+    ContinuityEvent {
+        event_id: Symbol::qualified("event", id),
+        sequence: seq,
+        logical_time: seq,
+        kind: Symbol::new(kind),
+        role: Symbol::new("root"),
+        lease: None,
+        payload: Expr::Nil,
+        disclosure: None,
+    }
+}
+#[test]
+fn citizens_have_shapes_and_general_codec_round_trip() {
+    let mut r = CitizenRegistry::new();
+    register_citizens(&mut r).unwrap();
+    run_registry_conformance_expecting(
+        &mut cx(),
+        &r,
+        &[
+            "continuity/Plan",
+            "continuity/RoleDemand",
+            "continuity/RouteLease",
+            "continuity/Turn",
+            "continuity/Event",
+            "continuity/Intent",
+            "continuity/Refusal",
+        ],
+    )
+    .unwrap()
+}
+#[test]
+fn hostile_replay_is_stable_and_effect_free() {
+    let p = plan();
+    let mut j = MemoryJournal::default();
+    let mut s = ContinuityState::default();
+    s = j.accept(&p, &s, event("a", 0, "observed")).unwrap();
+    assert_eq!(j.accept(&p, &s, event("a", 0, "observed")).unwrap(), s);
+    assert!(matches!(
+        j.accept(&p, &s, event("future", 3, "observed")),
+        Err(JournalError::Refused(_))
+    ));
+    s = j.accept(&p, &s, event("cancel", 1, "cancel")).unwrap();
+    assert!(matches!(
+        j.accept(&p, &s, event("late", 2, "observed")),
+        Err(JournalError::Refused(_))
+    ));
+    let rebuilt = rebuild(&p, j.turns()).unwrap();
+    assert_eq!(rebuilt, s);
+    assert_eq!(
+        rebuilt
+            .turns
+            .iter()
+            .flat_map(|t| &t.intents)
+            .collect::<Vec<_>>(),
+        s.turns.iter().flat_map(|t| &t.intents).collect::<Vec<_>>()
+    )
+}
+#[test]
+fn policies_fail_closed() {
+    let mut p = plan();
+    p.roles.push(p.roles[0].clone());
+    assert!(p.validate().is_err());
+    assert!(matches!(
+        migrate(0, Expr::Nil),
+        Err(MigrationError::UnsupportedVersion(0))
+    ))
+}
+// conformance: continuity tests prove citizen shapes, codec round-trips, stable hostile replay, and closed policy failure.
 ```
 
 ### `feature/sim-agent-net/loadable-roadmap-command`
