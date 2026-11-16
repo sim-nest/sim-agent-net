@@ -899,6 +899,7 @@ owner = "crate/sim-lib-oauth-http"
 audiences = ["code", "framework"]
 guidance = "Inject a DocumentTransport implemented over sim-lib-net-http, keep ambient credentials/proxies/cookies off, cap documents, disable redirects by default, and inject refresh time."
 claims_anchors = ["anchor/crate/sim-lib-oauth-http"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-oauth-http/src/oauth_tests"]
 depends_on = ["feature/sim-agent-net/oauth-state-machines", "feature/sim-agent-net/oauth-local-jose"]
 
 [[feature]]
