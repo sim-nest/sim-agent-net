@@ -923,6 +923,7 @@ owner = "crate/sim-lib-mcp-legacy"
 audiences = ["code", "framework"]
 guidance = "Compose LegacyConnection only at a boundary serving initialize-era peers. It retains explicit connection facts and constructs a complete RequestContext for each ordinary request before calling sim-lib-mcp; new integrations use McpService directly."
 claims_anchors = ["anchor/crate/sim-lib-mcp-legacy"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-mcp-legacy/src/tests"]
 depends_on = ["feature/sim-agent-net/mcp-server"]
 
 [[feature]]

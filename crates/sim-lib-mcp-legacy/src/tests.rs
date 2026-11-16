@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::*;
 use sim_kernel::testing::bare_cx;
 use sim_lib_mcp::{McpProfile, ServerDescription};
@@ -138,3 +143,4 @@ fn initialize_retains_explicit_version_extension_and_grant_facts() {
     assert!(adapter.negotiated_extensions().contains("sampling"));
     assert_eq!(adapter.requested_grants(), ["tools.call"]);
 }
+// conformance: Legacy MCP tests preserve initialize, initialized, ping, and shutdown, match the stateless service replies, keep an initialized notification reply-free, retain a type error for invalid initialize params, and store the negotiated version, sampling extension, and requested grant.
