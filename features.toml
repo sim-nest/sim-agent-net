@@ -934,6 +934,7 @@ owner = "crate/sim-lib-mcp-client"
 audiences = ["code", "framework"]
 guidance = "Compose Client over the existing sim-lib-mcp-http or sim-lib-mcp-stdio binding through BindingPeer. Use EndpointIdentity without credentials, import the canonical SkillCard projection, and invoke only through McpCallable. Probe server/discover while the era is unknown; accept only pinned binding-specific legacy classification before initialize and never replay an application operation to switch eras. Inject principal scope, InputBroker, ledger, cancellation, deadlines, and persistent cache policy from the host."
 claims_anchors = ["anchor/crate/sim-lib-mcp-client"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-mcp-client/tests/client/connection"]
 depends_on = [
   "feature/sim-agent-net/mcp-streamable-http",
   "feature/sim-agent-net/mcp-legacy-compatibility",
