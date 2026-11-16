@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::*;
 use sim_kernel::{ContentId, Symbol};
 use sim_lib_rank::EmbeddingStore;
@@ -292,3 +297,5 @@ fn tracking_alias_requires_named_evidence() {
     assert_eq!(clusters[0].key, "https://x.test/a?id=1");
     assert_eq!(evidence[0].basis, "tracking-rule:configured-tracking-v1");
 }
+
+// conformance: Federated research tests prove stable completion order, explicit partial failure, evidenced alias clustering, and fenced model text.

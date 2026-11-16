@@ -1358,6 +1358,7 @@ owner = "crate/sim-lib-search-http"
 audiences = ["user", "code", "framework"]
 guidance = "Compose HttpSearchTransport with sim-config, the net/http membrane, the skill registry, and an operator-selected SearchWireCodec. Provider fields, ranking, landing-page fetch, and credentials remain outside the transport."
 claims_anchors = ["anchor/crate/sim-lib-search-http"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-search-http/src/tests"]
 
 [[route]]
 id = "route/add-http-search-site"
@@ -1376,6 +1377,7 @@ owner = "crate/sim-lib-search"
 audiences = ["user", "code", "framework"]
 guidance = "Compose sim-lib-search with skill discovery, provider-neutral search transports, web-fetch, rank, and local EmbeddingIndex implementations. Keep provider wire fields, fetch policy, rank mathematics, codecs, and answer generation in their existing owners."
 claims_anchors = []
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-search/src/tests"]
 
 [[route]]
 id = "route/reproducible-federated-research"
@@ -1397,6 +1399,7 @@ audiences = ["user", "code", "framework"]
 guidance = "Install SearchProduct through SearchCommandLib or its exact Skill Cards. MCP must use the ordinary Skill projection and net/http capability rather than a provider-specific tool or transport."
 claims_anchors = ["anchor/cli/search", "anchor/crate/sim-lib-search", "anchor/export/sim-lib-search/cli/main/search", "anchor/runtime-lib/sim-lib-search/search-command-lib"]
 claims_surfaces = ["cli/search"]
+claims_specimens = ["spec-test/sim-agent-net/crates/sim-lib-search/src/product_tests"]
 depends_on = ["feature/sim-agent-net/reproducible-federated-research", "feature/sim-agent-net/mcp-server"]
 
 [[route]]
