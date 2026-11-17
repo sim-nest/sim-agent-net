@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
+sim-kernel = "0.4.0"
 sha2 = "0.10"
 
 [lints.rust]

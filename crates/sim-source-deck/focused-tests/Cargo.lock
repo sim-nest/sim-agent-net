@@ -22,7 +22,9 @@ dependencies = [
 
 [[package]]
 name = "sim-kernel"
-version = "0.2.1"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3bbd6552b9da9dea42301c9144d57f976b7373d3dac76b9dbb807df0602d4de"
 dependencies = [
  "thiserror",
 ]

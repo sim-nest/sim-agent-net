@@ -22,18 +22,22 @@ dependencies = [
 
 [[package]]
 name = "sim-incremental-core"
-version = "0.1.2"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6848756795ecfeff0b30a7b28ba25dfc42fd04c4a839bdc484f7fe027cd6c0d"
 
 [[package]]
 name = "sim-kernel"
-version = "0.2.1"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3bbd6552b9da9dea42301c9144d57f976b7373d3dac76b9dbb807df0602d4de"
 dependencies = [
  "thiserror",
 ]
 
 [[package]]
 name = "sim-roadmap-core"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "sim-kernel",
  "sim-source-deck",
@@ -52,7 +56,7 @@ dependencies = [
 
 [[package]]
 name = "sim-roadmap-refine"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "sim-kernel",
  "sim-roadmap-core",
@@ -61,7 +65,7 @@ dependencies = [
 
 [[package]]
 name = "sim-source-deck"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sim-kernel",
 ]

@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 #![forbid(unsafe_code)]
 
 // conformance: hostile bounded roadmap execution transitions and recovery.
@@ -7,10 +12,11 @@ mod tests {
     use sim_kernel::{ContentId, Symbol};
     use sim_roadmap_core::{PhaseId, PromiseId};
     use sim_roadmap_exec_core::{
-        admit_model_fallback, admit_retry, reduce, AttemptId, ClassifiedFailure, ExecutionEvent,
-        ExecutionFailure, ExecutionId, ExecutionPolicy, ExecutionPolicyId, FailureClass, FileImage,
+        AttemptId, ClassifiedFailure, ExecutionEvent, ExecutionFailure, ExecutionId,
+        ExecutionPolicy, ExecutionPolicyId, FailureClass, FileImage, ModelFallbackAttempt,
         ModelPickRecord, MutationId, MutationPlan, Observation, PhaseRunState, PromiseDischarge,
         RecoveryPolicy, RetryContext, RetryDecision, RetryRule, StopReason, Transition,
+        admit_model_fallback, admit_retry, reduce,
     };
 
     fn content(byte: u8) -> ContentId {
@@ -140,30 +146,36 @@ mod tests {
                 primary: content(4),
                 compatible_fallbacks: vec![content(5)],
             };
-            assert!(admit_model_fallback(
-                &policy,
-                &pick,
-                ModelFallbackAttempt {
-                    failed_candidate: content(4),
-                    fallback: content(5),
-                    parent: AttemptId::new("parent").unwrap(),
-                    child: AttemptId::new("child").unwrap(),
-                    children_used: 0,
-                    failed_evidence: vec![content(6)],
-                },
-            ).is_some());
-            assert!(admit_model_fallback(
-                &policy,
-                &pick,
-                ModelFallbackAttempt {
-                    failed_candidate: content(4),
-                    fallback: content(9),
-                    parent: AttemptId::new("parent").unwrap(),
-                    child: AttemptId::new("foreign").unwrap(),
-                    children_used: 0,
-                    failed_evidence: vec![],
-                },
-            ).is_none());
+            assert!(
+                admit_model_fallback(
+                    &policy,
+                    &pick,
+                    ModelFallbackAttempt {
+                        failed_candidate: content(4),
+                        fallback: content(5),
+                        parent: AttemptId::new("parent").unwrap(),
+                        child: AttemptId::new("child").unwrap(),
+                        children_used: 0,
+                        failed_evidence: vec![content(6)],
+                    },
+                )
+                .is_some()
+            );
+            assert!(
+                admit_model_fallback(
+                    &policy,
+                    &pick,
+                    ModelFallbackAttempt {
+                        failed_candidate: content(4),
+                        fallback: content(9),
+                        parent: AttemptId::new("parent").unwrap(),
+                        child: AttemptId::new("foreign").unwrap(),
+                        children_used: 0,
+                        failed_evidence: vec![],
+                    },
+                )
+                .is_none()
+            );
         }
     }
 }

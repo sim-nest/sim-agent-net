@@ -297,7 +297,7 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-roadmap-runner"
-version = "0.3.0"
+version = "0.3.4"
 dependencies = [
  "sha2",
  "sim-artifact-facet",
