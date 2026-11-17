@@ -94,9 +94,9 @@ dependencies = [
 
 [[package]]
 name = "sim-citizen"
-version = "0.2.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be0642ec328afcbb0ac615a0f7550846bd1df9f79820de624f45ea640a4a5e5e"
+checksum = "a52c62d3141ddd13e0121af87a92dc6a42f21b2b74328f90cd9d4d94fd71927f"
 dependencies = [
  "inventory",
  "sim-kernel",
@@ -105,9 +105,9 @@ dependencies = [
 
 [[package]]
 name = "sim-citizen-derive"
-version = "0.2.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a1d8410aba0b26fb2e41555aa65ee953c9fdbe6c1c0f3ad9aaefc0542b97dfe"
+checksum = "7c77b848261d3b70e371b2a220121161dc373965278368ce97c2a94085bd4b81"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -117,16 +117,16 @@ dependencies = [
 
 [[package]]
 name = "sim-kernel"
-version = "0.2.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87fec60f730fdf6f3ec3e0d125ef698f317922c6d3161e7cb0c2d1620d213794"
+checksum = "d3bbd6552b9da9dea42301c9144d57f976b7373d3dac76b9dbb807df0602d4de"
 dependencies = [
  "thiserror",
 ]
 
 [[package]]
 name = "sim-roadmap-core"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "sim-kernel",
  "sim-source-deck",
@@ -134,7 +134,7 @@ dependencies = [
 
 [[package]]
 name = "sim-roadmap-exec-core"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",
@@ -153,16 +153,16 @@ dependencies = [
 
 [[package]]
 name = "sim-source-deck"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sim-kernel",
 ]
 
 [[package]]
 name = "sim-value"
-version = "0.2.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5a3ca34efc2b8cd76bf8a99164b12984adffac302f910989acbb0378f20e04f"
+checksum = "f121b454c7419c1857d9370e3b6e81f77c5f91e5c04dfd3c2726c8e15a96996b"
 dependencies = [
  "sim-kernel",
 ]
