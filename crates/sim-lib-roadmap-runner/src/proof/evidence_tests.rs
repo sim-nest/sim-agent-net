@@ -154,6 +154,11 @@ fn revoked_support_and_unknown_revocation_block_reuse() {
     let dependent = catalog.admit_evidence(dependent, current).unwrap();
     assert_ne!(dependent.key, checked.key);
     let support_checker = ids[&EvidenceGrade::Bootstrap].clone();
+    assert_eq!(catalog.issuing_checker(&support.id), Some(&support_checker));
+    assert_eq!(
+        catalog.issuing_checker(&dependent.id),
+        Some(&ids[&EvidenceGrade::Reproducible])
+    );
     let decision = catalog.decide_evidence(&dependent.key, EvidenceGrade::Reproducible, |id| {
         if id == &support_checker {
             RevocationStatus::Revoked
