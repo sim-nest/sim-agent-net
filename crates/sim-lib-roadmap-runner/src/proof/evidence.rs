@@ -202,6 +202,9 @@ impl ProofCatalog {
             if existing.key != key {
                 return Err(ProofError::Invalid("evidence receipt changed".into()));
             }
+            if existing.checker_receipt != record.checker_receipt {
+                return Err(ProofError::Refused("conflicting-evidence-issuer"));
+            }
             return Ok(AdmittedEvidence { id, key, grade });
         }
         self.evidence.insert(id.clone(), record);
