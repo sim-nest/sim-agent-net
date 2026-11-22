@@ -5,7 +5,7 @@
 
 use std::collections::BTreeSet;
 
-use sim_conformance_core::{CheckerReceiptId, EvidenceGrade, RevocationStatus};
+use sim_conformance_core::{CheckerReceipt, CheckerReceiptId, EvidenceGrade, RevocationStatus};
 
 use super::evidence_fixture::{SOURCE, admit, claim, current, graded_catalog, refused, row, sid};
 use super::{EvidenceDecision, discover_definitions};
@@ -67,6 +67,42 @@ fn grade_promotion_keeps_the_key_and_reuses_the_required_grade() {
             receipt: published.id,
         }
     );
+}
+
+#[test]
+fn an_admitted_receipt_keeps_its_exact_issuer() {
+    let (mut catalog, ids) = graded_catalog();
+    let grade = EvidenceGrade::Release;
+    let first = admit(&mut catalog, &ids, grade, "", None);
+    let issuer = &ids[&grade];
+    let retained = catalog.retained_checker(issuer).unwrap();
+    let observed = retained.receipt();
+    let updated = CheckerReceipt::passing(
+        retained.invocation(),
+        observed.result().clone(),
+        grade,
+        observed.provenance().clone(),
+        observed.policy().clone(),
+        sid("support/updated"),
+        RevocationStatus::Current,
+    )
+    .unwrap();
+    let mut repeated = claim(&ids, grade, "", None, vec![], vec![]);
+    repeated.checker_receipt = updated.id().clone();
+    let replacement = crate::RetainedCheckerReceipt::new(
+        retained.binding().clone(),
+        retained.invocation().clone(),
+        updated,
+    );
+    catalog = catalog
+        .with_checker_receipt(replacement, RevocationStatus::Current)
+        .unwrap();
+    assert!(refused(
+        catalog.admit_evidence(repeated, current),
+        "conflicting-evidence-issuer"
+    ));
+    assert_eq!(catalog.issuing_checker(&first.id), Some(issuer));
+    assert_eq!(admit(&mut catalog, &ids, grade, "", None), first);
 }
 
 #[test]
@@ -154,6 +190,11 @@ fn revoked_support_and_unknown_revocation_block_reuse() {
     let dependent = catalog.admit_evidence(dependent, current).unwrap();
     assert_ne!(dependent.key, checked.key);
     let support_checker = ids[&EvidenceGrade::Bootstrap].clone();
+    assert_eq!(catalog.issuing_checker(&support.id), Some(&support_checker));
+    assert_eq!(
+        catalog.issuing_checker(&dependent.id),
+        Some(&ids[&EvidenceGrade::Reproducible])
+    );
     let decision = catalog.decide_evidence(&dependent.key, EvidenceGrade::Reproducible, |id| {
         if id == &support_checker {
             RevocationStatus::Revoked

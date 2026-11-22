@@ -125,6 +125,17 @@ mod discover;
 pub use discover::discover_definitions;
 
 impl ProofCatalog {
+    /// Returns the checker that issued this exact admitted evidence receipt.
+    ///
+    /// Supporting receipts have their own issuers. Currentness and required
+    /// grade are evaluated separately by [`Self::decide_evidence`].
+    #[must_use]
+    pub fn issuing_checker(&self, receipt: &EvidenceReceiptId) -> Option<&CheckerReceiptId> {
+        self.evidence
+            .get(receipt)
+            .map(|record| &record.checker_receipt)
+    }
+
     /// Attaches one immutable receipt to this catalog.
     pub fn admit_evidence<F>(
         &mut self,
@@ -190,6 +201,9 @@ impl ProofCatalog {
         if let Some(existing) = self.evidence.get(&id) {
             if existing.key != key {
                 return Err(ProofError::Invalid("evidence receipt changed".into()));
+            }
+            if existing.checker_receipt != record.checker_receipt {
+                return Err(ProofError::Refused("conflicting-evidence-issuer"));
             }
             return Ok(AdmittedEvidence { id, key, grade });
         }
